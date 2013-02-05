@@ -1,0 +1,36 @@
+If you don't have your SSH key in the GitHub account yet:
+
+cd ~/.ssh
+ls
+--> If id_rsa exists
+mkdir key_backup
+cp id_rsa* key_backup
+rm id_rsa*
+ssh-keygen -t rsa -C "your_email@youremail.com"
+--> Press enter to all prompts
+emacs/vi id_rsa.pub
+--> Go to account settings on the github page (to right hand corner)
+--> Go to SSH-Keys section
+--> Click Add key
+--> Enter any name and then copy and paste the id_rsa.pub values into the ssh-key
+
+Instructions for the first time git repository creation (you won't have to do this):
+Go to github.com and create a new repository.
+git config --global user.name "Jonathan Tompson"
+git config --global user.email tompson@cims.nyu.edu
+mkdir KinectHands
+cd KinectHands
+git init
+git add GitInstructions.txt
+git commit -m 'Started Repository'
+git remote add origin git@github.com:jonathantompson/KinectHands.git
+git push -u origin master
+
+Instructions for pulling onto a new computer:
+
+git clone git@github.com:jonathantompson/KinectHands.git
+cd KinectHands
+git pull
+git add *.*
+git commit -m "My commit text"
+git push -u origin master
