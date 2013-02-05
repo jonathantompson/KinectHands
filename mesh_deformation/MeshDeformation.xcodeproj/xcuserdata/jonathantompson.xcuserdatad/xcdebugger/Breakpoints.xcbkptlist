@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Bucket
+   type = "1"
+   version = "1.0">
+   <FileBreakpoints>
+      <FileBreakpoint
+         shouldBeEnabled = "Yes"
+         ignoreCount = "0"
+         continueAfterRunningActions = "No"
+         filePath = "src/main.cpp"
+         timestampString = "361720825.797326"
+         startingColumnNumber = "9223372036854775807"
+         endingColumnNumber = "9223372036854775807"
+         startingLineNumber = "203"
+         endingLineNumber = "203"
+         landmarkName = "main(int argc, char *argv[])"
+         landmarkType = "7">
+      </FileBreakpoint>
+      <FileBreakpoint
+         shouldBeEnabled = "No"
+         ignoreCount = "0"
+         continueAfterRunningActions = "No"
+         filePath = "src/mesh_simplification/mesh_simplification.cpp"
+         timestampString = "362691824.321282"
+         startingColumnNumber = "9223372036854775807"
+         endingColumnNumber = "9223372036854775807"
+         startingLineNumber = "573"
+         endingLineNumber = "573"
+         landmarkName = "MeshSimplification::wingedEdgeToFaces(Vector&lt;Edge&gt;* we, Vector&lt;Float3&gt;* normals, Vector&lt;Float3&gt;* vertices, Vector&lt;uint32_t&gt;* indices)"
+         landmarkType = "5">
+      </FileBreakpoint>
+   </FileBreakpoints>
+   <SymbolicBreakpoints>
+      <SymbolicBreakpoint
+         shouldBeEnabled = "Yes"
+         ignoreCount = "0"
+         continueAfterRunningActions = "No"
+         symbolName = "malloc_error_break"
+         moduleName = "">
+         <Actions>
+            <BreakpointActionProxy
+               ActionType = "Xcode.BreakpointAction.Sound">
+               <ActionContent
+                  soundName = "Blow">
+               </ActionContent>
+            </BreakpointActionProxy>
+         </Actions>
+      </SymbolicBreakpoint>
+   </SymbolicBreakpoints>
+</Bucket>

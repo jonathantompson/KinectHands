@@ -1,0 +1,88 @@
+Windows 7 - VS 2012 - 64bit
+
+Install a microsoft directx 9 SDK (I installed June 2010)
+http://www.microsoft.com/en-us/download/details.aspx?id=6812
+Note to install the above, I had to uninstall some redistributable packages.
+This can be done from the command line using:
+>> MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}
+>> MsiExec.exe /passive /X{1D8E6291-B0D5-35EC-8441-6616F567A0F7}
+
+Download the boost libraries and extract them to c:\Boost
+(Unfortunately the assimp "boost workaround build" is REALLY slow because
+there is no multi-threading on any of the mesh operations)
+
+http://www.boost.org/users/download/  (I downloaded 1.51)
+
+- In cmd window
+- >> cd c:\Boost\tools\build\v2\
+- >> bootstrap.bat
+- >> bjam install --prefix="c:\Boost"
+- >> cd c:\Boost
+- >> mkdir c:\build-boost
+- >> set PATH=%PATH%;C:\Boost\bin
+- >> bjam --build-dir="c:\build-boost" toolset=msvc --build-type=complete stage
+- The above will take ~1-2 hours
+- Results are in "C:\Boost"\lib"
+
+Download and extract "full" from:
+http://sourceforge.net/projects/assimp/files/assimp-3.0/
+
+- Open CMake GUI.
+- For "where is the source code?:" put c:/.../assimp--3.0.1270-sdk
+- For build path put c:/.../assimp--3.0.1270-sdk/build
+- Press configure --> Choose the latest VS with 64bits
+- Click "Advanced" button
+- Click on Boost_DIR and change it to C:/
+- Note: We are NOT adding VC10_STDINT_FIX flag.  So don't do it!
+- enable BUILD_ASSIMP_SAMPLES
+- Press configure twice.
+- Download Glut64 from http://www.idfun.de/glut64/
+- Copy glut.h and glut.def to assimp--3.0.1270-sdk/include/GL
+- Copy glut32.dll, glut32.lib, glut64.dll, glut64.lib to assimp--3.0.1270-sdk/lib
+- In CMake change GLUT_INCLUDE_DIR to assimp--3.0.1270-sdk/include (by browsing)
+- Choose C:/.../assimp--3.0.1270-sdk/lib/glut64.lib for GLUT_glut_LIBRARY
+- Press configure twice, then generate
+
+Open VS project c:/.../assimp--3.0.1270-sdk/build/Assimp.sln:
+- Change to Release build.
+- Right click on the Solution root in solution explorer and choose build
+- Right click assimp in the solution explorer->properties
+- Configuration Properties -> C/C++ -> Preprocessor
+- Add (AS THE FIRST PREPROCESSOR DEFINITION) "_HAS_ITERATOR_DEBUGGING=0;_SECURE_SCL=0;" 
+  to the front of the preprocessor list and do this for all
+  configurations.
+- Also do this for the projects assimp_cmd, assimple_simpleogl, etc.
+
+/*  // THIS SECTION IS NO LONGER NEEDED
+    Source code fixes:
+    1.
+    #include "pstdint.h" to the TOP of the include list for StringComparison.h
+    2.
+    vertex.h, LWOAnimation.cpp needs a #include <functional>.
+    3.
+    MeshRenderer.cpp needs to have #include <map> moved to the top of the include 
+    list and it needs #include <functional> added.
+    4.
+    Comment out everything in pstdint.h and just leave:
+
+    #ifdef _STDINT
+    #undef _STDINT
+    #endif
+    #include <stdint.h>
+    #include <stddef.h>
+    #include <limits.h>
+    #include <signal.h>
+*/
+
+At this point the assimp core libraries will all build, but if you want the 
+samples then you'll need to change a few things:
+
+- assimpe_simpleogl -> right click and open properties -> Open Linker ->
+  General -> Additional Library Directories.  Add C:/.../assimp--3.0.1270-sdk/lib/
+- Copy assimp--3.0.1270-sdkbuild/code/Release/assimp.dll to 
+  C:\...\assimp--3.0.1270-sdk\build\samples\SimpleOpenGL\Release
+- Run using assimp_simpleogl.exe directly (wont run through VS)
+
+The all-important assimp.dll and .lib file are in 
+assimp--3.0.1270-sdk/build/code/Release/.  The assimp header files are in]
+assimp--3.0.1270-sdk/include/assimp.  Add all these to your project.

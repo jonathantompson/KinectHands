@@ -1,0 +1,72 @@
+./torch --> Run torch
+curl -s https://raw.github.com/clementfarabet/torchinstall/master/install | bash  --> install torch
+
+CIMS server torch:
+1. Edit ~/.bash_profile
+2. Add the following lines:
+   2. a) PATH=$PATH:/usr/local/pkg/torch:/usr/local/pkg/torch/bin:/usr/local/pkg/torch/lib
+   2. b) export PATH
+3. Perform local package installs:
+   3. a) export CC=gcc
+   3. b) export CXX=g++
+   3. c) torch-pkg -l install image optim parallel debugger xlua
+
+browse()  --> opens documentation browser
+require 'nn'  --> Load neural network package
+
+******************************************
+Lua 
+Weakly typed.
+Lua has arrays called 'tables'
+Deletion of a global variable --> Assign it nil
+All variables are global unless specified
+--  --> Comment syntax is double hyphen
+Functions are first-class
+Arrays are 1 based (like Matlab)
+
+x = a
+=x --> Display x content
+a = {1, 2, 3, 4}
+a[3] = "hello"
+print(a)
+=#a  --> Length of a
+
+local i = 1  --> define i to be local
+
+h = {firstname='Paul', lastname='Eluard', age='117'}  --> Hash table!
+=h['age']
+
+function printn (n)
+  local i = n
+  while i > 0 do
+    if (i % 2) == 0 then
+      print(i)
+    end
+    i = i - 1
+  end
+  i = 1
+  for i=1,n,2 do
+    print(i)
+  end
+end
+
+****************************************
+torch
+
+help(torch.rand)  --> Man pages
+torch.rand(  --> double tap = man pages as well
+
+Basic type is the torch.Tensor type.
+
+x=torch.Tensor(5)  --> 1D Vector with 5 elements
+for i=1,5 do x[i]=i; end
+print(x)
+
+x:apply(function(x) return x^2; end)  --> creates lambda function and applys it
+
+To install package (from command line):
+
+/usr/local/bin/torch-pkg list  --> List all avaliable packages.
+/usr/local/bin/torch-pkg install <package>  --> image, optim, parallel, debugger
+
+require 'image'  --> Image load and store functions

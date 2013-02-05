@@ -1,0 +1,1 @@
+java -Xms2048 -Xmx2048 -classpath .:./jars/jna.jar:./jars/zmq.jar:. -Djava.library.path=/usr/local/lib app.GestureTracker

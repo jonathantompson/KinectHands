@@ -1,0 +1,227 @@
+Loaded settings from file 'program_settings_0.csv': 
+    load_forest_from_file = 0
+    num_trees = 4
+    num_workers = 4
+    tree_height = 20
+    min_info_gain = 99999
+    max_pixels_per_image_per_label = 1000
+    num_wl_samples_per_node = 2000
+    max_wl_uv_offset = 32000
+    max_num_images = 20000
+    num_bootstrap_passes = 0
+    bootstrap_tree_height = 20
+    wl_func_type = 0
+
+loading image data from file...
+  --> Total number of files in the database = 2128
+  --> Using 2128 of these files:
+      loading image 1 of 2128
+      loading image 101 of 2128
+      loading image 201 of 2128
+      loading image 301 of 2128
+      loading image 401 of 2128
+      loading image 501 of 2128
+      loading image 601 of 2128
+      loading image 701 of 2128
+      loading image 801 of 2128
+      loading image 901 of 2128
+      loading image 1001 of 2128
+      loading image 1101 of 2128
+      loading image 1201 of 2128
+      loading image 1301 of 2128
+      loading image 1401 of 2128
+      loading image 1501 of 2128
+      loading image 1601 of 2128
+      loading image 1701 of 2128
+      loading image 1801 of 2128
+      loading image 1901 of 2128
+      loading image 2001 of 2128
+      loading image 2101 of 2128
+
+wl_coeffs0 and 1 coeffs = [-8000, -7500, -7000, -6500, -6000, -5500, -5000, -4500, -4000, -3500, -3000, -2500, -2000, -1500, -1000, -500, 0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000]
+
+
+wl_coeffs2 = [-1500, -1000, -750, -500, -250, -100, -75, -50, -25, -15, -12, -10, -8, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 25, 50, 75, 100, 250, 500, 750, 1000, 1500]
+
+wl_funcs = [0, 1]
+
+
+DT#0: initializing occupancy list...
+
+DT#1: initializing occupancy list...
+
+DT#2: initializing occupancy list...
+
+DT#3: initializing occupancy list...
+
+DT#0: Processing node 1 of 1048575 (tree index = 0, height 1 of 20, occp. length = 3373765)
+
+DT#3: Processing node 1 of 1048575 (tree index = 0, height 1 of 20, occp. length = 3373765)
+
+DT#1: Processing node 1 of 1048575 (tree index = 0, height 1 of 20, occp. length = 3373765)
+
+DT#2: Processing node 1 of 1048575 (tree index = 0, height 1 of 20, occp. length = 3373765)
+
+DT#2: Processing node 2 of 1048575 (tree index = 1, height 2 of 20, occp. length = 912420)
+
+DT#3: Processing node 2 of 1048575 (tree index = 1, height 2 of 20, occp. length = 911528)
+
+DT#0: Processing node 2 of 1048575 (tree index = 1, height 2 of 20, occp. length = 712032)
+
+DT#1: Processing node 2 of 1048575 (tree index = 1, height 2 of 20, occp. length = 652121)
+
+DT#0: Processing node 4 of 1048575 (tree index = 3, height 3 of 20, occp. length = 188856)
+
+DT#2: Processing node 4 of 1048575 (tree index = 3, height 3 of 20, occp. length = 140363)
+
+DT#1: Processing node 4 of 1048575 (tree index = 3, height 3 of 20, occp. length = 182604)
+
+DT#3: Processing node 4 of 1048575 (tree index = 3, height 3 of 20, occp. length = 273413)
+
+DT#0: Processing node 8 of 1048575 (tree index = 7, height 4 of 20, occp. length = 111468)
+
+DT#1: Processing node 8 of 1048575 (tree index = 7, height 4 of 20, occp. length = 75274)
+
+DT#2: Processing node 8 of 1048575 (tree index = 7, height 4 of 20, occp. length = 66743)
+
+DT#3: Processing node 8 of 1048575 (tree index = 7, height 4 of 20, occp. length = 113658)
+
+DT#0: Processing node 16 of 1048575 (tree index = 15, height 5 of 20, occp. length = 54248)
+
+DT#2: Processing node 16 of 1048575 (tree index = 15, height 5 of 20, occp. length = 39481)
+
+DT#1: Processing node 16 of 1048575 (tree index = 15, height 5 of 20, occp. length = 56587)
+
+DT#3: Processing node 16 of 1048575 (tree index = 15, height 5 of 20, occp. length = 38130)
+
+DT#0: Processing node 32 of 1048575 (tree index = 31, height 6 of 20, occp. length = 32231)
+
+DT#2: Processing node 32 of 1048575 (tree index = 31, height 6 of 20, occp. length = 27744)
+
+DT#1: Processing node 32 of 1048575 (tree index = 31, height 6 of 20, occp. length = 32681)
+
+DT#3: Processing node 32 of 1048575 (tree index = 31, height 6 of 20, occp. length = 20397)
+
+DT#2: Processing node 64 of 1048575 (tree index = 63, height 7 of 20, occp. length = 5934)
+
+DT#0: Processing node 64 of 1048575 (tree index = 63, height 7 of 20, occp. length = 26519)
+
+DT#1: Processing node 64 of 1048575 (tree index = 63, height 7 of 20, occp. length = 31735)
+
+DT#3: Processing node 64 of 1048575 (tree index = 63, height 7 of 20, occp. length = 18952)
+
+DT#2: Processing node 16510 of 1048575 (tree index = 127, height 8 of 20, occp. length = 5919)
+
+DT#0: Processing node 8319 of 1048575 (tree index = 127, height 8 of 20, occp. length = 23797)
+
+DT#1: Processing node 8319 of 1048575 (tree index = 127, height 8 of 20, occp. length = 25440)
+
+DT#3: Processing node 8319 of 1048575 (tree index = 127, height 8 of 20, occp. length = 10340)
+
+DT#2: Processing node 65776 of 1048575 (tree index = 255, height 9 of 20, occp. length = 4229)
+
+DT#0: Processing node 41206 of 1048575 (tree index = 255, height 9 of 20, occp. length = 18213)
+
+DT#1: Processing node 53491 of 1048575 (tree index = 255, height 9 of 20, occp. length = 22175)
+
+DT#3: Processing node 37111 of 1048575 (tree index = 255, height 9 of 20, occp. length = 824)
+
+DT#2: Processing node 154037 of 1048575 (tree index = 511, height 10 of 20, occp. length = 3973)
+
+DT#0: Processing node 129473 of 1048575 (tree index = 511, height 10 of 20, occp. length = 11511)
+
+DT#1: Processing node 135614 of 1048575 (tree index = 511, height 10 of 20, occp. length = 14351)
+
+DT#3: Processing node 115144 of 1048575 (tree index = 512, height 10 of 20, occp. length = 145)
+
+DT#2: Processing node 292579 of 1048575 (tree index = 1023, height 11 of 20, occp. length = 3942)
+
+DT#0: Processing node 260866 of 1048575 (tree index = 1024, height 11 of 20, occp. length = 253)
+
+DT#1: Processing node 263935 of 1048575 (tree index = 1023, height 11 of 20, occp. length = 9690)
+
+DT#3: Processing node 215854 of 1048575 (tree index = 1025, height 11 of 20, occp. length = 31)
+
+DT#2: Processing node 452750 of 1048575 (tree index = 2047, height 12 of 20, occp. length = 1418)
+
+DT#0: Processing node 415447 of 1048575 (tree index = 2050, height 12 of 20, occp. length = 9)
+
+DT#1: Processing node 415958 of 1048575 (tree index = 2047, height 12 of 20, occp. length = 9650)
+
+DT#3: Processing node 364347 of 1048575 (tree index = 2052, height 12 of 20, occp. length = 13)
+
+DT#2: Processing node 595696 of 1048575 (tree index = 4095, height 13 of 20, occp. length = 1411)
+
+DT#0: Processing node 578866 of 1048575 (tree index = 4102, height 13 of 20, occp. length = 2)
+
+DT#3: Processing node 526336 of 1048575 (tree index = 4105, height 13 of 20, occp. length = 5)
+
+DT#1: Processing node 567391 of 1048575 (tree index = 4096, height 13 of 20, occp. length = 147)
+
+DT#2: Processing node 729425 of 1048575 (tree index = 8192, height 14 of 20, occp. length = 115)
+
+DT#0: Processing node 722059 of 1048575 (tree index = 8213, height 14 of 20, occp. length = 49)
+
+DT#3: Processing node 679641 of 1048575 (tree index = 8258, height 14 of 20, occp. length = 27)
+
+DT#1: Processing node 707073 of 1048575 (tree index = 8194, height 14 of 20, occp. length = 5)
+
+DT#2: Processing node 838786 of 1048575 (tree index = 16386, height 15 of 20, occp. length = 16)
+
+DT#0: Processing node 830281 of 1048575 (tree index = 16427, height 15 of 20, occp. length = 46)
+
+DT#3: Processing node 806467 of 1048575 (tree index = 16517, height 15 of 20, occp. length = 25)
+
+DT#1: Processing node 820453 of 1048575 (tree index = 16400, height 15 of 20, occp. length = 231)
+
+DT#2: Processing node 919120 of 1048575 (tree index = 32773, height 16 of 20, occp. length = 3)
+
+DT#0: Processing node 912796 of 1048575 (tree index = 32856, height 16 of 20, occp. length = 3)
+
+DT#3: Processing node 898195 of 1048575 (tree index = 33036, height 16 of 20, occp. length = 2)
+
+DT#1: Processing node 905604 of 1048575 (tree index = 32801, height 16 of 20, occp. length = 102)
+
+DT#2: Processing node 974941 of 1048575 (tree index = 65950, height 17 of 20, occp. length = 11)
+
+DT#0: Processing node 969001 of 1048575 (tree index = 65995, height 17 of 20, occp. length = 4)
+
+DT#3: Processing node 963466 of 1048575 (tree index = 67615, height 17 of 20, occp. length = 20)
+
+DT#1: Processing node 966286 of 1048575 (tree index = 65603, height 17 of 20, occp. length = 32)
+
+DT#2: Processing node 1009866 of 1048575 (tree index = 136557, height 18 of 20, occp. length = 13)
+
+DT#0: Processing node 1005659 of 1048575 (tree index = 133686, height 18 of 20, occp. length = 4)
+
+DT#3: Processing node 1004217 of 1048575 (tree index = 135231, height 18 of 20, occp. length = 9)
+
+DT#1: Processing node 1004700 of 1048575 (tree index = 131207, height 18 of 20, occp. length = 23)
+
+DT#2: Processing node 1030411 of 1048575 (tree index = 273115, height 19 of 20, occp. length = 8)
+
+DT#0: Processing node 1028275 of 1048575 (tree index = 274222, height 19 of 20, occp. length = 2)
+
+DT#3: Processing node 1028488 of 1048575 (tree index = 270464, height 19 of 20, occp. length = 5)
+
+DT#1: Processing node 1028503 of 1048575 (tree index = 262416, height 19 of 20, occp. length = 4)
+
+DT#2: Tree finished
+
+DT#0: Tree finished
+
+DT#3: Tree finished
+
+DT#1: Tree finished
+
+Saving Forest to file...
+
+Evaluating results...
+1 trees --> error on test set = 6.30411
+1 trees --> error on test set using 2 rad median filter = 3.45166
+2 trees --> error on test set = 5.47375
+2 trees --> error on test set using 2 rad median filter = 2.97932
+3 trees --> error on test set = 4.57253
+3 trees --> error on test set using 2 rad median filter = 3.03852
+4 trees --> error on test set = 4.28503
+4 trees --> error on test set using 2 rad median filter = 2.9385

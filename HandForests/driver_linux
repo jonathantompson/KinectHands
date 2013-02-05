@@ -1,0 +1,4 @@
+#!/bin/bash
+echo running scripts
+./HandForests program_settings_test0.csv | tee results_test0.txt
+./HandForests program_settings_test1.csv | tee results_test1.txt

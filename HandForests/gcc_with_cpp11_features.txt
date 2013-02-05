@@ -1,0 +1,28 @@
+You will need to install gcc 4.7:
+
+sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+sudo apt-get update
+sudo apt-get upgrade
+sudo apt-get install gcc-4.7
+sudo apt-get install g++-4.7 c++-4.7
+
+Then update the default compiler just for the user (not the super user!):
+
+Add the following to ~/.profile or ~/.bash_profile or ~/.bashrc
+PATH=/usr/bin/gcc-4.7:$PATH
+PATH=/usr/bin/g++-4.7:$PATH
+
+--> To test type "g++-4.7 -v" in the console
+
+Then, in QT creator, got to Tools -> Options -> Build & Run -> Add -> GCC
+Then in the manual GCC that comes up add:
+Compiler path: /usr/bin/g++-4.7
+Debugger: /usr/bin/gdb
+
+In the QT creator .pro file (for the project) you will need to add:
+
+QMAKE_CC = g++-4.7
+QMAKE_CXX = g++-4.7
+QMAKE_CXXFLAGS += -std=c++11 -pthread
+QMAKE_CFLAGS += -std=c++11 -pthread
+LIBS += -pthread

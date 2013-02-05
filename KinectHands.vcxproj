@@ -1,0 +1,258 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="HandForests\src\common_tree_funcs.h" />
+    <ClInclude Include="HandForests\src\decision_tree_func.h" />
+    <ClInclude Include="HandForests\src\evaluate_decision_forest.h" />
+    <ClInclude Include="HandForests\src\forest_io.h" />
+    <ClInclude Include="HandForests\src\generate_decision_tree.h" />
+    <ClInclude Include="HandForests\src\hand_detector.h" />
+    <ClInclude Include="HandForests\src\image_util.h" />
+    <ClInclude Include="src\alignment\data_align.h" />
+    <ClInclude Include="src\app\app.h" />
+    <ClInclude Include="src\clock\clock.h" />
+    <ClInclude Include="src\data_str\circular_buffer.h" />
+    <ClInclude Include="src\data_str\hash_funcs.h" />
+    <ClInclude Include="src\data_str\hash_map.h" />
+    <ClInclude Include="src\data_str\hash_set.h" />
+    <ClInclude Include="src\data_str\pair.h" />
+    <ClInclude Include="src\data_str\vector.h" />
+    <ClInclude Include="src\exceptions\wruntime_error.h" />
+    <ClInclude Include="src\fastlz\fastlz.h" />
+    <ClInclude Include="src\file_io\file_io.h" />
+    <ClInclude Include="src\kinect_interface\hand_statistics.h" />
+    <ClInclude Include="src\kinect_interface\kinect_interface.h" />
+    <ClInclude Include="src\math\mat2x2.h" />
+    <ClInclude Include="src\math\mat3x3.h" />
+    <ClInclude Include="src\math\mat4x4.h" />
+    <ClInclude Include="src\math\math_base.h" />
+    <ClInclude Include="src\math\math_types.h" />
+    <ClInclude Include="src\math\plane.h" />
+    <ClInclude Include="src\math\quat.h" />
+    <ClInclude Include="src\math\vec2.h" />
+    <ClInclude Include="src\math\vec3.h" />
+    <ClInclude Include="src\math\vec4.h" />
+    <ClInclude Include="src\rendering\effects.h" />
+    <ClInclude Include="src\rendering\opengl_include.h" />
+    <ClInclude Include="src\shared_memory\shmem.h" />
+    <ClInclude Include="src\string_util\macros.h" />
+    <ClInclude Include="src\string_util\md5.h" />
+    <ClInclude Include="src\string_util\string_util.h" />
+    <ClInclude Include="src\string_util\win32_debug_buffer.h" />
+    <ClInclude Include="src\threading\callback.h" />
+    <ClInclude Include="src\threading\callback_instances.h" />
+    <ClInclude Include="src\threading\callback_queue.h" />
+    <ClInclude Include="src\threading\callback_queue_item.h" />
+    <ClInclude Include="src\threading\thread.h" />
+    <ClInclude Include="src\threading\thread_pool.h" />
+    <ClInclude Include="src\windowing\window_base.h" />
+    <ClInclude Include="src\zmq\bytepipe.h" />
+    <ClInclude Include="src\zmq\z_helpers.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="HandForests\src\common_tree_funcs.cpp" />
+    <ClCompile Include="HandForests\src\evaluate_decision_forest.cpp" />
+    <ClCompile Include="HandForests\src\forest_io.cpp" />
+    <ClCompile Include="HandForests\src\hand_detector.cpp" />
+    <ClCompile Include="src\app\app.cpp" />
+    <ClCompile Include="src\data_str\hash_funcs.cpp" />
+    <ClCompile Include="src\exceptions\wruntime_error.cpp" />
+    <ClCompile Include="src\fastlz\fastlz.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="src\file_io\file_io.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_statistics.cpp" />
+    <ClCompile Include="src\kinect_interface\kinect_interface.cpp" />
+    <ClCompile Include="src\main\main.cpp" />
+    <ClCompile Include="src\math\math_base.cpp" />
+    <ClCompile Include="src\rendering\effects.cpp" />
+    <ClCompile Include="src\shared_memory\shmem.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\string_util\md5c.c" />
+    <ClCompile Include="src\string_util\string_util.cpp" />
+    <ClCompile Include="src\threading\thread.cpp" />
+    <ClCompile Include="src\threading\thread_pool.cpp" />
+    <ClCompile Include="src\windowing\window_win32.cpp" />
+    <ClCompile Include="src\zmq\bytepipe.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\windowing\window_macosx.mm" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCTargetsPath Condition="'$(VCTargetsPath11)' != '' and '$(VSVersion)' == '' and '$(VisualStudioVersion)' == ''">$(VCTargetsPath11)</VCTargetsPath>
+  </PropertyGroup>
+  <PropertyGroup Label="Globals">
+    <RootNamespace>KinectHands</RootNamespace>
+    <ProjectGuid>{79D0741C-016B-409A-1301-9A8A557988E3}</ProjectGuid>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>
+    </CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>
+    </CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)build\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)build\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)build\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)build\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IntDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IntDir>$(SolutionDir)Build\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)include\nite_win7;$(ProjectDir)include\ni_win7;$(ProjectDir)include;$(ProjectDir)include\zmq_win7;$(ProjectDir)include\glut;$(ProjectDir)HandForests\src</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4996;4251;4275</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_DEBUG</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(ProjectDir)lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libzmq.lib;glut32.lib;openNI64.lib;comctl32.lib;XnVCNITE64_1_5_2.lib;XnVFeatures64_1_5_2.lib;XnVHandGenerator64_1_5_2.lib;XnVNITE64_1_5_2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Message>DLL_COPY</Message>
+      <Command>copy $(SolutionDir)lib\libzmq.dll $(SolutionDir)build\$(Configuration)\libzmq.dll
+copy $(SolutionDir)lib\glut32.dll $(SolutionDir)build\$(Configuration)\glut32.dll
+copy $(SolutionDir)lib\OpenNI.dll $(SolutionDir)build\$(Configuration)\OpenNI.dll</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>./HandForests/src;./src;./include;./include/glut;./include/ni_win7;./include/nite_win7;./include/zmq_win7</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>./lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>comctl32.lib;glut64.lib;libzmq.lib;openNI64.lib;XnVCNITE64_1_5_2.lib;XnVFeatures64_1_5_2.lib;XnVHandGenerator64_1_5_2.lib;XnVNITE64_1_5_2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>COPY /Y $(SolutionDir)lib\glut64.dll $(SolutionDir)Build\$(Platform)\$(Configuration)\glut64.dll
+COPY /Y $(SolutionDir)lib\libzmq.dll $(SolutionDir)Build\$(Platform)\$(Configuration)\libzmq.dll
+COPY /Y $(SolutionDir)lib\OpenNI64.dll $(SolutionDir)Build\$(Platform)\$(Configuration)\OpenNI64.dll</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)include\nite_win7;$(ProjectDir)include\ni_win7;$(ProjectDir)include;$(ProjectDir)include\zmq_win7;$(ProjectDir)include\glut;$(ProjectDir)HandForests\src</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4996;4251;4275</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(ProjectDir)lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libzmq.lib;glut32.lib;openNI64.lib;comctl32.lib;XnVCNITE64_1_5_2.lib;XnVFeatures64_1_5_2.lib;XnVHandGenerator64_1_5_2.lib;XnVNITE64_1_5_2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Message>DLL_COPY</Message>
+      <Command>copy $(SolutionDir)lib\libzmq.dll $(SolutionDir)build\$(Configuration)\libzmq.dll
+copy $(SolutionDir)lib\glut32.dll $(SolutionDir)build\$(Configuration)\glut32.dll
+copy $(SolutionDir)lib\OpenNI.dll $(SolutionDir)build\$(Configuration)\OpenNI.dll</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>./HandForests/src;./src;./include;./include/glut;./include/ni_win7;./include/nite_win7;./include/zmq_win7</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>./lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>comctl32.lib;glut64.lib;libzmq.lib;openNI64.lib;XnVCNITE64_1_5_2.lib;XnVFeatures64_1_5_2.lib;XnVHandGenerator64_1_5_2.lib;XnVNITE64_1_5_2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>COPY /Y $(SolutionDir)lib\glut64.dll $(SolutionDir)Build\$(Platform)\$(Configuration)\glut64.dll
+COPY /Y $(SolutionDir)lib\libzmq.dll $(SolutionDir)Build\$(Platform)\$(Configuration)\libzmq.dll
+COPY /Y $(SolutionDir)lib\OpenNI64.dll $(SolutionDir)Build\$(Platform)\$(Configuration)\OpenNI64.dll</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

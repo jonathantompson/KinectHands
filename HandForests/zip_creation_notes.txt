@@ -1,0 +1,14 @@
+first zip into one zip file
+
+>> zip -1 -r hand_depth_data.zip ./hand_depth_data
+
+Then split
+
+>> zip hand_depth_data.zip --out hand_depth_data_split.zip -s 1000m
+
+to combine split zip files in unix (or Mac OS X from command line), use:
+
+zip -FF split_zip_filename.zip --out zip_filename.zip
+
+--> Don't both with "cat split_zip_filename.z* > zip_filename.zip", the zip -FF untility
+will fix up the zip file for you.

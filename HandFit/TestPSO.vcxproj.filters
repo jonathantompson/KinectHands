@@ -1,0 +1,167 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{7ccaf4a7-2f0f-470b-b5d4-9b2487744f0c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\main">
+      <UniqueIdentifier>{d87b7021-a3b4-494b-9854-fe2d997df649}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\alignment">
+      <UniqueIdentifier>{d722986d-0a80-45e0-b57e-28c21c1073ca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\clock">
+      <UniqueIdentifier>{fc5f02d3-b8f6-428d-91e8-5c1446c5f24e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\data_str">
+      <UniqueIdentifier>{64c88618-2077-49b7-9cd0-e3a4aabb1187}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\exceptions">
+      <UniqueIdentifier>{df54c9d8-18f0-4e45-9caa-0d115407e467}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\math">
+      <UniqueIdentifier>{7ae0e51e-34d4-42ab-835b-ff148a26bbe9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\string_util">
+      <UniqueIdentifier>{5aee1289-2578-454a-aaec-85ead1c52a27}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\threading">
+      <UniqueIdentifier>{1f0a061b-3f00-4ed1-bd1e-67aea84ae825}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\data_str\hash_funcs.cpp">
+      <Filter>src\data_str</Filter>
+    </ClCompile>
+    <ClCompile Include="src\exceptions\wruntime_error.cpp">
+      <Filter>src\exceptions</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\math_base.cpp">
+      <Filter>src\math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\string_util\string_util.cpp">
+      <Filter>src\string_util</Filter>
+    </ClCompile>
+    <ClCompile Include="src\threading\thread.cpp">
+      <Filter>src\threading</Filter>
+    </ClCompile>
+    <ClCompile Include="src\threading\thread_pool.cpp">
+      <Filter>src\threading</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\pso_fitting.cpp">
+      <Filter>src\math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\common_fitting.cpp">
+      <Filter>src\math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main\main_test_pso.cpp">
+      <Filter>src\main</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\alignment\data_align.h">
+      <Filter>src\alignment</Filter>
+    </ClInclude>
+    <ClInclude Include="src\clock\clock.h">
+      <Filter>src\clock</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\circular_buffer.h">
+      <Filter>src\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\hash_funcs.h">
+      <Filter>src\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\hash_map.h">
+      <Filter>src\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\hash_map_managed.h">
+      <Filter>src\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\hash_set.h">
+      <Filter>src\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\min_heap.h">
+      <Filter>src\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\pair.h">
+      <Filter>src\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\vector.h">
+      <Filter>src\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\vector_managed.h">
+      <Filter>src\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\exceptions\wruntime_error.h">
+      <Filter>src\exceptions</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\mat2x2.h">
+      <Filter>src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\mat3x3.h">
+      <Filter>src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\mat4x4.h">
+      <Filter>src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\math_base.h">
+      <Filter>src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\math_types.h">
+      <Filter>src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\plane.h">
+      <Filter>src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\quat.h">
+      <Filter>src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\vec2.h">
+      <Filter>src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\vec3.h">
+      <Filter>src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\vec4.h">
+      <Filter>src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\string_util\macros.h">
+      <Filter>src\string_util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\string_util\string_util.h">
+      <Filter>src\string_util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\string_util\win32_debug_buffer.h">
+      <Filter>src\string_util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\threading\callback.h">
+      <Filter>src\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="src\threading\callback_instances.h">
+      <Filter>src\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="src\threading\callback_queue.h">
+      <Filter>src\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="src\threading\callback_queue_item.h">
+      <Filter>src\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="src\threading\thread.h">
+      <Filter>src\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="src\threading\thread_pool.h">
+      <Filter>src\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\pso_fitting.h">
+      <Filter>src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\common_fitting.h">
+      <Filter>src\math</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\threading\callback_instances.py">
+      <Filter>src\threading</Filter>
+    </None>
+  </ItemGroup>
+</Project>

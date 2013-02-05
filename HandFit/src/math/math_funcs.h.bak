@@ -1,0 +1,65 @@
+// File:		math_types.h
+// Author:		Jonathan Tompson
+// e-mail:		jjt2119@columbia.edu or jonathantompson@gmail.com
+
+// Various math types (not commonly used) and some utility functions
+
+#ifndef MATH_FUNCS_H
+#define MATH_FUNCS_H
+
+#include "math\double3.h"
+
+struct D3DXVECTOR3;
+
+double   sqr(double a);
+
+int    argmin(double a[],int n);
+double  Round(double a,double precision);
+double  Interpolate(const double &f0,const double &f1,double alpha) ;
+
+class quaternion;
+class plane;
+
+inline float fabs_fast(float x)    // might be faster
+{
+    int y = (int&)x & 0x7FFFFFFF;
+    return (float&)y;
+};
+inline float fabs_fast2(float g)    // and another one...
+{
+	unsigned int *gg;
+	gg=(unsigned int*)&g;
+	*(gg)&=2147483647u;
+	return g;
+}
+
+//--------- Utility Functions ------
+
+double3  PlaneLineIntersection(const plane &plane, const double3 &p0, const double3 &p1);
+double3  PlaneProject(const plane &plane, const double3 &point);
+double3  LineProject(const double3 &p0, const double3 &p1, const double3 &a);  // projects a onto infinite line p0p1
+double   LineProjectTime(const double3 &p0, const double3 &p1, const double3 &a);
+double3  ThreePlaneIntersection(const plane &p0,const plane &p1, const plane &p2);
+int     PolyHit(const double3 *vert,const int n,const double3 &v0, const double3 &v1, double3 *impact=NULL, double3 *normal=NULL);
+int     BoxInside(const double3 &p,const double3 &bmin, const double3 &bmax) ;
+int     BoxIntersect(const double3 &v0, const double3 &v1, const double3 &bmin, const double3 &bmax, double3 *impact);
+double   DistanceBetweenLines(const double3 &ustart, const double3 &udir, const double3 &vstart, const double3 &vdir, double3 *upoint=NULL, double3 *vpoint=NULL);
+double3  TriNormal(const double3 &v0, const double3 &v1, const double3 &v2);
+double3  NormalOf(const double3 *vert, const int n);
+quaternion VirtualTrackBall(const double3 &cop, const double3 &cor, const double3 &dir0, const double3 &dir1);
+#ifndef UINT
+	typedef unsigned int UINT;
+#endif
+UINT NextPow2(UINT num);
+
+#ifndef _d3d9TYPES_H_
+	struct D3DXVECTOR3;
+#endif
+void SphericalToCartesean(D3DXVECTOR3 * retVal, float r, float phi, float theta );
+
+void CenterOfMass(D3DXVECTOR3 * retVal, const D3DXVECTOR3 * vertices, const int * tris, const int count);
+float AreaTriangle(const D3DXVECTOR3 * p, const D3DXVECTOR3 * q, const D3DXVECTOR3 * r);
+
+float Round(float in);
+
+#endif

@@ -1,0 +1,17 @@
+No Horatio, and not vlgraid1, vlgraid2
+
+Rose are good --> Usually heavily used.
+Texier and Humair --> Same server with Testla
+
+Bud, Miles, Monk, Dizz --> Older machines, not used much. 4-8 cores
+
+ssh tompson@access.cims.nyu.edu
+--> ~/.ssh/known_hosts (may need to delete known rsa key)
+
+Then ssh to iris, or any of the other servers
+
+vlgscratch1 --> Automounted when you cd to them
+
+/scratch --> Temp, local
+
+/mnt/<servername>.# --> Temp, local, more sticky

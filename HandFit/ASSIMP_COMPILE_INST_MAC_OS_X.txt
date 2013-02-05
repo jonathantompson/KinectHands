@@ -1,0 +1,31 @@
+>> sudo port install assimp
+
+This will install a very old version of assimp but will install the 
+dependancies we need.
+
+Download assimp source from:
+http://assimp.sourceforge.net/main_downloads.html
+
+extract and go to a terminal:
+
+assimp--3.0.1270-source-only >> cmake -G 'Unix Makefiles'
+                             >> make
+
+You will get a compile error!
+
+Edit:
+/code/STEPFile.h
+On line 204 change:
+"return e?Couple<T>(db).MustGetObject(*e)->ToPtr<T>():(const T*)0;"
+to
+"return e?Couple<T>(db).MustGetObject(*e)->template ToPtr<T>():(const T*)0;"
+On line 198 change:
+"return Couple<T>(db).MustGetObject(To<EXPRESS::ENTITY>())->To<T>();"
+to
+"return Couple<T>(db).MustGetObject(To<EXPRESS::ENTITY>())->template To<T>();"
+
+Now you will get a linker error, you have to edit CMakeLists.txt:
+Change ASSIMP_SV_REVISION to 1023
+
+The dylib file you need is in :
+/assimp--3.0.1270-source-only/lib/libassimp.3.0.1023.dylib

@@ -1,0 +1,5 @@
+toy_hand_data
+*.log
+hand_depth_data_processed
+results
+hand_depth_data_processed.zip

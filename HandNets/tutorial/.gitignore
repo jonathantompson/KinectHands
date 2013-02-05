@@ -1,0 +1,7 @@
+test_32x32.mat
+train_32x32.mat
+test_32x32.t7
+train_32x32.t7
+results
+mnist-th7
+train-on-mnist/

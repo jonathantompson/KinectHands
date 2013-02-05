@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>SchemeUserState</key>
+	<dict>
+		<key>MeshDeformation.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>0</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>B001BDD015AC734D00F8481F</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>B001BDEF15AC73B000F8481F</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>B0410E76158F6840007B9D82</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>B0410E9A158F6897007B9D82</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>B0410EC0158F6CCB007B9D82</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>B0410ECE158F6D02007B9D82</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+	</dict>
+</dict>
+</plist>

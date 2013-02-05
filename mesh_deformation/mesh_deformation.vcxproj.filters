@@ -1,0 +1,194 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\alignment">
+      <UniqueIdentifier>{a9968702-bc41-4f10-aad6-eab843a2f77e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\camera">
+      <UniqueIdentifier>{eabfd812-20f7-4706-bdc9-b67352a9b111}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\data_str">
+      <UniqueIdentifier>{5e850067-aacd-461b-b2d8-c8370ea4ee2f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\exceptions">
+      <UniqueIdentifier>{419ee788-7ac8-4a86-98fb-deedb261d85d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\file_io">
+      <UniqueIdentifier>{b7e5ecd6-efc8-45ff-a3e6-371128514a29}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\main">
+      <UniqueIdentifier>{fb17c2ca-93cc-4c31-9e2f-da0528ffb055}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\math">
+      <UniqueIdentifier>{7653f6d4-c024-422d-8477-7e25ba0f6070}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\mesh_simplification">
+      <UniqueIdentifier>{8f729074-20c3-4f52-923b-eec4761d7cc2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\string_util">
+      <UniqueIdentifier>{de186dda-2cb7-4f1a-89d3-c5b8a25fe769}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\clock">
+      <UniqueIdentifier>{b860c452-ff2c-4d59-b28f-1a223c9f52b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\contour_simplification">
+      <UniqueIdentifier>{08d62f9e-8727-4387-b6fd-f2211715d8a6}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\alignment\data_align.h">
+      <Filter>Source Files\alignment</Filter>
+    </ClInclude>
+    <ClInclude Include="src\camera\camera.h">
+      <Filter>Source Files\camera</Filter>
+    </ClInclude>
+    <ClInclude Include="src\clock\clock.h">
+      <Filter>Source Files\clock</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\hash_funcs.h">
+      <Filter>Source Files\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\hash_map.h">
+      <Filter>Source Files\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\hash_map_managed.h">
+      <Filter>Source Files\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\hash_set.h">
+      <Filter>Source Files\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\min_heap.h">
+      <Filter>Source Files\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\pair.h">
+      <Filter>Source Files\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\vector.h">
+      <Filter>Source Files\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\vector_managed.h">
+      <Filter>Source Files\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\circular_buffer.h">
+      <Filter>Source Files\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\exceptions\wruntime_error.h">
+      <Filter>Source Files\exceptions</Filter>
+    </ClInclude>
+    <ClInclude Include="src\file_io\file_io.h">
+      <Filter>Source Files\file_io</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\mat3x3.h">
+      <Filter>Source Files\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\mat4x4.h">
+      <Filter>Source Files\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\math_types.h">
+      <Filter>Source Files\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\plane.h">
+      <Filter>Source Files\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\quat.h">
+      <Filter>Source Files\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\vec2.h">
+      <Filter>Source Files\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\vec3.h">
+      <Filter>Source Files\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\vec4.h">
+      <Filter>Source Files\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\mat2x2.h">
+      <Filter>Source Files\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mesh_simplification\mesh_simplification.h">
+      <Filter>Source Files\mesh_simplification</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mesh_simplification\test_plane.h">
+      <Filter>Source Files\mesh_simplification</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mesh_simplification\edge.h">
+      <Filter>Source Files\mesh_simplification</Filter>
+    </ClInclude>
+    <ClInclude Include="src\string_util\string_util.h">
+      <Filter>Source Files\string_util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\string_util\win32_debug_buffer.h">
+      <Filter>Source Files\string_util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\string_util\macros.h">
+      <Filter>Source Files\string_util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mesh_simplification\min_heap_edges.h">
+      <Filter>Source Files\mesh_simplification</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\kinect_funcs.h">
+      <Filter>Source Files\main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\contour_simplification\contour_simplification.h">
+      <Filter>Source Files\contour_simplification</Filter>
+    </ClInclude>
+    <ClInclude Include="src\contour_simplification\contour.h">
+      <Filter>Source Files\contour_simplification</Filter>
+    </ClInclude>
+    <ClInclude Include=".\src\contour_simplification\min_heap_contours.h">
+      <Filter>Source Files\contour_simplification</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\camera\camera.cpp">
+      <Filter>Source Files\camera</Filter>
+    </ClCompile>
+    <ClCompile Include="src\data_str\hash_funcs.cpp">
+      <Filter>Source Files\data_str</Filter>
+    </ClCompile>
+    <ClCompile Include="src\exceptions\wruntime_error.cpp">
+      <Filter>Source Files\exceptions</Filter>
+    </ClCompile>
+    <ClCompile Include="src\file_io\file_io.cpp">
+      <Filter>Source Files\file_io</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main\main.cpp">
+      <Filter>Source Files\main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\mesh_simplification\mesh_simplification.cpp">
+      <Filter>Source Files\mesh_simplification</Filter>
+    </ClCompile>
+    <ClCompile Include="src\mesh_simplification\test_plane.cpp">
+      <Filter>Source Files\mesh_simplification</Filter>
+    </ClCompile>
+    <ClCompile Include="src\mesh_simplification\edge.cpp">
+      <Filter>Source Files\mesh_simplification</Filter>
+    </ClCompile>
+    <ClCompile Include="src\string_util\string_util.cpp">
+      <Filter>Source Files\string_util</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main\kinect_funcs.cpp">
+      <Filter>Source Files\main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\contour_simplification\contour.cpp">
+      <Filter>Source Files\contour_simplification</Filter>
+    </ClCompile>
+    <ClCompile Include="src\contour_simplification\contour_simplification.cpp">
+      <Filter>Source Files\contour_simplification</Filter>
+    </ClCompile>
+    <ClCompile Include="src\contour_simplification\min_heap_contours.cpp">
+      <Filter>Source Files\contour_simplification</Filter>
+    </ClCompile>
+    <ClCompile Include="src\mesh_simplification\min_heap_edges.cpp">
+      <Filter>Source Files\mesh_simplification</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

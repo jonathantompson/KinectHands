@@ -1,0 +1,13 @@
+*.sdf
+*.vsp
+*.opensdf
+Debug
+Release
+hand_depth_data
+forest_data*.bin
+~*
+build_debug
+build_release
+*.exe
+glut64.dll
+*.dll
