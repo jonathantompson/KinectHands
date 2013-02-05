@@ -48,7 +48,7 @@
 // 3 -> Finished (4 partially finished)
 //#define IM_DIR_BASE string("hand_data/both_hands/set03/") 
 
-#define IM_DIR_BASE string("/hand_depth_data/") 
+#define IM_DIR_BASE string("/data/hand_depth_data/") 
 
 #if defined(__APPLE__)
   #define IM_DIR string("../../../../../../../../../") + IM_DIR_BASE

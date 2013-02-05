@@ -49,8 +49,8 @@
 // 3 -> Finished (4 partially finished)
 //#define IM_DIR_BASE string("hand_data/both_hands/set03/") 
 
-#define IM_DIR_BASE string("/hand_depth_data/") 
-#define DST_IM_DIR_BASE string("/hand_depth_data_processed/") 
+#define IM_DIR_BASE string("/data/hand_depth_data/") 
+#define DST_IM_DIR_BASE string("/data/hand_depth_data_processed/") 
 #define HAND_SIZE_PIXELS 192
 
 #define DOWNSAMPLE_FACT 1  // only 1 or 2 is supported (1 = no downsample)
