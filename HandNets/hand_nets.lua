@@ -298,8 +298,8 @@ if (perform_training == 1) then
     nstates = {16,128,529}
   end
   lpooling = {2, 2}
-  filtsize = {5,7}
-  poolsize = {2, 4}
+  filtsize = {9,7}
+  poolsize = {4, 4}
   fanin = {4}
   normkernel = image.gaussian1D(7)
 
