@@ -51,7 +51,8 @@ void loadForest(DecisionTree** forest, uint32_t* num_trees,
   std::ifstream in_file(filename.c_str(), 
     std::ios::in | std::ios::binary);
   if (!in_file.is_open()) {
-    throw std::runtime_error("loadForest() error opening file.");
+    throw std::runtime_error("loadForest() error opening file (did you forget"
+      " to unzip the .bin.zip file in the root directory?).");
   }
 
   in_file.read(reinterpret_cast<char*>(num_trees), 

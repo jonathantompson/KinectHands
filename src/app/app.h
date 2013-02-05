@@ -44,6 +44,7 @@ namespace app {
     MENU_ID_STORE_CALIBRATION_DATA,
     MENU_ID_RENDER_DATA_ON_OFF,
     MENU_ID_TRACK_SKELETON_ON_OFF,
+    MENU_ID_FIND_HAND_POINTS,
     MENU_ID_CALCULATE_HAND_STATISTICS,
     MENU_ID_RESET_TRACKING,
     MENU_ID_RESET_KINECT,
@@ -147,6 +148,7 @@ namespace app {
     bool kinect_status_;
     std::string kinect_status_str_;
     std::mutex kinect_status_lock_;
+    bool find_hand_points_;
     bool calculate_hand_statistics_;
     std::thread kinect_thread_;
     const static std::string hand_data_filename_;

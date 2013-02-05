@@ -96,7 +96,8 @@ namespace app {
     static std::string str("Looking for Kinect...");
     setKinectStatusStr(str);
     snprintf(fps_string_, sizeof(fps_string_), "");
-    calculate_hand_statistics_ = true;
+    find_hand_points_ = true;
+    calculate_hand_statistics_ = false;
     tracking_skeleton_ = false;
     snapshot_timer_ = 0;
     shutdown_requested_ = false;
@@ -106,8 +107,9 @@ namespace app {
     hands_mask = NULL;
       
     // HAND FIT TRAINING DATA SETTINGS
-    tracking_skeleton_ = true;
-    calculate_hand_statistics_ = false;
+    //tracking_skeleton_ = true;
+    //calculate_hand_statistics_ = false;
+    //find_hand_points_ = false;
   }
   
   App::~App() {
@@ -224,6 +226,8 @@ namespace app {
     glutAddMenuEntry("Track skeleton ON / OFF", MENU_ID_TRACK_SKELETON_ON_OFF);
     glutAddMenuEntry("Reset tracking", MENU_ID_RESET_TRACKING);
     glutAddMenuEntry("Reset Kinect", MENU_ID_RESET_KINECT);
+    glutAddMenuEntry("Find hand points ON/OFF", 
+                     MENU_ID_CALCULATE_HAND_STATISTICS);
     glutAddMenuEntry("Calculate hand statistics ON/OFF", 
                      MENU_ID_CALCULATE_HAND_STATISTICS);
     glutAddMenuEntry("-----------------------------------------", 
@@ -521,10 +525,13 @@ namespace app {
         g_app->tracking_skeleton_ = !g_app->tracking_skeleton_;
         g_app->kinect_->ResetTracking(g_app->tracking_skeleton_);
         break;
+      case MENU_ID_FIND_HAND_POINTS:
+        g_app->find_hand_points_ = !g_app->find_hand_points_;
+        g_app->kinect_->setCalculateHandPoints(g_app->find_hand_points_);
+        break;
       case MENU_ID_CALCULATE_HAND_STATISTICS:
         g_app->calculate_hand_statistics_ = !g_app->calculate_hand_statistics_;
         g_app->kinect_->setCalculateHandStatistics(g_app->calculate_hand_statistics_);
-        g_app->kinect_->setCalculateHandPoints(g_app->calculate_hand_statistics_);
         break;
       case MENU_ID_RESET_TRACKING:
         g_app->renderBlackScreenWithText(reset_txt);
@@ -918,8 +925,8 @@ namespace app {
     }
 
     kinect_->drawHandStatistics(render_hand_points_, 
-                                render_bounding_box_points_,
-                                render_finger_points_);
+      render_bounding_box_points_ && calculate_hand_statistics_,
+      render_finger_points_ && calculate_hand_statistics_);
     
     glPopMatrix();  // Pop to 3 mirrored, pop to 2 otherwise
     
@@ -995,7 +1002,7 @@ namespace app {
     g_app->setKinectStatusStr(ok_str);
     g_app->setKinectStatus(true);
     g_app->kinect_->setCalculateHandStatistics(g_app->calculate_hand_statistics_);
-    g_app->kinect_->setCalculateHandPoints(g_app->calculate_hand_statistics_);
+    g_app->kinect_->setCalculateHandPoints(g_app->find_hand_points_);
   }
   
   void App::initGLState(void) {
