@@ -13,10 +13,10 @@ torch. setnumthreads(4)
 -- Loss function is negative log-likelihood
 --  you can run from ide: <dofile 'hand_nets.lua'>
 
-width = 96
-height = 96
+width = 192
+height = 192
 dim = width * height
-frame_skip = 2  -- We don't need every file of the 30fps, so just grab a few
+frame_skip = 4  -- We don't need every file of the 30fps, so just grab a few
 test_data_rate = 5  -- this means 1 / 5 will be test data
 num_coeff = 26  -- Keep this at 26!
 num_learned_coeff = 23
@@ -27,6 +27,7 @@ model_filename = 'handmodel'
 loss = 0  -- 0 = abs, 1 = mse
 fullsize = 1  -- 0 = small, 1 = mid, 2 = big convnet
 im_dir = "./hand_depth_data_processed/"
+visualize_data = 0
 
 -- ************ Create a filename ***************
 if (num_learned_coeff == 23) then
@@ -243,22 +244,24 @@ end
 
 -- ************ Visualize one of the depth data samples ***************
 print '==> Visualizing some data samples'
-n_images = math.min(trainData.size(), 36)
-im = {
-  data = trainData.data[{{1,n_images}, {}, {}, {}}]
-}
-im.data = im.data:double()
--- image.display{image=im.data, padding=2, zoom=1, scaleeach=false}
--- image.display(im.data[{1,{},{}}])
+if (visualize_data == 1) then
+  n_images = math.min(trainData.size(), 36)
+  im = {
+    data = trainData.data[{{1,n_images}, {}, {}, {}}]
+  }
+  im.data = im.data:double()
+  image.display{image=im.data, padding=2, zoom=1, scaleeach=false}
+  -- image.display(im.data[{1,{},{}}])
 
-n_images = math.min(testData.size(), 36)
-im = {
-  data = testData.data[{{1,n_images}, {}, {}, {}}]
-}
-im.data = im.data:double()
--- image.display{image=im.data, padding=2, zoom=1, scaleeach=false}
--- image.display(im.data[{1,{},{}}])
-im = nil
+  n_images = math.min(testData.size(), 36)
+  im = {
+    data = testData.data[{{1,n_images}, {}, {}, {}}]
+  }
+  im.data = im.data:double()
+  image.display{image=im.data, padding=2, zoom=1, scaleeach=false}
+  -- image.display(im.data[{1,{},{}}])
+  im = nil
+end
 
 -- ********************** Define loss function **********************
 print '==> defining loss function'
