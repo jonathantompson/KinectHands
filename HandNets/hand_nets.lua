@@ -18,8 +18,8 @@ height = 192
 dim = width * height
 frame_skip = 4  -- We don't need every file of the 30fps, so just grab a few
 test_data_rate = 5  -- this means 1 / 5 will be test data
-num_coeff = 26  -- Keep this at 26!
-num_learned_coeff = 23
+num_coeff = 25  -- Keep this at 25!
+num_learned_coeff = 25
 background_depth = 2000
 perform_training = 1
 nonlinear = 0  -- 0 = tanh, 1 = SoftShrink
@@ -30,7 +30,7 @@ im_dir = "./hand_depth_data_processed/"
 visualize_data = 0
 
 -- ************ Create a filename ***************
-if (num_learned_coeff == 23) then
+if (num_learned_coeff == 25) then
   model_filename = model_filename .. '_fullcoeffs'
 end
 if (nonlinear == 0) then
@@ -131,7 +131,7 @@ for i=1,nfiles do
       trainData.data[{itr, 1, {}, {}}] = torch.FloatTensor(depth_data, 1, 
         torch.LongStorage{height, width})
       trainData.labels[{itr, {}}] = torch.FloatTensor(coeff_data, 
-        4,  -- skip the position coeffs
+        num_coeff - num_learned_coeff + 1,
         torch.LongStorage{num_learned_coeff}):double()
       itr = itr + 1
     end
@@ -141,7 +141,7 @@ for i=1,nfiles do
       testData.data[{ite, 1, {}, {}}] = torch.FloatTensor(depth_data, 1, 
         torch.LongStorage{height, width})
       testData.labels[{ite, {}}] = torch.FloatTensor(coeff_data, 
-        4,  -- skip the position coeffs
+        num_coeff - num_learned_coeff + 1,
         torch.LongStorage{num_learned_coeff}):double()
       ite = ite + 1
     end
@@ -583,7 +583,7 @@ else  -- if perform_training
   te_abs_crit_error = torch.FloatTensor(testData:size())
   te_mse_crit_error = torch.FloatTensor(testData:size())
   for t=1,testData:size(),1 do
-    xlua.progress(i, testData:size())
+    xlua.progress(t, testData:size())
     -- print(string.format('%d of %d', t, testData:size()))
     -- get new sample
     data_pt = {
@@ -613,7 +613,7 @@ else  -- if perform_training
   tr_abs_crit_error = torch.FloatTensor(trainData:size())
   tr_mse_crit_error = torch.FloatTensor(trainData:size())
   for t=1,trainData:size(),1 do
-    xlua.progress(i, trainData:size())
+    xlua.progress(t, trainData:size())
     -- print(string.format('%d of %d', t, trainData:size()))
     -- get new sample
     data_pt = {
@@ -674,4 +674,9 @@ else  -- if perform_training
   print(te_abs_crit_error[{{1,math.floor(0.8*testData:size())}}]:mean())
   print 'Average Test Set Error Value top 80% (mse):'
   print(te_mse_crit_error[{{1,math.floor(0.8*testData:size())}}]:mean())
+
+  print 'All values in groups of 5 (for copy and paste)'
+  print(string.format('%.10f, %.10f, %.10f, %.10f, %.10f', tr_abs_crit_error:mean(), tr_mse_crit_error:mean(), te_abs_crit_error:mean(), te_mse_crit_error:mean(), tr_abs_crit_error[{{1,math.floor(0.2*trainData:size())}}]:mean()))
+  print(string.format('%.10f, %.10f, %.10f, %.10f, %.10f', tr_mse_crit_error[{{1,math.floor(0.2*trainData:size())}}]:mean(), te_abs_crit_error[{{1,math.floor(0.2*testData:size())}}]:mean(), te_mse_crit_error[{{1,math.floor(0.2*testData:size())}}]:mean(), tr_abs_crit_error[{{1,math.floor(0.8*trainData:size())}}]:mean(), tr_mse_crit_error[{{1,math.floor(0.8*trainData:size())}}]:mean()))
+  print(string.format('%.10f, %.10f', te_abs_crit_error[{{1,math.floor(0.8*testData:size())}}]:mean(), te_mse_crit_error[{{1,math.floor(0.8*testData:size())}}]:mean()))
 end
