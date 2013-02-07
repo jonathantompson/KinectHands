@@ -28,6 +28,7 @@ loss = 0  -- 0 = abs, 1 = mse
 fullsize = 1  -- 0 = small, 1 = mid, 2 = big convnet
 im_dir = "./hand_depth_data_processed/"
 visualize_data = 0
+pooling = 4
 
 -- ************ Create a filename ***************
 if (num_learned_coeff == 25) then
@@ -50,6 +51,7 @@ elseif (fullsize == 1) then
 else
   model_filename = model_filename .. '_big'
 end
+model_filename = model_filename .. string.format("_L%dPooling", pooling)
 
 model_filename = model_filename .. '.net'
 
@@ -297,7 +299,6 @@ if (perform_training == 1) then
   else 
     nstates = {16,128,529}
   end
-  lpooling = {2, 2}
   filtsize = {9,7}
   poolsize = {4, 4}
   fanin = {4}
@@ -323,27 +324,27 @@ if (perform_training == 1) then
   print("Starting Tensor Dimensions:")
   print(tensor_dim)
 
-  -- stage 1 : filter bank -> squashing -> L2 pooling -> normalization
+  -- stage 1 : filter bank -> squashing -> LN pooling -> normalization
   model:add(nn.SpatialConvolutionMap(nn.tables.full(nfeats, nstates[1]), filtsize[1], filtsize[1]))
   if (nonlinear == 1) then 
     model:add(nn.SoftShrink())
   elseif (nonlinear == 0) then
     model:add(nn.Tanh())
   end
-  model:add(nn.SpatialLPPooling(nstates[1], lpooling[1], poolsize[1], poolsize[1], poolsize[1], poolsize[1]))
+  model:add(nn.SpatialLPPooling(nstates[1], pooling, poolsize[1], poolsize[1], poolsize[1], poolsize[1]))
   model:add(nn.SpatialSubtractiveNormalization(nstates[1], normkernel))
   tensor_dim = {nstates[1], (tensor_dim[2] - filtsize[1] + 1) / poolsize[1], (tensor_dim[3] - filtsize[1] + 1) / poolsize[1]}
   print("Tensor Dimensions after stage 1:")
   print(tensor_dim)
 
-  -- stage 2 : filter bank -> squashing -> L2 pooling -> normalization
+  -- stage 2 : filter bank -> squashing -> LN pooling -> normalization
   model:add(nn.SpatialConvolutionMap(nn.tables.random(nstates[1], nstates[2], fanin[1]), filtsize[2], filtsize[2]))
   if (nonlinear == 1) then 
     model:add(nn.SoftShrink())
   elseif (nonlinear == 0) then
     model:add(nn.Tanh())
   end
-  model:add(nn.SpatialLPPooling(nstates[2], lpooling[2], poolsize[2], poolsize[2], poolsize[2], poolsize[2]))
+  model:add(nn.SpatialLPPooling(nstates[2], pooling, poolsize[2], poolsize[2], poolsize[2], poolsize[2]))
   model:add(nn.SpatialSubtractiveNormalization(nstates[2], normkernel))
   tensor_dim = {nstates[2], (tensor_dim[2] - filtsize[2] + 1) / poolsize[2], (tensor_dim[3] - filtsize[2] + 1) / poolsize[2]}
   print("Tensor Dimensions after stage 2:")
