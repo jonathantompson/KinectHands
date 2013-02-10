@@ -54,9 +54,9 @@ namespace hand_net {
 
     uint32_t i = 0;
     uint32_t n_print = std::min<int32_t>(n_outputs_ * n_inputs_, 
-      MAX_PRINT_LENGTH);
+      NN_MAX_PRINT_LENGTH);
     std::cout.setf(0, std::ios::showpos);
-    std::cout << "  weights_[] =" << std::endl;
+    std::cout << "  weights_ =" << std::endl;
     for (int32_t v = 0; v < n_outputs_ && i < n_print; v++) {
       if (v == 0) {
         std::cout << "    (0,0) ";
@@ -77,6 +77,10 @@ namespace hand_net {
 
     std::cout << std::endl;
     std::cout << std::resetiosflags(std::ios_base::showpos);
+  }
+
+  int32_t NNStage::dataSizeReq() const {
+    return n_inputs_ * n_outputs_;
   }
 
 }  // namespace hand_model

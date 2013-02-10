@@ -42,6 +42,16 @@ namespace hand_net {
 
     void loadFromFile(std::ifstream& file);
     void printToStdOut() const;
+    // Calculate the temp data size requirement: 
+    const int32_t dataSizeReq(int32_t inw, int32_t inh) const;  
+
+    const int32_t filt_width() const { return filt_width_; }
+    const int32_t filt_height() const { return filt_height_; }
+    const int32_t pool_size() const { return pool_size_; }
+    const int32_t n_output_features() const { return n_output_features_; }
+
+    const int32_t calc_out_im_width(int32_t inw) const;
+    const int32_t calc_out_im_height(int32_t inh) const;
 
   private:
     int32_t filt_width_;

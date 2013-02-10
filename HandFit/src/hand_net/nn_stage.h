@@ -12,7 +12,7 @@
 #include <fstream>
 #include "math/math_types.h"
 
-#define MAX_PRINT_LENGTH 10
+#define NN_MAX_PRINT_LENGTH 10
 
 namespace hand_net {
 
@@ -30,6 +30,10 @@ namespace hand_net {
 
     void loadFromFile(std::ifstream& file);
     void printToStdOut() const;
+    int32_t dataSizeReq() const;  // Calculate the temp data size requirement
+
+    const int32_t n_inputs() const { return n_inputs_; }
+    const int32_t n_outputs() const { return n_outputs_; }
 
   private:
     int32_t n_inputs_;

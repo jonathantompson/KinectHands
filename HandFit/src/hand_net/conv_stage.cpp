@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <fstream>
 #include "hand_net/conv_stage.h"
+#include "exceptions/wruntime_error.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 
@@ -143,6 +144,25 @@ namespace hand_net {
 
     std::cout << std::endl;
     std::cout << std::resetiosflags(std::ios_base::showpos);
+  }
+
+  const int32_t ConvStage::dataSizeReq(int32_t inw, int32_t inh) const {
+    // input size requirement
+    int32_t in_req = inw * inh * n_input_features_;
+    // calculate intermediate image size
+    int32_t out_req = (inw - filt_width_ + 1) * (inh - filt_height_ + 1) * 
+      n_output_features_;
+    // The downsampled image is only less than this, so we don't need to worry
+    // about it.
+    return std::max<int32_t>(in_req, out_req);
+  }
+
+  const int32_t ConvStage::calc_out_im_width(int32_t inw) const {
+    return (inw - filt_width_ + 1) / pool_size_;
+  }
+
+  const int32_t ConvStage::calc_out_im_height(int32_t inh) const {
+    return (inh - filt_height_ + 1) / pool_size_;
   }
 
 }  // namespace hand_model
