@@ -1,9 +1,12 @@
 clearvars; clc; close all;
 
-dir = '../hand_depth_data_processed/';
+dir = '../data/hand_depth_data_processed/';
 images = ls([dir, 'hands*']);
 
-TRAINING_IM_SIZE = 192;
+HAND_IM_SIZE = 192;
+DOWNSAMPLE_FACTOR = 3;
+
+TRAINING_IM_SIZE = HAND_IM_SIZE / DOWNSAMPLE_FACTOR;
 NUM_COEFF = 25;
 num_images = length(images(:,1));
 coeffs = zeros(num_images, NUM_COEFF);
@@ -21,6 +24,9 @@ end
 % Now plot them
 disp('Rendering frames at 30fps');
 figure;
+wnd_size = 600;
+mag = (wnd_size / TRAINING_IM_SIZE) * 100;
+set(gcf, 'Position', [200 200 wnd_size wnd_size]);
 min_val = min(min(min(im_data)));
 max_val = max(max(max(im_data)));
 tic;
@@ -28,7 +34,8 @@ frame_rate = 30;
 frame_time = 1 / frame_rate;
 for i = 1:num_images
   % Rescale between 0 and 1
-  imshow(squeeze((im_data(i, :, :) - min_val)/(max_val - min_val)));
+  imshow(squeeze((im_data(i, :, :) - min_val)/(max_val - min_val)),...
+    'InitialMagnification', mag);
   drawnow();
   time = toc;
   if (time < frame_time)

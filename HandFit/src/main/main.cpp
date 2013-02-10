@@ -35,6 +35,7 @@
 #include "hand_model/hand_model_geometry.h"
 #include "hand_model/hand_model_renderer.h"
 #include "hand_model/hand_model_fit.h"
+#include "hand_net/hand_net.h"
 #include "depth_images_io.h"
 #include "open_ni_funcs.h"
 #include "renderer/gl_state.h"
@@ -51,9 +52,11 @@
 #define IM_DIR_BASE string("/data/hand_depth_data/") 
 
 #if defined(__APPLE__)
-  #define IM_DIR string("../../../../../../../../../") + IM_DIR_BASE
+  #define IM_DIR string("./../../../../../../../../../") + IM_DIR_BASE
+  #define CONVNET_FILE string("./../../../../../../../../../data/handmodel_fullcoeffs_tanh_abs_mid_L4Pooling.net.convnet")
 #else
   #define IM_DIR string("./../") + IM_DIR_BASE
+  #define CONVNET_FILE string("./../data/handmodel_fullcoeffs_tanh_abs_mid_L4Pooling.net.convnet")
 #endif
 const bool fit_left = false;
 const bool fit_right = true; 
@@ -71,6 +74,7 @@ using hand_model::HandModelFit;
 using hand_model::HandModelRenderer;
 using hand_model::HandModelGeometry;
 using hand_model::HandCoeff;
+using hand_net::HandNet;
 using renderer::Renderer;
 using renderer::Geometry;
 using renderer::GeometryManager;
@@ -127,6 +131,9 @@ float temp_rgb[3 * src_dim];
 bool render_depth = true;
 int playback_step = 1;
 
+// Convolutional Neural Networ
+HandNet* convnet = NULL;
+
 void quit() {
   delete image_io;
   delete clk;
@@ -148,6 +155,7 @@ void quit() {
   GLState::shutdownGLState();
   delete wnd;
   delete geometry_points;
+  delete convnet;
   Window::killWindowSystem();
   exit(0);
 }
@@ -661,6 +669,9 @@ int main(int argc, char *argv[]) {
     
     // Create the window
     wnd = new Window(settings);
+
+    // Load the convnet from file
+    convnet = new HandNet(CONVNET_FILE);
     
     // Create an instance of the renderer
     math::FloatQuat eye_rot; eye_rot.identity();

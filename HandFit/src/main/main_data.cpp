@@ -53,7 +53,7 @@
 #define DST_IM_DIR_BASE string("/data/hand_depth_data_processed/") 
 #define HAND_SIZE_PIXELS 192
 
-#define DOWNSAMPLE_FACT 1  // only 1 or 2 is supported (1 = no downsample)
+#define DOWNSAMPLE_FACT 3
 
 #define TRAINING_IM_SIZE (HAND_SIZE_PIXELS / DOWNSAMPLE_FACT)
 #define FILE_SKIP 3
@@ -61,6 +61,7 @@
 #if defined(__APPLE__)
   #define IM_DIR string("../../../../../../../../../") + IM_DIR_BASE
   #define DST_IM_DIR string("../../../../../../../../../") + DST_IM_DIR_BASE
+
 #else
   #define IM_DIR string("./../") + IM_DIR_BASE
   #define DST_IM_DIR string("./../") + DST_IM_DIR_BASE
@@ -120,8 +121,10 @@ Eigen::MatrixXf coeffs;
 float synthetic_depth[src_dim];
 int16_t synthetic_depth_int16[src_dim];
 float synthetic_image_xyz[src_dim*3];
-float cropped_depth[DOWNSAMPLE_FACT * DOWNSAMPLE_FACT * TRAINING_IM_SIZE * TRAINING_IM_SIZE];
-float cropped_downs_depth[DOWNSAMPLE_FACT * DOWNSAMPLE_FACT * TRAINING_IM_SIZE * TRAINING_IM_SIZE];
+float cropped_depth[HAND_SIZE_PIXELS * HAND_SIZE_PIXELS];
+float cropped_downs_depth[HAND_SIZE_PIXELS * HAND_SIZE_PIXELS];
+float cropped_xyz[3 * HAND_SIZE_PIXELS * HAND_SIZE_PIXELS];
+float cropped_downs_xyz[3 * HAND_SIZE_PIXELS * HAND_SIZE_PIXELS];
 
 // Kinect Image data
 DepthImagesIO* image_io = NULL;
@@ -247,6 +250,15 @@ int main(int argc, char *argv[]) {
     r_hand = new HandModel(hand_model::HandType::RIGHT);
     l_hand = new HandModel(hand_model::HandType::LEFT);
 
+    if (TRAINING_IM_SIZE * DOWNSAMPLE_FACT != HAND_SIZE_PIXELS) {
+      throw std::wruntime_error("ERROR: training image size is not an integer"
+        " multiple of the total hand size.");
+    } else {
+      std::cout << "Using a cropped source image of " << HAND_SIZE_PIXELS;
+      std::cout << std::endl << "Final image size after processing is ";
+      std::cout << (TRAINING_IM_SIZE) << std::endl;
+    }
+
     // Iterate through, saving each of the data points
     HandModel* hands[2];
     for (uint32_t i = 0; i < im_files.size(); i += FILE_SKIP) {
@@ -296,14 +308,10 @@ int main(int argc, char *argv[]) {
 
       DepthImagesIO::convertSingleImageToXYZ(synthetic_image_xyz, synthetic_depth_int16);
 
-      float running_sum = 0;
-      float running_sum_sq = 0;
+      // Find the COM in pixel space so we can crop the image.
       uint32_t cnt = 0;
       uint32_t u_com = 0;
       uint32_t v_com = 0;
-      float x_com = 0;
-      float y_com = 0;
-      float z_com = 0;
       for (uint32_t v = 0; v < src_height; v++) {
         for (uint32_t u = 0; u < src_width; u++) {
           uint32_t src_index = v * src_width + u;
@@ -311,72 +319,121 @@ int main(int argc, char *argv[]) {
             u_com += u;
             v_com += v;
             cnt++;
-            running_sum += (float)synthetic_depth[src_index];
-            running_sum_sq += ((float)synthetic_depth[src_index] *
-              (float)synthetic_depth[v * src_width + u]);
-            x_com += synthetic_image_xyz[src_index * 3];
-            y_com += synthetic_image_xyz[src_index * 3 + 1];
-            z_com += synthetic_image_xyz[src_index * 3 + 2];
           }
         }
       }
       u_com /= cnt;
       v_com /= cnt;
+      uint32_t u_start = u_com - (HAND_SIZE_PIXELS / 2);
+      uint32_t v_start = v_com - (HAND_SIZE_PIXELS / 2);
+
+      // Crop the image
+      for (uint32_t v = v_start; v < v_start + HAND_SIZE_PIXELS; v++) {
+        for (uint32_t u = u_start; u < u_start + HAND_SIZE_PIXELS; u++) {
+          uint32_t dst_index = (v-v_start)* HAND_SIZE_PIXELS + (u-u_start);
+          uint32_t src_index = v * src_width + u;
+          if (synthetic_depth[src_index] > EPSILON && 
+            synthetic_depth[src_index] < GDT_MAX_DIST) {
+            cropped_depth[dst_index] = synthetic_depth[src_index];
+            cropped_xyz[3*dst_index] = synthetic_image_xyz[src_index*3];
+            cropped_xyz[3*dst_index + 1] = synthetic_image_xyz[src_index*3 + 1];
+            cropped_xyz[3*dst_index + 2] = synthetic_image_xyz[src_index*3 + 2];
+          } else {
+            cropped_depth[dst_index] = 0;
+            cropped_xyz[3*dst_index] = 0;
+            cropped_xyz[3*dst_index + 1] = 0;
+            cropped_xyz[3*dst_index + 2] = 0;
+          }
+        }
+      }
+
+      // Now downsample if needed:
+      if (DOWNSAMPLE_FACT > 1) {
+        for (uint32_t v = 0; v < TRAINING_IM_SIZE; v++) {
+          for (uint32_t u = 0; u < TRAINING_IM_SIZE; u++) {
+            uint32_t dst = v*TRAINING_IM_SIZE + u;
+            cropped_downs_depth[dst] = 0;
+            cropped_downs_xyz[dst*3] = 0;
+            cropped_downs_xyz[dst*3+1] = 0;
+            cropped_downs_xyz[dst*3+2] = 0;
+            float n_pts = 0;
+            for (uint32_t v_off = v; v_off < v + DOWNSAMPLE_FACT; v_off++) {
+              for (uint32_t u_off = u; u_off < u + DOWNSAMPLE_FACT; u_off++) {
+                uint32_t src = DOWNSAMPLE_FACT * v * HAND_SIZE_PIXELS + DOWNSAMPLE_FACT * u;
+                if (cropped_depth[src] > 0) {
+                  cropped_downs_depth[dst] += cropped_depth[src];
+                  cropped_downs_xyz[dst*3] += cropped_xyz[src*3];
+                  cropped_downs_xyz[dst*3+1] += cropped_xyz[src*3+1];
+                  cropped_downs_xyz[dst*3+2] += cropped_xyz[src*3+2];
+                  n_pts += 1;
+                }
+              }
+            }
+
+            if (n_pts > 0) {
+              cropped_downs_depth[dst] /= n_pts;
+              cropped_downs_xyz[dst*3] /= n_pts;
+              cropped_downs_xyz[dst*3+1] /= n_pts;
+              cropped_downs_xyz[dst*3+2] /= n_pts;
+
+            } else {
+              cropped_downs_depth[dst] = 0;
+              cropped_downs_xyz[dst*3] /= n_pts;
+              cropped_downs_xyz[dst*3+1] /= n_pts;
+              cropped_downs_xyz[dst*3+2] /= n_pts;
+            }
+          }
+        }
+      } else {
+        memcpy(cropped_downs_depth, cropped_depth, 
+          sizeof(cropped_downs_depth[0]) * TRAINING_IM_SIZE*TRAINING_IM_SIZE);
+        memcpy(cropped_downs_xyz, cropped_xyz, 
+          sizeof(cropped_xyz[0]) * TRAINING_IM_SIZE*TRAINING_IM_SIZE*3);
+      }
+
+      // Now calculate the mean and STD of the cropped downsampled image
+      cnt = 0;
+      float x_com = 0;
+      float y_com = 0;
+      float z_com = 0;
+      float running_sum = 0;
+      float running_sum_sq = 0;
+      for (uint32_t v = 0; v < TRAINING_IM_SIZE; v++) {
+        for (uint32_t u = 0; u < TRAINING_IM_SIZE; u++) {
+          uint32_t src_index = v * TRAINING_IM_SIZE + u;
+          if (cropped_downs_depth[src_index] > EPSILON) {
+            cnt++;
+            running_sum += (float)cropped_downs_depth[src_index];
+            running_sum_sq += ((float)cropped_downs_depth[src_index] *
+              (float)cropped_downs_depth[src_index]);
+            x_com += cropped_downs_xyz[src_index* 3];
+            y_com += cropped_downs_xyz[src_index*3 + 1];
+            z_com += cropped_downs_xyz[src_index*3 + 2];
+          }
+        }
+      }
       x_com /= (float)cnt;
       y_com /= (float)cnt;
       z_com /= (float)cnt;
-      uint32_t u_start = u_com - (TRAINING_IM_SIZE / 2) * DOWNSAMPLE_FACT;
-      uint32_t v_start = v_com - (TRAINING_IM_SIZE / 2) * DOWNSAMPLE_FACT;
       float mean = running_sum / (float)cnt;
       float var = (running_sum_sq / (float)cnt) - (mean * mean);
       float std = sqrtf(var);
 
-      for (uint32_t v = v_start; v < v_start + DOWNSAMPLE_FACT*TRAINING_IM_SIZE; v++) {
-        for (uint32_t u = u_start; u < u_start + DOWNSAMPLE_FACT*TRAINING_IM_SIZE; u++) {
-          uint32_t dst_index = (v-v_start)*DOWNSAMPLE_FACT*TRAINING_IM_SIZE + (u-u_start);
-          uint32_t src_index = v * src_width + u;
-          if (synthetic_depth[src_index] > EPSILON && 
-            synthetic_depth[src_index] < GDT_MAX_DIST) {
-            cropped_depth[dst_index] =
-              ((float)synthetic_depth[src_index] - mean) / std;
+      // Now subtract away the mean and scale depth by the std
+      for (uint32_t v = 0; v < TRAINING_IM_SIZE; v++) {
+        for (uint32_t u = 0; u < TRAINING_IM_SIZE; u++) {
+          uint32_t src_index = v * TRAINING_IM_SIZE + u;
+          if (cropped_downs_depth[src_index] > EPSILON) {
+            cropped_downs_depth[src_index] = (cropped_downs_depth[src_index] - 
+              mean) / std;
           } else {
-            cropped_depth[dst_index] = 0;
+            cropped_downs_depth[src_index] = 0;
           }
         }
       }
 
-      // Now downsample by 2:
-      if (DOWNSAMPLE_FACT == 2) {
-        uint32_t src_i[4];
-        for (uint32_t v = 0; v < TRAINING_IM_SIZE; v++) {
-          for (uint32_t u = 0; u < TRAINING_IM_SIZE; u++) {
-            src_i[0] = (v * 2) * 2*TRAINING_IM_SIZE + (u * 2);
-            src_i[1] = src_i[0] + 1;
-            src_i[2] = src_i[0] + 2*TRAINING_IM_SIZE;
-            src_i[3] = src_i[1] + 2*TRAINING_IM_SIZE;
-
-            // Only add contribution if the src pixel is 0
-            float total = 0;
-            float n_pts = 0;
-            for (uint32_t i = 0; i < 4; i++) {
-              if (cropped_depth[src_i[i]] > 0) {
-                total += cropped_depth[src_i[i]];
-                n_pts += 1;
-              }
-            }
-
-            cropped_downs_depth[v*TRAINING_IM_SIZE + u] = n_pts > 0 ? 
-              (total  / n_pts) : 0;
-          }
-        }
-        image_io->saveUncompressedDepth<float>(DST_IM_DIR + im_files[cur_image], 
-          cropped_downs_depth, TRAINING_IM_SIZE, TRAINING_IM_SIZE);
-      } else if (DOWNSAMPLE_FACT == 1) {
-        image_io->saveUncompressedDepth<float>(DST_IM_DIR + im_files[cur_image], 
-          cropped_depth, TRAINING_IM_SIZE, TRAINING_IM_SIZE);
-      } else {
-        throw std::runtime_error("ERROR: DOWNSAMPLE_FACT must be 1 or 2");
-      }
+      image_io->saveUncompressedDepth<float>(DST_IM_DIR + im_files[cur_image], 
+        cropped_downs_depth, TRAINING_IM_SIZE, TRAINING_IM_SIZE);
 
       // Save the cropped image to file:
 

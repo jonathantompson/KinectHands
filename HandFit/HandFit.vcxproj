@@ -37,6 +37,9 @@
     <ClCompile Include="src\hand_model\hand_model_geometry_mesh.cpp" />
     <ClCompile Include="src\hand_model\hand_model_geometry_simple.cpp" />
     <ClCompile Include="src\hand_model\hand_model_renderer.cpp" />
+    <ClCompile Include="src\hand_net\conv_stage.cpp" />
+    <ClCompile Include="src\hand_net\hand_net.cpp" />
+    <ClCompile Include="src\hand_net\nn_stage.cpp" />
     <ClCompile Include="src\main\main.cpp" />
     <ClCompile Include=".\src\math\de_fitting.cpp" />
     <ClCompile Include=".\src\math\lm_fitting.cpp" />
@@ -113,6 +116,9 @@
     <ClInclude Include="src\hand_model\hand_model_geometry_simple.h" />
     <ClInclude Include="src\hand_model\hand_model_renderer.h" />
     <ClInclude Include="src\hand_model\hand_model_geometry.h" />
+    <ClInclude Include="src\hand_net\conv_stage.h" />
+    <ClInclude Include="src\hand_net\hand_net.h" />
+    <ClInclude Include="src\hand_net\nn_stage.h" />
     <ClInclude Include="src\math\bfgs_fitting.h" />
     <ClInclude Include="src\math\lprpso_fitting.h" />
     <ClInclude Include="src\math\lprpso_fitting_hands.h" />
