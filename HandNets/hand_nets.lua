@@ -16,10 +16,10 @@ torch. setnumthreads(4)
 width = 96
 height = 96
 dim = width * height
-frame_skip = 2  -- We don't need every file of the 30fps, so just grab a few
+frame_skip = 4  -- We don't need every file of the 30fps, so just grab a few
 test_data_rate = 5  -- this means 1 / 5 will be test data
-num_coeff = 26  -- Keep this at 26!
-num_learned_coeff = 23
+num_coeff = 25  -- Keep this at 25!
+num_learned_coeff = 25
 background_depth = 2000
 perform_training = 1
 nonlinear = 0  -- 0 = tanh, 1 = SoftShrink
@@ -27,9 +27,11 @@ model_filename = 'handmodel'
 loss = 0  -- 0 = abs, 1 = mse
 fullsize = 1  -- 0 = small, 1 = mid, 2 = big convnet
 im_dir = "./hand_depth_data_processed/"
+visualize_data = 0
+pooling = 2  -- 1,2,.... or math.huge (infinity)
 
 -- ************ Create a filename ***************
-if (num_learned_coeff == 23) then
+if (num_learned_coeff == 25) then
   model_filename = model_filename .. '_fullcoeffs'
 end
 if (nonlinear == 0) then
@@ -48,6 +50,11 @@ elseif (fullsize == 1) then
   model_filename = model_filename .. '_mid'
 else
   model_filename = model_filename .. '_big'
+end
+if (pooling ~= math.huge) then
+  model_filename = model_filename .. string.format("_L%dPooling", pooling)
+else
+  model_filename = model_filename .. "_LinfPooling"
 end
 
 model_filename = model_filename .. '.net'
@@ -130,7 +137,7 @@ for i=1,nfiles do
       trainData.data[{itr, 1, {}, {}}] = torch.FloatTensor(depth_data, 1, 
         torch.LongStorage{height, width})
       trainData.labels[{itr, {}}] = torch.FloatTensor(coeff_data, 
-        4,  -- skip the position coeffs
+        num_coeff - num_learned_coeff + 1,
         torch.LongStorage{num_learned_coeff}):double()
       itr = itr + 1
     end
@@ -140,7 +147,7 @@ for i=1,nfiles do
       testData.data[{ite, 1, {}, {}}] = torch.FloatTensor(depth_data, 1, 
         torch.LongStorage{height, width})
       testData.labels[{ite, {}}] = torch.FloatTensor(coeff_data, 
-        4,  -- skip the position coeffs
+        num_coeff - num_learned_coeff + 1,
         torch.LongStorage{num_learned_coeff}):double()
       ite = ite + 1
     end
@@ -243,22 +250,24 @@ end
 
 -- ************ Visualize one of the depth data samples ***************
 print '==> Visualizing some data samples'
-n_images = math.min(trainData.size(), 36)
-im = {
-  data = trainData.data[{{1,n_images}, {}, {}, {}}]
-}
-im.data = im.data:double()
--- image.display{image=im.data, padding=2, zoom=1, scaleeach=false}
--- image.display(im.data[{1,{},{}}])
+if (visualize_data == 1) then
+  n_images = math.min(trainData.size(), 36)
+  im = {
+    data = trainData.data[{{1,n_images}, {}, {}, {}}]
+  }
+  im.data = im.data:double()
+  image.display{image=im.data, padding=2, zoom=1, scaleeach=false}
+  -- image.display(im.data[{1,{},{}}])
 
-n_images = math.min(testData.size(), 36)
-im = {
-  data = testData.data[{{1,n_images}, {}, {}, {}}]
-}
-im.data = im.data:double()
--- image.display{image=im.data, padding=2, zoom=1, scaleeach=false}
--- image.display(im.data[{1,{},{}}])
-im = nil
+  n_images = math.min(testData.size(), 36)
+  im = {
+    data = testData.data[{{1,n_images}, {}, {}, {}}]
+  }
+  im.data = im.data:double()
+  image.display{image=im.data, padding=2, zoom=1, scaleeach=false}
+  -- image.display(im.data[{1,{},{}}])
+  im = nil
+end
 
 -- ********************** Define loss function **********************
 print '==> defining loss function'
@@ -294,8 +303,7 @@ if (perform_training == 1) then
   else 
     nstates = {16,128,529}
   end
-  lpooling = {2, 2}
-  filtsize = {5,7}
+  filtsize = {5, 7}
   poolsize = {2, 4}
   fanin = {4}
   normkernel = image.gaussian1D(7)
@@ -320,27 +328,35 @@ if (perform_training == 1) then
   print("Starting Tensor Dimensions:")
   print(tensor_dim)
 
-  -- stage 1 : filter bank -> squashing -> L2 pooling -> normalization
+  -- stage 1 : filter bank -> squashing -> LN pooling -> normalization
   model:add(nn.SpatialConvolutionMap(nn.tables.full(nfeats, nstates[1]), filtsize[1], filtsize[1]))
   if (nonlinear == 1) then 
     model:add(nn.SoftShrink())
   elseif (nonlinear == 0) then
     model:add(nn.Tanh())
   end
-  model:add(nn.SpatialLPPooling(nstates[1], lpooling[1], poolsize[1], poolsize[1], poolsize[1], poolsize[1]))
+  if (pooling ~= math.huge) then
+    model:add(nn.SpatialLPPooling(nstates[1], pooling, poolsize[1], poolsize[1], poolsize[1], poolsize[1]))
+  else
+    model:add(nn.SpatialMaxPooling(poolsize[1], poolsize[1], poolsize[1], poolsize[1]))
+  end
   model:add(nn.SpatialSubtractiveNormalization(nstates[1], normkernel))
   tensor_dim = {nstates[1], (tensor_dim[2] - filtsize[1] + 1) / poolsize[1], (tensor_dim[3] - filtsize[1] + 1) / poolsize[1]}
   print("Tensor Dimensions after stage 1:")
   print(tensor_dim)
 
-  -- stage 2 : filter bank -> squashing -> L2 pooling -> normalization
+  -- stage 2 : filter bank -> squashing -> LN pooling -> normalization
   model:add(nn.SpatialConvolutionMap(nn.tables.random(nstates[1], nstates[2], fanin[1]), filtsize[2], filtsize[2]))
   if (nonlinear == 1) then 
     model:add(nn.SoftShrink())
   elseif (nonlinear == 0) then
     model:add(nn.Tanh())
   end
-  model:add(nn.SpatialLPPooling(nstates[2], lpooling[2], poolsize[2], poolsize[2], poolsize[2], poolsize[2]))
+  if (pooling ~= math.huge) then
+    model:add(nn.SpatialLPPooling(nstates[2], pooling, poolsize[2], poolsize[2], poolsize[2], poolsize[2]))
+  else
+    model:add(nn.SpatialMaxPooling(poolsize[2], poolsize[2], poolsize[2], poolsize[2]))
+  end
   model:add(nn.SpatialSubtractiveNormalization(nstates[2], normkernel))
   tensor_dim = {nstates[2], (tensor_dim[2] - filtsize[2] + 1) / poolsize[2], (tensor_dim[3] - filtsize[2] + 1) / poolsize[2]}
   print("Tensor Dimensions after stage 2:")
@@ -580,7 +596,7 @@ else  -- if perform_training
   te_abs_crit_error = torch.FloatTensor(testData:size())
   te_mse_crit_error = torch.FloatTensor(testData:size())
   for t=1,testData:size(),1 do
-    xlua.progress(i, testData:size())
+    xlua.progress(t, testData:size())
     -- print(string.format('%d of %d', t, testData:size()))
     -- get new sample
     data_pt = {
@@ -610,7 +626,7 @@ else  -- if perform_training
   tr_abs_crit_error = torch.FloatTensor(trainData:size())
   tr_mse_crit_error = torch.FloatTensor(trainData:size())
   for t=1,trainData:size(),1 do
-    xlua.progress(i, trainData:size())
+    xlua.progress(t, trainData:size())
     -- print(string.format('%d of %d', t, trainData:size()))
     -- get new sample
     data_pt = {
@@ -671,4 +687,9 @@ else  -- if perform_training
   print(te_abs_crit_error[{{1,math.floor(0.8*testData:size())}}]:mean())
   print 'Average Test Set Error Value top 80% (mse):'
   print(te_mse_crit_error[{{1,math.floor(0.8*testData:size())}}]:mean())
+
+  print 'All values in groups of 5 (for copy and paste)'
+  print(string.format('%.10f, %.10f, %.10f, %.10f, %.10f', tr_abs_crit_error:mean(), tr_mse_crit_error:mean(), te_abs_crit_error:mean(), te_mse_crit_error:mean(), tr_abs_crit_error[{{1,math.floor(0.2*trainData:size())}}]:mean()))
+  print(string.format('%.10f, %.10f, %.10f, %.10f, %.10f', tr_mse_crit_error[{{1,math.floor(0.2*trainData:size())}}]:mean(), te_abs_crit_error[{{1,math.floor(0.2*testData:size())}}]:mean(), te_mse_crit_error[{{1,math.floor(0.2*testData:size())}}]:mean(), tr_abs_crit_error[{{1,math.floor(0.8*trainData:size())}}]:mean(), tr_mse_crit_error[{{1,math.floor(0.8*trainData:size())}}]:mean()))
+  print(string.format('%.10f, %.10f', te_abs_crit_error[{{1,math.floor(0.8*testData:size())}}]:mean(), te_mse_crit_error[{{1,math.floor(0.8*testData:size())}}]:mean()))
 end
