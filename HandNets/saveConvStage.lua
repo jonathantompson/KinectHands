@@ -7,6 +7,10 @@ function saveConvStage(conv_stage, norm, poolsize, pooltype, nonlinear, out_file
   -- 5. filter fan in (int)
   -- 6. filter weights (float array)
   -- 7. filter connection table (short array)
+  -- 8. Normalization enum type (int)
+  -- 9. Pooling enum type (int)
+  -- 10. Pooling size (int)
+  -- 11. Non-linearity enum type (int)
 
   out_file:writeInt(conv_stage.kW)
   out_file:writeInt(conv_stage.kH)
