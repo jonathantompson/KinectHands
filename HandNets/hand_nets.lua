@@ -13,8 +13,8 @@ torch. setnumthreads(4)
 -- Loss function is negative log-likelihood
 --  you can run from ide: <dofile 'hand_nets.lua'>
 
-width = 192
-height = 192
+width = 96
+height = 96
 dim = width * height
 frame_skip = 4  -- We don't need every file of the 30fps, so just grab a few
 test_data_rate = 5  -- this means 1 / 5 will be test data
@@ -28,7 +28,7 @@ loss = 0  -- 0 = abs, 1 = mse
 fullsize = 1  -- 0 = small, 1 = mid, 2 = big convnet
 im_dir = "./hand_depth_data_processed/"
 visualize_data = 0
-pooling = 4
+pooling = 2  -- 1,2,.... or math.huge (infinity)
 
 -- ************ Create a filename ***************
 if (num_learned_coeff == 25) then
@@ -51,7 +51,11 @@ elseif (fullsize == 1) then
 else
   model_filename = model_filename .. '_big'
 end
-model_filename = model_filename .. string.format("_L%dPooling", pooling)
+if (pooling ~= math.huge) then
+  model_filename = model_filename .. string.format("_L%dPooling", pooling)
+else
+  model_filename = model_filename .. "_LinfPooling"
+end
 
 model_filename = model_filename .. '.net'
 
@@ -299,8 +303,8 @@ if (perform_training == 1) then
   else 
     nstates = {16,128,529}
   end
-  filtsize = {9,7}
-  poolsize = {4, 4}
+  filtsize = {5, 7}
+  poolsize = {2, 4}
   fanin = {4}
   normkernel = image.gaussian1D(7)
 
@@ -331,7 +335,11 @@ if (perform_training == 1) then
   elseif (nonlinear == 0) then
     model:add(nn.Tanh())
   end
-  model:add(nn.SpatialLPPooling(nstates[1], pooling, poolsize[1], poolsize[1], poolsize[1], poolsize[1]))
+  if (pooling ~= math.huge) then
+    model:add(nn.SpatialLPPooling(nstates[1], pooling, poolsize[1], poolsize[1], poolsize[1], poolsize[1]))
+  else
+    model:add(nn.SpatialMaxPooling(poolsize[1], poolsize[1], poolsize[1], poolsize[1]))
+  end
   model:add(nn.SpatialSubtractiveNormalization(nstates[1], normkernel))
   tensor_dim = {nstates[1], (tensor_dim[2] - filtsize[1] + 1) / poolsize[1], (tensor_dim[3] - filtsize[1] + 1) / poolsize[1]}
   print("Tensor Dimensions after stage 1:")
@@ -344,7 +352,11 @@ if (perform_training == 1) then
   elseif (nonlinear == 0) then
     model:add(nn.Tanh())
   end
-  model:add(nn.SpatialLPPooling(nstates[2], pooling, poolsize[2], poolsize[2], poolsize[2], poolsize[2]))
+  if (pooling ~= math.huge) then
+    model:add(nn.SpatialLPPooling(nstates[2], pooling, poolsize[2], poolsize[2], poolsize[2], poolsize[2]))
+  else
+    model:add(nn.SpatialMaxPooling(poolsize[2], poolsize[2], poolsize[2], poolsize[2]))
+  end
   model:add(nn.SpatialSubtractiveNormalization(nstates[2], normkernel))
   tensor_dim = {nstates[2], (tensor_dim[2] - filtsize[2] + 1) / poolsize[2], (tensor_dim[3] - filtsize[2] + 1) / poolsize[2]}
   print("Tensor Dimensions after stage 2:")

@@ -35,7 +35,7 @@ stg2_nstates = tonumber(dataLineParsed[14])
 stg2_nonlinear = trim(dataLineParsed[15])
 stg2_norm = trim(dataLineParsed[16])
 stg2_poolsettings = trim(dataLineParsed[17])
-stg2_poolsizeu, stg1_poolsizev, stg1_pooling = stg1_poolsettings:match("(%d+)x(%d+) L(%d+)") 
+stg2_poolsizeu, stg2_poolsizev, stg2_pooling = stg2_poolsettings:match("(%d+)x(%d+) L(%d+)") 
 
 -- Neural net
 nn_connect1 = trim(dataLineParsed[18])

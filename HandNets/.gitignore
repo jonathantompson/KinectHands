@@ -1,5 +1,7 @@
 toy_hand_data
 *.log
+*.net
+*.net.settings.csv
 hand_depth_data_processed
 results
 hand_depth_data_processed.zip

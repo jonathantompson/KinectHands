@@ -35,7 +35,11 @@ elseif (nonlinear == 0) then
   set_file:writeString('Tanh, ')
 end
 set_file:writeString('spac sub., ')
-set_file:writeString(string.format('%dx%d L%d, ', poolsize[1], poolsize[1], pooling))
+if (pooling ~= math.huge) then
+  set_file:writeString(string.format('%dx%d L%d, ', poolsize[1], poolsize[1], pooling))
+else
+  set_file:writeString(string.format('%dx%d Linf, ', poolsize[1], poolsize[1]))
+end
 
 -- Stage 2 settings
 set_file:writeString(string.format('%d, ', filtsize[2]))
@@ -47,7 +51,11 @@ elseif (nonlinear == 0) then
   set_file:writeString('Tanh, ')
 end
 set_file:writeString('spac sub., ')
-set_file:writeString(string.format('%dx%d L%d, ', poolsize[2], poolsize[2], pooling))
+if (pooling ~= math.huge) then
+  set_file:writeString(string.format('%dx%d L%d, ', poolsize[2], poolsize[2], pooling))
+else
+  set_file:writeString(string.format('%dx%d Linf, ', poolsize[2], poolsize[2]))
+end
 
 -- Neural net settings
 set_file:writeString('full, ')
