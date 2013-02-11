@@ -83,4 +83,8 @@ namespace hand_net {
     return n_inputs_ * n_outputs_;
   }
 
+  void NNStage::forwardProp(float*& in, float*& out) const {
+    // TO DO:
+  }
+
 }  // namespace hand_model

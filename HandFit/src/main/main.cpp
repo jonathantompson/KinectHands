@@ -53,10 +53,10 @@
 
 #if defined(__APPLE__)
   #define IM_DIR string("./../../../../../../../../../") + IM_DIR_BASE
-  #define CONVNET_FILE string("./../../../../../../../../../data/handmodel_fullcoeffs_tanh_abs_mid_L4Pooling.net.convnet")
+  #define CONVNET_FILE string("./../../../../../../../../../data/handmodel_fullcoeffs_tanh_abs_mid_L2Pooling.net.convnet")
 #else
   #define IM_DIR string("./../") + IM_DIR_BASE
-  #define CONVNET_FILE string("./../data/handmodel_fullcoeffs_tanh_abs_mid_L4Pooling.net.convnet")
+  #define CONVNET_FILE string("./../data/handmodel_fullcoeffs_tanh_abs_mid_L2Pooling.net.convnet")
 #endif
 const bool fit_left = false;
 const bool fit_right = true; 
@@ -126,13 +126,17 @@ uint8_t cur_label_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
 uint32_t cur_image = 0;
 GeometryColoredPoints* geometry_points= NULL;
+float temp_depth[src_dim];
 float temp_xyz[3 * src_dim];
 float temp_rgb[3 * src_dim];
 bool render_depth = true;
 int playback_step = 1;
 
-// Convolutional Neural Networ
+// Convolutional Neural Network
 HandNet* convnet = NULL;
+float cropped_downs_depth[HAND_NET_PIX * HAND_NET_PIX];
+float cropped_downs_xyz[3 * HAND_NET_PIX * HAND_NET_PIX];
+float hand_coeff[HAND_NUM_COEFF];  // Maybe less than the full coeff size
 
 void quit() {
   delete image_io;
@@ -162,6 +166,7 @@ void quit() {
 
 void loadCurrentImage() {
   char* file = im_files[cur_image];
+  std::cout << "loading image: " << file << std::endl;
   string full_filename = IM_DIR + string(file);
   image_io->LoadCompressedImageWithRedHands(full_filename, 
     cur_depth_data, cur_label_data, cur_image_rgb, NULL);
@@ -582,7 +587,37 @@ void renderFrame(float dt) {
     hand_renderer->updateMatrices(l_hands[cur_image]->coeff(),
       l_hands[cur_image]->hand_type());
   }
+
+  // Extract the synthetic depth map
   HandModel* hands[2];
+  if (fit_left && !fit_right) {
+    coeffs = l_hands[cur_image]->coeff();
+    hands[0] = l_hands[cur_image];
+    hands[1] = NULL;
+  } else if (!fit_left && fit_right) {
+    coeffs = r_hands[cur_image]->coeff();
+    hands[0] = r_hands[cur_image];
+    hands[1] = NULL;
+  } else {
+    coeffs.block<1, HAND_NUM_COEFF>(0, 0) = l_hands[cur_image]->coeff();
+    coeffs.block<1, HAND_NUM_COEFF>(0, HAND_NUM_COEFF) = r_hands[cur_image]->coeff();
+    hands[0] = l_hands[cur_image];
+    hands[1] = r_hands[cur_image];
+  }
+
+  hand_renderer->drawDepthMap(coeffs, hands, num_hands);
+  hand_renderer->extractDepthMap(temp_depth);
+
+  // Crop the synthetic depth image (and donwsample if necessary)
+  float x_com = 0;
+  float y_com = 0;
+  float z_com = 0;
+  float std = 0;
+  HandNet::calcHandImageFromSytheticDepth(temp_depth, 
+    cropped_downs_depth, cropped_downs_xyz, &x_com, &y_com, &z_com, &std);
+  convnet->calcHandCoeff(cropped_downs_depth, hand_coeff);
+
+  // Now render the final frame
   switch (render_output) {
   case 1:
     render->renderFrame(dt);
@@ -593,22 +628,6 @@ void renderFrame(float dt) {
     }
     break;
   case 2:
-    if (fit_left && !fit_right) {
-      coeffs = l_hands[cur_image]->coeff();
-      hands[0] = l_hands[cur_image];
-      hands[1] = NULL;
-    } else if (!fit_left && fit_right) {
-      coeffs = r_hands[cur_image]->coeff();
-      hands[0] = r_hands[cur_image];
-      hands[1] = NULL;
-    } else {
-      coeffs.block<1, HAND_NUM_COEFF>(0, 0) = l_hands[cur_image]->coeff();
-      coeffs.block<1, HAND_NUM_COEFF>(0, HAND_NUM_COEFF) = r_hands[cur_image]->coeff();
-      hands[0] = l_hands[cur_image];
-      hands[1] = r_hands[cur_image];
-    }
-
-    hand_renderer->drawDepthMap(coeffs, hands, num_hands);
     hand_renderer->visualizeDepthMap(wnd);
     break;
   default:

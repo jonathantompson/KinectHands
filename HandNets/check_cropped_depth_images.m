@@ -1,6 +1,7 @@
 clearvars; clc; close all;
 
-dir = '../data/hand_depth_data_processed/';
+% dir = '../data/hand_depth_data_processed/';
+dir = '../data/';
 images = ls([dir, 'hands*']);
 
 HAND_IM_SIZE = 192;
@@ -54,7 +55,10 @@ for i = 1:NUM_COEFF
   plot(1:num_images, coeffs(:, i));
   minc = min(coeffs(:, i));
   maxc = max(coeffs(:, i));
-  range = maxc - minc;
-  axis([1 num_images (minc - 0.1 * range) (maxc + 0.1 * range)]);
+  range = maxc - minc + 0.000001;
+  axis([1 (num_images+1) (minc - 0.1 * range) (maxc + 0.1 * range)]);
   title(modifiedcoeff2str(i));
 end
+
+images(1)
+squeeze(im_data(1,40:43,40:43))

@@ -28,6 +28,7 @@ namespace hand_net {
     NNStage();
     ~NNStage();
 
+    void forwardProp(float*& in, float*& out) const;
     void loadFromFile(std::ifstream& file);
     void printToStdOut() const;
     int32_t dataSizeReq() const;  // Calculate the temp data size requirement
