@@ -3,7 +3,7 @@ require 'image'
 require 'torch'
 require 'xlua'    -- xlua provides useful tools, like progress bars
 require 'optim'   -- an optimization package, for online and batch methods
-torch. setnumthreads(4)
+torch.setnumthreads(4)
 -- require 'debugger'
 
 -- Jonathan Tompson

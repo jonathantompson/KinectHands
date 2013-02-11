@@ -13,7 +13,7 @@ dofile("saveNNStage.lua")  -- Load in helper function
 -- This script turns the serialized neural network file into a file that is
 -- readable by my c++ code.
 
-model_filename = "results/handmodel_fullcoeffs_tanh_abs_mid_L4Pooling.net"
+model_filename = "results/handmodel_fullcoeffs_tanh_abs_mid_L2Pooling.net"
 
 -- Load in the settings file
 dofile("load_settings.lua")  -- We don't need to do this

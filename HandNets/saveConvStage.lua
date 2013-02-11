@@ -11,6 +11,7 @@ function saveConvStage(conv_stage, norm, poolsize, pooltype, nonlinear, out_file
   -- 9. Pooling enum type (int)
   -- 10. Pooling size (int)
   -- 11. Non-linearity enum type (int)
+  -- 12. Biases (float)
 
   out_file:writeInt(conv_stage.kW)
   out_file:writeInt(conv_stage.kH)
@@ -54,5 +55,9 @@ function saveConvStage(conv_stage, norm, poolsize, pooltype, nonlinear, out_file
     out_file:writeInt(1)
   else 
     out_file:writeInt(2)
+  end
+
+  for i=1,(conv_stage.nOutputPlane) do
+    out_file:writeFloat(conv_stage.bias[{i}])
   end
 end
