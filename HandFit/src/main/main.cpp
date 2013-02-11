@@ -615,6 +615,12 @@ void renderFrame(float dt) {
   float std = 0;
   HandNet::calcHandImageFromSytheticDepth(temp_depth, 
     cropped_downs_depth, cropped_downs_xyz, &x_com, &y_com, &z_com, &std);
+
+  // TEMP CODE:
+  image_io->saveUncompressedDepth<float>(string("./../data/") + 
+    im_files[cur_image], cropped_downs_depth, HAND_NET_IM_SIZE, HAND_NET_IM_SIZE);
+  // END TEMP CODE:
+
   convnet->calcHandCoeff(cropped_downs_depth, hand_coeff);
 
   // Now render the final frame

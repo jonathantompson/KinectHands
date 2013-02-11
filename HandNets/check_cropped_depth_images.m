@@ -60,5 +60,5 @@ for i = 1:NUM_COEFF
   title(modifiedcoeff2str(i));
 end
 
-images(1)
+images(1,:)
 squeeze(im_data(1,40:43,40:43))
