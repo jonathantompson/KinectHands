@@ -71,6 +71,9 @@
     <Filter Include="Source Files\src\maxflow-v3.02">
       <UniqueIdentifier>{15243c0b-84d7-4831-bcde-52b3a4714599}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\src\hand_net">
+      <UniqueIdentifier>{e92563e3-b30a-4669-9a47-c34ea5c6bc01}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\hand_model\hand_model.cpp">
@@ -246,6 +249,15 @@
     </ClCompile>
     <ClCompile Include="src\main\main_data.cpp">
       <Filter>Source Files\src\main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\hand_net\nn_stage.cpp">
+      <Filter>Source Files\src\hand_net</Filter>
+    </ClCompile>
+    <ClCompile Include="src\hand_net\conv_stage.cpp">
+      <Filter>Source Files\src\hand_net</Filter>
+    </ClCompile>
+    <ClCompile Include="src\hand_net\hand_net.cpp">
+      <Filter>Source Files\src\hand_net</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -509,6 +521,15 @@
     </ClInclude>
     <ClInclude Include="src\renderer\gl_state.h">
       <Filter>Source Files\src\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\hand_net\nn_stage.h">
+      <Filter>Source Files\src\hand_net</Filter>
+    </ClInclude>
+    <ClInclude Include="src\hand_net\conv_stage.h">
+      <Filter>Source Files\src\hand_net</Filter>
+    </ClInclude>
+    <ClInclude Include="src\hand_net\hand_net.h">
+      <Filter>Source Files\src\hand_net</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

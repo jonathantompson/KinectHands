@@ -15,6 +15,11 @@
 #define HAND_NET_HAND_NET_HEADER
 
 #include "math/math_types.h"
+#include "depth_images_io.h"  // for src_dim
+
+#define HAND_NET_PIX 192  // U, V size (before downsampling)
+#define HAND_NET_DOWN_FACT 2
+#define HAND_NET_IM_SIZE (HAND_NET_PIX / HAND_NET_DOWN_FACT)
 
 namespace hand_net {
   class ConvStage;
@@ -26,7 +31,10 @@ namespace hand_net {
     HandNet(const std::string& convnet_filename);
     ~HandNet();
 
-    // Accessors
+    void calcHandCoeff(const float* depth, float* coeff);
+    static void calcHandImageFromSytheticDepth(const float* depth_in, 
+      float* hand_im_depth, float* hand_im_xyx = NULL, float* x_com = NULL,
+      float* y_com = NULL, float* z_com = NULL, float* std = NULL);
 
     // Modifiers
 
@@ -36,6 +44,16 @@ namespace hand_net {
 
     int32_t n_nn_stages_;
     NNStage** nn_stages_;
+
+    float* datcur_;  // The current stage's input data
+    float* datnext_;  // The current stage's output data
+
+    // Some temporary data structures (might be able to clean some of these
+    // up later when we're no longer using synthetic data)
+    static int16_t depth[src_dim];
+    static float xyz[src_dim * 3];
+    static float cropped_depth[HAND_NET_PIX * HAND_NET_PIX];
+    static float cropped_xyz[3 * HAND_NET_PIX * HAND_NET_PIX];
 
     void loadFromFile(const std::string& convnet_filename);
 

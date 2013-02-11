@@ -4,7 +4,7 @@ dir = '../data/hand_depth_data_processed/';
 images = ls([dir, 'hands*']);
 
 HAND_IM_SIZE = 192;
-DOWNSAMPLE_FACTOR = 3;
+DOWNSAMPLE_FACTOR = 2;
 
 TRAINING_IM_SIZE = HAND_IM_SIZE / DOWNSAMPLE_FACTOR;
 NUM_COEFF = 25;
