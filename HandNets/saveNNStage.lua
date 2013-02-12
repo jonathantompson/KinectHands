@@ -22,4 +22,8 @@ function saveNNStage(nn_stage, nonlinear, out_file)
   else
     out_file:writeInt(2)
   end
+
+  for i=1,noutputs do
+    out_file:writeFloat(nn_stage.bias[{i}])
+  end
 end
