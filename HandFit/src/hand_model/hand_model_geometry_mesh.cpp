@@ -339,6 +339,11 @@ namespace hand_model {
       if (cur_geom->parent() != NULL) {
         Float4x4::mult(cur_geom->mat_hierarchy(),
           cur_geom->parent()->mat_hierarchy(), cur_geom->mat());
+
+        // TEMP CODE
+        cur_geom->mat_hierarchy()->printStdCout();
+        // END TEMP CODE
+
       } else {
         cur_geom->mat_hierarchy()->set(cur_geom->mat());
       }

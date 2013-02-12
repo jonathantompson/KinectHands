@@ -7,6 +7,7 @@
 #ifndef MATH_MAT4X4_HEADER
 #define MATH_MAT4X4_HEADER
 
+#include <iomanip>
 #include "alignment/data_align.h"
 #include "math/math_base.h"
 extern "C" {
@@ -41,7 +42,8 @@ namespace math {
            T _30, T _31, T _32, T _33);
     
     // Getter methods
-    void print();  // Print to std::cout
+    void print();  // printf
+    void printStdCout();  // Print to std::cout
     T operator[](int i) const {
       return m[i];
     }
@@ -256,6 +258,25 @@ namespace math {
     printf("| %+.4e  %+.4e  %+.4e  %+.4e |\n", m[1],  m[5],  m[9],  m[13]);
     printf("| %+.4e  %+.4e  %+.4e  %+.4e |\n", m[2],  m[6],  m[10], m[14]);
     printf("| %+.4e  %+.4e  %+.4e  %+.4e |\n", m[3],  m[7],  m[11], m[15]);
+#endif
+  };
+
+  template <class T>
+  void Mat4x4<T>::printStdCout() {
+    std::cout.setf(std::ios::showpos);
+    std::cout << std::setprecision(4);
+    std::cout << std::fixed;
+#ifdef ROW_MAJOR
+    std::cout << "| " << m[0]  << " " << m[1]  << " " << m[2]  << " " << m[3]  << " |" << std::endl;
+    std::cout << "| " << m[4]  << " " << m[5]  << " " << m[6]  << " " << m[7]  << " |" << std::endl;
+    std::cout << "| " << m[8]  << " " << m[9]  << " " << m[10] << " " << m[11] << " |" << std::endl;
+    std::cout << "| " << m[12] << " " << m[13] << " " << m[14] << " " << m[15] << " |" << std::endl;
+#endif
+#ifdef COLUMN_MAJOR
+    std::cout << "| " << m[0]  << " " << m[4]  << " " << m[8]  << " " << m[12] << " |" << std::endl;
+    std::cout << "| " << m[1]  << " " << m[5]  << " " << m[9]  << " " << m[13] << " |" << std::endl;
+    std::cout << "| " << m[2]  << " " << m[6]  << " " << m[10] << " " << m[14] << " |" << std::endl;
+    std::cout << "| " << m[3]  << " " << m[7]  << " " << m[11] << " " << m[15] << " |" << std::endl;
 #endif
   };
   

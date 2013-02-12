@@ -8,6 +8,7 @@
 #include <thread>
 #include <iostream>
 #include <stdexcept>
+#include <iomanip>
 #include "hand_model/hand_model.h"
 #include "hand_model/hand_model_renderer.h"
 #include "math/lm_fitting.h"
@@ -417,6 +418,8 @@ namespace hand_model {
 
   void HandModel::printCoeff() const {
     std::cout << "coeff = [";
+    std::cout << std::setprecision(6);
+    std::cout << std::fixed;
     for (uint32_t i = 0; i < HAND_NUM_COEFF; i++) {
       std::cout << coeff_(i);
       if (i < HAND_NUM_COEFF - 1) {

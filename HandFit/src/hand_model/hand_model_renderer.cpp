@@ -332,7 +332,7 @@ namespace hand_model {
     HandModel** hands, uint32_t num_hands, bool color, bool tiled) {
     HandModelGeometry* hand[2];
     hand[0] = (hands[0]->hand_type() == HandType::LEFT) ? 
-    l_hand_geom_ : r_hand_geom_;
+      l_hand_geom_ : r_hand_geom_;
     if (num_hands > 1) {
       hand[1] = (hands[1]->hand_type() == HandType::LEFT) ? 
         l_hand_geom_ : r_hand_geom_;
