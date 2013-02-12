@@ -117,6 +117,7 @@ bool continuous_play = false;  // Play back recorded frames
 int hand_to_modify = fit_left ? 0 : 1;
 bool render_hand = true;
 Eigen::MatrixXf coeffs;
+uint32_t coeff_src = 0;
 
 // Kinect Image data
 DepthImagesIO* image_io = NULL;
@@ -135,9 +136,7 @@ int playback_step = 1;
 // Convolutional Neural Network
 HandNet* convnet = NULL;
 float synthetic_depth[src_dim];
-float cropped_downs_depth[HAND_NET_PIX * HAND_NET_PIX];
-float cropped_downs_xyz[3 * HAND_NET_PIX * HAND_NET_PIX];
-float hand_coeff[HAND_NUM_COEFF];  // Maybe less than the full coeff size
+uint8_t synthetic_label[src_dim];
 
 void quit() {
   delete image_io;
@@ -175,6 +174,42 @@ void loadCurrentImage() {
   DepthImagesIO::convertSingleImageToXYZ(image_xyz, cur_depth_data);
 }
 
+void InitXYZPointsForRendering() {
+  if (geometry_points == NULL) {
+    geometry_points = new GeometryColoredPoints;
+  } else {
+    geometry_points->unsyncVAO();
+  }
+  data_str::Vector<math::Float3>* vert = geometry_points->vertices();
+  data_str::Vector<math::Float3>* cols = geometry_points->colors();
+
+  if (vert->capacity() < src_dim) {
+    vert->capacity(src_dim);
+  }
+  vert->resize(src_dim);
+  if (cols->capacity() < src_dim) {
+    cols->capacity(src_dim);
+  }
+  cols->resize(src_dim);
+
+  float cur_col[3];
+  for (uint32_t i = 0; i < src_dim; i++) {
+    vert->at(i)->set(&image_xyz[i*3]);
+    if (cur_label_data[i] == 0) {
+      cur_col[0] = 1.2f * static_cast<float>(cur_image_rgb[i*3]) / 255.0f;
+      cur_col[1] = 1.2f * static_cast<float>(cur_image_rgb[i*3+1]) / 255.0f;
+      cur_col[2] = 1.2f * static_cast<float>(cur_image_rgb[i*3+2]) / 255.0f;
+    } else {
+      cur_col[0] = 1.6f * static_cast<float>(cur_image_rgb[i*3]) / 255.0f;
+      cur_col[1] = 1.6f * static_cast<float>(cur_image_rgb[i*3+1]) / 255.0f;
+      cur_col[2] = 1.6f * static_cast<float>(cur_image_rgb[i*3+2]) / 255.0f;
+    }
+    cols->at(i)->set(cur_col);
+  }
+  geometry_points->syncVAO();
+}
+
+
 void saveCurrentHandCoeffs() {
   string r_hand_file = string("coeffr_") + im_files[cur_image];
   string l_hand_file = string("coeffl_") + im_files[cur_image];
@@ -208,47 +243,6 @@ void MouseButtonCB(int button, int action) {
       scale_coeff = false;
     }
   }
-}
-
-void InitXYZPointsForRendering() {
-  if (geometry_points == NULL) {
-    geometry_points = new GeometryColoredPoints;
-  } else {
-    geometry_points->unsyncVAO();
-  }
-  data_str::Vector<math::Float3>* vert = geometry_points->vertices();
-  data_str::Vector<math::Float3>* cols = geometry_points->colors();
-
-  if (vert->capacity() < src_dim) {
-    vert->capacity(src_dim);
-  }
-  vert->resize(src_dim);
-  if (cols->capacity() < src_dim) {
-    cols->capacity(src_dim);
-  }
-  cols->resize(src_dim);
-
-  float cur_col[3];
-  for (uint32_t i = 0; i < src_dim; i++) {
-    vert->at(i)->set(&image_xyz[i*3]);
-    if (cur_label_data[i] == 0) {
-      //cur_col[0] = 0.4f * static_cast<float>(cur_image_rgb[i*3]) / 255.0f;
-      //cur_col[1] = 0.4f * static_cast<float>(cur_image_rgb[i*3+1]) / 255.0f;
-      //cur_col[2] = 0.4f * static_cast<float>(cur_image_rgb[i*3+2]) / 255.0f;
-      cur_col[0] = 1.2f * static_cast<float>(cur_image_rgb[i*3]) / 255.0f;
-      cur_col[1] = 1.2f * static_cast<float>(cur_image_rgb[i*3+1]) / 255.0f;
-      cur_col[2] = 1.2f * static_cast<float>(cur_image_rgb[i*3+2]) / 255.0f;
-    } else {
-      //cur_col[0] = min(1.4f * static_cast<float>(cur_image_rgb[i*3]) / 255.0f, 1.0f);
-      //cur_col[1] = min(1.4f * static_cast<float>(cur_image_rgb[i*3+1]) / 255.0f, 1.0f);
-      //cur_col[2] = min(1.4f * static_cast<float>(cur_image_rgb[i*3+2]) / 255.0f, 1.0f);
-      cur_col[0] = 1.6f * static_cast<float>(cur_image_rgb[i*3]) / 255.0f;
-      cur_col[1] = 1.6f * static_cast<float>(cur_image_rgb[i*3+1]) / 255.0f;
-      cur_col[2] = 1.6f * static_cast<float>(cur_image_rgb[i*3+2]) / 255.0f;
-    }
-    cols->at(i)->set(cur_col);
-  }
-  geometry_points->syncVAO();
 }
 
 void MousePosCB(int x, int y) {
@@ -500,7 +494,7 @@ void KeyboardCB(int key, int action) {
     case static_cast<int>('y'):
       if (action == RELEASED) {
         render_hand = !render_hand;
-        hand_renderer->setHandRendering(render_hand);
+        hand_renderer->setRendererAttachement(render_hand);
       }
       break;
     case static_cast<int>('u'):
@@ -528,6 +522,17 @@ void KeyboardCB(int key, int action) {
           hands) << endl;
       }
       break;
+    case static_cast<int>('c'):
+    case static_cast<int>('C'):
+      if (action == RELEASED) {
+        coeff_src = (coeff_src + 1) % 2;
+        if (coeff_src == 0) {
+          std::cout << "Coeff source: PSO" << std::endl;
+        } else {
+          std::cout << "Coeff source: Convnet" << std::endl;
+        }
+        break;
+      }
   }
 }
 
@@ -570,6 +575,12 @@ void renderFrame(float dt) {
     dir->set(&new_dir);
   }
 
+  // Update the global HandScale with the current model version
+  if (r_hands[cur_image]->local_scale() != l_hands[cur_image]->local_scale()) {
+    throw std::wruntime_error("ERROR: HAND MODEL SCALES ARE DIFFERENT!");
+  }
+  HandModel::scale = r_hands[cur_image]->local_scale();
+
   // Move the camera
   delta_pos.set(&cur_dir);
   if (!delta_pos.equal(0,0,0)) {
@@ -581,69 +592,39 @@ void renderFrame(float dt) {
     render->camera()->moveCamera(&delta_pos);
   }
 
-  // Extract the synthetic depth map
+  // Extract the synthetic depth map (potentially required for convnet)
   HandModel* hands[2];
-  if (fit_left && !fit_right) {
-    coeffs = l_hands[cur_image]->coeff();
-    hands[0] = l_hands[cur_image];
-    hands[1] = NULL;
-  } else if (!fit_left && fit_right) {
-    coeffs = r_hands[cur_image]->coeff();
-    hands[0] = r_hands[cur_image];
-    hands[1] = NULL;
-  } else {
-    coeffs.block<1, HAND_NUM_COEFF>(0, 0) = l_hands[cur_image]->coeff();
-    coeffs.block<1, HAND_NUM_COEFF>(0, HAND_NUM_COEFF) = r_hands[cur_image]->coeff();
-    hands[0] = l_hands[cur_image];
-    hands[1] = r_hands[cur_image];
+  if (coeff_src == 1) {
+    if (fit_left && !fit_right) {
+      coeffs = l_hands[cur_image]->coeff();
+      hands[0] = l_hands[cur_image];
+      hands[1] = NULL;
+    } else if (!fit_left && fit_right) {
+      coeffs = r_hands[cur_image]->coeff();
+      hands[0] = r_hands[cur_image];
+      hands[1] = NULL;
+    } else {
+      coeffs.block<1, HAND_NUM_COEFF>(0, 0) = l_hands[cur_image]->coeff();
+      coeffs.block<1, HAND_NUM_COEFF>(0, HAND_NUM_COEFF) = r_hands[cur_image]->coeff();
+      hands[0] = l_hands[cur_image];
+      hands[1] = r_hands[cur_image];
+    }
+
+    hand_renderer->drawDepthMap(coeffs, hands, num_hands);
+    hand_renderer->extractDepthMap(synthetic_depth);
+
+    HandNet::createLabelFromSyntheticDepth(synthetic_depth, synthetic_label);
+    convnet->calcHandCoeff(synthetic_depth, synthetic_label, coeffs);
   }
-
-  // TEMP CODE:
-  std::cout << std::setprecision(10);
-  std::cout << std::fixed;
-  std::cout << std::endl;
-  for (uint32_t i = 0; i < coeffs.size(); i++) {
-    std::cout << coeffs(i) << ", ";
-  }
-  std::cout << std::endl;
-  // END TEMP CODE:
-
-  hand_renderer->drawDepthMap(coeffs, hands, num_hands);
-  hand_renderer->extractDepthMap(synthetic_depth);
-
-  // TEMP CODE:
-  hand_renderer->drawDepthMap(coeffs, hands, num_hands);
-  hand_renderer->extractDepthMap(synthetic_depth);
-  // END TEMP CODE:
-
-  // TEMP CODE:
-  image_io->saveUncompressedDepth<float>(string("./../data/") + 
-    string("big") + im_files[cur_image] + string("2"), synthetic_depth, 
-    src_width, src_height);
-  // END TEMP CODE:
-
-  // Crop the synthetic depth image (and donwsample if necessary)
-  float x_com;
-  float y_com;
-  float z_com;
-  float std;
-  HandNet::calcHandImageFromSytheticDepth(synthetic_depth, 
-    cropped_downs_depth, cropped_downs_xyz, &x_com, &y_com, &z_com, &std);
-
-  // TEMP CODE:
-  image_io->saveUncompressedDepth<float>(string("./../data/") + 
-    im_files[cur_image] + string("2"), cropped_downs_depth, 
-    HAND_NET_IM_SIZE, HAND_NET_IM_SIZE);
-  // END TEMP CODE:
-
-  convnet->calcHandCoeff(cropped_downs_depth, hand_coeff);
 
   if (fit_right) {
-    hand_renderer->updateMatrices(r_hands[cur_image]->coeff(),
+    hand_renderer->updateMatrices(
+      (coeff_src == 0) ? r_hands[cur_image]->coeff() : coeffs,
       r_hands[cur_image]->hand_type());
   }
   if (fit_left) {
-    hand_renderer->updateMatrices(l_hands[cur_image]->coeff(),
+    hand_renderer->updateMatrices(
+      (coeff_src == 0) ? l_hands[cur_image]->coeff() : coeffs,
       l_hands[cur_image]->hand_type());
   }
 
@@ -658,6 +639,9 @@ void renderFrame(float dt) {
     }
     break;
   case 2:
+    if (coeff_src != 1) {
+      hand_renderer->drawDepthMap(coeffs, hands, num_hands);
+    }
     hand_renderer->visualizeDepthMap(wnd);
     break;
   default:
@@ -756,7 +740,7 @@ int main(int argc, char *argv[]) {
       l_hands[i] = new HandModel(hand_model::HandType::LEFT);
       l_hands[i]->loadFromFile(IM_DIR, string("coeffl_") + im_files[i]);
     }
-    hand_renderer->setHandRendering(render_hand);
+    hand_renderer->setRendererAttachement(render_hand);
 
     // Finally, initialize the points for rendering
     InitXYZPointsForRendering();

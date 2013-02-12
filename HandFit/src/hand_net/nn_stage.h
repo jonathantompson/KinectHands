@@ -42,6 +42,11 @@ namespace hand_net {
     NNNonlinType nonlin_type_;
 
     float* weights_;
+    float* bias_;
+
+    void performNonlinearity(float*&data, const int32_t size) const;
+    void performLinearNetwork(float*&out, const int32_t outsize, 
+    const float*& in, const int32_t insize) const;
 
     // Non-copyable, non-assignable.
     NNStage(NNStage&);

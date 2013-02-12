@@ -41,6 +41,7 @@
 #include "open_ni_funcs.h"
 #include "renderer/gl_state.h"
 #include "hand_net/hand_net.h"
+#include "hand_detector.h"
 
 #if defined(WIN32) || defined(_WIN32)
   #define snprintf _snprintf_s
@@ -54,8 +55,10 @@
 #define IM_DIR_BASE string("/data/hand_depth_data/") 
 #define DST_IM_DIR_BASE string("/data/hand_depth_data_processed/") 
 
-#define FILE_SKIP 3
-#define MAX_FILES 1
+#define FILE_SKIP 2
+#define MAX_FILES MAX_UINT32
+
+// #define USE_SYNTHETIC_IMAGE
 
 #if defined(__APPLE__)
   #define IM_DIR string("../../../../../../../../../") + IM_DIR_BASE
@@ -118,13 +121,14 @@ HandModel* r_hand = NULL;
 HandModelRenderer* hand_renderer = NULL;
 HandModelFit* hand_fit = NULL;
 Eigen::MatrixXf coeffs;
-float synthetic_depth[src_dim];
-float cropped_downs_depth[HAND_NET_PIX * HAND_NET_PIX];
-float cropped_downs_xyz[3 * HAND_NET_PIX * HAND_NET_PIX];
+float depth[src_dim];
+uint8_t label[src_dim];
+float hand_image[HAND_NET_PIX * HAND_NET_PIX];
 
 // Kinect Image data
 DepthImagesIO* image_io = NULL;
 data_str::VectorManaged<char*> im_files;
+float image_xyz[src_dim*3];
 int16_t cur_depth_data[src_dim*3];
 uint8_t cur_label_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
@@ -134,6 +138,9 @@ bool render_depth = true;
 int playback_step = 1;
 float r_modified_coeff[HAND_NUM_COEFF];
 float l_modified_coeff[HAND_NUM_COEFF];
+
+// Decision forests
+HandDetector* hand_detector = NULL;
 
 void quit() {
   delete image_io;
@@ -150,6 +157,7 @@ void quit() {
   GLState::shutdownGLState();
   delete wnd;
   delete geometry_points;
+  delete hand_detector;
   Window::killWindowSystem();
   exit(0);
 }
@@ -256,8 +264,9 @@ int main(int argc, char *argv[]) {
       std::cout << (HAND_NET_IM_SIZE) << std::endl;
     }
 
+    hand_detector = new HandDetector(src_width, src_height);
+
     // Iterate through, saving each of the data points
-    HandModel* hands[2];
     for (uint32_t i = 0; i < std::min<uint32_t>(im_files.size(), MAX_FILES); 
       i += FILE_SKIP) {
       std::cout << "processing image " << (i/FILE_SKIP) << " of ";
@@ -269,9 +278,12 @@ int main(int argc, char *argv[]) {
 
       r_hand->loadFromFile(IM_DIR, string("coeffr_") + im_files[cur_image]);
       l_hand->loadFromFile(IM_DIR, string("coeffl_") + im_files[cur_image]);
-      hand_renderer->setHandRendering(true);
+      HandModel::scale = r_hand->local_scale();
+      hand_renderer->setRendererAttachement(true);
 
+#ifdef USE_SYNTHETIC_IMAGE
       // Render a synthetic depth image:
+      HandModel* hands[2];
       if (fit_left && !fit_right) {
         coeffs = l_hand->coeff();
         hands[0] = l_hand;
@@ -287,44 +299,32 @@ int main(int argc, char *argv[]) {
         hands[1] = r_hand;
       }
 
-      // TEMP CODE:
-      std::cout << std::setprecision(10);
-      std::cout << std::fixed;
-      std::cout << std::endl;
-      for (uint32_t i = 0; i < coeffs.size(); i++) {
-        std::cout << coeffs(i) << ", ";
+      hand_renderer->drawDepthMap(coeffs, hands, num_hands);
+      hand_renderer->extractDepthMap(depth);
+      HandNet::createLabelFromSyntheticDepth(depth, label);
+#else
+      for (uint32_t i = 0; i < src_dim; i++) {
+        depth[i] = (float)cur_depth_data[i];
       }
-      std::cout << std::endl;
-      // END TEMP CODE:
+      bool rhand;
+      bool lhand;
+      float rhand_uvd[3];
+      float lhand_uvd[3];
+      hand_detector->findHands(cur_depth_data, rhand, lhand, rhand_uvd, 
+        lhand_uvd);
+      // But this only give us the 
+#endif
 
-      hand_renderer->drawDepthMap(coeffs, hands, num_hands);
-      // Rendering to screen will slow it all down.
-      //hand_renderer->visualizeDepthMap(wnd);  
-      //wnd->swapBackBuffer();
-
-      hand_renderer->extractDepthMap(synthetic_depth);
-
-      // TEMP CODE:
-      hand_renderer->drawDepthMap(coeffs, hands, num_hands);
-      hand_renderer->extractDepthMap(synthetic_depth);
-      // END TEMP CODE:
-
-      // TEMP CODE:
-      image_io->saveUncompressedDepth<float>(string("./../data/") + 
-        string("big") + im_files[cur_image] + string("1"), synthetic_depth, 
-        src_width, src_height);
-      // END TEMP CODE:
-
-      float x_com;
-      float y_com;
-      float z_com;
+      // Create the downsampled hand image
+     
       float std;
-      HandNet::calcHandImageFromSytheticDepth(synthetic_depth, 
-        cropped_downs_depth, cropped_downs_xyz, &x_com, &y_com, &z_com, &std);
+      Float3 xyz_com;
+      HandNet::calcHandImage(depth, label, hand_image,
+        xyz_com, std);
 
       // Save the cropped image to file:
       image_io->saveUncompressedDepth<float>(DST_IM_DIR + im_files[cur_image], 
-        cropped_downs_depth, HAND_NET_IM_SIZE, HAND_NET_IM_SIZE);
+        hand_image, HAND_NET_IM_SIZE, HAND_NET_IM_SIZE);
 
       // Play with the coeff values.
 #if defined(DEBUG) || defined(_DEBUG)
@@ -335,18 +335,12 @@ int main(int argc, char *argv[]) {
 #endif
 
       // 1. subtract off the xyz_com from the position
-      r_hand->coeff()(HandCoeff::HAND_POS_X) -= x_com;
-      r_hand->coeff()(HandCoeff::HAND_POS_X) /=std;
-      r_hand->coeff()(HandCoeff::HAND_POS_Y) -= y_com;
-      r_hand->coeff()(HandCoeff::HAND_POS_Y) /=std;
-      r_hand->coeff()(HandCoeff::HAND_POS_Z) -= z_com;
-      r_hand->coeff()(HandCoeff::HAND_POS_Z) /=std;
-      l_hand->coeff()(HandCoeff::HAND_POS_X) -= x_com;
-      l_hand->coeff()(HandCoeff::HAND_POS_X) /=std;
-      l_hand->coeff()(HandCoeff::HAND_POS_Y) -= y_com;
-      l_hand->coeff()(HandCoeff::HAND_POS_Y) /=std;
-      l_hand->coeff()(HandCoeff::HAND_POS_Z) -= z_com;
-      l_hand->coeff()(HandCoeff::HAND_POS_Z) /=std;
+      for (uint32_t i = 0; i < 3; i++) {
+        r_hand->coeff()(HandCoeff::HAND_POS_X + i) -= xyz_com[i];
+        r_hand->coeff()(HandCoeff::HAND_POS_X) /=std;
+        l_hand->coeff()(HandCoeff::HAND_POS_X + i) -= xyz_com[i];
+        l_hand->coeff()(HandCoeff::HAND_POS_X) /=std;
+      }
 
       // 2. convert quaternion to euler angles (might be easier to learn)
       FloatQuat lquat(l_hand->coeff()(HandCoeff::HAND_ORIENT_X), 

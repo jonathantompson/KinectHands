@@ -8,7 +8,6 @@
 #define UNNAMED_HAND_DETECTOR_HEADER
 
 #include <string>
-#include "XnVNite.h"
 #include "math/math_types.h"
 #include "data_str/vector.h"
 
@@ -24,8 +23,8 @@ public:
   HandDetector(uint32_t im_width, uint32_t im_height);
   ~HandDetector();
 
-  void findHands(int16_t* depth_data, bool* rhand_found, bool* lhand_found, 
-    XnPoint3D* rhand_uvd, XnPoint3D* lhand_uvd);
+  void findHands(int16_t* depth_data, bool& rhand_found, 
+    bool& lhand_found, float* rhand_uvd, float* lhand_uvd);
   
   void reset();
   
@@ -44,7 +43,9 @@ public:
   inline void max_height_to_evaluate(uint32_t val) { max_height_to_evaluate_ = val; }
   inline uint32_t max_height() { return max_height_; }
 
-  void drawOBB();  // draw a bounding rectangle where the hands are
+  inline data_str::Vector<math::Float3>& hands_uvd() { return hands_uvd_; }
+  inline data_str::Vector<math::Int2>& hands_uv_min() { return hands_uv_min_; }
+  inline data_str::Vector<math::Int2>& hands_uv_max() { return hands_uv_max_; }
 
 private:
   DecisionTree* forest_;
@@ -74,7 +75,7 @@ private:
   void processNeighbour(int u, int v);
 
   void floodFillLabelData(bool* rhand_found, bool* lhand_found, 
-    XnPoint3D* rhand_uvd, XnPoint3D* lhand_uvd);
+    float* rhand_uvd, float* lhand_uvd);
 };
 
 #endif

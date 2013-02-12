@@ -292,8 +292,17 @@ namespace hand_model {
     if (!file.is_open()) {
       throw std::runtime_error(std::string("error opening file:") + filename);
     }
-    Float3 origin(0, 0, 0);
-    file.write(reinterpret_cast<const char*>(origin.m), HAND_NUM_COEFF * sizeof(origin.m[0]));
+
+    // Might be kinda slow to do this every time, but saving to file is pretty
+    // rare, so OK for now.
+    float blank[HAND_NUM_COEFF];
+    for (uint32_t i = 0; i < HAND_NUM_COEFF; i++) {
+      blank[i] = 0;
+    }
+    
+    file.write(reinterpret_cast<const char*>(blank), HAND_NUM_COEFF * sizeof(blank[0]));
+    file.write(reinterpret_cast<const char*>(&wrist_length), sizeof(wrist_length));
+    file.write(reinterpret_cast<const char*>(&scale), sizeof(scale));
     file.flush();
     file.close();
   }
@@ -307,18 +316,15 @@ namespace hand_model {
     float* data = coeff_.data();
     file.seekg(0, std::ios::beg);
     // Make sure this isn't a blank file (indicating no hands on the screen)
-    file.read(reinterpret_cast<char*>(data), 3 * sizeof(data[0]));
+    file.read(reinterpret_cast<char*>(data), HAND_NUM_COEFF * sizeof(data[0]));
     if (data[0] < EPSILON && data[1] < EPSILON && data[2] < EPSILON) {
       resetPose();
-    } else {
-      float cur_scale;
-      file.read(reinterpret_cast<char*>(&data[3]), (HAND_NUM_COEFF-3) * sizeof(data[0]));
-      file.read(reinterpret_cast<char*>(&wrist_length), sizeof(wrist_length));
-      file.read(reinterpret_cast<char*>(&cur_scale), sizeof(cur_scale));
-      if (cur_scale != HAND_MODEL_DEFAULT_SCALE) {
-        scale = cur_scale;
-      }
-      file.close();
+    }
+    file.read(reinterpret_cast<char*>(&wrist_length), sizeof(wrist_length));
+    file.read(reinterpret_cast<char*>(&local_scale_), sizeof(local_scale_));
+    file.close();
+    if (local_scale_ != HAND_MODEL_DEFAULT_SCALE) {
+      scale = local_scale_;
     }
     return true;
   }

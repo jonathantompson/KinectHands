@@ -7,7 +7,8 @@
 #include "hand_net/conv_stage.h"
 #include "hand_net/nn_stage.h"
 #include "exceptions/wruntime_error.h"
-#include "depth_images_io.h"
+#include "hand_model/hand_model.h"  // for HandCoeff
+#include "open_ni_funcs.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 
@@ -20,13 +21,12 @@ using std::cout;
 using std::endl;
 using math::Float3;
 using depth_images_io::DepthImagesIO;
+using hand_model::HandCoeff;
 
 namespace hand_net {
 
   int16_t HandNet::depth[src_dim];
-  float HandNet::xyz[src_dim * 3];
   float HandNet::cropped_depth[HAND_NET_PIX * HAND_NET_PIX];
-  float HandNet::cropped_xyz[3 * HAND_NET_PIX * HAND_NET_PIX];
  
   HandNet::HandNet(const std::string& convnet_filename) {
     n_conv_stages_ = 0;
@@ -131,16 +131,73 @@ namespace hand_net {
     datnext_ = new float[max_size];
   }
 
-  void HandNet::calcHandImageFromSytheticDepth(const float* depth_in, 
-    float* hand_im_depth, float* hand_im_xyx, float* x_com,
-    float* y_com, float* z_com, float* std) {
+  void HandNet::calcHandCoeff(const float* depth, const uint8_t* label, 
+    Eigen::MatrixXf& coeff) {
+    // First create a hand image:
+    Float3 xyz_com;
+    float std;
+    HandNet::calcHandImage(depth, label, datcur_, xyz_com, std);
+
+    int32_t width = HAND_NET_IM_SIZE;
+    int32_t height = HAND_NET_IM_SIZE;
+
+    for (int32_t i = 0; i < n_conv_stages_; i++) {
+      conv_stages_[i]->forwardProp(datcur_, width, height, datnext_);
+      // Ping-pong the buffers
+      float* tmp = datnext_;
+      datnext_ = datcur_;
+      datcur_ = tmp;
+      // Calculate the next stage size
+      width = conv_stages_[i]->calcOutWidth(width);
+      height = conv_stages_[i]->calcOutHeight(height);
+    }
+
+    // print3DTensorToStdCout<float>(datcur_, 0, width, height, 2, 2, 6, 6);
+
+    for (int32_t i = 0; i < n_nn_stages_; i++) {
+      nn_stages_[i]->forwardProp(datcur_, datnext_);
+      // Ping-pong the buffers
+      float* tmp = datnext_;
+      datnext_ = datcur_;
+      datcur_ = tmp;
+    }
+
+    // print3DTensorToStdCout<float>(datcur_, 1, 25, 1);
+
+    // Now the coeffs are in a scaled format which also has euler angles
+    // instead of quaternions, convert the format back
+    for (uint32_t i = HandCoeff::HAND_POS_X; i <= HandCoeff::HAND_POS_Z; i++) {
+      coeff(i) = datcur_[i] * std + xyz_com[i];
+    }
+
+    Float3 euler(datcur_[HandCoeff::HAND_ORIENT_X],
+      datcur_[HandCoeff::HAND_ORIENT_Y], datcur_[HandCoeff::HAND_ORIENT_Z]);
+    FloatQuat quat;
+    math::FloatQuat::eulerAngles2Quat(&quat, euler[0], euler[1], euler[2]);
+    for (uint32_t i = 0; i < 4; i++) {
+      coeff(HandCoeff::HAND_ORIENT_X + i) = quat[i];
+    }
+
+    // The rest are just shifted back by one
+    for (uint32_t i = HandCoeff::HAND_ORIENT_W + 1; i < HAND_NUM_COEFF; i++) {
+      coeff(i) = datcur_[i-1];
+    }
+
+    // print3DTensorToStdCout<float>(&coeff(0), 1, 26, 1);
+  }
+
+  void HandNet::createLabelFromSyntheticDepth(const float* depth, 
+    uint8_t* label) {
+    for (uint32_t i = 0; i < src_dim; i++) {
+      label[i] = (depth[i] > EPSILON && depth[i] < GDT_MAX_DIST) ? 1 : 0;
+    }
+  }
+
+  void HandNet::calcHandImage(const float* depth_in, const uint8_t* label_in,
+    float* hand_image, math::Float3& xyz_com, float& std) {
     // Convert float to int16
     for (uint32_t i = 0; i < src_dim; i++) {
       depth[i] = (int16_t)depth_in[i];
-    }
-
-    if (hand_im_xyx != NULL) {
-      DepthImagesIO::convertSingleImageToXYZ(xyz, depth);
     }
 
     // Find the COM in pixel space so we can crop the image.
@@ -150,7 +207,7 @@ namespace hand_net {
     for (uint32_t v = 0; v < src_height; v++) {
       for (uint32_t u = 0; u < src_width; u++) {
         uint32_t src_index = v * src_width + u;
-        if (depth_in[src_index] > EPSILON) {
+        if (label_in[src_index] == 1) {
           u_com += u;
           v_com += v;
           cnt++;
@@ -167,20 +224,10 @@ namespace hand_net {
       for (uint32_t u = u_start; u < u_start + HAND_NET_PIX; u++) {
         uint32_t dst_index = (v-v_start)* HAND_NET_PIX + (u-u_start);
         uint32_t src_index = v * src_width + u;
-        if (depth_in[src_index] > EPSILON && depth_in[src_index] < GDT_MAX_DIST) {
+        if (label_in[src_index] == 1) {
             cropped_depth[dst_index] = depth_in[src_index];
-            if (hand_im_xyx != NULL) {
-              cropped_xyz[3*dst_index] = xyz[src_index*3];
-              cropped_xyz[3*dst_index + 1] = xyz[src_index*3 + 1];
-              cropped_xyz[3*dst_index + 2] = xyz[src_index*3 + 2];
-            }
         } else {
           cropped_depth[dst_index] = 0;
-          if (hand_im_xyx != NULL) {
-            cropped_xyz[3*dst_index] = 0;
-            cropped_xyz[3*dst_index + 1] = 0;
-            cropped_xyz[3*dst_index + 2] = 0;
-          }
         }
       }
     }
@@ -190,125 +237,67 @@ namespace hand_net {
       for (uint32_t v = 0; v < HAND_NET_IM_SIZE; v++) {
         for (uint32_t u = 0; u < HAND_NET_IM_SIZE; u++) {
           uint32_t dst = v*HAND_NET_IM_SIZE + u;
-          hand_im_depth[dst] = 0;
-          if (hand_im_xyx != NULL) {
-            hand_im_xyx[dst*3] = 0;
-            hand_im_xyx[dst*3+1] = 0;
-            hand_im_xyx[dst*3+2] = 0;
-          }
+          hand_image[dst] = 0;
           float n_pts = 0;
           for (uint32_t v_off = v; v_off < v + HAND_NET_DOWN_FACT; v_off++) {
             for (uint32_t u_off = u; u_off < u + HAND_NET_DOWN_FACT; u_off++) {
               uint32_t src = HAND_NET_DOWN_FACT * v * HAND_NET_PIX + HAND_NET_DOWN_FACT * u;
               if (cropped_depth[src] > 0) {
-                hand_im_depth[dst] += cropped_depth[src];
-                if (hand_im_xyx != NULL) {
-                  hand_im_xyx[dst*3] += cropped_xyz[src*3];
-                  hand_im_xyx[dst*3+1] += cropped_xyz[src*3+1];
-                  hand_im_xyx[dst*3+2] += cropped_xyz[src*3+2];
-                }
+                hand_image[dst] += cropped_depth[src];
                 n_pts += 1;
               }
             }
           }
 
           if (n_pts > 0) {
-            hand_im_depth[dst] /= n_pts;
-            if (hand_im_xyx != NULL) {
-              hand_im_xyx[dst*3] /= n_pts;
-              hand_im_xyx[dst*3+1] /= n_pts;
-              hand_im_xyx[dst*3+2] /= n_pts;
-            }
-
+            hand_image[dst] /= n_pts;
           } else {
-            hand_im_depth[dst] = 0;
-            if (hand_im_xyx != NULL) {
-              hand_im_xyx[dst*3] /= n_pts;
-              hand_im_xyx[dst*3+1] /= n_pts;
-              hand_im_xyx[dst*3+2] /= n_pts;
-            }
+            hand_image[dst] = 0;
           }
         }
       }
     } else {
-      memcpy(hand_im_depth, cropped_depth, 
-        sizeof(hand_im_depth[0]) * HAND_NET_IM_SIZE * HAND_NET_IM_SIZE);
-      if (hand_im_xyx != NULL) {
-        memcpy(hand_im_xyx, cropped_xyz, 
-          sizeof(hand_im_xyx[0]) * HAND_NET_IM_SIZE*HAND_NET_IM_SIZE*3);
-      }
+      memcpy(hand_image, cropped_depth, 
+        sizeof(hand_image[0]) * HAND_NET_IM_SIZE * HAND_NET_IM_SIZE);
     }
 
     // Now calculate the mean and STD of the cropped downsampled image
     cnt = 0;
-    if (x_com) { *x_com = 0; }
-    if (y_com) { *y_com = 0; }
-    if (z_com) { *z_com = 0; }
     float running_sum = 0;
     float running_sum_sq = 0;
     for (uint32_t v = 0; v < HAND_NET_IM_SIZE; v++) {
       for (uint32_t u = 0; u < HAND_NET_IM_SIZE; u++) {
         uint32_t src_index = v * HAND_NET_IM_SIZE + u;
-        if (hand_im_depth[src_index] > EPSILON) {
+        float val = hand_image[src_index];
+        if (val > EPSILON) {
           cnt++;
-          running_sum += hand_im_depth[src_index];
-          running_sum_sq += hand_im_depth[src_index] * hand_im_depth[src_index];
-          if (x_com && hand_im_xyx) { *x_com += hand_im_xyx[src_index* 3]; }
-          if (y_com && hand_im_xyx) { *y_com += hand_im_xyx[src_index*3 + 1]; }
-          if (z_com && hand_im_xyx) { *z_com += hand_im_xyx[src_index*3 + 2]; }
+          running_sum += val;
+          running_sum_sq += (val * val);
         }
       }
     }
-    if (x_com) { *x_com /= (float)cnt; }
-    if (y_com) { *y_com /= (float)cnt; }
-    if (z_com) { *z_com /= (float)cnt; }
-    
+
+    xyz_com.scale(1.0f / (float)(cnt));
     float mean = running_sum / (float)cnt;
     float var = (running_sum_sq / (float)cnt) - (mean * mean);
-    float std_ = sqrtf(var);
-    if (std) { *std = std_; }
+    std = sqrtf(var);
+
+    float uvd[3] = {u_com, v_com, mean};
+    kinect::OpenNIFuncs::xnConvertProjectiveToRealWorld(1, 
+      (kinect::Vector3D*)uvd, (kinect::Vector3D*)xyz_com.m);
 
     // Now subtract away the mean and scale depth by the std
     for (uint32_t v = 0; v < HAND_NET_IM_SIZE; v++) {
       for (uint32_t u = 0; u < HAND_NET_IM_SIZE; u++) {
         uint32_t src_index = v * HAND_NET_IM_SIZE + u;
-        if (hand_im_depth[src_index] > EPSILON) {
-          hand_im_depth[src_index] = (hand_im_depth[src_index] - mean) / std_;
+        float val = hand_image[src_index];
+        if (val > EPSILON) {
+          hand_image[src_index] = (val - mean) / std;
         } else {
-          hand_im_depth[src_index] = 0;
+          hand_image[src_index] = 0;
         }
       }
     }
-  }
-
-  void HandNet::calcHandCoeff(const float* depth, float* coeff) {
-    int32_t width = HAND_NET_IM_SIZE;
-    int32_t height = HAND_NET_IM_SIZE;
-
-    memcpy(datcur_, depth, sizeof(datcur_[0]) * width * height);
-
-    for (int32_t i = 0; i < n_conv_stages_; i++) {
-      conv_stages_[i]->forwardProp(datcur_, width, height, datnext_);
-      // Ping-pong the buffers
-      float* tmp = datnext_;
-      datnext_ = datcur_;
-      datcur_ = tmp;
-      // Calculate the next stage size
-      width = conv_stages_[i]->calcOutWidth(width);
-      height = conv_stages_[i]->calcOutHeight(height);
-    }
-
-    for (int32_t i = 0; i < n_nn_stages_; i++) {
-      nn_stages_[i]->forwardProp(datcur_, datnext_);
-      // Ping-pong the buffers
-      float* tmp = datnext_;
-      datnext_ = datcur_;
-      datcur_ = tmp;
-    }
-
-    // Output data is in datcur_, just copy it over
-    memcpy(coeff, datcur_, 
-      sizeof(coeff[0]) * nn_stages_[n_nn_stages_-1]->n_outputs());
   }
 
 }  // namespace hand_model

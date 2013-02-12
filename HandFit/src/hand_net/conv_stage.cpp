@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <fstream>
 #include "hand_net/conv_stage.h"
+#include "hand_net/hand_net.h"  // for print3DTensorToStdCout
 #include "exceptions/wruntime_error.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
@@ -131,20 +132,16 @@ namespace hand_net {
     const int32_t out_w = calcOutWidth(inw);
     const int32_t out_h = calcOutHeight(inh);
 
-    print3DTensorToStdOut<float>(in, 0, inw, inh, 39, 39, 4, 4);
+    performSpacialConvolution(in, inw, inh, out);  // Checked against torch
 
-    performSpacialConvolution(in, inw, inh, out);  
-
-    print3DTensorToStdOut<float>(out, n_output_features_, interm_w, interm_h);
-
-    performNonlinearity(out, interm_w, interm_h);
+    performNonlinearity(out, interm_w, interm_h);  // Checked against torch
 
     // Buffer swap: in <--> out
     float* tmp = in;
     in = out;
     out = tmp;
 
-    performPooling(in, interm_w, interm_h, out);
+    performPooling(in, interm_w, interm_h, out);  // Checked against torch
 
     // Buffer swap: in <--> out
     tmp = in;
@@ -152,7 +149,7 @@ namespace hand_net {
     out = tmp;
 
     initNormCoef(out_w, out_h);  // Only does work once on startup
-    performNormalization(in, out_w, out_h, out);
+    performNormalization(in, out_w, out_h, out);  // Checked against torch
 
     // Result is now in out.
   }
@@ -177,9 +174,9 @@ namespace hand_net {
     for (int32_t outf = 0; outf < n_output_features_; outf++) {
       // Now iterate through the connection table:
       for (int32_t inf = 0; inf < filt_fan_in_; inf++) {
-        int16_t inf_index = conn_table_[outf][inf * 2];
-        int16_t outf_index = conn_table_[outf][inf * 2 + 1];
-        float* cur_filt = &weights_[filt_fan_in_ * outf][0];
+        int32_t inf_index = (int32_t)conn_table_[outf][inf * 2];
+        int32_t weight_index = (int32_t)conn_table_[outf][inf * 2 + 1];
+        float* cur_filt = weights_[weight_index];
 
         // for each output pixel, perform the convolution over the input
         for (int32_t outv = 0; outv < interm_h; outv++) {
@@ -189,9 +186,9 @@ namespace hand_net {
               for (int32_t filtu = 0; filtu < filt_width_; filtu++) {
                 int32_t inu = outu + filtu;
                 int32_t inv = outv + filtv;
-                out[outf_index * interm_dim + outv * interm_w + outu] +=
-                  cur_filt[filtv * filt_width_ + filtu] *
-                  in[inf_index * in_dim + inv * inw + inu];
+                out[outf * interm_dim + outv * interm_w + outu] +=
+                  (cur_filt[filtv * filt_width_ + filtu] *
+                  in[inf_index * in_dim + inv * inw + inu]);
               }
             }
           }
@@ -241,6 +238,8 @@ namespace hand_net {
                 out[outf * out_dim + outv * out_w + outu] += (val * val);
               }
             }
+            out[outf * out_dim + outv * out_w + outu] = 
+              sqrtf(out[outf * out_dim + outv * out_w + outu]);
           }
         }
       }
@@ -382,12 +381,12 @@ namespace hand_net {
     std::cout << std::fixed;
 
     std::cout << "  weights_:" << std::endl;
-    print3DTensorToStdOut<float>((const float**)weights_, 
+    HandNet::print3DTensorToStdCout<float>(weights_, 
       std::min<int32_t>(n_output_features_ * filt_fan_in_, MAX_PRINT_LENGTH), 
       filt_height_, filt_width_);
 
     std::cout << "  conn_:" << std::endl;
-    print3DTensorToStdOut<int16_t>((const int16_t**)conn_table_,  
+    HandNet::print3DTensorToStdCout<int16_t>(conn_table_,  
       std::min<int32_t>(n_output_features_, MAX_PRINT_LENGTH), filt_fan_in_, 
       2);
 

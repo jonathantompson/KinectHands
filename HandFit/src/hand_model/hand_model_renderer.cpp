@@ -330,6 +330,12 @@ namespace hand_model {
 
   void HandModelRenderer::drawDepthMapInternal(const Eigen::MatrixXf& coeff,
     HandModel** hands, uint32_t num_hands, bool color, bool tiled) {
+    // Update: 2/12 - We need to detach the hand model scene graph from the
+    // renderer scene graph so it doesn't inherit any properties from the world
+    // matrix (we can put it back later).
+    bool old_render_hand = render_hand_;
+    setRendererAttachement(false);
+
     HandModelGeometry* hand[2];
     hand[0] = (hands[0]->hand_type() == HandType::LEFT) ? 
       l_hand_geom_ : r_hand_geom_;
@@ -415,6 +421,7 @@ namespace hand_model {
         depth_texture_->end();
       }
     }
+    setRendererAttachement(old_render_hand);
   }
 
   void HandModelRenderer::drawDepthMap(const Eigen::MatrixXf& coeff,
@@ -835,7 +842,7 @@ namespace hand_model {
     geom->draw();
   }
 
-  void HandModelRenderer::setHandRendering(bool render_hand) {
+  void HandModelRenderer::setRendererAttachement(bool render_hand) {
     if (render_hand_ != render_hand) {
       render_hand_ = render_hand;
       if (!render_hand_) {

@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <fstream>
 #include "hand_net/nn_stage.h"
+#include "exceptions/wruntime_error.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 
@@ -24,10 +25,12 @@ namespace hand_net {
     n_outputs_ = 0;
     nonlin_type_ = UndefinedNNNonlin;
     weights_ = NULL;
+    bias_ = NULL;
   }
 
   NNStage::~NNStage() {
     SAFE_DELETE(weights_);
+    SAFE_DELETE(bias_);
   }
 
   void NNStage::loadFromFile(std::ifstream& file) {
@@ -42,6 +45,9 @@ namespace hand_net {
     int32_t nonlin_type;
     file.read((char*)(&nonlin_type), sizeof(nonlin_type));
     nonlin_type_ = (NNNonlinType)nonlin_type;
+
+    bias_ = new float[n_outputs_];
+    file.read((char*)(bias_), sizeof(bias_[0]) * n_outputs_);
   }
 
   void NNStage::printToStdOut() const {
@@ -84,7 +90,36 @@ namespace hand_net {
   }
 
   void NNStage::forwardProp(float*& in, float*& out) const {
-    // TO DO:
+    performLinearNetwork(out, n_outputs_, (const float*&)in, n_inputs_);
+    performNonlinearity(out, n_outputs_);
+
+    // Result is in output
+  }
+
+  void NNStage::performNonlinearity(float*&data, const int32_t size) const {
+    switch (nonlin_type_) {
+    case NoneNNNonlin:
+      // Nothing to do for this non-linearity type
+      break;
+    case TanhNNNonlin:
+      for (int32_t outf = 0; outf < size; outf++) {
+        data[outf] = tanh(data[outf]);
+      }
+      break;
+    default:
+      throw std::wruntime_error("NNStage::performNonlinearity() - ERROR: "
+        "Only TanhNNNonlin supported for now.");
+    }
+  }
+
+  void NNStage::performLinearNetwork(float*&out, const int32_t outsize, 
+    const float*& in, const int32_t insize) const {
+    for (int32_t outf = 0; outf < outsize; outf++) {
+      out[outf] = bias_[outf];
+      for (int32_t inf = 0; inf < insize; inf++) {
+        out[outf] += weights_[outf * insize + inf] * in[inf];
+      }
+    }
   }
 
 }  // namespace hand_model
