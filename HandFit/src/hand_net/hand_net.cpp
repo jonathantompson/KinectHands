@@ -105,8 +105,8 @@ namespace hand_net {
     for (int32_t i = 0; i < n_conv_stages_; i++) {
       max_size = std::max<int32_t>(max_size, 
         conv_stages_[i]->dataSizeReq(im_sizeu, im_sizev));
-      im_sizeu = conv_stages_[i]->calc_out_im_width(im_sizeu);
-      im_sizev = conv_stages_[i]->calc_out_im_height(im_sizev);
+      im_sizeu = conv_stages_[i]->calcOutWidth(im_sizeu);
+      im_sizev = conv_stages_[i]->calcOutHeight(im_sizev);
     }
 
     // Quick check to make sure the sizes match up!
@@ -241,9 +241,9 @@ namespace hand_net {
 
     // Now calculate the mean and STD of the cropped downsampled image
     cnt = 0;
-    if (x_com) { x_com = 0; }
-    if (y_com) { y_com = 0; }
-    if (z_com) { z_com = 0; }
+    if (x_com) { *x_com = 0; }
+    if (y_com) { *y_com = 0; }
+    if (z_com) { *z_com = 0; }
     float running_sum = 0;
     float running_sum_sq = 0;
     for (uint32_t v = 0; v < HAND_NET_IM_SIZE; v++) {
@@ -279,6 +279,36 @@ namespace hand_net {
         }
       }
     }
+  }
+
+  void HandNet::calcHandCoeff(const float* depth, float* coeff) {
+    int32_t width = HAND_NET_IM_SIZE;
+    int32_t height = HAND_NET_IM_SIZE;
+
+    memcpy(datcur_, depth, sizeof(datcur_[0]) * width * height);
+
+    for (int32_t i = 0; i < n_conv_stages_; i++) {
+      conv_stages_[i]->forwardProp(datcur_, width, height, datnext_);
+      // Ping-pong the buffers
+      float* tmp = datnext_;
+      datnext_ = datcur_;
+      datcur_ = tmp;
+      // Calculate the next stage size
+      width = conv_stages_[i]->calcOutWidth(width);
+      height = conv_stages_[i]->calcOutHeight(height);
+    }
+
+    for (int32_t i = 0; i < n_nn_stages_; i++) {
+      nn_stages_[i]->forwardProp(datcur_, datnext_);
+      // Ping-pong the buffers
+      float* tmp = datnext_;
+      datnext_ = datcur_;
+      datcur_ = tmp;
+    }
+
+    // Output data is in datcur_, just copy it over
+    memcpy(coeff, datcur_, 
+      sizeof(coeff[0]) * nn_stages_[n_nn_stages_-1]->n_outputs());
   }
 
 }  // namespace hand_model

@@ -14,6 +14,7 @@
 #include <cmath>
 #include <thread>
 #include <iostream>
+#include <iomanip>
 #include <limits>
 
 #include "renderer/open_gl_common.h"
@@ -54,6 +55,7 @@
 #define DST_IM_DIR_BASE string("/data/hand_depth_data_processed/") 
 
 #define FILE_SKIP 3
+#define MAX_FILES 1
 
 #if defined(__APPLE__)
   #define IM_DIR string("../../../../../../../../../") + IM_DIR_BASE
@@ -123,7 +125,6 @@ float cropped_downs_xyz[3 * HAND_NET_PIX * HAND_NET_PIX];
 // Kinect Image data
 DepthImagesIO* image_io = NULL;
 data_str::VectorManaged<char*> im_files;
-float image_xyz[src_dim*3];
 int16_t cur_depth_data[src_dim*3];
 uint8_t cur_label_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
@@ -156,6 +157,8 @@ void quit() {
 void loadCurrentImage() {
   char* file = im_files[cur_image];
   string full_filename = IM_DIR + string(file);
+  std::cout << "loading image: " << full_filename << std::endl;
+
   image_io->LoadCompressedImage(full_filename, 
     cur_depth_data, cur_label_data, cur_image_rgb);
 }
@@ -255,24 +258,18 @@ int main(int argc, char *argv[]) {
 
     // Iterate through, saving each of the data points
     HandModel* hands[2];
-    for (uint32_t i = 0; i < im_files.size(); i += FILE_SKIP) {
-      std::cout << "processing image " << (i/FILE_SKIP) << " of " << (im_files.size()/FILE_SKIP) << std::endl;
+    for (uint32_t i = 0; i < std::min<uint32_t>(im_files.size(), MAX_FILES); 
+      i += FILE_SKIP) {
+      std::cout << "processing image " << (i/FILE_SKIP) << " of ";
+      std::cout << (im_files.size()/FILE_SKIP) << std::endl;
 
       // Load in the image (rgb + depth) and load in the fitted coefficients
       cur_image = i;
       loadCurrentImage();
-      DepthImagesIO::convertSingleImageToXYZ(image_xyz, cur_depth_data);
 
       r_hand->loadFromFile(IM_DIR, string("coeffr_") + im_files[cur_image]);
       l_hand->loadFromFile(IM_DIR, string("coeffl_") + im_files[cur_image]);
-
-      // Update the hand render model matricies with the new coeff values
-      if (fit_right) {
-        hand_renderer->updateMatrices(r_hand->coeff(), r_hand->hand_type());
-      }
-      if (fit_left) {
-        hand_renderer->updateMatrices(l_hand->coeff(), l_hand->hand_type());
-      }
+      hand_renderer->setHandRendering(true);
 
       // Render a synthetic depth image:
       if (fit_left && !fit_right) {
@@ -290,13 +287,34 @@ int main(int argc, char *argv[]) {
         hands[1] = r_hand;
       }
 
+      // TEMP CODE:
+      std::cout << std::setprecision(10);
+      std::cout << std::fixed;
+      std::cout << std::endl;
+      for (uint32_t i = 0; i < coeffs.size(); i++) {
+        std::cout << coeffs(i) << ", ";
+      }
+      std::cout << std::endl;
+      // END TEMP CODE:
+
       hand_renderer->drawDepthMap(coeffs, hands, num_hands);
       // Rendering to screen will slow it all down.
       //hand_renderer->visualizeDepthMap(wnd);  
       //wnd->swapBackBuffer();
 
       hand_renderer->extractDepthMap(synthetic_depth);
-      
+
+      // TEMP CODE:
+      hand_renderer->drawDepthMap(coeffs, hands, num_hands);
+      hand_renderer->extractDepthMap(synthetic_depth);
+      // END TEMP CODE:
+
+      // TEMP CODE:
+      image_io->saveUncompressedDepth<float>(string("./../data/") + 
+        string("big") + im_files[cur_image] + string("1"), synthetic_depth, 
+        src_width, src_height);
+      // END TEMP CODE:
+
       float x_com;
       float y_com;
       float z_com;
@@ -404,6 +422,10 @@ int main(int argc, char *argv[]) {
     }
 
     std::cout << "All done!" << std::endl;
+#if defined(WIN32) || defined(_WIN32)
+    system("PAUSE");
+#endif
+    quit();
 
   } catch (std::runtime_error e) {
     printf("%s\n", e.what());
