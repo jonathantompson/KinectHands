@@ -4,8 +4,6 @@ toy_hand_data
 *.net.settings.csv
 hand_depth_data_processed
 results
-hand_depth_data_processed.zip
-hand_depth_data_processed_2x.zip
-hand_depth_data_processed_3x.zip
+hand_depth_data_processed*.zip
 ~*xlsx
 temp.lua
