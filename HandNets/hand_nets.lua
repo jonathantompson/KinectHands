@@ -1,9 +1,10 @@
 require 'nn'
 require 'image'
 require 'torch'
-require 'xlua'    -- xlua provides useful tools, like progress bars
+-- require 'xlua'    -- xlua provides useful tools, like progress bars
 require 'optim'   -- an optimization package, for online and batch methods
 torch.setnumthreads(4)
+dofile("pbar.lua")
 -- require 'debugger'
 
 -- Jonathan Tompson
@@ -117,7 +118,7 @@ itr = 1
 ite = 1
 for i=1,nfiles do
   -- disp progress
-  xlua.progress(i, nfiles)
+  progress(i, nfiles)
 
   -- Read in the sample
   coeff_file = torch.DiskFile(im_dir .. coeffr_files[i*frame_skip], 'r')
@@ -176,7 +177,7 @@ print '==> Normalize the depth images'
 print '    Normalizing training set'
 for i=1,trainData.size(),1 do
   -- disp progress
-  xlua.progress(i, trainData:size())
+  progress(i, trainData:size())
 
   -- Calculate the mean and std of all hand pixels (not including background)
   sum_pix = 0
@@ -213,7 +214,7 @@ end
 print '    Normalizing test set'
 for i=1,testData.size(),1 do
   -- disp progress
-  xlua.progress(i, testData:size())
+  progress(i, testData:size())
 
   -- Calculate the mean and std of all hand pixels (not including background)
   sum_pix = 0
@@ -442,7 +443,7 @@ if (perform_training == 1) then
     local nsamples = 0
     for t = 1,trainData:size(),batchSize do
       -- disp progress
-      xlua.progress(t, trainData:size())
+      progress(t, trainData:size())
 
       -- create mini batch
       local inputs = {}
@@ -536,7 +537,7 @@ if (perform_training == 1) then
     print('==> testing on test set:')
     for t = 1,testData:size() do
       -- disp progress
-      xlua.progress(t, testData:size())
+      progress(t, testData:size())
 
       -- get new sample
       input = testData.data[t]
@@ -596,7 +597,7 @@ else  -- if perform_training
   te_abs_crit_error = torch.FloatTensor(testData:size())
   te_mse_crit_error = torch.FloatTensor(testData:size())
   for t=1,testData:size(),1 do
-    xlua.progress(t, testData:size())
+    progress(t, testData:size())
     -- print(string.format('%d of %d', t, testData:size()))
     -- get new sample
     data_pt = {
@@ -626,7 +627,7 @@ else  -- if perform_training
   tr_abs_crit_error = torch.FloatTensor(trainData:size())
   tr_mse_crit_error = torch.FloatTensor(trainData:size())
   for t=1,trainData:size(),1 do
-    xlua.progress(t, trainData:size())
+    progress(t, trainData:size())
     -- print(string.format('%d of %d', t, trainData:size()))
     -- get new sample
     data_pt = {
