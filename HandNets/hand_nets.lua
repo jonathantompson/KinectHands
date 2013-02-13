@@ -16,7 +16,7 @@ torch.setnumthreads(4)
 width = 96
 height = 96
 dim = width * height
-frame_skip = 4  -- We don't need every file of the 30fps, so just grab a few
+frame_skip = 2  -- We don't need every file of the 30fps, so just grab a few
 test_data_rate = 5  -- this means 1 / 5 will be test data
 num_coeff = 25  -- Keep this at 25!
 num_learned_coeff = 25
