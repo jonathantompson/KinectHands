@@ -264,7 +264,7 @@ namespace math {
   template <class T>
   void Mat4x4<T>::printStdCout() {
     std::cout.setf(std::ios::showpos);
-    std::cout << std::setprecision(4);
+    std::cout << std::setprecision(8);
     std::cout << std::fixed;
 #ifdef ROW_MAJOR
     std::cout << "| " << m[0]  << " " << m[1]  << " " << m[2]  << " " << m[3]  << " |" << std::endl;

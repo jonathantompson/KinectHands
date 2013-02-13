@@ -11,7 +11,6 @@
 #include "evaluate_decision_forest.h"
 #include "forest_io.h"
 #include "image_util.h"
-#include "rendering/opengl_include.h"
 
 using std::string;
 using std::runtime_error;
@@ -63,8 +62,8 @@ HandDetector::~HandDetector() {
   if (depth_downsampled_) { delete[] depth_downsampled_; }
 }
 
-void HandDetector::findHands(int16_t* depth_data, bool* rhand_found, 
-  bool* lhand_found, XnPoint3D* rhand_uvd, XnPoint3D* lhand_uvd) {
+void HandDetector::findHands(int16_t* depth_data, bool& rhand_found, 
+    bool& lhand_found, float* rhand_uvd, float* lhand_uvd) {
   depth_ = depth_data;
   // Downsample the input image
   if (DT_DOWNSAMPLE > 1) {
@@ -96,7 +95,7 @@ void HandDetector::findHands(int16_t* depth_data, bool* rhand_found,
   labels_evaluated_ = tmp;
   
   // Find hands using flood fill
-  floodFillLabelData(rhand_found, lhand_found, rhand_uvd, lhand_uvd);
+  floodFillLabelData(&rhand_found, &lhand_found, rhand_uvd, lhand_uvd);
 }
 
 void HandDetector::reset() {
@@ -107,7 +106,7 @@ void HandDetector::reset() {
 }
 
 void HandDetector::floodFillLabelData(bool* rhand_found, bool* lhand_found, 
-  XnPoint3D* rhand_uvd, XnPoint3D* lhand_uvd) {
+  float* rhand_uvd, float* lhand_uvd) {
   // re-use the labels_evaluated data instead of allocating more
   hands_uv_min_.resize(0);
   hands_uv_max_.resize(0);
@@ -211,16 +210,16 @@ void HandDetector::floodFillLabelData(bool* rhand_found, bool* lhand_found,
   if (index_sec_max_hand_n_pts == MAX_UINT32) {
     if (hands_uvd_[index_max_hand_n_pts][0] < ((DT_DOWNSAMPLE * width_) / 2)) {
       *lhand_found = true;
-      lhand_uvd->X = hands_uvd_[index_max_hand_n_pts][0];
-      lhand_uvd->Y = hands_uvd_[index_max_hand_n_pts][1];
-      lhand_uvd->Z = hands_uvd_[index_max_hand_n_pts][2];
+      lhand_uvd[0] = hands_uvd_[index_max_hand_n_pts][0];
+      lhand_uvd[1] = hands_uvd_[index_max_hand_n_pts][1];
+      lhand_uvd[2] = hands_uvd_[index_max_hand_n_pts][2];
       *rhand_found = false;
     } else {
       *lhand_found = false;
       *rhand_found = true;
-      rhand_uvd->X = hands_uvd_[index_max_hand_n_pts][0];
-      rhand_uvd->Y = hands_uvd_[index_max_hand_n_pts][1];
-      rhand_uvd->Z = hands_uvd_[index_max_hand_n_pts][2];
+      rhand_uvd[0] = hands_uvd_[index_max_hand_n_pts][0];
+      rhand_uvd[1] = hands_uvd_[index_max_hand_n_pts][1];
+      rhand_uvd[2] = hands_uvd_[index_max_hand_n_pts][2];
     }
     return;
   }
@@ -229,22 +228,22 @@ void HandDetector::floodFillLabelData(bool* rhand_found, bool* lhand_found,
   if (hands_uvd_[index_max_hand_n_pts][0] > hands_uvd_[index_sec_max_hand_n_pts][0]) {
     // Max is the right hand
     *lhand_found = true;
-    lhand_uvd->X = hands_uvd_[index_sec_max_hand_n_pts][0];
-    lhand_uvd->Y = hands_uvd_[index_sec_max_hand_n_pts][1];
-    lhand_uvd->Z = hands_uvd_[index_sec_max_hand_n_pts][2];
+    lhand_uvd[0] = hands_uvd_[index_sec_max_hand_n_pts][0];
+    lhand_uvd[1] = hands_uvd_[index_sec_max_hand_n_pts][1];
+    lhand_uvd[2] = hands_uvd_[index_sec_max_hand_n_pts][2];
     *rhand_found = true;
-    rhand_uvd->X = hands_uvd_[index_max_hand_n_pts][0];
-    rhand_uvd->Y = hands_uvd_[index_max_hand_n_pts][1];
-    rhand_uvd->Z = hands_uvd_[index_max_hand_n_pts][2];
+    rhand_uvd[0] = hands_uvd_[index_max_hand_n_pts][0];
+    rhand_uvd[1] = hands_uvd_[index_max_hand_n_pts][1];
+    rhand_uvd[2] = hands_uvd_[index_max_hand_n_pts][2];
   } else {
     *lhand_found = true;
-    lhand_uvd->X = hands_uvd_[index_max_hand_n_pts][0];
-    lhand_uvd->Y = hands_uvd_[index_max_hand_n_pts][1];
-    lhand_uvd->Z = hands_uvd_[index_max_hand_n_pts][2];
+    lhand_uvd[0] = hands_uvd_[index_max_hand_n_pts][0];
+    lhand_uvd[1] = hands_uvd_[index_max_hand_n_pts][1];
+    lhand_uvd[2] = hands_uvd_[index_max_hand_n_pts][2];
     *rhand_found = true;
-    rhand_uvd->X = hands_uvd_[index_sec_max_hand_n_pts][0];
-    rhand_uvd->Y = hands_uvd_[index_sec_max_hand_n_pts][1];
-    rhand_uvd->Z = hands_uvd_[index_sec_max_hand_n_pts][2];
+    rhand_uvd[0] = hands_uvd_[index_sec_max_hand_n_pts][0];
+    rhand_uvd[1] = hands_uvd_[index_sec_max_hand_n_pts][1];
+    rhand_uvd[2] = hands_uvd_[index_sec_max_hand_n_pts][2];
   }
 
 }
@@ -264,46 +263,5 @@ void HandDetector::processNeighbour(int u, int v) {
       pixel_on_queue_[cur_index] = 1;
       queue_tail_++;
     }
-  }
-}
-
-void HandDetector::drawOBB() {
-  GLboolean old_depthTest;
-  glGetBooleanv(GL_DEPTH_TEST, &old_depthTest);
-  glDisable(GL_DEPTH_TEST);
-  glLineWidth(1.0f);
-
-  glBegin(GL_LINES);
-  glColor3f(0.0f, 1.0f, 0.0f);
-  for (uint32_t i = 0; i < hands_uv_min_.size(); i++) {
-    glVertex2f(hands_uv_min_[i][0] * DT_DOWNSAMPLE, 
-               hands_uv_min_[i][1] * DT_DOWNSAMPLE);  // top
-    glVertex2f(hands_uv_max_[i][0] * DT_DOWNSAMPLE, 
-               hands_uv_min_[i][1] * DT_DOWNSAMPLE);
-    glVertex2f(hands_uv_min_[i][0] * DT_DOWNSAMPLE, 
-               hands_uv_max_[i][1] * DT_DOWNSAMPLE);  // bottom
-    glVertex2f(hands_uv_max_[i][0] * DT_DOWNSAMPLE, 
-               hands_uv_max_[i][1] * DT_DOWNSAMPLE);
-    glVertex2f(hands_uv_min_[i][0] * DT_DOWNSAMPLE, 
-               hands_uv_min_[i][1] * DT_DOWNSAMPLE);  // left
-    glVertex2f(hands_uv_min_[i][0] * DT_DOWNSAMPLE, 
-               hands_uv_max_[i][1] * DT_DOWNSAMPLE);
-    glVertex2f(hands_uv_max_[i][0] * DT_DOWNSAMPLE, 
-               hands_uv_min_[i][1] * DT_DOWNSAMPLE);  // right
-    glVertex2f(hands_uv_max_[i][0] * DT_DOWNSAMPLE, 
-               hands_uv_max_[i][1] * DT_DOWNSAMPLE);
-  }
-  glEnd();
-
-  glPointSize(4.0f);
-  glBegin(GL_POINTS);
-  glColor3f(0.0f, 0.0f, 1.0f);
-  for (uint32_t i = 0; i < hands_uvd_.size(); i++) {
-    glVertex2f(hands_uvd_[i][0], hands_uvd_[i][1]);
-  }
-  glEnd();
-
-  if (old_depthTest) {
-    glEnable(GL_DEPTH_TEST);
   }
 }

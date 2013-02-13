@@ -70,7 +70,7 @@ namespace hand_model {
     void calculateResidualDataTermTiled(data_str::Vector<float>& residues);
     float calcInterpenetrationTerm();
     void extractDepthMap(float* depth_vals);
-    void setHandRendering(bool render_hand);
+    void setRendererAttachement(bool render_hand);
     void preBindUniforms();
 
     inline HandModelGeometry* l_hand_geom() { return l_hand_geom_; }

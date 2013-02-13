@@ -590,7 +590,47 @@ namespace kinect {
 
   void KinectInterface::drawHandDetectorOBB() {
     data_lock_.lock();
-    hand_detector_->drawOBB();
+
+    GLboolean old_depthTest;
+    glGetBooleanv(GL_DEPTH_TEST, &old_depthTest);
+    glDisable(GL_DEPTH_TEST);
+    glLineWidth(1.0f);
+
+    glBegin(GL_LINES);
+    glColor3f(0.0f, 1.0f, 0.0f);
+    for (uint32_t i = 0; i < hand_detector_->hands_uv_min().size(); i++) {
+      glVertex2f(hand_detector_->hands_uv_min()[i][0] * DT_DOWNSAMPLE, 
+        hand_detector_->hands_uv_min()[i][1] * DT_DOWNSAMPLE);  // top
+      glVertex2f(hand_detector_->hands_uv_max()[i][0] * DT_DOWNSAMPLE, 
+        hand_detector_->hands_uv_min()[i][1] * DT_DOWNSAMPLE);
+      glVertex2f(hand_detector_->hands_uv_min()[i][0] * DT_DOWNSAMPLE, 
+        hand_detector_->hands_uv_max()[i][1] * DT_DOWNSAMPLE);  // bottom
+      glVertex2f(hand_detector_->hands_uv_max()[i][0] * DT_DOWNSAMPLE, 
+        hand_detector_->hands_uv_max()[i][1] * DT_DOWNSAMPLE);
+      glVertex2f(hand_detector_->hands_uv_min()[i][0] * DT_DOWNSAMPLE, 
+        hand_detector_->hands_uv_min()[i][1] * DT_DOWNSAMPLE);  // left
+      glVertex2f(hand_detector_->hands_uv_min()[i][0] * DT_DOWNSAMPLE, 
+        hand_detector_->hands_uv_max()[i][1] * DT_DOWNSAMPLE);
+      glVertex2f(hand_detector_->hands_uv_max()[i][0] * DT_DOWNSAMPLE, 
+        hand_detector_->hands_uv_min()[i][1] * DT_DOWNSAMPLE);  // right
+      glVertex2f(hand_detector_->hands_uv_max()[i][0] * DT_DOWNSAMPLE, 
+        hand_detector_->hands_uv_max()[i][1] * DT_DOWNSAMPLE);
+    }
+    glEnd();
+
+    glPointSize(4.0f);
+    glBegin(GL_POINTS);
+    glColor3f(0.0f, 0.0f, 1.0f);
+    for (uint32_t i = 0; i < hand_detector_->hands_uvd().size(); i++) {
+      glVertex2f(hand_detector_->hands_uvd()[i][0], 
+        hand_detector_->hands_uvd()[i][1]);
+    }
+    glEnd();
+
+    if (old_depthTest) {
+      glEnable(GL_DEPTH_TEST);
+    }
+
     data_lock_.unlock();
   }
 
@@ -785,9 +825,9 @@ namespace kinect {
         }
       } else {
         hand_detector_->findHands(reinterpret_cast<int16_t*>(depth),
-          &joints_found_[XN_SKEL_RIGHT_HAND], &joints_found_[XN_SKEL_LEFT_HAND],
-          &joints_projected_[XN_SKEL_RIGHT_HAND],  
-          &joints_projected_[XN_SKEL_LEFT_HAND]);
+          joints_found_[XN_SKEL_RIGHT_HAND], joints_found_[XN_SKEL_LEFT_HAND],
+          &joints_projected_[XN_SKEL_RIGHT_HAND].X,  
+          &joints_projected_[XN_SKEL_LEFT_HAND].X);
         if (joints_found_[XN_SKEL_RIGHT_HAND]) {
           depth_generator_.ConvertProjectiveToRealWorld(1, 
             &joints_projected_[XN_SKEL_RIGHT_HAND], &joints_[XN_SKEL_RIGHT_HAND]);  

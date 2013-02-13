@@ -111,7 +111,7 @@ namespace hand_model {
     FINGER_4_2        = 16,
     FINGER_4_3        = 17,
     BACKGROUND        = 18,
-    NUM_LABELS        = 19,
+    NUM_HANDLABEL     = 19,
   } HandLabel;
   
   typedef enum {
@@ -136,6 +136,7 @@ namespace hand_model {
     void setRotation(math::FloatQuat* quat);
     void getRotation(math::FloatQuat* quat);
     void printCoeff() const;
+    const float local_scale() { return local_scale_; }
 
     // Modifiers
     void setCoeff(uint32_t index, float coeff_value);
@@ -155,6 +156,7 @@ namespace hand_model {
 
   private:
     Eigen::MatrixXf coeff_;  // The current state
+    float local_scale_;
     HandType hand_type_;
 
     // Non-copyable, non-assignable.
