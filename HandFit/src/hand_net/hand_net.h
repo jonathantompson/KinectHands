@@ -21,6 +21,9 @@
 #define HAND_NET_PIX 192  // U, V size (before downsampling)
 #define HAND_NET_DOWN_FACT 2
 #define HAND_NET_IM_SIZE (HAND_NET_PIX / HAND_NET_DOWN_FACT)
+#define HAND_SIZE 350.0f
+#define HPF_SIGMA 6  // 1 finger width in downsampled image!
+#define HPF_KERNEL_SIZE 31  // 31
 
 namespace hand_net {
   class ConvStage;
@@ -42,7 +45,8 @@ namespace hand_net {
       uint8_t* label);
 
     static void calcHandImage(const float* depth_in, const uint8_t* label_in,
-      float* hand_image, math::Float3& xyz_com, float& std);
+      float* hand_image, math::Float2& uv_com, math::Float3& xyz_com, 
+      float& std);
 
     // Some helper functions for debugging
     template <typename T>
@@ -66,6 +70,9 @@ namespace hand_net {
 
     float* datcur_;  // The current stage's input data
     float* datnext_;  // The current stage's output data
+
+    // Temporary data structures for image processing:
+    float gauss_filt_unnormalized_[HPF_KERNEL_SIZE];
 
     // Some temporary data structures
     static float float_depth_[src_dim];

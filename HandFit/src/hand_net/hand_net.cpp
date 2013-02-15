@@ -204,26 +204,29 @@ namespace hand_net {
     }
   }
 
+  // Create the downsampled hand image, background is at 1 and hand is
+  // in front of it.
   void HandNet::calcHandImage(const float* depth_in, const uint8_t* label_in,
-    float* hand_image, math::Float3& xyz_com, float& std) {
+    float* hand_image, math::Float2& uv_com, math::Float3& xyz_com, 
+    float& std) {
     // Find the COM in pixel space so we can crop the image.
     uint32_t cnt = 0;
-    uint32_t u_com = 0;
-    uint32_t v_com = 0;
+    uv_com[0] = 0;
+    uv_com[1] = 0;
     for (uint32_t v = 0; v < src_height; v++) {
       for (uint32_t u = 0; u < src_width; u++) {
         uint32_t src_index = v * src_width + u;
         if (label_in[src_index] == 1) {
-          u_com += u;
-          v_com += v;
+          uv_com[0] += u;
+          uv_com[1] += v;
           cnt++;
         }
       }
     }
-    u_com /= cnt;
-    v_com /= cnt;
-    uint32_t u_start = u_com - (HAND_NET_PIX / 2);
-    uint32_t v_start = v_com - (HAND_NET_PIX / 2);
+    uv_com[0] /= cnt;
+    uv_com[1] /= cnt;
+    uint32_t u_start = uv_com[0] - (HAND_NET_PIX / 2);
+    uint32_t v_start = uv_com[1] - (HAND_NET_PIX / 2);
 
     // Crop the image
     for (uint32_t v = v_start; v < v_start + HAND_NET_PIX; v++) {
@@ -284,7 +287,6 @@ namespace hand_net {
     }
 
     float mean;
-
     if (cnt == 0) {
       throw std::wruntime_error("ERROR: No non-background pixels found!");
       mean = 0;
@@ -296,19 +298,22 @@ namespace hand_net {
       std = sqrtf(var);
     }
     
-    float uvd[3] = {(float)u_com, (float)v_com, mean};
+    float uvd[3] = {(float)uv_com[0], (float)uv_com[1], mean};
     kinect::OpenNIFuncs::xnConvertProjectiveToRealWorld(1, 
       (kinect::Vector3D*)uvd, (kinect::Vector3D*)xyz_com.m);
 
-    // Now subtract away the mean and scale depth by the std
+    float background = xyz_com[2] + 0.5f * HAND_SIZE;
+    float foreground = xyz_com[2] - 0.5f * HAND_SIZE;
+
+    // Now subtract away the forground and set the background to 1
     for (uint32_t v = 0; v < HAND_NET_IM_SIZE; v++) {
       for (uint32_t u = 0; u < HAND_NET_IM_SIZE; u++) {
         uint32_t src_index = v * HAND_NET_IM_SIZE + u;
         float val = hand_image[src_index];
         if (val > EPSILON) {
-          hand_image[src_index] = (val - mean) / std;
+          hand_image[src_index] = (val - foreground) / HAND_SIZE;
         } else {
-          hand_image[src_index] = 0;
+          hand_image[src_index] = 1;
         }
       }
     }

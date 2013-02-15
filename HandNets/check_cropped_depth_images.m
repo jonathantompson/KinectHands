@@ -95,3 +95,38 @@ if 1 == 0
   end
 end
   
+%% Try out our HPF
+close all
+im(:, :) = loadImageFile([dir, images(1,:)], TRAINING_IM_SIZE_W, ...
+  TRAINING_IM_SIZE_H, 1, 'single');
+min_val = min(min(im)); max_val = max(max(im));
+im = (im - min_val)/(max_val - min_val);  % normalize zero to 1
+figure;
+imshow(im, 'InitialMagnification', mag);
+
+sigma_pix = 1;
+radius = 3 * sigma_pix;  % choose kernel radius to be 2 sigma
+size = max(7, 2*radius + 1);
+center = size/2 + 0.5;
+gauss = exp(-((((1:size) - center) / sigma_pix).^2)/2);
+gauss_cont = exp(-((((1:0.0001:size) - center) / sigma_pix).^2)/2);
+% figure;
+% plot(1:size, gauss); hold on; plot(1:0.0001:size, gauss_cont, 'r');
+
+% Create scaling coeff by convolving an image of all ones, and clipping
+% the end points
+ones_im = ones(TRAINING_IM_SIZE_H, TRAINING_IM_SIZE_W);
+coeffs = filter_zero_bndry(ones_im, gauss);
+
+% Now filter the image
+filt_im = filter_zero_bndry_with_scale(im, gauss, coeffs);
+figure;
+imshow(filt_im, 'InitialMagnification', mag);
+
+% Now create the high pass by sub off the gaussian image
+hp_filt_im = (im - filt_im) * 2;
+figure;
+imshow(hp_filt_im+0.5, 'InitialMagnification', mag);
+
+
+

@@ -76,6 +76,7 @@ using namespace std;
 using math::Float3;
 using math::Int3;
 using math::Float4;
+using math::Float2;
 using math::FloatQuat;
 using math::Float4x4;
 using data_str::Vector;
@@ -304,10 +305,15 @@ int main(int argc, char *argv[]) {
       }
 #endif
 
-      // Create the downsampled hand image
+      // Create the downsampled hand image, background is at 1 and hand is
+      // from 0 --> 1
       float std;
       Float3 xyz_com;
-      HandNet::calcHandImage(depth, label, hand_image, xyz_com, std);
+      Float2 uv_com;
+      HandNet::calcHandImage(depth, label, hand_image, uv_com, xyz_com, std);
+      
+      // Create a bank of HPF images
+
 
       // Save the cropped image to file:
       image_io->saveUncompressedDepth<float>(DST_IM_DIR + im_files[cur_image], 
