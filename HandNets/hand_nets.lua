@@ -5,6 +5,7 @@ require 'torch'
 require 'optim'   -- an optimization package, for online and batch methods
 torch.setnumthreads(4)
 dofile("pbar.lua")
+dofile("shuffle_data.lua")
 -- require 'debugger'
 
 -- Jonathan Tompson
@@ -22,43 +23,14 @@ test_data_rate = 5  -- this means 1 / 5 will be test data
 num_coeff = 25  -- Keep this at 25!
 num_learned_coeff = 25
 background_depth = 2000
-perform_training = 1
+perform_training = 0
 nonlinear = 0  -- 0 = tanh, 1 = SoftShrink
-model_filename = 'handmodel'
+model_filename = 'handmodel.net'
 loss = 0  -- 0 = abs, 1 = mse
 fullsize = 1  -- 0 = small, 1 = mid, 2 = big convnet
 im_dir = "./hand_depth_data_processed/"
 visualize_data = 0
 pooling = 2  -- 1,2,.... or math.huge (infinity)
-
--- ************ Create a filename ***************
-if (num_learned_coeff == 25) then
-  model_filename = model_filename .. '_fullcoeffs'
-end
-if (nonlinear == 0) then
-  model_filename = model_filename .. '_tanh'
-else
-  model_filename = model_filename .. '_SoftShrink'
-end
-if (loss == 0) then
-  model_filename = model_filename .. '_abs'
-else
-  model_filename = model_filename .. '_mse'
-end
-if (fullsize == 0) then
-  model_filename = model_filename .. '_small'
-elseif (fullsize == 1) then
-  model_filename = model_filename .. '_mid'
-else
-  model_filename = model_filename .. '_big'
-end
-if (pooling ~= math.huge) then
-  model_filename = model_filename .. string.format("_L%dPooling", pooling)
-else
-  model_filename = model_filename .. "_LinfPooling"
-end
-
-model_filename = model_filename .. '.net'
 
 -- ************ Get Data locations ***************
 print '==> Scanning directory for hand data'
@@ -105,11 +77,13 @@ if tesize <= 0 then
   return
 end
 trainData = {
+  files = {},
   data = torch.FloatTensor(trsize, 1, height, width),
   labels = torch.DoubleTensor(trsize, num_learned_coeff),
   size = function() return trsize end
 }
 testData = {
+  files = {},
   data = torch.FloatTensor(tesize, 1, height, width),
   labels = torch.DoubleTensor(tesize, num_learned_coeff),
   size = function() return tesize end
@@ -140,6 +114,7 @@ for i=1,nfiles do
       trainData.labels[{itr, {}}] = torch.FloatTensor(coeff_data, 
         num_coeff - num_learned_coeff + 1,
         torch.LongStorage{num_learned_coeff}):double()
+      trainData.files[itr] = depth_files[i*frame_skip]
       itr = itr + 1
     end
   else
@@ -150,6 +125,7 @@ for i=1,nfiles do
       testData.labels[{ite, {}}] = torch.FloatTensor(coeff_data, 
         num_coeff - num_learned_coeff + 1,
         torch.LongStorage{num_learned_coeff}):double()
+      testData.files[ite] = depth_files[i*frame_skip]
       ite = ite + 1
     end
   end
@@ -159,9 +135,15 @@ end
 tesize = ite - 1
 trsize = itr - 1
 nfiles = tesize + trsize
+for i=trsize+1,#trainData.files do
+  table.remove(trainData.files, trsize+1)
+end
 trainData.data = trainData.data[{{1,trsize}, {}, {}, {}}]
 trainData.labels = trainData.labels[{{1,trsize}, {}}]
 trainData.size = function() return trsize end
+for i=tesize+1,#testData.files do
+  table.remove(testData.files, tesize+1)
+end
 testData.data = testData.data[{{1,tesize}, {}, {}, {}}]
 testData.labels = testData.labels[{{1,tesize}, {}}]
 testData.size = function() return tesize end
@@ -249,24 +231,28 @@ for i=1,testData.size(),1 do
 end
 --]]
 
+-- ************ Randomly permute the training and test sets ***********
+shuffle_data(testData.data)
+shuffle_data(trainData.data)
+
 -- ************ Visualize one of the depth data samples ***************
 print '==> Visualizing some data samples'
 if (visualize_data == 1) then
-  n_images = math.min(trainData.size(), 36)
+  n_images = math.min(trainData.size(), 256)
   im = {
     data = trainData.data[{{1,n_images}, {}, {}, {}}]
   }
   im.data = im.data:double()
-  image.display{image=im.data, padding=2, zoom=1, scaleeach=false}
-  -- image.display(im.data[{1,{},{}}])
+  image.display{image=im.data, padding=2, nrow=math.floor(math.sqrt(n_images)), zoom=0.75, scaleeach=false}
+  -- image.display(trainData.data[{1,1,{},{}}])
 
-  n_images = math.min(testData.size(), 36)
+  n_images = math.min(testData.size(), 256)
   im = {
     data = testData.data[{{1,n_images}, {}, {}, {}}]
   }
   im.data = im.data:double()
-  image.display{image=im.data, padding=2, zoom=1, scaleeach=false}
-  -- image.display(im.data[{1,{},{}}])
+  image.display{image=im.data, padding=2, nrow=math.floor(math.sqrt(n_images)), zoom=0.75, scaleeach=false}
+  -- image.display(testData.data[{1,1,{},{}}])
   im = nil
 end
 
@@ -614,6 +600,11 @@ else  -- if perform_training
 
     te_abs_crit_error[t] = math.abs(abs_criterion:forward(pred, data_pt.target))
     te_mse_crit_error[t] = math.abs(mse_criterion:forward(pred, data_pt.target))
+    err = te_abs_crit_error[t];
+    if (err == math.huge or err ~= err) then
+      print(string.format("%d, %s is nan or inf!\n", t, trainData.files[t]));
+    end
+
 
     -- print 'Label parameters:'
     -- print(data_pt.target)
@@ -644,6 +635,11 @@ else  -- if perform_training
 
     tr_abs_crit_error[t] = math.abs(abs_criterion:forward(pred, data_pt.target))
     tr_mse_crit_error[t] = math.abs(mse_criterion:forward(pred, data_pt.target))
+    err = tr_abs_crit_error[t];
+    if (err == math.huge or err ~= err) then
+      print(string.format("%d, %s is nan or inf!\n", t, trainData.files[t]));
+    end
+
 
     -- print 'Label parameters:'
     -- print(data_pt.target)
