@@ -23,6 +23,7 @@
 #include "renderer/camera/camera.h"
 #include "renderer/lights/light_dir.h"
 #include "renderer/texture/texture_renderable.h"
+#include "renderer/texture/texture.h"
 #include "renderer/geometry/geometry_colored_mesh.h"
 #include "renderer/geometry/geometry_manager.h"
 #include "renderer/geometry/geometry_colored_points.h"
@@ -40,6 +41,7 @@
 #include "depth_images_io.h"
 #include "open_ni_funcs.h"
 #include "renderer/gl_state.h"
+#include "hand_detector.h"
 
 #if defined(WIN32) || defined(_WIN32)
   #define snprintf _snprintf_s
@@ -85,6 +87,8 @@ using windowing::Window;
 using windowing::WindowSettings;
 using depth_images_io::DepthImagesIO;
 using renderer::GLState;
+using renderer::Texture;
+using renderer::TEXTURE_WRAP_MODE;
 
 Clock* clk = NULL;
 double t1, t0;
@@ -93,7 +97,11 @@ double t1, t0;
 Window* wnd = NULL;
 Renderer* render = NULL;
 bool rotate_light = false;
-int render_output = 1;  // 0 - color, 1 - depth
+int render_output = 1;  // 1 - color, 
+                        // 2 - synthetic depth, 
+                        // 3 - Decision Forest Labels, 
+                        // 4 - cleaned up radius, 
+                        // 5 - depth
 
 // Camera class for handling view and proj matrices
 const float mouse_speed_rotation = 0.005f;
@@ -122,11 +130,11 @@ uint32_t coeff_src = 0;
 // Kinect Image data
 DepthImagesIO* image_io = NULL;
 data_str::VectorManaged<char*> im_files;
-float image_xyz[src_dim*3];
+float cur_xyz_data[src_dim*3];
 int16_t cur_depth_data[src_dim*3];
 uint8_t cur_label_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
-uint32_t cur_image = 0;
+uint32_t cur_image = 87;
 GeometryColoredPoints* geometry_points= NULL;
 float temp_xyz[3 * src_dim];
 float temp_rgb[3 * src_dim];
@@ -135,8 +143,12 @@ int playback_step = 1;
 
 // Convolutional Neural Network
 HandNet* convnet = NULL;
-float synthetic_depth[src_dim];
-uint8_t synthetic_label[src_dim];
+uint8_t label[src_dim];
+
+// Decision Forests
+HandDetector* hand_detector = NULL;
+Texture* label_tex = NULL;
+uint8_t label_tex_data[src_dim * 3];
 
 void quit() {
   delete image_io;
@@ -160,6 +172,8 @@ void quit() {
   delete wnd;
   delete geometry_points;
   delete convnet;
+  delete hand_detector;
+  delete label_tex;
   Window::killWindowSystem();
   exit(0);
 }
@@ -171,7 +185,7 @@ void loadCurrentImage() {
   
   image_io->LoadCompressedImageWithRedHands(full_filename, 
     cur_depth_data, cur_label_data, cur_image_rgb, NULL);
-  DepthImagesIO::convertSingleImageToXYZ(image_xyz, cur_depth_data);
+  DepthImagesIO::convertSingleImageToXYZ(cur_xyz_data, cur_depth_data);
 }
 
 void InitXYZPointsForRendering() {
@@ -194,7 +208,7 @@ void InitXYZPointsForRendering() {
 
   float cur_col[3];
   for (uint32_t i = 0; i < src_dim; i++) {
-    vert->at(i)->set(&image_xyz[i*3]);
+    vert->at(i)->set(&cur_xyz_data[i*3]);
     if (cur_label_data[i] == 0) {
       cur_col[0] = 1.2f * static_cast<float>(cur_image_rgb[i*3]) / 255.0f;
       cur_col[1] = 1.2f * static_cast<float>(cur_image_rgb[i*3+1]) / 255.0f;
@@ -364,6 +378,21 @@ void KeyboardCB(int key, int action) {
     case static_cast<int>('2'):
       if (action == RELEASED) {
         render_output = 2;
+      }
+      break;
+    case static_cast<int>('3'):
+      if (action == RELEASED) {
+        render_output = 3;
+      }
+      break;
+    case static_cast<int>('4'):
+      if (action == RELEASED) {
+        render_output = 4;
+      }
+      break;
+    case static_cast<int>('5'):
+      if (action == RELEASED) {
+        render_output = 5;
       }
       break;
     case KEY_KP_ADD:
@@ -592,9 +621,45 @@ void renderFrame(float dt) {
     render->camera()->moveCamera(&delta_pos);
   }
 
-  // Extract the synthetic depth map (potentially required for convnet)
-  HandModel* hands[2];
+  hand_detector->findHandLabels(cur_depth_data, cur_xyz_data,
+    HDLabelMethod::HDFloodfill, label);
+
+  // Calculate the convnet coeffs if we want them
   if (coeff_src == 1) {
+    convnet->calcHandCoeff(cur_depth_data, label, coeffs);
+    // TEMP CODE:
+    coeffs(0) = r_hands[cur_image]->coeff()(0);
+    coeffs(1) = r_hands[cur_image]->coeff()(1);
+    coeffs(2) = r_hands[cur_image]->coeff()(2);
+    // END TEMP CODE:
+  }
+
+  if (fit_right) {
+    hand_renderer->updateMatrices(
+      (coeff_src == 0) ? r_hands[cur_image]->coeff() : coeffs,
+      r_hands[cur_image]->hand_type());
+  }
+  if (fit_left) {
+    hand_renderer->updateMatrices(
+      (coeff_src == 0) ? l_hands[cur_image]->coeff() : coeffs,
+      l_hands[cur_image]->hand_type());
+  }
+
+  // Now render the final frame
+  int16_t max, min;
+  uint8_t* hdlabels;
+  uint32_t w;
+  switch (render_output) {
+  case 1:
+    render->renderFrame(dt);
+    if (render_depth) {
+      render->renderColoredPointCloud(geometry_points, &math::identity,
+        3.0f * static_cast<float>(settings.width) / 4.0f);
+        // 4.0f * static_cast<float>(settings.width) / 4.0f);
+    }
+    break;
+  case 2:
+    HandModel* hands[2];
     if (fit_left && !fit_right) {
       coeffs = l_hands[cur_image]->coeff();
       hands[0] = l_hands[cur_image];
@@ -611,38 +676,72 @@ void renderFrame(float dt) {
     }
 
     hand_renderer->drawDepthMap(coeffs, hands, num_hands);
-    hand_renderer->extractDepthMap(synthetic_depth);
-
-    HandNet::createLabelFromSyntheticDepth(synthetic_depth, synthetic_label);
-    convnet->calcHandCoeff(synthetic_depth, synthetic_label, coeffs);
-  }
-
-  if (fit_right) {
-    hand_renderer->updateMatrices(
-      (coeff_src == 0) ? r_hands[cur_image]->coeff() : coeffs,
-      r_hands[cur_image]->hand_type());
-  }
-  if (fit_left) {
-    hand_renderer->updateMatrices(
-      (coeff_src == 0) ? l_hands[cur_image]->coeff() : coeffs,
-      l_hands[cur_image]->hand_type());
-  }
-
-  // Now render the final frame
-  switch (render_output) {
-  case 1:
-    render->renderFrame(dt);
-    if (render_depth) {
-      render->renderColoredPointCloud(geometry_points, &math::identity,
-        3.0f * static_cast<float>(settings.width) / 4.0f);
-        // 4.0f * static_cast<float>(settings.width) / 4.0f);
-    }
-    break;
-  case 2:
-    if (coeff_src != 1) {
-      hand_renderer->drawDepthMap(coeffs, hands, num_hands);
-    }
     hand_renderer->visualizeDepthMap(wnd);
+    break;
+  case 3:
+    w = hand_detector->down_width();
+    hdlabels = hand_detector->getLabelIm();
+    for (uint32_t v = 0; v < src_height; v++) {
+      for (uint32_t u = 0; u < src_width; u++) {
+        uint8_t val = 
+          hdlabels[(v / DT_DOWNSAMPLE) * w + u/DT_DOWNSAMPLE] * 255;
+        uint32_t idst = (src_height-v-1) * src_width + u;
+        // Texture needs to be flipped vertically and 0 --> 255
+        label_tex_data[idst * 3] = val;
+        label_tex_data[idst * 3 + 1] = val;
+        label_tex_data[idst * 3 + 2] = val;
+      }
+    }
+    label_tex->reloadData((unsigned char*)label_tex_data);
+    render->renderFullscreenQuad(label_tex);
+    break;
+  case 4:
+    for (uint32_t v = 0; v < src_height; v++) {
+      for (uint32_t u = 0; u < src_width; u++) {
+        uint8_t val = label[v*src_width + u] * 255;
+        uint32_t idst = (src_height-v-1) * src_width + u;
+        // Texture needs to be flipped vertically and 0 --> 255
+        label_tex_data[idst * 3] = val;
+        label_tex_data[idst * 3 + 1] = val;
+        label_tex_data[idst * 3 + 2] = val;
+      }
+    }
+    label_tex->reloadData((unsigned char*)label_tex_data);
+    render->renderFullscreenQuad(label_tex);
+    break;
+  case 5:
+    max = 1600;
+    min = 600;
+    //for (uint32_t i = 0; i < src_dim; i++) {
+    //  if (cur_depth_data[i] < GDT_MAX_DIST && cur_depth_data[i] > 0) {
+    //    min = std::min<int16_t>(min, cur_depth_data[i]);
+    //    max = std::max<int16_t>(max, cur_depth_data[i]);
+    //  }
+    //}
+
+    for (uint32_t v = 0; v < src_height; v++) {
+      for (uint32_t u = 0; u < src_width; u++) {
+        int16_t val = cur_depth_data[v*src_width + u];
+        uint32_t idst = (src_height-v-1) * src_width + u;
+        if (val <= 0) {
+          label_tex_data[idst * 3] = 255;
+          label_tex_data[idst * 3 + 1] = 0;
+          label_tex_data[idst * 3 + 2] = 0;
+        } else if (val < GDT_MAX_DIST) {
+          // Texture needs to be flipped vertically and 0 --> 255
+          uint8_t val_scaled = 255 - ((val - min) * 255) / (max - min);
+          label_tex_data[idst * 3] = val_scaled;
+          label_tex_data[idst * 3 + 1] = val_scaled;
+          label_tex_data[idst * 3 + 2] = val_scaled;
+        } else {
+          label_tex_data[idst * 3] = 0;
+          label_tex_data[idst * 3 + 1] = 0;
+          label_tex_data[idst * 3 + 2] = 255;
+       }
+      }
+    }
+    label_tex->reloadData((unsigned char*)label_tex_data);
+    render->renderFullscreenQuad(label_tex);
     break;
   default:
     throw runtime_error("ERROR: render_output is an incorrect value");
@@ -654,7 +753,7 @@ int main(int argc, char *argv[]) {
   static_cast<void>(argc); static_cast<void>(argv);
 #if defined(_DEBUG) && defined(_WIN32)
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-  // _CrtSetBreakAlloc(6990);
+  // _CrtSetBreakAlloc(853);
 #endif
 
   cout << "Usage:" << endl;
@@ -705,6 +804,13 @@ int main(int argc, char *argv[]) {
 
     // Load the convnet from file
     convnet = new HandNet(CONVNET_FILE);
+
+    // Load the decision forest
+    hand_detector = new HandDetector(src_width, src_height, string("./../") +
+      FOREST_DATA_FILENAME);
+    label_tex = new Texture(GL_RGB8, src_width, src_height, GL_RGB, 
+      GL_UNSIGNED_BYTE, (unsigned char*)label, 
+      TEXTURE_WRAP_MODE::TEXTURE_CLAMP, false);
     
     // Create an instance of the renderer
     math::FloatQuat eye_rot; eye_rot.identity();

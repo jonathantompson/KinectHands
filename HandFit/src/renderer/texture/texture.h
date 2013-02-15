@@ -34,6 +34,8 @@ namespace renderer {
     inline int w() { return w_; }
     inline int h() { return h_; }
 
+    void reloadData(const unsigned char *bits);
+
     void bind(GLenum target_id,  // ie target_id = GL_TEXTURE0
       GLint texture_sampler_id);  // id in the in the shader program
 

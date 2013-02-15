@@ -458,8 +458,8 @@ namespace app {
         hd = kinect_->getHandDetector();
         depth_image_downsampled_ = hd->getDepthImDownsampled();
         label_image_ = hd->getLabelIm();
-        w_downsampled = hd->width();
-        h_downsampled = hd->height();
+        w_downsampled = hd->down_width();
+        h_downsampled = hd->down_height();
         for (uint32_t i = 0; i < w_downsampled*h_downsampled; i ++) {
           tmpImageRGB[i*3] = depth_image_downsampled_[i] >> 3;
           tmpImageRGB[i*3+1] = depth_image_downsampled_[i] >> 3;

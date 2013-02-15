@@ -202,6 +202,9 @@
     <ClInclude Include="src\fastlz\fastlz.h">
       <Filter>src\fastlz</Filter>
     </ClInclude>
+    <ClInclude Include="HandForests\src\open_ni_funcs.h">
+      <Filter>src</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\app\app.cpp">
@@ -266,6 +269,9 @@
     </ClCompile>
     <ClCompile Include="src\fastlz\fastlz.c">
       <Filter>src\fastlz</Filter>
+    </ClCompile>
+    <ClCompile Include="HandForests\src\open_ni_funcs.cpp">
+      <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

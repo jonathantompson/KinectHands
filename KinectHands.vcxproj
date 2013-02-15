@@ -26,6 +26,7 @@
     <ClInclude Include="HandForests\src\generate_decision_tree.h" />
     <ClInclude Include="HandForests\src\hand_detector.h" />
     <ClInclude Include="HandForests\src\image_util.h" />
+    <ClInclude Include="HandForests\src\open_ni_funcs.h" />
     <ClInclude Include="src\alignment\data_align.h" />
     <ClInclude Include="src\app\app.h" />
     <ClInclude Include="src\clock\clock.h" />
@@ -72,6 +73,7 @@
     <ClCompile Include="HandForests\src\evaluate_decision_forest.cpp" />
     <ClCompile Include="HandForests\src\forest_io.cpp" />
     <ClCompile Include="HandForests\src\hand_detector.cpp" />
+    <ClCompile Include="HandForests\src\open_ni_funcs.cpp" />
     <ClCompile Include="src\app\app.cpp" />
     <ClCompile Include="src\data_str\hash_funcs.cpp" />
     <ClCompile Include="src\exceptions\wruntime_error.cpp" />

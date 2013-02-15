@@ -29,21 +29,8 @@ using std::string;
 using std::runtime_error;
 using data_str::VectorManaged;
 
-#define SAFE_FREE(arr) \
-  do { \
-  if (arr != NULL) { \
-  free(arr); \
-  arr = NULL; \
-  } \
-  } while (0); 
-
-#define SAFE_DELETE(arr) \
-  do { \
-  if (arr != NULL) { \
-  delete arr; \
-  arr = NULL; \
-  } \
-  } while (0); 
+#define SAFE_FREE(x) do { if (x != NULL) { free(x); x = NULL; } } while (0); 
+#define SAFE_DELETE(x) do { if (x != NULL) { delete x; x = NULL; } } while (0); 
 
 namespace depth_images_io {
 

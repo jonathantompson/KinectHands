@@ -33,17 +33,17 @@ void DownsampleImage(T* dst, T* src, uint32_t width, uint32_t height,
 
 
 template <class T>
-void DownsampleImageWithoutNonZeroPixelsAndBackground(T* dst, T* src, 
-  uint32_t width, uint32_t height, uint32_t downsample) {
-  uint32_t width_downsample = width / downsample;
-  for (uint32_t v = 0; v < height; v+= downsample) {
-    for (uint32_t u = 0; u < width; u+= downsample) {
+void DownsampleImageWithoutNonZeroPixelsAndBackground(T* dst, const T* src, 
+  uint32_t srcw, uint32_t srch, uint32_t downsample) {
+  uint32_t width_downsample = srcw / downsample;
+  for (uint32_t v = 0; v < srch; v+= downsample) {
+    for (uint32_t u = 0; u < srcw; u+= downsample) {
       float val = 0.0f;
       uint32_t num_pixels = 0;
       // Average over the current source pixel in a downsample*downsample rect
       for (uint32_t v_offset = 0; v_offset < downsample; v_offset++) {
          for (uint32_t u_offset = 0; u_offset < downsample; u_offset++) {
-           uint32_t ind = (v + v_offset) * width + (u + u_offset);
+           uint32_t ind = (v + v_offset) * srcw + (u + u_offset);
            if (src[ind] != 0 && src[ind] < GDT_MAX_DIST) {
              val += static_cast<float>(src[ind]);
              num_pixels++;
@@ -62,7 +62,7 @@ void DownsampleImageWithoutNonZeroPixelsAndBackground(T* dst, T* src,
 
 template <class T>
 void DownsampleLabelImageWithoutNonZeroPixelsAndBackground(T* dst, T* src, 
-  uint32_t width, uint32_t height, uint32_t downsample) {
+  uint32_t srcw, uint32_t srch, uint32_t downsample) {
   uint32_t width_downsample = width / downsample;
   for (uint32_t v = 0; v < height; v+= downsample) {
     for (uint32_t u = 0; u < width; u+= downsample) {
@@ -353,10 +353,10 @@ template <class T> void ShrinkFilter(T* dst, T* src, const int32_t w,
     int32_t index = 0;
     for (int32_t v = 0; v < h; v++) {
       for (int32_t u = 0; u < w; u++) {
-        if (src[index] == 0) {
+        if (dst[index] == 0) {
           for (int32_t u_offset = u - rad; u_offset <= u + rad; u_offset++) {
             if (u_offset < w && u_offset >= 0) {
-              dst[v * w + u_offset] = 0;
+              src[v * w + u_offset] = 0;
             }
           }
         }
@@ -379,5 +379,56 @@ template <class T> void ShrinkFilter(T* dst, T* src, const int32_t w,
     }
   }
 };
+
+template <class T> void GrowFilter(T* dst, T* src, const int32_t w, 
+                                   const int32_t h, const int32_t rad) {
+  T dummy;
+  static_cast<void>(dummy);
+  memcpy(dst, src, w * h * sizeof(dummy));
+  if (rad > 0) {
+    // Grow horizontally
+    int32_t index = 0;
+    for (int32_t v = 0; v < h; v++) {
+      for (int32_t u = 0; u < w; u++) {
+        if (dst[index] == 1) {
+          for (int32_t u_offset = u - rad; u_offset <= u + rad; u_offset++) {
+            if (u_offset < w && u_offset >= 0) {
+              src[v * w + u_offset] = 1;
+            }
+          }
+        }
+        index++;
+      }
+    }
+    // Grow vertically
+    index = 0;
+    for (int32_t v = 0; v < h; v++) {
+      for (int32_t u = 0; u < w; u++) {
+        if (src[index] == 1) {
+          for (int32_t v_offset = v - rad; v_offset <= v + rad; v_offset++) {
+            if (v_offset < h && v_offset >= 0) {
+              dst[v_offset * w + u] = 1;
+            }
+          }
+        }
+        index++;
+      }
+    }
+  }
+};
+
+
+// upsample is the 
+template <class T> void UpsampleNoFiltering(T* dst, const T* src, 
+  const int32_t srcw, const int32_t srch, const int32_t upsample) {
+  const int32_t dstw = srcw * upsample;
+  for (int32_t v_dst = 0; v_dst < srch * upsample; v_dst++) {
+    for (int32_t u_dst = 0; u_dst < dstw; u_dst++) {
+      dst[v_dst * dstw + u_dst] = 
+        src[(v_dst / upsample) * srcw + (u_dst / upsample)];
+    }
+  }
+};
+
 
 #endif  // UNNAMED_LOAD_DEPTH_IMAGE_HEADER

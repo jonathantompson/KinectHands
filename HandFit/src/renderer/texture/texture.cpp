@@ -150,6 +150,21 @@ namespace renderer {
 
   }
 
+  void Texture::reloadData(const unsigned char* bits) {
+    // Delete the stuff that exists there now (if we need to)
+    if (from_file_) {
+      delete[] bits_;
+      bits_ = NULL;
+    } else if (managed_ && bits_ != NULL) {
+      delete[] bits_;
+      bits_ = NULL;
+    }
+    // Reload the data
+    bits_ = const_cast<unsigned char*>(bits);
+    GLState::glsBindTexture(GL_TEXTURE_2D, texture_);
+    loadTextureIntoOpenGL();
+  }
+
   void Texture::generateTextureID() {
     // Generate the openGL texture ID
     GLState::glsGenTextures(1, &texture_);

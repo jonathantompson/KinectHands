@@ -32,9 +32,11 @@ namespace hand_net {
     HandNet(const std::string& convnet_filename);
     ~HandNet();
 
-    // Top level function --> Will call UVD to XYZ (which might be expensive!)
+    // Top level functions
+    void calcHandCoeff(const int16_t* depth, const uint8_t* label, 
+      Eigen::MatrixXf& coeff);  // Slightly slower version --> converts 2 float
     void calcHandCoeff(const float* depth, const uint8_t* label, 
-      Eigen::MatrixXf& coeff);
+      Eigen::MatrixXf& coeff);  // Faster version
 
     static void createLabelFromSyntheticDepth(const float* depth, 
       uint8_t* label);
@@ -65,9 +67,8 @@ namespace hand_net {
     float* datcur_;  // The current stage's input data
     float* datnext_;  // The current stage's output data
 
-    // Some temporary data structures (might be able to clean some of these
-    // up later when we're no longer using synthetic data)
-    static int16_t depth[src_dim];
+    // Some temporary data structures
+    static float float_depth_[src_dim];
     static float cropped_depth[HAND_NET_PIX * HAND_NET_PIX];
 
     void loadFromFile(const std::string& convnet_filename);

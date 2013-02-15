@@ -55,7 +55,7 @@
 #define IM_DIR_BASE string("/data/hand_depth_data/") 
 #define DST_IM_DIR_BASE string("/data/hand_depth_data_processed/") 
 
-#define FILE_SKIP 2
+#define FILE_STRIDE 1
 #define MAX_FILES MAX_UINT32
 
 // #define USE_SYNTHETIC_IMAGE
@@ -101,19 +101,6 @@ double t1, t0;
 // The main window and basic rendering system
 Window* wnd = NULL;
 Renderer* render = NULL;
-bool rotate_light = false;
-int render_output = 1;  // 0 - color, 1 - depth
-
-// Camera class for handling view and proj matrices
-const float mouse_speed_rotation = 0.005f;
-const float camera_speed = 300.0f;
-const float camera_run_mulitiplier = 10.0f;
-Float3 cur_dir(0.0f, 0.0f, 0.0f);
-Float3 delta_pos;
-int mouse_x, mouse_y, mouse_x_prev, mouse_y_prev;
-bool camera_rotate = false;
-bool scale_coeff = false;
-bool running = false;
 
 // Hand model
 HandModel* l_hand = NULL;  // Not using this yet
@@ -128,7 +115,7 @@ float hand_image[HAND_NET_PIX * HAND_NET_PIX];
 // Kinect Image data
 DepthImagesIO* image_io = NULL;
 data_str::VectorManaged<char*> im_files;
-float image_xyz[src_dim*3];
+float cur_xyz_data[src_dim*3];
 int16_t cur_depth_data[src_dim*3];
 uint8_t cur_label_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
@@ -169,6 +156,7 @@ void loadCurrentImage() {
 
   image_io->LoadCompressedImage(full_filename, 
     cur_depth_data, cur_label_data, cur_image_rgb);
+  DepthImagesIO::convertSingleImageToXYZ(cur_xyz_data, cur_depth_data);
 }
 
 void saveModifiedHandCoeffs() {
@@ -264,13 +252,14 @@ int main(int argc, char *argv[]) {
       std::cout << (HAND_NET_IM_SIZE) << std::endl;
     }
 
-    hand_detector = new HandDetector(src_width, src_height);
+    hand_detector = new HandDetector(src_width, src_height, string("./../") +
+      FOREST_DATA_FILENAME);
 
     // Iterate through, saving each of the data points
     for (uint32_t i = 0; i < std::min<uint32_t>(im_files.size(), MAX_FILES); 
-      i += FILE_SKIP) {
-      std::cout << "processing image " << (i/FILE_SKIP) << " of ";
-      std::cout << (im_files.size()/FILE_SKIP) << std::endl;
+      i += FILE_STRIDE) {
+      std::cout << "processing image " << (i/FILE_STRIDE) << " of ";
+      std::cout << (im_files.size()/FILE_STRIDE) << std::endl;
 
       // Load in the image (rgb + depth) and load in the fitted coefficients
       cur_image = i;
@@ -306,21 +295,19 @@ int main(int argc, char *argv[]) {
       for (uint32_t i = 0; i < src_dim; i++) {
         depth[i] = (float)cur_depth_data[i];
       }
-      bool rhand;
-      bool lhand;
-      float rhand_uvd[3];
-      float lhand_uvd[3];
-      hand_detector->findHands(cur_depth_data, rhand, lhand, rhand_uvd, 
-        lhand_uvd);
-      // But this only give us the 
+      bool found_hand = hand_detector->findHandLabels(cur_depth_data, 
+        cur_xyz_data, HDLabelMethod::HDFloodfill, label);
+
+      if (!found_hand) {
+        // skip this data point
+        continue;
+      }
 #endif
 
       // Create the downsampled hand image
-     
       float std;
       Float3 xyz_com;
-      HandNet::calcHandImage(depth, label, hand_image,
-        xyz_com, std);
+      HandNet::calcHandImage(depth, label, hand_image, xyz_com, std);
 
       // Save the cropped image to file:
       image_io->saveUncompressedDepth<float>(DST_IM_DIR + im_files[cur_image], 
@@ -337,9 +324,9 @@ int main(int argc, char *argv[]) {
       // 1. subtract off the xyz_com from the position
       for (uint32_t i = 0; i < 3; i++) {
         r_hand->coeff()(HandCoeff::HAND_POS_X + i) -= xyz_com[i];
-        r_hand->coeff()(HandCoeff::HAND_POS_X) /=std;
+        r_hand->coeff()(HandCoeff::HAND_POS_X + i) /=std;
         l_hand->coeff()(HandCoeff::HAND_POS_X + i) -= xyz_com[i];
-        l_hand->coeff()(HandCoeff::HAND_POS_X) /=std;
+        l_hand->coeff()(HandCoeff::HAND_POS_X + i) /=std;
       }
 
       // 2. convert quaternion to euler angles (might be easier to learn)

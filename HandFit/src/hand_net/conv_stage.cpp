@@ -80,12 +80,12 @@ namespace hand_net {
   }
 
   void ConvStage::loadFromFile(std::ifstream& file) {
-#if defined(DEBUG) || defined(_DEBUG)
-    std::cout << "Normaization kernel: " << std::endl << "  ";
-    for (int32_t i = 0; i < norm_kernel_size_; i++) {
-      std::cout << norm_1dkernel_[i] << " ";
-    }
-#endif
+//#if defined(DEBUG) || defined(_DEBUG)
+//    std::cout << "Normaization kernel: " << std::endl << "  ";
+//    for (int32_t i = 0; i < norm_kernel_size_; i++) {
+//      std::cout << norm_1dkernel_[i] << " ";
+//    }
+//#endif
 
     file.read((char*)(&filt_width_), sizeof(filt_width_));
     file.read((char*)(&filt_height_), sizeof(filt_height_));

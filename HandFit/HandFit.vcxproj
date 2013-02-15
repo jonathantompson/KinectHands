@@ -19,7 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\HandForests\src\common_tree_funcs.cpp" />
     <ClCompile Include="..\HandForests\src\depth_images_io.cpp" />
+    <ClCompile Include="..\HandForests\src\evaluate_decision_forest.cpp" />
+    <ClCompile Include="..\HandForests\src\forest_io.cpp" />
+    <ClCompile Include="..\HandForests\src\hand_detector.cpp" />
     <ClCompile Include="..\HandForests\src\maxflow-v3.02\graph.cpp" />
     <ClCompile Include="..\HandForests\src\maxflow-v3.02\maxflow.cpp" />
     <ClCompile Include="src\data_str\hash_funcs.cpp" />
@@ -84,7 +88,13 @@
     <ClCompile Include="src\windowing\window_settings.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\HandForests\src\common_tree_funcs.h" />
+    <ClInclude Include="..\HandForests\src\decision_tree_func.h" />
     <ClInclude Include="..\HandForests\src\depth_images_io.h" />
+    <ClInclude Include="..\HandForests\src\evaluate_decision_forest.h" />
+    <ClInclude Include="..\HandForests\src\forest_io.h" />
+    <ClInclude Include="..\HandForests\src\generate_decision_tree.h" />
+    <ClInclude Include="..\HandForests\src\hand_detector.h" />
     <ClInclude Include="..\HandForests\src\image_data.h" />
     <ClInclude Include="..\HandForests\src\image_util.h" />
     <ClInclude Include="..\HandForests\src\maxflow-v3.02\block.h" />

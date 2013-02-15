@@ -3,6 +3,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <fstream>
+#include <cmath>
 #include "hand_net/hand_net.h"
 #include "hand_net/conv_stage.h"
 #include "hand_net/nn_stage.h"
@@ -25,7 +26,7 @@ using hand_model::HandCoeff;
 
 namespace hand_net {
 
-  int16_t HandNet::depth[src_dim];
+  float HandNet::float_depth_[src_dim];
   float HandNet::cropped_depth[HAND_NET_PIX * HAND_NET_PIX];
  
   HandNet::HandNet(const std::string& convnet_filename) {
@@ -77,10 +78,10 @@ namespace hand_net {
     for (int32_t i = 0; i < n_conv_stages_; i++) {
       conv_stages_[i] = new ConvStage();
       conv_stages_[i]->loadFromFile(file);
-#if defined(DEBUG) || defined(_DEBUG)
-      std::cout << "ConvStage[" << i << "]" << std::endl;
-      conv_stages_[i]->printToStdOut();
-#endif
+//#if defined(DEBUG) || defined(_DEBUG)
+//      std::cout << "ConvStage[" << i << "]" << std::endl;
+//      conv_stages_[i]->printToStdOut();
+//#endif
     }
 
     // Load in the neural network stages
@@ -88,10 +89,10 @@ namespace hand_net {
     for (int32_t i = 0; i < n_nn_stages_; i++) {
       nn_stages_[i] = new NNStage();
       nn_stages_[i]->loadFromFile(file);
-#if defined(DEBUG) || defined(_DEBUG)
-      std::cout << "NNStage[" << i << "]" << std::endl;
-      nn_stages_[i]->printToStdOut();
-#endif
+//#if defined(DEBUG) || defined(_DEBUG)
+//      std::cout << "NNStage[" << i << "]" << std::endl;
+//      nn_stages_[i]->printToStdOut();
+//#endif
     }
 
     // clean up file io
@@ -129,6 +130,16 @@ namespace hand_net {
     
     datcur_ = new float[max_size];
     datnext_ = new float[max_size];
+
+    std::cout << "Finished Loading HandNet from " << convnet_filename << std::endl;
+  }
+
+  void HandNet::calcHandCoeff(const int16_t* depth, const uint8_t* label, 
+    Eigen::MatrixXf& coeff) {
+    for (uint32_t i = 0; i < src_dim; i++) {
+      float_depth_[i] = (float)depth[i];
+    }
+    calcHandCoeff(float_depth_, label, coeff);
   }
 
   void HandNet::calcHandCoeff(const float* depth, const uint8_t* label, 
@@ -195,11 +206,6 @@ namespace hand_net {
 
   void HandNet::calcHandImage(const float* depth_in, const uint8_t* label_in,
     float* hand_image, math::Float3& xyz_com, float& std) {
-    // Convert float to int16
-    for (uint32_t i = 0; i < src_dim; i++) {
-      depth[i] = (int16_t)depth_in[i];
-    }
-
     // Find the COM in pixel space so we can crop the image.
     uint32_t cnt = 0;
     uint32_t u_com = 0;
@@ -277,12 +283,20 @@ namespace hand_net {
       }
     }
 
-    xyz_com.scale(1.0f / (float)(cnt));
-    float mean = running_sum / (float)cnt;
-    float var = (running_sum_sq / (float)cnt) - (mean * mean);
-    std = sqrtf(var);
+    float mean;
 
-    float uvd[3] = {u_com, v_com, mean};
+    if (cnt == 0) {
+      throw std::wruntime_error("ERROR: No non-background pixels found!");
+      mean = 0;
+      std = 1.0f;  // Something arbitrary
+    } else {
+      xyz_com.scale(1.0f / (float)(cnt));
+      mean = running_sum / (float)cnt;
+      float var = (running_sum_sq / (float)cnt) - (mean * mean);
+      std = sqrtf(var);
+    }
+    
+    float uvd[3] = {(float)u_com, (float)v_com, mean};
     kinect::OpenNIFuncs::xnConvertProjectiveToRealWorld(1, 
       (kinect::Vector3D*)uvd, (kinect::Vector3D*)xyz_com.m);
 

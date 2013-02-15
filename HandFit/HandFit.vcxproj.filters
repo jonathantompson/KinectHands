@@ -74,6 +74,9 @@
     <Filter Include="Source Files\src\hand_net">
       <UniqueIdentifier>{0e3f1d27-dcd6-4f53-9d82-17cb70ffeab2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\src\hand_forest">
+      <UniqueIdentifier>{a12977bb-a401-4ee6-895a-33dacb1283c6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main\main.cpp">
@@ -258,6 +261,18 @@
     </ClCompile>
     <ClCompile Include="src\hand_net\nn_stage.cpp">
       <Filter>Source Files\src\hand_net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HandForests\src\hand_detector.cpp">
+      <Filter>Source Files\src\hand_forest</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HandForests\src\common_tree_funcs.cpp">
+      <Filter>Source Files\src\hand_forest</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HandForests\src\evaluate_decision_forest.cpp">
+      <Filter>Source Files\src\hand_forest</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HandForests\src\forest_io.cpp">
+      <Filter>Source Files\src\hand_forest</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -530,6 +545,24 @@
     </ClInclude>
     <ClInclude Include="src\hand_net\nn_stage.h">
       <Filter>Source Files\src\hand_net</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HandForests\src\hand_detector.h">
+      <Filter>Source Files\src\hand_forest</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HandForests\src\common_tree_funcs.h">
+      <Filter>Source Files\src\hand_forest</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HandForests\src\decision_tree_func.h">
+      <Filter>Source Files\src\hand_forest</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HandForests\src\evaluate_decision_forest.h">
+      <Filter>Source Files\src\hand_forest</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HandForests\src\forest_io.h">
+      <Filter>Source Files\src\hand_forest</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HandForests\src\generate_decision_tree.h">
+      <Filter>Source Files\src\hand_forest</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
