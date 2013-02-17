@@ -6,10 +6,12 @@ images = ls([dir, 'hands*']);
 HAND_IM_SIZE_W = 192;
 HAND_IM_SIZE_H = 192;
 DOWNSAMPLE_FACTOR = 2;
-
 TRAINING_IM_SIZE_W = HAND_IM_SIZE_W / DOWNSAMPLE_FACTOR;
 TRAINING_IM_SIZE_H = HAND_IM_SIZE_H / DOWNSAMPLE_FACTOR;
 NUM_COEFF = 25;
+wnd_size = 600;
+mag = (wnd_size / TRAINING_IM_SIZE_H) * 100;
+
 num_images = length(images(:,1));
 coeffs = zeros(num_images, NUM_COEFF);
 im_data = zeros(num_images, TRAINING_IM_SIZE_H, TRAINING_IM_SIZE_W);
@@ -45,8 +47,6 @@ end
 % Now plot them
 disp('Rendering frames at 60fps');
 figure;
-wnd_size = 600;
-mag = (wnd_size / TRAINING_IM_SIZE_H) * 100;
 set(gcf, 'Position', [200 200 wnd_size wnd_size]);
 min_val = min(min(min(im_data)));
 max_val = max(max(max(im_data)));
@@ -103,6 +103,7 @@ min_val = min(min(im)); max_val = max(max(im));
 im = (im - min_val)/(max_val - min_val);  % normalize zero to 1
 figure;
 imshow(im, 'InitialMagnification', mag);
+surf(im);
 
 sigma_pix = 1;
 radius = 3 * sigma_pix;  % choose kernel radius to be 2 sigma
@@ -117,6 +118,10 @@ gauss_cont = exp(-((((1:0.0001:size) - center) / sigma_pix).^2)/2);
 % the end points
 ones_im = ones(TRAINING_IM_SIZE_H, TRAINING_IM_SIZE_W);
 coeffs = filter_zero_bndry(ones_im, gauss);
+ones_im = ones(TRAINING_IM_SIZE_H/2, TRAINING_IM_SIZE_W/2);
+downs2_coeffs = filter_zero_bndry(ones_im, gauss);
+ones_im = ones(TRAINING_IM_SIZE_H/4, TRAINING_IM_SIZE_W/4);
+downs4_coeffs = filter_zero_bndry(ones_im, gauss);
 
 % Now filter the image
 filt_im = filter_zero_bndry_with_scale(im, gauss, coeffs);
@@ -127,6 +132,36 @@ imshow(filt_im, 'InitialMagnification', mag);
 hp_filt_im = (im - filt_im) * 2;
 figure;
 imshow(hp_filt_im+0.5, 'InitialMagnification', mag);
+surf(hp_filt_im+0.5);
 
+% Downsample by 2
+downs2_im = downsample_by_2(im);
+figure;
+imshow(downs2_im, 'InitialMagnification', 2 * mag);
+
+% Now filter the image
+downs2_filt_im = filter_zero_bndry_with_scale(downs2_im, gauss, downs2_coeffs);
+figure;
+imshow(downs2_filt_im, 'InitialMagnification', 2 * mag);
+
+% Now create the high pass by sub off the gaussian image
+hp_downs2_filt_im = (downs2_im - downs2_filt_im) * 2;
+figure;
+imshow(hp_downs2_filt_im+0.5, 'InitialMagnification', 2 * mag);
+
+% Downsample again by 2
+downs4_im = downsample_by_2(downs2_im);
+figure;
+imshow(downs4_im, 'InitialMagnification', 4 * mag);
+
+% Now filter the image
+downs4_filt_im = filter_zero_bndry_with_scale(downs4_im, gauss, downs4_coeffs);
+figure;
+imshow(downs4_filt_im, 'InitialMagnification', 4 * mag);
+
+% Now create the high pass by sub off the gaussian image
+hp_downs4_filt_im = (downs4_im - downs4_filt_im) * 2;
+figure;
+imshow(hp_downs4_filt_im+0.5, 'InitialMagnification', 4 * mag);
 
 

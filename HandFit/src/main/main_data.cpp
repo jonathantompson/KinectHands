@@ -42,6 +42,7 @@
 #include "renderer/gl_state.h"
 #include "hand_net/hand_net.h"
 #include "hand_detector.h"
+#include "file_io/file_io.h"
 
 #if defined(WIN32) || defined(_WIN32)
   #define snprintf _snprintf_s
@@ -57,8 +58,6 @@
 
 #define FILE_STRIDE 1
 #define MAX_FILES MAX_UINT32
-
-// #define USE_SYNTHETIC_IMAGE
 
 #if defined(__APPLE__)
   #define IM_DIR string("../../../../../../../../../") + IM_DIR_BASE
@@ -95,6 +94,7 @@ using windowing::WindowSettings;
 using depth_images_io::DepthImagesIO;
 using renderer::GLState;
 using hand_net::HandNet;
+using hand_net::HandCoeffConvnet;
 
 Clock* clk = NULL;
 double t1, t0;
@@ -111,7 +111,6 @@ HandModelFit* hand_fit = NULL;
 Eigen::MatrixXf coeffs;
 float depth[src_dim];
 uint8_t label[src_dim];
-float hand_image[HAND_NET_PIX * HAND_NET_PIX];
 
 // Kinect Image data
 DepthImagesIO* image_io = NULL;
@@ -130,6 +129,10 @@ float l_modified_coeff[HAND_NUM_COEFF];
 // Decision forests
 HandDetector* hand_detector = NULL;
 
+// Convnet --> We'll mostly just use it's utility functions
+HandNet* convnet = NULL;
+float blank_coeff[HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
+
 void quit() {
   delete image_io;
   delete clk;
@@ -146,6 +149,7 @@ void quit() {
   delete wnd;
   delete geometry_points;
   delete hand_detector;
+  delete convnet;
   Window::killWindowSystem();
   exit(0);
 }
@@ -158,22 +162,6 @@ void loadCurrentImage() {
   image_io->LoadCompressedImage(full_filename, 
     cur_depth_data, cur_label_data, cur_image_rgb);
   DepthImagesIO::convertSingleImageToXYZ(cur_xyz_data, cur_depth_data);
-}
-
-void saveModifiedHandCoeffs() {
-  string r_hand_file = string("coeffr_") + im_files[cur_image];
-  string l_hand_file = string("coeffl_") + im_files[cur_image];
-  if (fit_right) {
-    r_hand->saveToFile(DST_IM_DIR, r_hand_file);
-  } else {
-    r_hand->saveBlankFile(DST_IM_DIR, r_hand_file);
-  }
-  if (fit_left) {
-    l_hand->saveToFile(DST_IM_DIR, l_hand_file);
-  } else {
-    l_hand->saveBlankFile(DST_IM_DIR, l_hand_file);
-  }
-  cout << "hand data saved to file" << endl;
 }
 
 using std::cout;
@@ -255,6 +243,10 @@ int main(int argc, char *argv[]) {
 
     hand_detector = new HandDetector(src_width, src_height, string("./../") +
       FOREST_DATA_FILENAME);
+    convnet = new HandNet(CONVNET_FILE);
+    for (uint32_t i = 0; i < HandCoeffConvnet::HAND_NUM_COEFF_CONVNET; i++) {
+      blank_coeff[i] = 0.0f;
+    }
 
     // Iterate through, saving each of the data points
     for (uint32_t i = 0; i < std::min<uint32_t>(im_files.size(), MAX_FILES); 
@@ -271,28 +263,6 @@ int main(int argc, char *argv[]) {
       HandModel::scale = r_hand->local_scale();
       hand_renderer->setRendererAttachement(true);
 
-#ifdef USE_SYNTHETIC_IMAGE
-      // Render a synthetic depth image:
-      HandModel* hands[2];
-      if (fit_left && !fit_right) {
-        coeffs = l_hand->coeff();
-        hands[0] = l_hand;
-        hands[1] = NULL;
-      } else if (!fit_left && fit_right) {
-        coeffs = r_hand->coeff();
-        hands[0] = r_hand;
-        hands[1] = NULL;
-      } else {
-        coeffs.block<1, HAND_NUM_COEFF>(0, 0) = l_hand->coeff();
-        coeffs.block<1, HAND_NUM_COEFF>(0, HAND_NUM_COEFF) = r_hand->coeff();
-        hands[0] = l_hand;
-        hands[1] = r_hand;
-      }
-
-      hand_renderer->drawDepthMap(coeffs, hands, num_hands);
-      hand_renderer->extractDepthMap(depth);
-      HandNet::createLabelFromSyntheticDepth(depth, label);
-#else
       for (uint32_t i = 0; i < src_dim; i++) {
         depth[i] = (float)cur_depth_data[i];
       }
@@ -301,111 +271,28 @@ int main(int argc, char *argv[]) {
 
       if (!found_hand) {
         // skip this data point
+        std::cout << "Warning couldn't find hand in " << im_files[cur_image];
+        std::cout << std::endl;
         continue;
       }
-#endif
 
       // Create the downsampled hand image, background is at 1 and hand is
-      // from 0 --> 1
-      float std;
-      Float3 xyz_com;
-      Float2 uv_com;
-      HandNet::calcHandImage(depth, label, hand_image, uv_com, xyz_com, std);
-      
-      // Create a bank of HPF images
-
+      // from 0 --> 1.  Also calculates the convnet input.
+      convnet->calcHandImage(depth, label);
 
       // Save the cropped image to file:
-      image_io->saveUncompressedDepth<float>(DST_IM_DIR + im_files[cur_image], 
-        hand_image, HAND_NET_IM_SIZE, HAND_NET_IM_SIZE);
+      file_io::SaveArrayToFile<float>(convnet->hpf_hand_image(),
+        convnet->size_hpf_hand_image(), DST_IM_DIR + im_files[cur_image]);
 
-      // Play with the coeff values.
-#if defined(DEBUG) || defined(_DEBUG)
-      std::cout << "left before:" << std::endl;
-      l_hand->printCoeff();
-      std::cout << "right before:" << std::endl;
-      r_hand->printCoeff();
-#endif
-
-      // 1. subtract off the xyz_com from the position
-      for (uint32_t i = 0; i < 3; i++) {
-        r_hand->coeff()(HandCoeff::HAND_POS_X + i) -= xyz_com[i];
-        r_hand->coeff()(HandCoeff::HAND_POS_X + i) /=std;
-        l_hand->coeff()(HandCoeff::HAND_POS_X + i) -= xyz_com[i];
-        l_hand->coeff()(HandCoeff::HAND_POS_X + i) /=std;
-      }
-
-      // 2. convert quaternion to euler angles (might be easier to learn)
-      FloatQuat lquat(l_hand->coeff()(HandCoeff::HAND_ORIENT_X), 
-        l_hand->coeff()(HandCoeff::HAND_ORIENT_Y),
-        l_hand->coeff()(HandCoeff::HAND_ORIENT_Z),
-        l_hand->coeff()(HandCoeff::HAND_ORIENT_W));
-      float leuler[3];
-      lquat.quat2EulerAngles(leuler[0], leuler[1], leuler[2]);
-      for (uint32_t i = 0; i < 3; i++) {
-        l_hand->coeff()(HandCoeff::HAND_ORIENT_X + i) = leuler[i];
-      }
-      // Now shift all the other coeffs down
-      for (uint32_t i = HandCoeff::HAND_ORIENT_W + 1; i < HAND_NUM_COEFF; i++) {
-        l_hand->coeff()(i-1) = l_hand->coeff()(i);
-      }
-      l_hand->coeff()(HAND_NUM_COEFF - 1) = 0;
-#if defined(DEBUG) || defined(_DEBUG)
-      std::cout << "left after" << std::endl;
-      l_hand->printCoeff();
-#endif
-
-      FloatQuat rquat(r_hand->coeff()(HandCoeff::HAND_ORIENT_X), 
-        r_hand->coeff()(HandCoeff::HAND_ORIENT_Y),
-        r_hand->coeff()(HandCoeff::HAND_ORIENT_Z),
-        r_hand->coeff()(HandCoeff::HAND_ORIENT_W));
-      float reuler[3];
-      rquat.quat2EulerAngles(reuler[0], reuler[1], reuler[2]);
-      for (uint32_t i = 0; i < 3; i++) {
-        r_hand->coeff()(HandCoeff::HAND_ORIENT_X + i) = reuler[i];
-      }
-      // Now shift all the other coeffs down
-      for (uint32_t i = HandCoeff::HAND_ORIENT_W + 1; i < HAND_NUM_COEFF; i++) {
-        r_hand->coeff()(i-1) = r_hand->coeff()(i);
-      }
-      r_hand->coeff()(HAND_NUM_COEFF - 1) = 0;
-
-#if defined(DEBUG) || defined(_DEBUG)
-      std::cout << "right after" << std::endl;
-      r_hand->printCoeff();
-#endif
-
-#if defined(DEBUG) || defined(_DEBUG)
-      // At least make sure the inverse mapping and the conversion to matrix is
-      // correct
-      FloatQuat lquat_tmp;
-      FloatQuat::eulerAngles2Quat(&lquat_tmp, leuler[0], leuler[1], leuler[2]);
-      if (!lquat.approxEqual(&lquat_tmp)) {
-        throw std::runtime_error("ERROR: Quat --> Euler is not correct!");
-      }
-      Float4x4 lmat;
-      Float4x4 lmat2;
-      lquat.quat2Mat4x4(&lmat);
-      Float4x4::euler2RotMat(&lmat2, leuler[0], leuler[1], leuler[2]);
-      if (!lmat.approxEqual(&lmat2)) {
-        throw std::runtime_error("ERROR: Quat --> Euler is not correct!");
-      }
-      FloatQuat rquat_tmp;
-      FloatQuat::eulerAngles2Quat(&rquat_tmp, reuler[0], reuler[1], reuler[2]);
-      if (!rquat.approxEqual(&rquat_tmp)) {
-        throw std::runtime_error("ERROR: Quat --> Euler is not correct!");
-      }
-      Float4x4 rmat;
-      Float4x4 rmat2;
-      rquat.quat2Mat4x4(&rmat);
-      Float4x4::euler2RotMat(&rmat2, reuler[0], reuler[1], reuler[2]);
-      if (!rmat.approxEqual(&rmat2)) {
-        throw std::runtime_error("ERROR: Quat --> Euler is not correct!");
-      }
-#endif
-
-      // Save the modified hand coefficients (to a new coeff file)
-      saveModifiedHandCoeffs();
+      // Correctly modify the coeff values to those that are learnable by the
+      // convnet (for instance angles are bad --> store cos(x), sin(x) instead)
+      convnet->calcCoeffConvnet(r_hand->coeff());
+      string r_hand_file = string("coeffr_") + im_files[cur_image];
+      string l_hand_file = string("coeffl_") + im_files[cur_image];
+      file_io::SaveArrayToFile<float>(convnet->coeff_convnet(),
+        HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, r_hand_file);
+      file_io::SaveArrayToFile<float>(blank_coeff,
+        HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, r_hand_file);
     }
 
     std::cout << "All done!" << std::endl;

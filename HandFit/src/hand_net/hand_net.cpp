@@ -36,6 +36,7 @@ namespace hand_net {
     nn_stages_ = NULL;
     datcur_ = NULL;
     datnext_ = NULL;
+    hpf_hand_image_ = NULL;
 
     loadFromFile(convnet_filename);
   }
@@ -51,6 +52,7 @@ namespace hand_net {
     SAFE_DELETE(nn_stages_);
     SAFE_DELETE(datcur_);
     SAFE_DELETE(datnext_);
+    SAFE_DELETE(hpf_hand_image_);
   }
 
   void HandNet::loadFromFile(const std::string& convnet_filename) {
@@ -78,10 +80,6 @@ namespace hand_net {
     for (int32_t i = 0; i < n_conv_stages_; i++) {
       conv_stages_[i] = new ConvStage();
       conv_stages_[i]->loadFromFile(file);
-//#if defined(DEBUG) || defined(_DEBUG)
-//      std::cout << "ConvStage[" << i << "]" << std::endl;
-//      conv_stages_[i]->printToStdOut();
-//#endif
     }
 
     // Load in the neural network stages
@@ -89,10 +87,6 @@ namespace hand_net {
     for (int32_t i = 0; i < n_nn_stages_; i++) {
       nn_stages_[i] = new NNStage();
       nn_stages_[i]->loadFromFile(file);
-//#if defined(DEBUG) || defined(_DEBUG)
-//      std::cout << "NNStage[" << i << "]" << std::endl;
-//      nn_stages_[i]->printToStdOut();
-//#endif
     }
 
     // clean up file io
@@ -131,7 +125,19 @@ namespace hand_net {
     datcur_ = new float[max_size];
     datnext_ = new float[max_size];
 
-    std::cout << "Finished Loading HandNet from " << convnet_filename << std::endl;
+    // Allocate size for the input array
+    im_sizeu = HAND_NET_IM_SIZE;
+    im_sizev = HAND_NET_IM_SIZE;
+    size_hpf_hand_image_ = 0;
+    for (uint32_t i = 0; i < NUM_HPF_BANKS; i++) {
+      size_hpf_hand_image_ += im_sizeu * im_sizev;
+      im_sizeu /= 2;
+      im_sizev /= 2;
+    }
+    hpf_hand_image_ = new float[size_hpf_hand_image_];
+
+    std::cout << "Finished Loading HandNet from " << convnet_filename;
+    std::cout << std::endl;
   }
 
   void HandNet::calcHandCoeff(const int16_t* depth, const uint8_t* label, 
@@ -317,6 +323,85 @@ namespace hand_net {
         }
       }
     }
+  }
+
+  void HandNet::calcCoeffConvnet(const Eigen::MatrixXf& coeff) {
+    // 1. subtract off the xyz_com from the position
+    for (uint32_t i = 0; i < 3; i++) {
+      r_hand->coeff()(HandCoeff::HAND_POS_X + i) -= xyz_com[i];
+      r_hand->coeff()(HandCoeff::HAND_POS_X + i) /=std;
+      l_hand->coeff()(HandCoeff::HAND_POS_X + i) -= xyz_com[i];
+      l_hand->coeff()(HandCoeff::HAND_POS_X + i) /=std;
+    }
+
+    // 2. convert quaternion to euler angles (might be easier to learn)
+    FloatQuat lquat(l_hand->coeff()(HandCoeff::HAND_ORIENT_X), 
+      l_hand->coeff()(HandCoeff::HAND_ORIENT_Y),
+      l_hand->coeff()(HandCoeff::HAND_ORIENT_Z),
+      l_hand->coeff()(HandCoeff::HAND_ORIENT_W));
+    float leuler[3];
+    lquat.quat2EulerAngles(leuler[0], leuler[1], leuler[2]);
+    for (uint32_t i = 0; i < 3; i++) {
+      l_hand->coeff()(HandCoeff::HAND_ORIENT_X + i) = leuler[i];
+    }
+    // Now shift all the other coeffs down
+    for (uint32_t i = HandCoeff::HAND_ORIENT_W + 1; i < HAND_NUM_COEFF; i++) {
+      l_hand->coeff()(i-1) = l_hand->coeff()(i);
+    }
+    l_hand->coeff()(HAND_NUM_COEFF - 1) = 0;
+#if defined(DEBUG) || defined(_DEBUG)
+    std::cout << "left after" << std::endl;
+    l_hand->printCoeff();
+#endif
+
+    FloatQuat rquat(r_hand->coeff()(HandCoeff::HAND_ORIENT_X), 
+      r_hand->coeff()(HandCoeff::HAND_ORIENT_Y),
+      r_hand->coeff()(HandCoeff::HAND_ORIENT_Z),
+      r_hand->coeff()(HandCoeff::HAND_ORIENT_W));
+    float reuler[3];
+    rquat.quat2EulerAngles(reuler[0], reuler[1], reuler[2]);
+    for (uint32_t i = 0; i < 3; i++) {
+      r_hand->coeff()(HandCoeff::HAND_ORIENT_X + i) = reuler[i];
+    }
+    // Now shift all the other coeffs down
+    for (uint32_t i = HandCoeff::HAND_ORIENT_W + 1; i < HAND_NUM_COEFF; i++) {
+      r_hand->coeff()(i-1) = r_hand->coeff()(i);
+    }
+    r_hand->coeff()(HAND_NUM_COEFF - 1) = 0;
+
+#if defined(DEBUG) || defined(_DEBUG)
+    std::cout << "right after" << std::endl;
+    r_hand->printCoeff();
+#endif
+
+#if defined(DEBUG) || defined(_DEBUG)
+    // At least make sure the inverse mapping and the conversion to matrix is
+    // correct
+    FloatQuat lquat_tmp;
+    FloatQuat::eulerAngles2Quat(&lquat_tmp, leuler[0], leuler[1], leuler[2]);
+    if (!lquat.approxEqual(&lquat_tmp)) {
+      throw std::runtime_error("ERROR: Quat --> Euler is not correct!");
+    }
+    Float4x4 lmat;
+    Float4x4 lmat2;
+    lquat.quat2Mat4x4(&lmat);
+    Float4x4::euler2RotMat(&lmat2, leuler[0], leuler[1], leuler[2]);
+    if (!lmat.approxEqual(&lmat2)) {
+      throw std::runtime_error("ERROR: Quat --> Euler is not correct!");
+    }
+    FloatQuat rquat_tmp;
+    FloatQuat::eulerAngles2Quat(&rquat_tmp, reuler[0], reuler[1], reuler[2]);
+    if (!rquat.approxEqual(&rquat_tmp)) {
+      throw std::runtime_error("ERROR: Quat --> Euler is not correct!");
+    }
+    Float4x4 rmat;
+    Float4x4 rmat2;
+    rquat.quat2Mat4x4(&rmat);
+    Float4x4::euler2RotMat(&rmat2, reuler[0], reuler[1], reuler[2]);
+    if (!rmat.approxEqual(&rmat2)) {
+      throw std::runtime_error("ERROR: Quat --> Euler is not correct!");
+    }
+#endif
   }
 
 }  // namespace hand_model

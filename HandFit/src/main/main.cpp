@@ -56,10 +56,8 @@
 
 #if defined(__APPLE__)
   #define IM_DIR string("./../../../../../../../../../") + IM_DIR_BASE
-  #define CONVNET_FILE string("./../../../../../../../../../data/handmodel_fullcoeffs_tanh_abs_mid_L2Pooling.net.convnet")
 #else
   #define IM_DIR string("./../") + IM_DIR_BASE
-  #define CONVNET_FILE string("./../data/handmodel_fullcoeffs_tanh_abs_mid_L2Pooling.net.convnet")
 #endif
 const bool fit_left = false;
 const bool fit_right = true; 

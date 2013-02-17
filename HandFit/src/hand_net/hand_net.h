@@ -24,8 +24,51 @@
 #define HAND_SIZE 350.0f
 #define HPF_SIGMA 6  // 1 finger width in downsampled image!
 #define HPF_KERNEL_SIZE 31  // 31
+#define NUM_HPF_BANKS 3
+
+#if defined(__APPLE__)
+  #define CONVNET_FILE string("./../../../../../../../../../data/" \
+          "handmodel_fullcoeffs_tanh_abs_mid_L2Pooling.net.convnet")
+#else
+  #define CONVNET_FILE string("./../data/handmodel_fullcoeffs_tanh_abs_mid_L2Pooling.net.convnet")
+#endif
 
 namespace hand_net {
+  // Note 1: All hand positions are in the hand coordinate frame (defined as 
+  //         the origin at the XYZ COM of the hand points).
+  // Note 2: The convnet will have trouble learning the non-linear angle 
+  //         mapping, so we need to have it recognize salient features and then
+  //         do inverse kinematics to find the joint angles.
+  typedef enum {
+    // Base hand position
+    HAND_POS_X = 0, HAND_POS_Y = 1, HAND_POS_Z = 2,
+    // Base hand orientation --> convnet learns (sin(x), cos(x)), better than x
+    HAND_ORIENT_X_COS = 3, HAND_ORIENT_X_SIN = 4,
+    HAND_ORIENT_Y_COS = 5, HAND_ORIENT_Y_SIN = 6,
+    HAND_ORIENT_Z_COS = 7, HAND_ORIENT_Z_SIN = 8,
+    // Wrist angle --> might need to be updated to a position later
+    WRIST_THETA_COS = 9, WRIST_THETA_SIN = 10,
+    WRIST_PHI_COS = 11, WRIST_PHI_SIN = 12,
+    // Thumb
+    THUMB_K1_X = 13, THUMB_K1_Y = 14, THUMB_K1_Z = 15,
+    THUMB_K2_X = 16, THUMB_K2_Y = 17, THUMB_K2_Z = 18,
+    THUMB_TIP_X = 19, THUMB_TIP_Y = 20, THUMB_TIP_Z = 21,
+    // F0
+    F0_K1_X = 22, F0_K1_Y = 23, F0_K1_Z = 24,
+    F0_TIP_X = 25, F0_TIP_Y = 26, F0_TIP_Z = 27,
+    // F0
+    F0_K1_X = 28, F0_K1_Y = 29, F0_K1_Z = 30,
+    F0_TIP_X = 31, F0_TIP_Y = 32, F0_TIP_Z = 33,
+    // F0
+    F0_K1_X = 34, F0_K1_Y = 35, F0_K1_Z = 36,
+    F0_TIP_X = 37, F0_TIP_Y = 38, F0_TIP_Z = 39,
+    // F0
+    F0_K1_X = 40, F0_K1_Y = 41, F0_K1_Z = 42,
+    F0_TIP_X = 43, F0_TIP_Y = 44, F0_TIP_Z = 45,
+
+    HAND_NUM_COEFF_CONVNET = 46, 
+  } HandCoeffConvnet;
+
   class ConvStage;
   class NNStage;
   
@@ -41,12 +84,11 @@ namespace hand_net {
     void calcHandCoeff(const float* depth, const uint8_t* label, 
       Eigen::MatrixXf& coeff);  // Faster version
 
-    static void createLabelFromSyntheticDepth(const float* depth, 
-      uint8_t* label);
+    void createLabelFromSyntheticDepth(const float* depth, uint8_t* label);
 
-    static void calcHandImage(const float* depth_in, const uint8_t* label_in,
-      float* hand_image, math::Float2& uv_com, math::Float3& xyz_com, 
-      float& std);
+    // calcHandImage - creates cropped image, then creates a bank of HPF imgs
+    void calcHandImage(const float* depth_in, const uint8_t* label_in);
+    void calcCoeffConvnet(const Eigen::MatrixXf& coeff);
 
     // Some helper functions for debugging
     template <typename T>
@@ -61,6 +103,12 @@ namespace hand_net {
     static void print3DTensorToStdCout(T** data, const int32_t n_feats,
       const int32_t height, const int32_t width);
 
+    // Getter methods
+    float* hpf_hand_image() { return hpf_hand_image_; }
+    float* hand_image() { return hand_image_; }
+    int32_t size_hpf_hand_image() { return size_hpf_hand_image_; } 
+    float* coeff_convnet() { return coeff_convnet_; }
+
   private:
     int32_t n_conv_stages_;
     ConvStage** conv_stages_;
@@ -72,13 +120,23 @@ namespace hand_net {
     float* datnext_;  // The current stage's output data
 
     // Temporary data structures for image processing:
+    float hand_image_[HAND_NET_PIX * HAND_NET_PIX];
+    int32_t size_hpf_hand_image_;
+    float* hpf_hand_image_;
+    math::Float2 uv_com_;  // UV COM of the hand image.
+    math::Float2 xyz_com_;  // XYZ COM of the hand image.
+    float std_;  // STD of the hand image
+    float coeff_convnet_[HAND_NUM_COEFF_CONVNET];
+
     float gauss_filt_unnormalized_[HPF_KERNEL_SIZE];
 
     // Some temporary data structures
-    static float float_depth_[src_dim];
-    static float cropped_depth[HAND_NET_PIX * HAND_NET_PIX];
+    float float_depth_[src_dim];
+    float cropped_depth[HAND_NET_PIX * HAND_NET_PIX];
 
     void loadFromFile(const std::string& convnet_filename);
+    void calcCroppedHand(const float* depth_in, const uint8_t* label_in);
+    void calcHPFHandBank(const float* depth_in, const uint8_t* label_in);
 
     // Non-copyable, non-assignable.
     HandNet(HandNet&);
