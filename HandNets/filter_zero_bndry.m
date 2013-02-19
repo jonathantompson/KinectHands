@@ -6,7 +6,7 @@ w = length(im(1,:));
 h = length(im(:,1));
 
 % Filter horizontally
-intermediate_res = zeros(h, w);
+intermediate_res = zeros(h, w, class(im));
 for v = 1:h
   for u = 1:w
     for filt = -kernel_rad:1:kernel_rad
@@ -20,7 +20,7 @@ for v = 1:h
 end
 
 % Filter vertically
-im_filtered = zeros(h, w);
+im_filtered = zeros(h, w, class(im));
 for v = 1:h
   for u = 1:w
     for filt = -kernel_rad:1:kernel_rad

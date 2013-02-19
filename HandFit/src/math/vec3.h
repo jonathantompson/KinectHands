@@ -30,8 +30,8 @@ namespace math {
   class DATA_ALIGN(ALIGNMENT) Vec3 {
   public:
     Vec3();
-    explicit Vec3(T* data);
-    explicit Vec3(Vec3* data);
+    explicit Vec3(const T* data);
+    explicit Vec3(const Vec3* data);
     Vec3(T x, T y, T z);
 
     // Getter methods
@@ -77,7 +77,7 @@ namespace math {
     static void sub(Vec3* ret, Vec3* a, Vec3* b);  // ret = a-b
     static void add(Vec3* ret, Vec3* a, Vec3* b);  // ret = a+b
     static void pairwiseMult(Vec3* ret, Vec3* a, Vec3* b);  // ret = a.*b
-    static void mult(Vec3* ret, Mat3x3<T>* a, Vec3* b);  // ret = a*b
+    static void mult(Vec3* ret, const Mat3x3<T>* a, const Vec3* b);  // ret = a*b
     static bool equal(Vec3* a, Vec3* b);
     static bool approxEqual(Vec3* a, Vec3* b);
     static void affineTransformVec(Vec3* ret, Mat4x4<T>* a, Vec3* b);
@@ -96,14 +96,14 @@ namespace math {
   };
 
   template <class T>
-  Vec3<T>::Vec3(T* data) {
+  Vec3<T>::Vec3(const T* data) {
     m[0] = data[0];
     m[1] = data[1];
     m[2] = data[2];
   };
 
   template <class T>
-  Vec3<T>::Vec3(Vec3* data) {
+  Vec3<T>::Vec3(const Vec3* data) {
     m[0] = data->m[0];
     m[1] = data->m[1];
     m[2] = data->m[2];
@@ -246,7 +246,7 @@ namespace math {
   };
 
   template <class T>
-  void Vec3<T>::mult(Vec3* ret, Mat3x3<T>* a, Vec3* b) {
+  void Vec3<T>::mult(Vec3* ret, const Mat3x3<T>* a, const Vec3* b) {
 #ifdef ROW_MAJOR
     ret->m[0] = a->m[0]*b->m[0] + a->m[1]*b->m[1] + a->m[2]*b->m[2];
     ret->m[1] = a->m[3]*b->m[0] + a->m[4]*b->m[1] + a->m[5]*b->m[2];

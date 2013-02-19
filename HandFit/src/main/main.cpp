@@ -52,7 +52,7 @@
 // 3 -> Finished (4 partially finished)
 //#define IM_DIR_BASE string("hand_data/both_hands/set03/") 
 
-#define IM_DIR_BASE string("/data/hand_depth_data/") 
+#define IM_DIR_BASE string("/data/hand_depth_data_1/") 
 
 #if defined(__APPLE__)
   #define IM_DIR string("./../../../../../../../../../") + IM_DIR_BASE
@@ -132,7 +132,7 @@ float cur_xyz_data[src_dim*3];
 int16_t cur_depth_data[src_dim*3];
 uint8_t cur_label_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
-uint32_t cur_image = 87;
+uint32_t cur_image = 0;
 GeometryColoredPoints* geometry_points= NULL;
 float temp_xyz[3 * src_dim];
 float temp_rgb[3 * src_dim];
@@ -145,8 +145,8 @@ uint8_t label[src_dim];
 
 // Decision Forests
 HandDetector* hand_detector = NULL;
-Texture* label_tex = NULL;
-uint8_t label_tex_data[src_dim * 3];
+Texture* tex = NULL;
+uint8_t tex_data[src_dim * 3];
 
 void quit() {
   delete image_io;
@@ -171,7 +171,7 @@ void quit() {
   delete geometry_points;
   delete convnet;
   delete hand_detector;
-  delete label_tex;
+  delete tex;
   Window::killWindowSystem();
   exit(0);
 }
@@ -276,7 +276,12 @@ void MousePosCB(int x, int y) {
       theta_y *= 50.0f;
     }
     float coeff_val;
-    if (hand_to_modify == 0) {
+    if (cur_coeff == HandCoeff::SCALE) {
+      // We must set both scales at once
+      coeff_val = l_hands[cur_image]->getCoeff(cur_coeff);
+      l_hands[cur_image]->setCoeff(cur_coeff, coeff_val - theta_y);
+      r_hands[cur_image]->setCoeff(cur_coeff, coeff_val - theta_y);
+    } else if (hand_to_modify == 0) {
       coeff_val = l_hands[cur_image]->getCoeff(cur_coeff);
       l_hands[cur_image]->setCoeff(cur_coeff, coeff_val - theta_y);
     } else {
@@ -366,6 +371,12 @@ void KeyboardCB(int key, int action) {
     case static_cast<int>('T'):
       if (action == RELEASED) {
         render->wireframe = !render->wireframe;
+      }
+      break;
+    case static_cast<int>('b'):
+    case static_cast<int>('B'):
+      if (action == RELEASED) {
+        render->render_bounding_spheres = !render->render_bounding_spheres;
       }
       break;
     case static_cast<int>('1'):
@@ -685,13 +696,13 @@ void renderFrame(float dt) {
           hdlabels[(v / DT_DOWNSAMPLE) * w + u/DT_DOWNSAMPLE] * 255;
         uint32_t idst = (src_height-v-1) * src_width + u;
         // Texture needs to be flipped vertically and 0 --> 255
-        label_tex_data[idst * 3] = val;
-        label_tex_data[idst * 3 + 1] = val;
-        label_tex_data[idst * 3 + 2] = val;
+        tex_data[idst * 3] = val;
+        tex_data[idst * 3 + 1] = val;
+        tex_data[idst * 3 + 2] = val;
       }
     }
-    label_tex->reloadData((unsigned char*)label_tex_data);
-    render->renderFullscreenQuad(label_tex);
+    tex->reloadData((unsigned char*)tex_data);
+    render->renderFullscreenQuad(tex);
     break;
   case 4:
     for (uint32_t v = 0; v < src_height; v++) {
@@ -699,13 +710,13 @@ void renderFrame(float dt) {
         uint8_t val = label[v*src_width + u] * 255;
         uint32_t idst = (src_height-v-1) * src_width + u;
         // Texture needs to be flipped vertically and 0 --> 255
-        label_tex_data[idst * 3] = val;
-        label_tex_data[idst * 3 + 1] = val;
-        label_tex_data[idst * 3 + 2] = val;
+        tex_data[idst * 3] = val;
+        tex_data[idst * 3 + 1] = val;
+        tex_data[idst * 3 + 2] = val;
       }
     }
-    label_tex->reloadData((unsigned char*)label_tex_data);
-    render->renderFullscreenQuad(label_tex);
+    tex->reloadData((unsigned char*)tex_data);
+    render->renderFullscreenQuad(tex);
     break;
   case 5:
     max = 1600;
@@ -722,24 +733,24 @@ void renderFrame(float dt) {
         int16_t val = cur_depth_data[v*src_width + u];
         uint32_t idst = (src_height-v-1) * src_width + u;
         if (val <= 0) {
-          label_tex_data[idst * 3] = 255;
-          label_tex_data[idst * 3 + 1] = 0;
-          label_tex_data[idst * 3 + 2] = 0;
+          tex_data[idst * 3] = 255;
+          tex_data[idst * 3 + 1] = 0;
+          tex_data[idst * 3 + 2] = 0;
         } else if (val < GDT_MAX_DIST) {
           // Texture needs to be flipped vertically and 0 --> 255
           uint8_t val_scaled = 255 - ((val - min) * 255) / (max - min);
-          label_tex_data[idst * 3] = val_scaled;
-          label_tex_data[idst * 3 + 1] = val_scaled;
-          label_tex_data[idst * 3 + 2] = val_scaled;
+          tex_data[idst * 3] = val_scaled;
+          tex_data[idst * 3 + 1] = val_scaled;
+          tex_data[idst * 3 + 2] = val_scaled;
         } else {
-          label_tex_data[idst * 3] = 0;
-          label_tex_data[idst * 3 + 1] = 0;
-          label_tex_data[idst * 3 + 2] = 255;
+          tex_data[idst * 3] = 0;
+          tex_data[idst * 3 + 1] = 0;
+          tex_data[idst * 3 + 2] = 255;
        }
       }
     }
-    label_tex->reloadData((unsigned char*)label_tex_data);
-    render->renderFullscreenQuad(label_tex);
+    tex->reloadData((unsigned char*)tex_data);
+    render->renderFullscreenQuad(tex);
     break;
   default:
     throw runtime_error("ERROR: render_output is an incorrect value");
@@ -763,6 +774,7 @@ int main(int argc, char *argv[]) {
   cout << "[] - Change adjustment coeff" << endl;
   cout << "r - rotate light" << endl;
   cout << "t - wireframe rendering" << endl;
+  cout << "b - bounding sphere rendering" << endl;
   cout << "y - Render Hands ON/OFF" << endl;
   cout << "u - Render Point Cloud ON/OFF" << endl;
   cout << "12 - Render output type" << endl;
@@ -806,7 +818,7 @@ int main(int argc, char *argv[]) {
     // Load the decision forest
     hand_detector = new HandDetector(src_width, src_height, string("./../") +
       FOREST_DATA_FILENAME);
-    label_tex = new Texture(GL_RGB8, src_width, src_height, GL_RGB, 
+    tex = new Texture(GL_RGB8, src_width, src_height, GL_RGB, 
       GL_UNSIGNED_BYTE, (unsigned char*)label, 
       TEXTURE_WRAP_MODE::TEXTURE_CLAMP, false);
     
@@ -860,6 +872,9 @@ int main(int argc, char *argv[]) {
           cout << "fitting frame " << cur_image + 1 << " of ";
           cout << im_files.size() << endl;
           cur_image++;
+          // Transfer over the current global scale
+          r_hands[cur_image]->local_scale(HandModel::scale);
+          l_hands[cur_image]->local_scale(HandModel::scale);
           loadCurrentImage();
           fitFrame(true);
           saveCurrentHandCoeffs();

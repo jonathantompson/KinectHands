@@ -100,6 +100,7 @@ namespace hand_model {
         HandModel::wrist_length = coeff_value;
         break;
       case HAND_NUM_COEFF+1:
+        HandModel::local_scale_ = coeff_value;
         HandModel::scale = coeff_value;
         break;
       }
@@ -115,7 +116,7 @@ namespace hand_model {
       case WRIST_LENGTH:
         return HandModel::wrist_length;
       case SCALE:
-        return HandModel::scale;
+        return HandModel::local_scale_;
       case WRIST_TWIST:
         return HandModel::wrist_twist;
       default:

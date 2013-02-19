@@ -104,7 +104,7 @@ namespace renderer {
 
     frame_counter_ = 0;
     wireframe = false;
-    render_bounding_spheres_ = false;
+    render_bounding_spheres = false;
   }
 
   Renderer::~Renderer() {
@@ -440,7 +440,7 @@ namespace renderer {
     sp_cmesh_dlight_->useProgram();
     h_sp_cmesh_dlight_->setHandles(light_dir_, this);
 
-    if (render_bounding_spheres_) {
+    if (render_bounding_spheres) {
       GLState::glsPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
       GLState::glsDisable(GL_CULL_FACE);
       geom_manager->renderStackReset();
@@ -472,6 +472,9 @@ namespace renderer {
       GLState::glsPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
       GLState::glsEnable(GL_CULL_FACE);
       GLState::glsCullFace(GL_BACK);
+    } else {
+      GLState::glsPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+      GLState::glsDisable(GL_CULL_FACE);
     }
 
     // Render all the colored meshes 

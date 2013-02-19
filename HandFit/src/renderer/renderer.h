@@ -87,6 +87,7 @@ namespace renderer {
     static const ShaderLocationNamePair bone_weights_47;
 
     bool wireframe;
+    bool render_bounding_spheres;
 
     void renderFullscreenQuad(TextureRenderable* tex, GLint frame_buffer_dst, 
       uint32_t texture_index);
@@ -105,7 +106,6 @@ namespace renderer {
     void downsample5IntegTexture(TextureRenderable* dst, TextureRenderable* src);
 
   private:
-    bool render_bounding_spheres_;
     int screen_width_, screen_height_;
     float field_of_view_;
 

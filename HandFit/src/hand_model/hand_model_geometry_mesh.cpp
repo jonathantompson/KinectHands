@@ -234,6 +234,7 @@ namespace hand_model {
         scene_graph_, cur_bone->bone_offset);
       geom->addChild(cur_sphere);
       g_hand_renderer->addBSphere(cur_sphere);
+      bspheres_.pushBack(cur_sphere);
     }
   }
   

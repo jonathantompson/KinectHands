@@ -12,25 +12,57 @@
 #include "math/math_types.h"
 
 template <class T>
-void DownsampleImage(T* dst, T* src, uint32_t width, uint32_t height,
-  uint32_t downsample) {
-  uint32_t width_downsample = width / downsample;
-  float scale = 1.0f / static_cast<float>(downsample*downsample);
-  for (uint32_t v = 0; v < height; v+= downsample) {
-    for (uint32_t u = 0; u < width; u+= downsample) {
-      float val = 0.0f;
+void DownsampleImage(T* dst, const T* src, const int32_t srcw, 
+  const int32_t srch, const int32_t downsample) {
+  const int32_t w_down = srcw / downsample;
+  const int32_t h_down = srch / downsample;
+  const T scale = (T)(downsample*downsample);
+  for (int32_t v = 0; v < h_down; v++) {
+    for (int32_t u = 0; u < w_down; u++) {
+      int32_t dst_index = v * w_down + u;
+      dst[dst_index] = (T)0;
       // Average over the current source pixel in a downsample*downsample rect
-      for (uint32_t v_offset = 0; v_offset < downsample; v_offset++) {
-         for (uint32_t u_offset = 0; u_offset < downsample; u_offset++) {
-           val += static_cast<float>(src[(v + v_offset) * width + (u + u_offset)]);
+      for (int32_t v_off = downsample*v; v_off < downsample*(v+1); v_off++) {
+         for (int32_t u_off = downsample*u; u_off < downsample*(u+1); u_off++) {
+           dst[dst_index] += src[v_off * srcw + u_off];
         }
       }
-      val = val * scale;
-      dst[(v/downsample) * width_downsample + (u/downsample)] = static_cast<T>(val);
+      dst[dst_index] /= scale;
     }
   }
 };
 
+// DownsampleImageWithoutBackground - Regular filter, except that we will
+// ignore background pixels when taking average.
+template <class T>
+void DownsampleImageWithoutBackground(T* dst, const T* src, const int32_t srcw, 
+  const int32_t srch, const int32_t downsample, const T background) {
+  const int32_t w_down = srcw / downsample;
+  const int32_t h_down = srch / downsample;
+  const T scale = (T)(downsample*downsample);
+  for (int32_t v = 0; v < h_down; v++) {
+    for (int32_t u = 0; u < w_down; u++) {
+      int32_t dst_index = v * w_down + u;
+      dst[dst_index] = (T)0;
+      int32_t cnt = 0;
+      // Average over the current source pixel in a downsample*downsample rect
+      for (int32_t v_off = downsample*v; v_off < downsample*(v+1); v_off++) {
+        for (int32_t u_off = downsample*u; u_off < downsample*(u+1); u_off++) {
+          T cur_val =  src[v_off * srcw + u_off];
+          if (cur_val != background) {
+            dst[dst_index] += cur_val;
+            cnt++;
+          }
+        }
+      }
+      if (cnt > 0) {
+        dst[dst_index] /= cnt;
+      } else {
+        dst[dst_index] = background;
+      }
+    }
+  }
+};
 
 template <class T>
 void DownsampleImageWithoutNonZeroPixelsAndBackground(T* dst, const T* src, 
@@ -430,5 +462,42 @@ template <class T> void UpsampleNoFiltering(T* dst, const T* src,
   }
 };
 
+// Convolution of seperable 1D kernel on 2D image, assumes 0 outside image
+// This version wont destroy the input image but also requires extra space
+template <class T>
+void ConvolveImageZeroCrop(T* dst, T* src, T* tmp, int32_t srcw, int32_t srch,
+  T* kernel, int32_t kernel_size) {
+  if (kernel_size % 2 == 0) {
+    throw std::wruntime_error("ConvImageZeroCrop - ERROR: Only odd size "
+      "kernels are supported (for now)");
+  }
+  int32_t kernel_rad = (kernel_size - 1) / 2;
+  // Filter horizontally: src --> tmp
+  for (int32_t v = 0; v < srch; v++) {
+    for (int32_t u = 0; u < srcw; u++) {
+      int32_t dst_index = v * srcw + u;
+      tmp[dst_index] = (T)0;
+      for (int32_t flt = -kernel_rad, i = 0; flt <= kernel_rad; flt++, i++) {
+        int u_off = u + flt;
+        if (u_off >= 0 && u_off < srcw) {
+          tmp[dst_index] += src[dst_index + flt] * kernel[i];
+        }
+      }
+    }
+  }
+  // Filter vertically: tmp --> dst
+  for (int32_t v = 0; v < srch; v++) {
+    for (int32_t u = 0; u < srcw; u++) {
+      int32_t dst_index = v * srcw + u;
+      dst[dst_index] = (T)0;
+      for (int32_t flt = -kernel_rad, i = 0; flt <= kernel_rad; flt++, i++) {
+        int v_off = v + flt;
+        if (v_off >= 0 && v_off < srch) {
+          dst[dst_index] += tmp[dst_index + (srcw * flt)] * kernel[i];
+        }
+      }
+    }
+  }
+};
 
 #endif  // UNNAMED_LOAD_DEPTH_IMAGE_HEADER

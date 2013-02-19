@@ -136,7 +136,8 @@ namespace hand_model {
     void setRotation(math::FloatQuat* quat);
     void getRotation(math::FloatQuat* quat);
     void printCoeff() const;
-    const float local_scale() { return local_scale_; }
+    inline const float local_scale() { return local_scale_; }
+    inline void local_scale(float scale) { local_scale_ = scale; }
 
     // Modifiers
     void setCoeff(uint32_t index, float coeff_value);

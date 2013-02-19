@@ -303,6 +303,30 @@ namespace hand_model {
     }
   }
 
+  void HandModelRenderer::updateHeirachyMatrices(HandType hand_type) {
+    if (hand_type == HandType::LEFT) {
+      l_hand_geom_->updateHeirachyMatrices();
+    } else {
+      r_hand_geom_->updateHeirachyMatrices();
+    }
+  }
+
+  void HandModelRenderer::fixBoundingSphereMatrices(HandType hand_type) {
+    if (hand_type == HandType::LEFT) {
+      l_hand_geom_->fixBoundingSphereMatrices();
+    } else {
+      r_hand_geom_->fixBoundingSphereMatrices();
+    }
+  }
+
+  HandModelGeometry* HandModelRenderer::geom(HandType hand_type) {
+    if (hand_type == HandType::LEFT) {
+      return l_hand_geom_;
+    } else {
+      return r_hand_geom_;
+    }
+  }
+
   void HandModelRenderer::drawDepthMapTiled(Vector<float>& residues,
     VectorManaged<MatrixXf>& coeff, HandModel** hands, 
     uint32_t num_hands_per_tile) {

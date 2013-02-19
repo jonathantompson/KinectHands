@@ -20,6 +20,7 @@ namespace renderer { class Geometry; }
 namespace renderer { struct BoneFileInfo; }
 namespace renderer { struct Bone; }
 namespace renderer { class Renderer; }
+namespace renderer { class BoundingSphere; }
 
 namespace hand_model {
   class HandModelRenderer;
@@ -36,6 +37,8 @@ namespace hand_model {
     virtual void updateHeirachyMatrices();
     virtual void fixBoundingSphereMatrices();
     virtual inline renderer::Geometry* scene_graph() { return scene_graph_; }
+    
+    data_str::Vector<renderer::BoundingSphere*>& bspheres() { return bspheres_; }
 
     virtual void renderStackReset();
     virtual renderer::Geometry* renderStackPop();
@@ -47,6 +50,7 @@ namespace hand_model {
     renderer::Geometry* scene_graph_;  // The renderable geometry - Not owned here
     renderer::BoneFileInfo* bones_in_file_;  // Not owned here
     data_str::Vector<math::Float4x4> rest_transforms_;  // per bone
+    data_str::Vector<renderer::BoundingSphere*> bspheres_;  // Attached to scene graph!
     uint32_t bone_wrist_index_;
     uint32_t bone_palm_index_;
     uint32_t bone_thumb_1_index_;

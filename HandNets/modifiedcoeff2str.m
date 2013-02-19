@@ -1,55 +1,89 @@
 function [ str ] = modifiedcoeff2str( coeff )
   switch(coeff)
     case 1
-      str = 'HAND POS X';
+      str = 'HAND POS U';
     case 2
-      str = 'HAND POS Y';
+      str = 'HAND POS V';
     case 3
-      str = 'HAND POS Z';
+      str = 'HAND ORIENT X COS';
     case 4
-      str = 'HAND ORIENT PHI';
+      str = 'HAND ORIENT X SIN'; 
     case 5
-      str = 'HAND ORIENT THETA';
+      str = 'HAND ORIENT Y COS';
     case 6
-      str = 'HAND ORIENT PSI';
+      str = 'HAND ORIENT Y SIN'; 
     case 7
-      str = 'WRIST THETA';
+      str = 'HAND ORIENT Z COS';
     case 8
-      str = 'WRIST PHI';
+      str = 'HAND ORIENT Z SIN'; 
     case 9
-      str = 'THUMB THETA';
+      str = 'WRIST THETA COS';
     case 10
-      str = 'THUMB PHI';
+      str = 'WRIST THETA SIN';      
     case 11
-      str = 'THUMB K1 THETA';
+      str = 'WRIST PHI COS';
     case 12
-      str = 'THUMB K1 PHI';
+      str = 'WRIST PHI SIN';      
     case 13
-      str = 'THUMB K2 PHI';
+      str = 'THUMB K1 U';
     case 14
-      str = 'F0 THETA';
+      str = 'THUMB K1 V';      
     case 15
-      str = 'F0 PHI';
+      str = 'THUMB K2 U';
     case 16
-      str = 'F0 KNUCKLE CURL';
+      str = 'THUMB K2 V';  
     case 17
-      str = 'F1 THETA';
+      str = 'THUMB TIP U';
     case 18
-      str = 'F1 PHI';
+      str = 'THUMB TIP V';  
     case 19
-      str = 'F1 KNUCKLE CURL';
+      str = 'F0 K1 U';
     case 20
-      str = 'F2 THETA';
+      str = 'F0 K1 V';      
     case 21
-      str = 'F2 PHI';
+      str = 'F0 K2 U';
     case 22
-      str = 'F2 KNUCKLE CURL';
+      str = 'F0 K2 V';         
     case 23
-      str = 'F3 THETA';
+      str = 'F0 TIP U';
     case 24
-      str = 'F3 PHI';
+      str = 'F0 TIP V';
     case 25
-      str = 'F3 KNUCKLE CURL';
+      str = 'F1 K1 U';
+    case 26
+      str = 'F1 K1 V';      
+    case 27
+      str = 'F1 K2 U';
+    case 28
+      str = 'F1 K2 V';       
+    case 29
+      str = 'F1 TIP U';
+    case 30
+      str = 'F1 TIP V';
+    case 31
+      str = 'F2 K1 U';
+    case 32
+      str = 'F2 K1 V';      
+    case 33
+      str = 'F2 K2 U';
+    case 34
+      str = 'F2 K2 V';       
+    case 35
+      str = 'F2 TIP U';
+    case 36
+      str = 'F2 TIP V';
+    case 37
+      str = 'F3 K1 U';
+    case 38
+      str = 'F3 K1 V';      
+    case 39
+      str = 'F3 K2 U';
+    case 40
+      str = 'F3 K2 V';           
+    case 41
+      str = 'F3 TIP U';
+    case 42
+      str = 'F3 TIP V';      
     otherwise
       str = 'undefined';
   end

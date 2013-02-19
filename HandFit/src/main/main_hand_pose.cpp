@@ -344,6 +344,15 @@ void KeyboardCB(int key, int action) {
     case static_cast<int>('T'):
       if (action == RELEASED) {
         render->wireframe = !render->wireframe;
+        std::cout << "wireframe = " << (int)render->wireframe << std::endl;
+      }
+      break;
+    case static_cast<int>('y'):
+    case static_cast<int>('Y'):
+      if (action == RELEASED) {
+        render->render_bounding_spheres = !render->render_bounding_spheres;
+        std::cout << "bounding spheres = ";
+        std::cout << (int)render->render_bounding_spheres << std::endl;
       }
       break;
     case static_cast<int>('1'):
@@ -442,6 +451,7 @@ int main(int argc, char *argv[]) {
   cout << "[] - Change adjustment coeff" << endl;
   cout << "r - rotate light" << endl;
   cout << "t - wireframe rendering" << endl;
+  cout << "y - render bounding spheres" << endl;
   cout << "123 - Render output type" << endl;
   cout << "+/- - Increase / Decrease bunny decimation" << endl;
   cout << "k - Animate Hand" << endl;

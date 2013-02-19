@@ -78,8 +78,14 @@ namespace hand_model {
     inline renderer::TextureRenderable* depth_texture() { return depth_texture_; }
     inline renderer::TextureRenderable* cdepth_texture() { return cdepth_texture_; }
     inline float* depth_tmp() { return depth_tmp_; }
+    inline renderer::Camera* camera() { return camera_; }
+    HandModelGeometry* geom(HandType hand_type);
 
     void addBSphere(renderer::BoundingSphere* sph);
+
+    // Manually update internal data --> Only touch if you know what it is!
+    void updateHeirachyMatrices(HandType hand_type);
+    void fixBoundingSphereMatrices(HandType hand_type);
 
   private:
     bool render_hand_;

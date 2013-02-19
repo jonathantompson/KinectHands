@@ -67,7 +67,7 @@ namespace math {
     static void sub(Vec4* ret, Vec4* a, Vec4* b);  // ret = a-b
     static void add(Vec4* ret, Vec4* a, Vec4* b);  // ret = a+b
     static void pairwiseMult(Vec4* ret, Vec4* a, Vec4* b);  // ret = a.*b
-    static void mult(Vec4* ret, Mat4x4<T>* a, Vec4* b);  // ret = a*b
+    static void mult(Vec4* ret, const Mat4x4<T>* a, const Vec4* b);  // ret = a*b
     static bool equal(Vec4* a, Vec4* b);
 
     T m[4];  // Not private --> Avoid some overhead with getter setter methods
@@ -218,7 +218,7 @@ namespace math {
   };
 
   template <class T>
-  void Vec4<T>::mult(Vec4* ret, Mat4x4<T>* a, Vec4* b) {
+  void Vec4<T>::mult(Vec4* ret, const Mat4x4<T>* a, const Vec4* b) {
 #ifdef ROW_MAJOR
     ret->m[0] = a->m[0]*b->m[0]  + a->m[1]*b->m[1]  + a->m[2]*b->m[2]  
                 + a->m[3]*b->m[3];
