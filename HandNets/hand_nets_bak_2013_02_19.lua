@@ -5,7 +5,7 @@ require 'torch'
 require 'optim'   -- an optimization package, for online and batch methods
 torch.setnumthreads(4)
 dofile("pbar.lua")
-dofile("shuffle_files.lua")
+dofile("shuffle_data.lua")
 -- require 'debugger'
 
 -- Jonathan Tompson
@@ -17,33 +17,20 @@ dofile("shuffle_files.lua")
 
 width = 96
 height = 96
-num_hpf_banks = 3
 dim = width * height
-frame_stride = 1  -- We don't need every file of the 30fps, so just grab a few
+frame_skip = 2  -- We don't need every file of the 30fps, so just grab a few
 test_data_rate = 5  -- this means 1 / 5 will be test data
-num_coeff = 42
+num_coeff = 25  -- Keep this at 25!
+num_learned_coeff = 25
 background_depth = 2000
 perform_training = 0
 nonlinear = 0  -- 0 = tanh, 1 = SoftShrink
 model_filename = 'handmodel.net'
 loss = 0  -- 0 = abs, 1 = mse
+fullsize = 1  -- 0 = small, 1 = mid, 2 = big convnet
 im_dir = "./hand_depth_data_processed/"
 visualize_data = 0
 pooling = 2  -- 1,2,.... or math.huge (infinity)
-
--- ******* Some preliminary calculations *********
-w = width
-h = height
-bank_dim = {}
-data_file_size = 0
-for i=1,num_hpf_banks do
-  table.insert(bank_dim, {h, w})
-  data_file_size = data_file_size + w * h
-  w = w / 2
-  h = h / 2
-end
-w = nil  -- To avoid confusion
-h = nil
 
 -- ************ Get Data locations ***************
 print '==> Scanning directory for hand data'
@@ -67,25 +54,22 @@ end
 -- Partition files into their respective groups
 coeffl_files = {}
 coeffr_files = {}
-hpf_depth_files = {}
+depth_files = {}
 for i=1,#files,1 do
   if files[i] ~= nil then
     if string.find(files[i], "coeffr_hands_") ~= nil then
       table.insert(coeffr_files, files[i])
     elseif string.find(files[i], "coeffl_hands_") ~= nil then
       table.insert(coeffl_files, files[i])
-    elseif string.find(files[i], "hpf_hands_") ~= nil then
-      table.insert(hpf_depth_files, files[i])
+    elseif string.find(files[i], "hands_") ~= nil then
+      table.insert(depth_files, files[i])
     end
   end
 end 
 
--- ************ Randomly permute the files ***********
-shuffle_files(coeffr_files, coeffl_files, hpf_depth_files)
-
 -- ************ Load data from Disk ***************
 print '==> Loading hand data from directory'
-nfiles = math.floor(#hpf_depth_files / frame_stride)
+nfiles = math.floor(#depth_files / frame_skip)
 tesize = math.floor(nfiles / test_data_rate) + 1
 trsize = nfiles - tesize
 if tesize <= 0 then
@@ -94,23 +78,16 @@ if tesize <= 0 then
 end
 trainData = {
   files = {},
-  data = {},  -- Multi-bank input (usually 3)
-  labels = torch.DoubleTensor(trsize, num_coeff),
+  data = torch.FloatTensor(trsize, 1, height, width),
+  labels = torch.DoubleTensor(trsize, num_learned_coeff),
   size = function() return trsize end
 }
 testData = {
   files = {},
-  data = {},
-  labels = torch.DoubleTensor(tesize, num_coeff),
+  data = torch.FloatTensor(tesize, 1, height, width),
+  labels = torch.DoubleTensor(tesize, num_learned_coeff),
   size = function() return tesize end
 }
-for i=1,num_hpf_banks do
-  table.insert(trainData.data, torch.FloatTensor(trsize, 1, 
-    bank_dim[i][1], bank_dim[i][2]))
-  table.insert(testData.data, torch.FloatTensor(tesize, 1, 
-    bank_dim[i][1], bank_dim[i][2]))
-end
-
 itr = 1
 ite = 1
 for i=1,nfiles do
@@ -118,46 +95,37 @@ for i=1,nfiles do
   progress(i, nfiles)
 
   -- Read in the sample
-  coeff_file = torch.DiskFile(im_dir .. coeffr_files[i*frame_stride], 'r')
+  coeff_file = torch.DiskFile(im_dir .. coeffr_files[i*frame_skip], 'r')
   coeff_file:binary()
   coeff_data = coeff_file:readFloat(num_coeff)
   coeff_file:close()
 
-  hpf_depth_file = torch.DiskFile(im_dir .. hpf_depth_files[i*frame_stride],'r')
-  hpf_depth_file:binary()
-  hpf_depth_data = hpf_depth_file:readFloat(data_file_size)
-  hpf_depth_file:close()
+  depth_file = torch.DiskFile(im_dir .. depth_files[i*frame_skip], 'r')
+  depth_file:binary()
+  depth_data = depth_file:readFloat(dim)
+  depth_file:close()
 
   if math.mod(i, test_data_rate) ~= 0 then
     if itr <= trsize then
       -- this sample is training data
-      -- We need to split the long vector into the seperate hpf banks
-      ind = 1
-      for j=1,num_hpf_banks do
-        trainData.data[j][{itr, 1, {}, {}}] = torch.FloatTensor(
-          hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
-          bank_dim[j][2]})
-        ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
-      end
-      trainData.labels[{itr, {}}] = torch.FloatTensor(coeff_data, 1,
-        torch.LongStorage{num_coeff}):double()
-      trainData.files[itr] = hpf_depth_files[i*frame_stride]
+      -- We need to convert the short data values to float (and float to double)
+      trainData.data[{itr, 1, {}, {}}] = torch.FloatTensor(depth_data, 1, 
+        torch.LongStorage{height, width})
+      trainData.labels[{itr, {}}] = torch.FloatTensor(coeff_data, 
+        num_coeff - num_learned_coeff + 1,
+        torch.LongStorage{num_learned_coeff}):double()
+      trainData.files[itr] = depth_files[i*frame_skip]
       itr = itr + 1
     end
   else
     if ite <= tesize then
       -- this sample is test data
-      -- We need to split the long vector into the seperate hpf banks
-      ind = 1
-      for j=1,num_hpf_banks do
-        testData.data[j][{ite, 1, {}, {}}] = torch.FloatTensor(
-          hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
-          bank_dim[j][2]})
-        ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
-      end
-      testData.labels[{ite, {}}] = torch.FloatTensor(coeff_data, 1,
-        torch.LongStorage{num_coeff}):double()
-      testData.files[ite] = hpf_depth_files[i*frame_stride]
+      testData.data[{ite, 1, {}, {}}] = torch.FloatTensor(depth_data, 1, 
+        torch.LongStorage{height, width})
+      testData.labels[{ite, {}}] = torch.FloatTensor(coeff_data, 
+        num_coeff - num_learned_coeff + 1,
+        torch.LongStorage{num_learned_coeff}):double()
+      testData.files[ite] = depth_files[i*frame_skip]
       ite = ite + 1
     end
   end
@@ -170,44 +138,120 @@ nfiles = tesize + trsize
 for i=trsize+1,#trainData.files do
   table.remove(trainData.files, trsize+1)
 end
-for j=1,num_hpf_banks do
-  trainData.data[j] = trainData.data[j][{{1,trsize}, {}, {}, {}}]
-end
+trainData.data = trainData.data[{{1,trsize}, {}, {}, {}}]
 trainData.labels = trainData.labels[{{1,trsize}, {}}]
 trainData.size = function() return trsize end
 for i=tesize+1,#testData.files do
   table.remove(testData.files, tesize+1)
 end
-for j=1,num_hpf_banks do
-  testData.data[j] = testData.data[j][{{1,tesize}, {}, {}, {}}]
-end
+testData.data = testData.data[{{1,tesize}, {}, {}, {}}]
 testData.labels = testData.labels[{{1,tesize}, {}}]
 testData.size = function() return tesize end
 
 print(string.format("    Loaded %d test set images and %d training set images", 
   tesize, trsize))
 
+-- ************ Normalize Data ***************
+-- EDIT: We don't actually need to normalize now since the data is saved that 
+--       way.  This is block commented out.
+--[[
+print '==> Normalize the depth images'
+print '    Normalizing training set'
+for i=1,trainData.size(),1 do
+  -- disp progress
+  progress(i, trainData:size())
+
+  -- Calculate the mean and std of all hand pixels (not including background)
+  sum_pix = 0
+  npix = 0
+  sum_pix_sq = 0
+  for v=1,height,1 do
+    for u=1,width,1 do
+      pix = trainData.data[{i, 1, v, u}]
+      if (pix > 0 and pix < background_depth) then
+        sum_pix = sum_pix + pix
+        npix = npix + 1
+        sum_pix_sq = sum_pix_sq + pix * pix
+      end
+    end
+  end
+  mean_pix = sum_pix / npix
+  var_pix = (sum_pix_sq / npix) - (mean_pix * mean_pix)
+  std_pix = math.sqrt(var_pix)
+ 
+  -- Now subtract off the mean, make all background pixels at 0
+  for v=1,height,1 do
+    for u=1,width,1 do
+      pix = trainData.data[{i, 1, v, u}]
+      if (pix > 0 and pix < background_depth) then
+        trainData.data[{i, 1, v, u}] = trainData.data[{i, 1, v, u}] - mean_pix
+        trainData.data[{i, 1, v, u}] = trainData.data[{i, 1, v, u}] / std_pix
+      else
+        trainData.data[{i, 1, v, u}] = 0
+      end
+    end
+  end
+end
+
+print '    Normalizing test set'
+for i=1,testData.size(),1 do
+  -- disp progress
+  progress(i, testData:size())
+
+  -- Calculate the mean and std of all hand pixels (not including background)
+  sum_pix = 0
+  npix = 0
+  sum_pix_sq = 0
+  for v=1,height,1 do
+    for u=1,width,1 do
+      pix = testData.data[{i, 1, v, u}]
+      if (pix > 0 and pix < background_depth) then
+        sum_pix = sum_pix + pix
+        npix = npix + 1
+        sum_pix_sq = sum_pix_sq + pix * pix
+      end
+    end
+  end
+  mean_pix = sum_pix / npix
+  var_pix = (sum_pix_sq / npix) - (mean_pix * mean_pix)
+  std_pix = math.sqrt(var_pix)
+ 
+  -- Now subtract off the mean, make all background pixels at 0
+  for v=1,height,1 do
+    for u=1,width,1 do
+      pix = testData.data[{i, 1, v, u}]
+      if (pix > 0 and pix < background_depth) then
+        testData.data[{i, 1, v, u}] = testData.data[{i, 1, v, u}] - mean_pix
+        testData.data[{i, 1, v, u}] = testData.data[{i, 1, v, u}] / std_pix
+      else
+        testData.data[{i, 1, v, u}] = 0
+      end
+    end
+  end
+end
+--]]
+
+-- ************ Randomly permute the training and test sets ***********
+shuffle_data(testData.data)
+shuffle_data(trainData.data)
+
 -- ************ Visualize one of the depth data samples ***************
 print '==> Visualizing some data samples'
 if (visualize_data == 1) then
   n_images = math.min(trainData.size(), 256)
-  for j=1,num_hpf_banks do
-    im = {
-      data = trainData.data[j][{{1,n_images}, {}, {}, {}}]
-    }
-    im.data = im.data:double()
-    image.display{image=im.data, padding=2, nrow=math.floor(math.sqrt(n_images)), zoom=0.75, scaleeach=false}
-  end
-  -- image.display(trainData.data[1][{1,1,{},{}}])
+  im = {
+    data = trainData.data[{{1,n_images}, {}, {}, {}}]
+  }
+  im.data = im.data:double()
+  image.display{image=im.data, padding=2, nrow=math.floor(math.sqrt(n_images)), zoom=0.75, scaleeach=false}
+  -- image.display(trainData.data[{1,1,{},{}}])
 
   n_images = math.min(testData.size(), 256)
-  for j=1,num_hpf_banks do
-    im = {
-      data = testData.data[j][{{1,n_images}, {}, {}, {}}]
-    }
-    im.data = im.data:double()
-    image.display{image=im.data, padding=2, nrow=math.floor(math.sqrt(n_images)), zoom=0.75, scaleeach=false}
-  end
+  im = {
+    data = testData.data[{{1,n_images}, {}, {}, {}}]
+  }
+  im.data = im.data:double()
+  image.display{image=im.data, padding=2, nrow=math.floor(math.sqrt(n_images)), zoom=0.75, scaleeach=false}
   -- image.display(testData.data[{1,1,{},{}}])
   im = nil
 end
@@ -234,90 +278,83 @@ if (perform_training == 1) then
 
   -- ************ define the model parameters ***************
   -- output dimensions
-  noutputs = num_coeff
+  noutputs = num_learned_coeff
 
   -- input dimensions
   nfeats = 1
   ninputs = nfeats*width*height
-  nstates = {16, 16, 2048}
-  filtsize = {5, 5}
-  -- poolsize = {2, 4}
-  poolsize = {1, 1}  -- NO POOLING FOR NOW
+  if (fullsize == 0) then
+    nstates = {8,20,256}
+  elseif (fullsize == 1) then
+    nstates = {16,64,256}
+  else 
+    nstates = {16,128,529}
+  end
+  filtsize = {5, 7}
+  poolsize = {2, 4}
   fanin = {4}
   normkernel = image.gaussian1D(7)
 
   -- ********************** Construct model **********************
   print '==> construct model'
+  
+  -- a typical convolutional network, with locally-normalized hidden
+  -- units, and L2-pooling
 
-  model = nn.Sequential()  -- top level model
+  -- Note: the architecture of this convnet is loosely based on Pierre Sermanet's
+  -- work on this dataset (http://arxiv.org/abs/1204.3968). In particular
+  -- the use of LP-pooling (with P=2) has a very positive impact on
+  -- generalization. Normalization is not done exactly as proposed in
+  -- the paper, and low-level (first layer) features are not fed to
+  -- the classifier.
 
-  -- define the seperate convnet banks (that will execute in parallel)
-  banks = {}
-  banks_total_output_size = 0
-  for j=1,num_hpf_banks do
-    table.insert(banks, nn.Sequential())
-    tensor_dim = {1, bank_dim[j][1], bank_dim[j][2]}
+  model = nn.Sequential()
+  tensor_dim = {nfeats, 
+                height, 
+                width}
+  print("Starting Tensor Dimensions:")
+  print(tensor_dim)
 
-    -- stage 1 : filter bank -> squashing -> LN pooling -> normalization
-    banks[j]:add(nn.SpatialConvolutionMap(nn.tables.full(nfeats, nstates[1]), filtsize[1], filtsize[1]))
-    if (nonlinear == 1) then 
-      banks[j]:add(nn.SoftShrink())
-    elseif (nonlinear == 0) then
-      banks[j]:add(nn.Tanh())
-    end
-    --[[ -- NO POOLING FOR NOW
-    if (pooling ~= math.huge) then
-      banks[j]:add(nn.SpatialLPPooling(nstates[1], pooling, poolsize[1], poolsize[1], poolsize[1], poolsize[1]))
-    else
-      banks[j]:add(nn.SpatialMaxPooling(poolsize[1], poolsize[1], poolsize[1], poolsize[1]))
-    end
-    --]]
-    banks[j]:add(nn.SpatialSubtractiveNormalization(nstates[1], normkernel))
-
-    tensor_dim = {nstates[1], (tensor_dim[2] - filtsize[1] + 1) / poolsize[1], (tensor_dim[3] - filtsize[1] + 1) / poolsize[1]}
-    print(string.format("Tensor Dimensions after stage 1 bank %d:", j))
-    print(tensor_dim)
-
-    -- stage 2 : filter bank -> squashing -> LN pooling -> normalization
-    banks[j]:add(nn.SpatialConvolutionMap(nn.tables.random(nstates[1], nstates[2], fanin[1]), filtsize[2], filtsize[2]))
-    if (nonlinear == 1) then 
-      banks[j]:add(nn.SoftShrink())
-    elseif (nonlinear == 0) then
-      banks[j]:add(nn.Tanh())
-    end
-    --[[ -- NO POOLING FOR NOW
-    if (pooling ~= math.huge) then
-      banks[j]:add(nn.SpatialLPPooling(nstates[2], pooling, poolsize[2], poolsize[2], poolsize[2], poolsize[2]))
-    else
-      banks[j]:add(nn.SpatialMaxPooling(poolsize[2], poolsize[2], poolsize[2], poolsize[2]))
-    end
-    --]]
-    banks[j]:add(nn.SpatialSubtractiveNormalization(nstates[2], normkernel))
-    tensor_dim = {nstates[2], (tensor_dim[2] - filtsize[2] + 1) / poolsize[2], (tensor_dim[3] - filtsize[2] + 1) / poolsize[2]}
-    print(string.format("Tensor Dimensions after stage 2 bank %d:", j))
-    print(tensor_dim)
-
-    vec_length = tensor_dim[1] * tensor_dim[2] * tensor_dim[3]
-    banks[j]:add(nn.Reshape(vec_length))
-    banks_total_output_size = banks_total_output_size + vec_length
-
-    print(string.format("Bank %d output length:", j))
-    print(vec_length);
+  -- stage 1 : filter bank -> squashing -> LN pooling -> normalization
+  model:add(nn.SpatialConvolutionMap(nn.tables.full(nfeats, nstates[1]), filtsize[1], filtsize[1]))
+  if (nonlinear == 1) then 
+    model:add(nn.SoftShrink())
+  elseif (nonlinear == 0) then
+    model:add(nn.Tanh())
   end
-
-  -- Now join the banks together!
-  -- Parallel applies ith member module to the ith input, and outpus a table
-  parallel = nn.ParallelTable()
-  for j=1,num_hpf_banks do
-    parallel:add(banks[j])
+  if (pooling ~= math.huge) then
+    model:add(nn.SpatialLPPooling(nstates[1], pooling, poolsize[1], poolsize[1], poolsize[1], poolsize[1]))
+  else
+    model:add(nn.SpatialMaxPooling(poolsize[1], poolsize[1], poolsize[1], poolsize[1]))
   end
-  model:add(parallel)
-  model:add(nn.JoinTable(1))  -- Take the table of tensors and concat them
+  model:add(nn.SpatialSubtractiveNormalization(nstates[1], normkernel))
+  tensor_dim = {nstates[1], (tensor_dim[2] - filtsize[1] + 1) / poolsize[1], (tensor_dim[3] - filtsize[1] + 1) / poolsize[1]}
+  print("Tensor Dimensions after stage 1:")
+  print(tensor_dim)
+
+  -- stage 2 : filter bank -> squashing -> LN pooling -> normalization
+  model:add(nn.SpatialConvolutionMap(nn.tables.random(nstates[1], nstates[2], fanin[1]), filtsize[2], filtsize[2]))
+  if (nonlinear == 1) then 
+    model:add(nn.SoftShrink())
+  elseif (nonlinear == 0) then
+    model:add(nn.Tanh())
+  end
+  if (pooling ~= math.huge) then
+    model:add(nn.SpatialLPPooling(nstates[2], pooling, poolsize[2], poolsize[2], poolsize[2], poolsize[2]))
+  else
+    model:add(nn.SpatialMaxPooling(poolsize[2], poolsize[2], poolsize[2], poolsize[2]))
+  end
+  model:add(nn.SpatialSubtractiveNormalization(nstates[2], normkernel))
+  tensor_dim = {nstates[2], (tensor_dim[2] - filtsize[2] + 1) / poolsize[2], (tensor_dim[3] - filtsize[2] + 1) / poolsize[2]}
+  print("Tensor Dimensions after stage 2:")
+  print(tensor_dim)
 
   -- stage 3 : standard 2-layer neural network
+  vec_length = tensor_dim[1] * tensor_dim[2] * tensor_dim[3]
+  model:add(nn.Reshape(vec_length))
 
   print("Neural net first stage input size")
-  print(banks_total_output_size);
+  print(vec_length);
 
   model:add(nn.Linear(vec_length, nstates[3]))
   if (nonlinear == 1) then 
