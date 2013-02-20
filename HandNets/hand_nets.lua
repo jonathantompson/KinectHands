@@ -196,7 +196,7 @@ if (visualize_data == 1) then
       data = trainData.data[j][{{1,n_images}, {}, {}, {}}]
     }
     im.data = im.data:double()
-    image.display{image=im.data, padding=2, nrow=math.floor(math.sqrt(n_images)), zoom=0.75, scaleeach=false}
+    image.display{image=im.data, padding=2, nrow=math.floor(math.sqrt(n_images)), zoom=(0.75*math.pow(2,j-1)), scaleeach=false}
   end
   -- image.display(trainData.data[1][{1,1,{},{}}])
 
@@ -206,7 +206,7 @@ if (visualize_data == 1) then
       data = testData.data[j][{{1,n_images}, {}, {}, {}}]
     }
     im.data = im.data:double()
-    image.display{image=im.data, padding=2, nrow=math.floor(math.sqrt(n_images)), zoom=0.75, scaleeach=false}
+    image.display{image=im.data, padding=2, nrow=math.floor(math.sqrt(n_images)), zoom=(0.75*math.pow(2,j-1)), scaleeach=false}
   end
   -- image.display(testData.data[{1,1,{},{}}])
   im = nil
@@ -239,11 +239,11 @@ if (perform_training == 1) then
   -- input dimensions
   nfeats = 1
   ninputs = nfeats*width*height
-  nstates = {16, 16, 2048}
-  filtsize = {5, 5}
-  -- poolsize = {2, 4}
-  poolsize = {1, 1}  -- NO POOLING FOR NOW
-  fanin = {4}
+  nstates = {{8, 32}, {8, 32}, {8, 32}}
+  nstates_nn = 2048
+  filtsize = {{5, 7}, {5, 5}, {5, 5}}
+  poolsize = {{2, 4}, {2, 2}, {1, 2}}  -- Note: 1 = no pooling
+  fanin = {{4}, {4}, {4}}
   normkernel = image.gaussian1D(7)
 
   -- ********************** Construct model **********************
@@ -259,41 +259,50 @@ if (perform_training == 1) then
     tensor_dim = {1, bank_dim[j][1], bank_dim[j][2]}
 
     -- stage 1 : filter bank -> squashing -> LN pooling -> normalization
-    banks[j]:add(nn.SpatialConvolutionMap(nn.tables.full(nfeats, nstates[1]), filtsize[1], filtsize[1]))
+    banks[j]:add(nn.SpatialConvolutionMap(nn.tables.full(nfeats, 
+      nstates[j][1]), filtsize[j][1], filtsize[j][1]))
     if (nonlinear == 1) then 
       banks[j]:add(nn.SoftShrink())
     elseif (nonlinear == 0) then
       banks[j]:add(nn.Tanh())
     end
-    --[[ -- NO POOLING FOR NOW
-    if (pooling ~= math.huge) then
-      banks[j]:add(nn.SpatialLPPooling(nstates[1], pooling, poolsize[1], poolsize[1], poolsize[1], poolsize[1]))
-    else
-      banks[j]:add(nn.SpatialMaxPooling(poolsize[1], poolsize[1], poolsize[1], poolsize[1]))
+    if (poolsize[j][1] > 1) then
+      if (pooling ~= math.huge) then
+        banks[j]:add(nn.SpatialLPPooling(nstates[j][1], pooling, 
+          poolsize[j][1], poolsize[j][1], poolsize[j][1], poolsize[j][1]))
+      else
+        banks[j]:add(nn.SpatialMaxPooling(poolsize[j][1], poolsize[j][1], 
+          poolsize[j][1], poolsize[j][1]))
+      end
     end
-    --]]
-    banks[j]:add(nn.SpatialSubtractiveNormalization(nstates[1], normkernel))
+    banks[j]:add(nn.SpatialSubtractiveNormalization(nstates[j][1], normkernel))
 
-    tensor_dim = {nstates[1], (tensor_dim[2] - filtsize[1] + 1) / poolsize[1], (tensor_dim[3] - filtsize[1] + 1) / poolsize[1]}
+    tensor_dim = {nstates[j][1], (tensor_dim[2] - filtsize[j][1] + 1) / 
+      poolsize[j][1], (tensor_dim[3] - filtsize[j][1] + 1) / poolsize[j][1]}
     print(string.format("Tensor Dimensions after stage 1 bank %d:", j))
     print(tensor_dim)
 
     -- stage 2 : filter bank -> squashing -> LN pooling -> normalization
-    banks[j]:add(nn.SpatialConvolutionMap(nn.tables.random(nstates[1], nstates[2], fanin[1]), filtsize[2], filtsize[2]))
+    banks[j]:add(nn.SpatialConvolutionMap(nn.tables.random(nstates[j][1], 
+      nstates[j][2], fanin[j][1]), filtsize[j][2], filtsize[j][2]))
     if (nonlinear == 1) then 
       banks[j]:add(nn.SoftShrink())
     elseif (nonlinear == 0) then
       banks[j]:add(nn.Tanh())
     end
-    --[[ -- NO POOLING FOR NOW
-    if (pooling ~= math.huge) then
-      banks[j]:add(nn.SpatialLPPooling(nstates[2], pooling, poolsize[2], poolsize[2], poolsize[2], poolsize[2]))
-    else
-      banks[j]:add(nn.SpatialMaxPooling(poolsize[2], poolsize[2], poolsize[2], poolsize[2]))
+    if (poolsize[j][2] > 1) then
+      if (pooling ~= math.huge) then
+        banks[j]:add(nn.SpatialLPPooling(nstates[j][2], pooling, 
+          poolsize[j][2], poolsize[j][2], poolsize[j][2], poolsize[j][2]))
+      else
+        banks[j]:add(nn.SpatialMaxPooling(poolsize[j][2], poolsize[j][2], 
+          poolsize[j][2], poolsize[j][2]))
+      end
     end
-    --]]
-    banks[j]:add(nn.SpatialSubtractiveNormalization(nstates[2], normkernel))
-    tensor_dim = {nstates[2], (tensor_dim[2] - filtsize[2] + 1) / poolsize[2], (tensor_dim[3] - filtsize[2] + 1) / poolsize[2]}
+    banks[j]:add(nn.SpatialSubtractiveNormalization(nstates[j][2], normkernel))
+
+    tensor_dim = {nstates[j][2], (tensor_dim[2] - filtsize[j][2] + 1) / 
+      poolsize[j][2], (tensor_dim[3] - filtsize[j][2] + 1) / poolsize[j][2]}
     print(string.format("Tensor Dimensions after stage 2 bank %d:", j))
     print(tensor_dim)
 
@@ -319,7 +328,7 @@ if (perform_training == 1) then
   print("Neural net first stage input size")
   print(banks_total_output_size);
 
-  model:add(nn.Linear(vec_length, nstates[3]))
+  model:add(nn.Linear(banks_total_output_size, nstates_nn))
   if (nonlinear == 1) then 
     model:add(nn.SoftShrink())
   elseif (nonlinear == 0) then
@@ -327,9 +336,9 @@ if (perform_training == 1) then
   end
 
   print("Neural net first stage output size")
-  print(nstates[3]);
+  print(nstates_nn);
 
-  model:add(nn.Linear(nstates[3], noutputs))
+  model:add(nn.Linear(nstates_nn, noutputs))
 
   print("Final output size")
   print(noutputs)
@@ -339,11 +348,9 @@ if (perform_training == 1) then
   print(model)
 
   -- ********************** Visualize model **********************
-  -- Visualization is quite easy, using image.display(). Check out:
-  -- help(image.display), for more info about options.
-  print '==> visualizing ConvNet filters'
-  -- image.display{image=model:get(1).weight, padding=2, zoom=4, legend='filters @ layer 1'}
-  -- image.display{image=model:get(4).weight, padding=2, zoom=4, nrow=32, legend='filters @ layer 2'}
+  -- print '==> visualizing ConvNet filters'
+  -- image.display{image=model:get(1):get(1):get(1).weight, padding=2, zoom=4, legend='filters @ layer 1'}
+  -- image.display{image=model:get(1):get(1):get(4).weight, padding=2, zoom=4, nrow=32, legend='filters @ layer 2'}
 
   -- ********************** Train function **********************
   print '==> defining some tools'
@@ -399,9 +406,13 @@ if (perform_training == 1) then
       local targets = {}
       for i = t,math.min(t + batchSize-1, trainData:size()) do
          -- load new sample
-         local input = trainData.data[shuffle[i]]
-         local target = trainData.labels[shuffle[i]]
-         input = input:double()
+         local cur_i = shuffle[i]
+         local input = {}
+         for j=1,num_hpf_banks do
+           table.insert(input, trainData.data[j][cur_i])
+           input[j] = input[j]:double()
+         end
+         local target = trainData.labels[cur_i]
          target = target:double()
          table.insert(inputs, input)
          table.insert(targets, target)
@@ -489,8 +500,11 @@ if (perform_training == 1) then
       progress(t, testData:size())
 
       -- get new sample
-      input = testData.data[t]
-      input = input:double()
+      input = {}
+      for j=1,num_hpf_banks do
+        table.insert(input, trainData.data[j][cur_i])
+        input[j] = input[j]:double()
+      end
       target = testData.labels[t]
       target = target:double()
 
