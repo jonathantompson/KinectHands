@@ -125,6 +125,7 @@ namespace hand_net {
     }
 
     // Quick check to make sure the sizes match up!
+#if defined(DEBUG) || defined(_DEBUG)
     if ((im_sizeu * im_sizev * 
       conv_stages_[n_conv_stages_-1]->n_output_features()) != 
       nn_stages_[0]->n_inputs()) {
@@ -141,6 +142,7 @@ namespace hand_net {
         }
       }
     }
+#endif
     
     // Finally, allocate size for the data that will flow through convnet
     datcur_ = new float[max_size];

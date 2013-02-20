@@ -357,47 +357,49 @@ int main(int argc, char *argv[]) {
         HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, l_hand_file);
 #endif
 
-//      // Render the images for debugging
-//#ifdef RENDER_FULL_DEPTH
-//      int16_t* im = cur_depth_data;
-//      for (uint32_t v = 0; v < src_height; v++) {
-//        for (uint32_t u = 0; u < src_width; u++) {
-//          uint8_t val = (uint8_t)((im[v * src_width + u]) * 255.0f);
-//          uint32_t idst = (src_height-v-1) * src_width + u;
-//          // Texture needs to be flipped vertically and 0 --> 255
-//          tex_data[idst * 3] = val;
-//          tex_data[idst * 3 + 1] = val;
-//          tex_data[idst * 3 + 2] = val;
-//        }
-//      }
-//#else
-//      float* im = convnet->hand_image();
-//      for (uint32_t v = 0; v < HAND_NET_IM_SIZE; v++) {
-//        for (uint32_t u = 0; u < HAND_NET_IM_SIZE; u++) {
-//          uint8_t val = (uint8_t)((im[v * HAND_NET_IM_SIZE + u]) * 255.0f);
-//          uint32_t idst = (HAND_NET_IM_SIZE-v-1) * HAND_NET_IM_SIZE + u;
-//          // Texture needs to be flipped vertically and 0 --> 255
-//          tex_data[idst * 3] = val;
-//          tex_data[idst * 3 + 1] = val;
-//          tex_data[idst * 3 + 2] = val;
-//        }
-//      }
-//#endif
-//
-//      float* c = convnet->coeff_convnet();
-//      renderCrossToImageArr(&c[HandCoeffConvnet::HAND_POS_U], tex_data,
-//        TEX_W, TEX_H, 5, 255, 128, 255);
-//      for (uint32_t i = HandCoeffConvnet::THUMB_K1_U; 
-//        i <= HandCoeffConvnet::F3_TIP_U; i += 2) {
-//        const Float3* color = &renderer::colors[(i/2) % renderer::n_colors];
-//        renderCrossToImageArr(&c[i], tex_data, TEX_W, TEX_H, 2, 
-//          (uint8_t)(color->m[0] * 255.0f), (uint8_t)(color->m[1] * 255.0f), 
-//          (uint8_t)(color->m[2] * 255.0f));
-//      }
-//
-//      tex->reloadData((unsigned char*)tex_data);
-//      render->renderFullscreenQuad(tex);
-//      wnd->swapBackBuffer();
+      // Render the images for debugging
+#ifdef RENDER_FULL_DEPTH
+      int16_t* im = cur_depth_data;
+      for (uint32_t v = 0; v < src_height; v++) {
+        for (uint32_t u = 0; u < src_width; u++) {
+          uint8_t val = (uint8_t)((im[v * src_width + u]) * 255.0f);
+          uint32_t idst = (src_height-v-1) * src_width + u;
+          // Texture needs to be flipped vertically and 0 --> 255
+          tex_data[idst * 3] = val;
+          tex_data[idst * 3 + 1] = val;
+          tex_data[idst * 3 + 2] = val;
+        }
+      }
+#else
+      float* im = convnet->hpf_hand_images();
+      for (uint32_t v = 0; v < HAND_NET_IM_SIZE; v++) {
+        for (uint32_t u = 0; u < HAND_NET_IM_SIZE; u++) {
+          uint32_t val = (uint32_t)((im[v * HAND_NET_IM_SIZE + u] + 0.5f) * 255.0f);
+          // Clamp the value from 0 to 255 (otherwise we'll get wrap around)
+          uint8_t val8 = (uint8_t)std::min<uint32_t>(std::max<uint32_t>(val,0),255);
+          uint32_t idst = (HAND_NET_IM_SIZE-v-1) * HAND_NET_IM_SIZE + u;
+          // Texture needs to be flipped vertically and 0 --> 255
+          tex_data[idst * 3] = val8;
+          tex_data[idst * 3 + 1] = val8;
+          tex_data[idst * 3 + 2] = val8;
+        }
+      }
+#endif
+
+      float* c = convnet->coeff_convnet();
+      renderCrossToImageArr(&c[HandCoeffConvnet::HAND_POS_U], tex_data,
+        TEX_W, TEX_H, 5, 255, 128, 255);
+      for (uint32_t i = HandCoeffConvnet::THUMB_K1_U; 
+        i <= HandCoeffConvnet::F3_TIP_U; i += 2) {
+        const Float3* color = &renderer::colors[(i/2) % renderer::n_colors];
+        renderCrossToImageArr(&c[i], tex_data, TEX_W, TEX_H, 2, 
+          (uint8_t)(color->m[0] * 255.0f), (uint8_t)(color->m[1] * 255.0f), 
+          (uint8_t)(color->m[2] * 255.0f));
+      }
+
+      tex->reloadData((unsigned char*)tex_data);
+      render->renderFullscreenQuad(tex);
+      wnd->swapBackBuffer();
     }
 
     std::cout << "All done!" << std::endl;
