@@ -85,72 +85,83 @@ namespace hand_net {
     std::cout << "loading HandNet from " << convnet_filename << std::endl;
 
     std::ifstream file(convnet_filename.c_str(), std::ios::in | std::ios::binary);
-    if (!file.is_open()) {
-      throw std::wruntime_error("HandNet::loadFromFile() - ERROR: Could not "
-        "open convnet file!");
-    }
-    file.seekg(0, std::ios::beg);
+    if (file.is_open()) {
 
-    // Get the meta data
-    file.read(reinterpret_cast<char*>(&n_conv_stages_), sizeof(n_conv_stages_));
-    file.read(reinterpret_cast<char*>(&n_nn_stages_), sizeof(n_nn_stages_));
+      file.seekg(0, std::ios::beg);
 
-    // Load in the convolution stages
-    conv_stages_ = new ConvStage*[n_conv_stages_];
-    for (int32_t i = 0; i < n_conv_stages_; i++) {
-      conv_stages_[i] = new ConvStage();
-      conv_stages_[i]->loadFromFile(file);
-    }
+      // Get the meta data
+      file.read(reinterpret_cast<char*>(&n_conv_stages_), 
+        sizeof(n_conv_stages_));
+      file.read(reinterpret_cast<char*>(&n_nn_stages_), sizeof(n_nn_stages_));
 
-    // Load in the neural network stages
-    nn_stages_ = new NNStage*[n_nn_stages_];
-    for (int32_t i = 0; i < n_nn_stages_; i++) {
-      nn_stages_[i] = new NNStage();
-      nn_stages_[i]->loadFromFile(file);
-    }
+      // Load in the convolution stages
+      conv_stages_ = new ConvStage*[n_conv_stages_];
+      for (int32_t i = 0; i < n_conv_stages_; i++) {
+        conv_stages_[i] = new ConvStage();
+        conv_stages_[i]->loadFromFile(file);
+      }
 
-    // clean up file io
-    file.close();
+      // Load in the neural network stages
+      nn_stages_ = new NNStage*[n_nn_stages_];
+      for (int32_t i = 0; i < n_nn_stages_; i++) {
+        nn_stages_[i] = new NNStage();
+        nn_stages_[i]->loadFromFile(file);
+      }
 
-    // Now create sufficient temporary data so that we can propogate the
-    // forward model
-    int32_t im_sizeu = HAND_NET_IM_SIZE;
-    int32_t im_sizev = HAND_NET_IM_SIZE;
-    int32_t max_size = im_sizeu * im_sizev;
-    for (int32_t i = 0; i < n_conv_stages_; i++) {
-      max_size = std::max<int32_t>(max_size, 
-        conv_stages_[i]->dataSizeReq(im_sizeu, im_sizev));
-      im_sizeu = conv_stages_[i]->calcOutWidth(im_sizeu);
-      im_sizev = conv_stages_[i]->calcOutHeight(im_sizev);
-    }
+      // clean up file io
+      file.close();
 
-    // Quick check to make sure the sizes match up!
-#if defined(DEBUG) || defined(_DEBUG)
-    if ((im_sizeu * im_sizev * 
-      conv_stages_[n_conv_stages_-1]->n_output_features()) != 
-      nn_stages_[0]->n_inputs()) {
-      throw std::wruntime_error("HandNet::loadFromFile() - INTERNAL ERROR: "
-        "convolution output size doesn't match neural net intput size");
-    }
+      // Now create sufficient temporary data so that we can propogate the
+      // forward model
+      int32_t im_sizeu = HAND_NET_IM_SIZE;
+      int32_t im_sizev = HAND_NET_IM_SIZE;
+      int32_t max_size = im_sizeu * im_sizev;
+      for (int32_t i = 0; i < n_conv_stages_; i++) {
+        max_size = std::max<int32_t>(max_size, 
+          conv_stages_[i]->dataSizeReq(im_sizeu, im_sizev));
+        im_sizeu = conv_stages_[i]->calcOutWidth(im_sizeu);
+        im_sizev = conv_stages_[i]->calcOutHeight(im_sizev);
+      }
 
-    for (int32_t i = 0; i < n_nn_stages_; i++) {
-      max_size = std::max<uint32_t>(max_size, nn_stages_[i]->dataSizeReq());
-      if (i < n_nn_stages_ - 1) {
-        if (nn_stages_[i]->n_outputs() != nn_stages_[i+1]->n_inputs()) {
+      // Quick check to make sure the sizes match up!
+      if ((im_sizeu * im_sizev * 
+        conv_stages_[n_conv_stages_-1]->n_output_features()) != 
+        nn_stages_[0]->n_inputs()) {
           throw std::wruntime_error("HandNet::loadFromFile() - INTERNAL ERROR:"
-            " neural net output size doesn't match neural net intput size");
+            " convolution output size doesn't match neural net intput size");
+      }
+
+      for (int32_t i = 0; i < n_nn_stages_; i++) {
+        max_size = std::max<uint32_t>(max_size, nn_stages_[i]->dataSizeReq());
+        if (i < n_nn_stages_ - 1) {
+          if (nn_stages_[i]->n_outputs() != nn_stages_[i+1]->n_inputs()) {
+            throw std::wruntime_error("HandNet::loadFromFile() - INTERNAL "
+              "ERROR: neural net out size doesn't match neural net in size");
+          }
         }
       }
+
+      // Finally, allocate size for the data that will flow through convnet
+      datcur_ = new float[max_size];
+      datnext_ = new float[max_size];
+
+    } else {
+      std::cout << "HandNet::loadFromFile() - ERROR: Could not open convnet";
+      std::cout << " file " << convnet_filename << std::endl;
+      std::cout << "Forward prop functionality will be disabled." << std::endl;
     }
+<<<<<<< HEAD
 #endif
     
     // Finally, allocate size for the data that will flow through convnet
     datcur_ = new float[max_size];
     datnext_ = new float[max_size];
+=======
+>>>>>>> 0d84ee5ad6fc7ed631634db11da621f1dcf22e32
 
     // Figure out the size of the HPF bank array
-    im_sizeu = HAND_NET_IM_SIZE;
-    im_sizev = HAND_NET_IM_SIZE;
+    int32_t im_sizeu = HAND_NET_IM_SIZE;
+    int32_t im_sizev = HAND_NET_IM_SIZE;
     size_images_ = 0;
     for (uint32_t i = 0; i < NUM_HPF_BANKS; i++) {
       size_images_ += (im_sizeu * im_sizev);
@@ -174,8 +185,7 @@ namespace hand_net {
     hpf_hand_images_coeff_ = new float[datasize];
     initHPFKernels();
 
-    std::cout << "Finished Loading HandNet from " << convnet_filename;
-    std::cout << std::endl;
+    std::cout << "Finished initializing HandNet" << std::endl;
   }
 
   void HandNet::initHPFKernels() {
@@ -214,6 +224,10 @@ namespace hand_net {
 
   void HandNet::calcHandCoeff(const int16_t* depth, const uint8_t* label, 
     Eigen::MatrixXf& coeff) {
+    if (n_conv_stages_ == 0) {
+      std::cout << "HandNet::calcHandCoeff() - ERROR: Convnet not loaded";
+      std::cout << " from file!" << std::endl;
+    }
     HandNet::calcHandImage(depth, label);
 
     /*
