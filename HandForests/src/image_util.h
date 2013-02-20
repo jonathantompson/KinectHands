@@ -95,15 +95,15 @@ void DownsampleImageWithoutNonZeroPixelsAndBackground(T* dst, const T* src,
 template <class T>
 void DownsampleLabelImageWithoutNonZeroPixelsAndBackground(T* dst, T* src, 
   uint32_t srcw, uint32_t srch, uint32_t downsample) {
-  uint32_t width_downsample = width / downsample;
-  for (uint32_t v = 0; v < height; v+= downsample) {
-    for (uint32_t u = 0; u < width; u+= downsample) {
+  uint32_t width_downsample = srcw / downsample;
+  for (uint32_t v = 0; v < srch; v+= downsample) {
+    for (uint32_t u = 0; u < srcw; u+= downsample) {
       T cur_label = 1;
       // If any of the surrounding pixels are 0, let this one be zero
       // --> Conservative.
       for (uint32_t v_offset = 0; v_offset < downsample && cur_label == 1; v_offset++) {
         for (uint32_t u_offset = 0; u_offset < downsample  && cur_label == 1; u_offset++) {
-          uint32_t ind = (v + v_offset) * width + (u + u_offset);
+          uint32_t ind = (v + v_offset) * srcw + (u + u_offset);
           if (src[ind] == 0) {
             cur_label = 0;
           }
@@ -468,7 +468,7 @@ template <class T>
 void ConvolveImageZeroCrop(T* dst, T* src, T* tmp, int32_t srcw, int32_t srch,
   T* kernel, int32_t kernel_size) {
   if (kernel_size % 2 == 0) {
-    throw std::wruntime_error("ConvImageZeroCrop - ERROR: Only odd size "
+    throw std::runtime_error("ConvImageZeroCrop - ERROR: Only odd size "
       "kernels are supported (for now)");
   }
   int32_t kernel_rad = (kernel_size - 1) / 2;

@@ -7,6 +7,7 @@
 #ifndef MATH_MAT4X4_HEADER
 #define MATH_MAT4X4_HEADER
 
+#include <iostream>
 #include <iomanip>
 #include "alignment/data_align.h"
 #include "math/math_base.h"

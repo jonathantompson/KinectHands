@@ -54,22 +54,23 @@
 // 3 -> Finished (4 partially finished)
 //#define IM_DIR_BASE string("hand_data/both_hands/set03/") 
 
-#define IM_DIR_BASE string("/data/hand_depth_data_1/") 
-#define DST_IM_DIR_BASE string("/data/hand_depth_data_processed/") 
+#define IM_DIR_BASE string("data/hand_depth_data_1/") 
+#define DST_IM_DIR_BASE string("data/hand_depth_data_processed/") 
 
 #define FILE_STRIDE 1
 #define MAX_FILES MAX_UINT32
-#define SAVE_FILES
+// #define SAVE_FILES
 // #define RENDER_FULL_DEPTH
 
 #if defined(__APPLE__)
-  #define IM_DIR string("../../../../../../../../../") + IM_DIR_BASE
-  #define DST_IM_DIR string("../../../../../../../../../") + DST_IM_DIR_BASE
-
+#define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
 #else
-  #define IM_DIR string("./../") + IM_DIR_BASE
-  #define DST_IM_DIR string("./../") + DST_IM_DIR_BASE
+#define KINECT_HANDS_ROOT string("./../")
 #endif
+
+#define IM_DIR (KINECT_HANDS_ROOT + IM_DIR_BASE)
+#define DST_IM_DIR (KINECT_HANDS_ROOT + DST_IM_DIR_BASE)
+
 const bool fit_left = false;
 const bool fit_right = true; 
 const uint32_t num_hands = (fit_left ? 1 : 0) + (fit_right ? 1 : 0);
@@ -234,7 +235,6 @@ int main(int argc, char *argv[]) {
     
     // Initialize Windowing system
     Window::initWindowSystem();
-    GLState::initGLState();
     
     // Fill the settings structure
 #ifdef RENDER_FULL_DEPTH    
@@ -254,6 +254,8 @@ int main(int argc, char *argv[]) {
     
     // Create the window so that we have a valid openGL context
     wnd = new Window(settings);
+    
+    GLState::initGLState();    
     
     // Create an instance of the renderer
     math::FloatQuat eye_rot; eye_rot.identity();
@@ -297,7 +299,7 @@ int main(int argc, char *argv[]) {
       std::cout << (HAND_NET_IM_SIZE) << std::endl;
     }
 
-    hand_detector = new HandDetector(src_width, src_height, string("./../") +
+    hand_detector = new HandDetector(src_width, src_height, KINECT_HANDS_ROOT +
       FOREST_DATA_FILENAME);
     convnet = new HandNet(CONVNET_FILE);
     for (uint32_t i = 0; i < HandCoeffConvnet::HAND_NUM_COEFF_CONVNET; i++) {

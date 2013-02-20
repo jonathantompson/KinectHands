@@ -45,7 +45,7 @@
 #define LOAD_PROCESSED_FILES
 
 #if defined(__APPLE__)
-  #define MODELS_PATH string("../../../../../../../../../models/")
+  #define MODELS_PATH string("./../../../../../../../../../models/")
 #else
   #define MODELS_PATH string("./models/")
 #endif

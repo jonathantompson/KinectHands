@@ -76,6 +76,96 @@
 		B02D5DA916150F7300D01495 /* bee.tga in Resources */ = {isa = PBXBuildFile; fileRef = B02D5DA816150F7300D01495 /* bee.tga */; };
 		B02D5DAA16150F7300D01495 /* bee.tga in Resources */ = {isa = PBXBuildFile; fileRef = B02D5DA816150F7300D01495 /* bee.tga */; };
 		B02D5DAB16150F7D00D01495 /* bee.tga in CopyFiles */ = {isa = PBXBuildFile; fileRef = B02D5DA816150F7300D01495 /* bee.tga */; };
+		B0365CA116D5829C007103DA /* conv_stage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0365C9B16D5829C007103DA /* conv_stage.cpp */; };
+		B0365CA216D5829C007103DA /* hand_net.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0365C9D16D5829C007103DA /* hand_net.cpp */; };
+		B0365CA316D5829C007103DA /* nn_stage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0365C9F16D5829C007103DA /* nn_stage.cpp */; };
+		B0365CA716D5838F007103DA /* gl_state.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0365CA516D5838F007103DA /* gl_state.cpp */; };
+		B0365CA816D5838F007103DA /* gl_state.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0365CA516D5838F007103DA /* gl_state.cpp */; };
+		B0365CB316D585AA007103DA /* common_tree_funcs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0365CAA16D585AA007103DA /* common_tree_funcs.cpp */; };
+		B0365CB416D585AA007103DA /* evaluate_decision_forest.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0365CAD16D585AA007103DA /* evaluate_decision_forest.cpp */; };
+		B0365CB516D585AA007103DA /* forest_io.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0365CAF16D585AA007103DA /* forest_io.cpp */; };
+		B0365CB616D585AA007103DA /* hand_detector.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0365CB116D585AA007103DA /* hand_detector.cpp */; };
+		B0365CB916D58879007103DA /* hash_funcs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B00C09D715E5219D009D55B7 /* hash_funcs.cpp */; };
+		B0365CBA16D58879007103DA /* wruntime_error.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B00C09E115E5219D009D55B7 /* wruntime_error.cpp */; };
+		B0365CBB16D58879007103DA /* file_io.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B00C09E415E5219D009D55B7 /* file_io.cpp */; };
+		B0365CBC16D58879007103DA /* hand_model.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B00C09E715E5219D009D55B7 /* hand_model.cpp */; };
+		B0365CBD16D58879007103DA /* string_util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B00C0A0115E5219D009D55B7 /* string_util.cpp */; };
+		B0365CBE16D58879007103DA /* thread.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B00C0A0A15E5219D009D55B7 /* thread.cpp */; };
+		B0365CBF16D58879007103DA /* thread_pool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B00C0A0C15E5219D009D55B7 /* thread_pool.cpp */; };
+		B0365CC116D58879007103DA /* common_fitting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0A27DE815F1546B00B63F1F /* common_fitting.cpp */; };
+		B0365CC216D58879007103DA /* de_fitting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0A27DEA15F1546B00B63F1F /* de_fitting.cpp */; };
+		B0365CC316D58879007103DA /* lm_fitting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0A27DEC15F1546B00B63F1F /* lm_fitting.cpp */; };
+		B0365CC416D58879007103DA /* nm_fitting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0A27DEE15F1546B00B63F1F /* nm_fitting.cpp */; };
+		B0365CC516D58879007103DA /* pso_fitting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0A27DF015F1546B00B63F1F /* pso_fitting.cpp */; };
+		B0365CC616D58879007103DA /* lprpso_fitting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B08A2B1C15F7B26C00A64A6A /* lprpso_fitting.cpp */; };
+		B0365CC716D58879007103DA /* colors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0574C641613440A00AD4837 /* colors.cpp */; };
+		B0365CC816D58879007103DA /* open_gl_common.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0574C6F1613440A00AD4837 /* open_gl_common.cpp */; };
+		B0365CC916D58879007103DA /* renderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0574C711613440A00AD4837 /* renderer.cpp */; };
+		B0365CCA16D58879007103DA /* shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0574C741613440A00AD4837 /* shader.cpp */; };
+		B0365CCB16D58879007103DA /* shader_program.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0574C771613440A00AD4837 /* shader_program.cpp */; };
+		B0365CCC16D58879007103DA /* texture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0574C7A1613440A00AD4837 /* texture.cpp */; };
+		B0365CCD16D58879007103DA /* texture_renderable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0574C7C1613440A00AD4837 /* texture_renderable.cpp */; };
+		B0365CCE16D58879007103DA /* window.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0574C99161344BC00AD4837 /* window.cpp */; };
+		B0365CCF16D58879007103DA /* window_settings.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0574C9C161344BC00AD4837 /* window_settings.cpp */; };
+		B0365CD016D58879007103DA /* camera.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0574D0E16135DE500AD4837 /* camera.cpp */; };
+		B0365CD116D58879007103DA /* aabbox.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0574D2D161361B400AD4837 /* aabbox.cpp */; };
+		B0365CD216D58879007103DA /* light.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B02D5D9B16150F5300D01495 /* light.cpp */; };
+		B0365CD316D58879007103DA /* light_dir.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B02D5D9D16150F5300D01495 /* light_dir.cpp */; };
+		B0365CD416D58879007103DA /* light_dir_handles.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B02D5D9F16150F5300D01495 /* light_dir_handles.cpp */; };
+		B0365CD516D58879007103DA /* hand_model_renderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B08B57F8161B34F400BE983A /* hand_model_renderer.cpp */; };
+		B0365CD616D58879007103DA /* hand_model_fit.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0BB6566161F33A8006101DB /* hand_model_fit.cpp */; };
+		B0365CD716D58879007103DA /* fastlz.c in Sources */ = {isa = PBXBuildFile; fileRef = B0BB657C161F42BD006101DB /* fastlz.c */; };
+		B0365CD816D58879007103DA /* texture_utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0C6661016223FAE00959A81 /* texture_utils.cpp */; };
+		B0365CD916D58879007103DA /* csv_handle_read.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B013A0111631C4C300396583 /* csv_handle_read.cpp */; };
+		B0365CDA16D58879007103DA /* csv_handle_write.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B013A0131631C4C300396583 /* csv_handle_write.cpp */; };
+		B0365CDB16D58879007103DA /* csv_handle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B013A0151631C4C300396583 /* csv_handle.cpp */; };
+		B0365CDC16D58879007103DA /* hand_model_geometry_mesh.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0843F4E16486D96002C9EA1 /* hand_model_geometry_mesh.cpp */; };
+		B0365CDD16D58879007103DA /* hand_model_geometry_simple.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0843F5016486D96002C9EA1 /* hand_model_geometry_simple.cpp */; };
+		B0365CDE16D58879007103DA /* geometry_colored_mesh.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0843F7116486DE3002C9EA1 /* geometry_colored_mesh.cpp */; };
+		B0365CDF16D58879007103DA /* geometry_colored_points.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0843F7316486DE3002C9EA1 /* geometry_colored_points.cpp */; };
+		B0365CE016D58879007103DA /* geometry_manager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0843F7516486DE3002C9EA1 /* geometry_manager.cpp */; };
+		B0365CE116D58879007103DA /* geometry_points.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0843F7716486DE3002C9EA1 /* geometry_points.cpp */; };
+		B0365CE216D58879007103DA /* geometry_textured_boned_mesh.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0843F7916486DE3002C9EA1 /* geometry_textured_boned_mesh.cpp */; };
+		B0365CE316D58879007103DA /* geometry_textured_mesh.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0843F7B16486DE3002C9EA1 /* geometry_textured_mesh.cpp */; };
+		B0365CE416D58879007103DA /* geometry_vertices.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0843F7D16486DE3002C9EA1 /* geometry_vertices.cpp */; };
+		B0365CE516D58879007103DA /* geometry.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0843F7F16486DE3002C9EA1 /* geometry.cpp */; };
+		B0365CE616D58879007103DA /* math_base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0843F9116486E16002C9EA1 /* math_base.cpp */; };
+		B0365CE716D58879007103DA /* decompose.c in Sources */ = {isa = PBXBuildFile; fileRef = B0843F9516486E1F002C9EA1 /* decompose.c */; };
+		B0365CE816D58879007103DA /* edge.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0B5AEB4164885BB00D88E4C /* edge.cpp */; };
+		B0365CE916D58879007103DA /* mesh_simplification.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0B5AEB6164885BB00D88E4C /* mesh_simplification.cpp */; };
+		B0365CEA16D58879007103DA /* min_heap_edges.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0B5AEB8164885BB00D88E4C /* min_heap_edges.cpp */; };
+		B0365CEB16D58879007103DA /* depth_images_io.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0CC1F93164972CD004C72FC /* depth_images_io.cpp */; };
+		B0365CEC16D58879007103DA /* graph.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0CC1F9A164972F7004C72FC /* graph.cpp */; };
+		B0365CED16D58879007103DA /* instances.inc in Sources */ = {isa = PBXBuildFile; fileRef = B0CC1F9C164972F7004C72FC /* instances.inc */; };
+		B0365CEE16D58879007103DA /* maxflow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0CC1F9D164972F7004C72FC /* maxflow.cpp */; };
+		B0365CEF16D58879007103DA /* open_ni_funcs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0CC1FB6164D4D2F004C72FC /* open_ni_funcs.cpp */; };
+		B0365CF016D58879007103DA /* bone_info.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0CC1FBA164D4D8D004C72FC /* bone_info.cpp */; };
+		B0365CF116D58879007103DA /* vertex_bone_data.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0CC1FBC164D4D8D004C72FC /* vertex_bone_data.cpp */; };
+		B0365CF216D58879007103DA /* geometry_colored_boned_mesh.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0CC1FC2164D4DAC004C72FC /* geometry_colored_boned_mesh.cpp */; };
+		B0365CF316D58879007103DA /* sdb_fitting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B00C5451165D971300C0D69A /* sdb_fitting.cpp */; };
+		B0365CF416D58879007103DA /* bounding_sphere.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B00C5455165D97AF00C0D69A /* bounding_sphere.cpp */; };
+		B0365CF516D58879007103DA /* bfgs_fitting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B00C5496165D9AC600C0D69A /* bfgs_fitting.cpp */; };
+		B0365CF616D58879007103DA /* lprpso_fitting_hands.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0E9DEB516627C7D001623D6 /* lprpso_fitting_hands.cpp */; };
+		B0365CF716D58879007103DA /* conv_stage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0365C9B16D5829C007103DA /* conv_stage.cpp */; };
+		B0365CF816D58879007103DA /* hand_net.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0365C9D16D5829C007103DA /* hand_net.cpp */; };
+		B0365CF916D58879007103DA /* nn_stage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0365C9F16D5829C007103DA /* nn_stage.cpp */; };
+		B0365CFA16D58879007103DA /* gl_state.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0365CA516D5838F007103DA /* gl_state.cpp */; };
+		B0365CFB16D58879007103DA /* common_tree_funcs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0365CAA16D585AA007103DA /* common_tree_funcs.cpp */; };
+		B0365CFC16D58879007103DA /* evaluate_decision_forest.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0365CAD16D585AA007103DA /* evaluate_decision_forest.cpp */; };
+		B0365CFD16D58879007103DA /* forest_io.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0365CAF16D585AA007103DA /* forest_io.cpp */; };
+		B0365CFE16D58879007103DA /* hand_detector.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0365CB116D585AA007103DA /* hand_detector.cpp */; };
+		B0365D0016D58879007103DA /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B00C09C915E5213B009D55B7 /* OpenGL.framework */; };
+		B0365D0116D58879007103DA /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B00C09A515E52112009D55B7 /* Cocoa.framework */; };
+		B0365D0216D58879007103DA /* libGLEW.1.7.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B0574CC51613461200AD4837 /* libGLEW.1.7.0.dylib */; };
+		B0365D0316D58879007103DA /* libGLEWmx.1.7.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B0574CC71613461200AD4837 /* libGLEWmx.1.7.0.dylib */; };
+		B0365D0416D58879007103DA /* libglfw.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B0574CCC1613461200AD4837 /* libglfw.dylib */; };
+		B0365D0516D58879007103DA /* libfreeimage.3.15.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B0843F9916487BD2002C9EA1 /* libfreeimage.3.15.0.dylib */; };
+		B0365D0616D58879007103DA /* libassimp.3.0.1023.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B0B5AEAF1648846400D88E4C /* libassimp.3.0.1023.dylib */; };
+		B0365D0816D58879007103DA /* bee.tga in Resources */ = {isa = PBXBuildFile; fileRef = B02D5DA816150F7300D01495 /* bee.tga */; };
+		B0365D0916D58879007103DA /* CHANGES.TXT in Resources */ = {isa = PBXBuildFile; fileRef = B0CC1F99164972F7004C72FC /* CHANGES.TXT */; };
+		B0365D0A16D58879007103DA /* README.TXT in Resources */ = {isa = PBXBuildFile; fileRef = B0CC1F9E164972F7004C72FC /* README.TXT */; };
+		B0365D0E16D58879007103DA /* bee.tga in CopyFiles */ = {isa = PBXBuildFile; fileRef = B02D5DA816150F7300D01495 /* bee.tga */; };
+		B0365D1616D58973007103DA /* main_data.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0365D1516D58973007103DA /* main_data.cpp */; };
 		B0574C7E1613440A00AD4837 /* colors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0574C641613440A00AD4837 /* colors.cpp */; };
 		B0574C7F1613440A00AD4837 /* colors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0574C641613440A00AD4837 /* colors.cpp */; };
 		B0574C881613440A00AD4837 /* open_gl_common.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0574C6F1613440A00AD4837 /* open_gl_common.cpp */; };
@@ -274,6 +364,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B0365D0D16D58879007103DA /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = textures;
+			dstSubfolderSpec = 7;
+			files = (
+				B0365D0E16D58879007103DA /* bee.tga in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		B0BDFF871618DA9D00D9C394 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -362,6 +462,26 @@
 		B02D5D9F16150F5300D01495 /* light_dir_handles.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = light_dir_handles.cpp; sourceTree = "<group>"; };
 		B02D5DA016150F5300D01495 /* light_dir_handles.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = light_dir_handles.h; sourceTree = "<group>"; };
 		B02D5DA816150F7300D01495 /* bee.tga */ = {isa = PBXFileReference; lastKnownFileType = file; path = bee.tga; sourceTree = "<group>"; };
+		B0365C9B16D5829C007103DA /* conv_stage.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = conv_stage.cpp; sourceTree = "<group>"; };
+		B0365C9C16D5829C007103DA /* conv_stage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = conv_stage.h; sourceTree = "<group>"; };
+		B0365C9D16D5829C007103DA /* hand_net.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hand_net.cpp; sourceTree = "<group>"; };
+		B0365C9E16D5829C007103DA /* hand_net.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hand_net.h; sourceTree = "<group>"; };
+		B0365C9F16D5829C007103DA /* nn_stage.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = nn_stage.cpp; sourceTree = "<group>"; };
+		B0365CA016D5829C007103DA /* nn_stage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nn_stage.h; sourceTree = "<group>"; };
+		B0365CA516D5838F007103DA /* gl_state.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = gl_state.cpp; sourceTree = "<group>"; };
+		B0365CA616D5838F007103DA /* gl_state.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = gl_state.h; sourceTree = "<group>"; };
+		B0365CAA16D585AA007103DA /* common_tree_funcs.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = common_tree_funcs.cpp; path = ../../HandForests/src/common_tree_funcs.cpp; sourceTree = "<group>"; };
+		B0365CAB16D585AA007103DA /* common_tree_funcs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = common_tree_funcs.h; path = ../../HandForests/src/common_tree_funcs.h; sourceTree = "<group>"; };
+		B0365CAC16D585AA007103DA /* decision_tree_func.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = decision_tree_func.h; path = ../../HandForests/src/decision_tree_func.h; sourceTree = "<group>"; };
+		B0365CAD16D585AA007103DA /* evaluate_decision_forest.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = evaluate_decision_forest.cpp; path = ../../HandForests/src/evaluate_decision_forest.cpp; sourceTree = "<group>"; };
+		B0365CAE16D585AA007103DA /* evaluate_decision_forest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = evaluate_decision_forest.h; path = ../../HandForests/src/evaluate_decision_forest.h; sourceTree = "<group>"; };
+		B0365CAF16D585AA007103DA /* forest_io.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = forest_io.cpp; path = ../../HandForests/src/forest_io.cpp; sourceTree = "<group>"; };
+		B0365CB016D585AA007103DA /* forest_io.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = forest_io.h; path = ../../HandForests/src/forest_io.h; sourceTree = "<group>"; };
+		B0365CB116D585AA007103DA /* hand_detector.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = hand_detector.cpp; path = ../../HandForests/src/hand_detector.cpp; sourceTree = "<group>"; };
+		B0365CB216D585AA007103DA /* hand_detector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hand_detector.h; path = ../../HandForests/src/hand_detector.h; sourceTree = "<group>"; };
+		B0365D1216D58879007103DA /* HandFit copy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "HandFit copy.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		B0365D1416D58879007103DA /* HandFitData-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "HandFitData-Info.plist"; path = "/Users/jonathantompson/Documents/KinectHands/HandFit/HandFitData-Info.plist"; sourceTree = "<absolute>"; };
+		B0365D1516D58973007103DA /* main_data.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main_data.cpp; sourceTree = "<group>"; };
 		B0574C641613440A00AD4837 /* colors.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = colors.cpp; sourceTree = "<group>"; };
 		B0574C651613440A00AD4837 /* colors.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = colors.h; sourceTree = "<group>"; };
 		B0574C6F1613440A00AD4837 /* open_gl_common.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = open_gl_common.cpp; sourceTree = "<group>"; };
@@ -543,6 +663,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B0365CFF16D58879007103DA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B0365D0016D58879007103DA /* OpenGL.framework in Frameworks */,
+				B0365D0116D58879007103DA /* Cocoa.framework in Frameworks */,
+				B0365D0216D58879007103DA /* libGLEW.1.7.0.dylib in Frameworks */,
+				B0365D0316D58879007103DA /* libGLEWmx.1.7.0.dylib in Frameworks */,
+				B0365D0416D58879007103DA /* libglfw.dylib in Frameworks */,
+				B0365D0516D58879007103DA /* libfreeimage.3.15.0.dylib in Frameworks */,
+				B0365D0616D58879007103DA /* libassimp.3.0.1023.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		B080B09515F2B3BD00346466 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -631,6 +765,7 @@
 				B080B0BD15F2B42B00346466 /* TestPSO-Info.plist */,
 				B00C5471165D987500C0D69A /* TestSDB-Info.plist */,
 				B02D5DA716150F7300D01495 /* textures */,
+				B0365D1416D58879007103DA /* HandFitData-Info.plist */,
 			);
 			sourceTree = "<group>";
 		};
@@ -646,6 +781,7 @@
 				B08A2B1815F7B1EF00A64A6A /* TestLPRPSO.app */,
 				B00C546F165D987400C0D69A /* TestSDB.app */,
 				B00C5493165D9A7200C0D69A /* TestBFGS.app */,
+				B0365D1216D58879007103DA /* HandFit copy.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -680,7 +816,9 @@
 				B00C09E015E5219D009D55B7 /* exceptions */,
 				B0BB657B161F42BD006101DB /* fastlz */,
 				B00C09E315E5219D009D55B7 /* file_io */,
+				B0365CA916D5857F007103DA /* hand_detector */,
 				B00C09E615E5219D009D55B7 /* hand_model */,
+				B0365C9A16D5829C007103DA /* hand_net */,
 				B0BB6574161F42AC006101DB /* image_data.h */,
 				B00C09E915E5219D009D55B7 /* main */,
 				B00C09EB15E5219D009D55B7 /* math */,
@@ -776,6 +914,7 @@
 			isa = PBXGroup;
 			children = (
 				B01ECD7C15E81E920020D6A3 /* main.cpp */,
+				B0365D1516D58973007103DA /* main_data.cpp */,
 				B0A7AD8A15E6EBAE00C86206 /* main_hand_pose.cpp */,
 				B00C549B165D9BD800C0D69A /* main_test_bfgs.cpp */,
 				B080B0F815F2B4BE00346466 /* main_test_de.cpp */,
@@ -875,6 +1014,35 @@
 			path = textures;
 			sourceTree = "<group>";
 		};
+		B0365C9A16D5829C007103DA /* hand_net */ = {
+			isa = PBXGroup;
+			children = (
+				B0365C9B16D5829C007103DA /* conv_stage.cpp */,
+				B0365C9C16D5829C007103DA /* conv_stage.h */,
+				B0365C9D16D5829C007103DA /* hand_net.cpp */,
+				B0365C9E16D5829C007103DA /* hand_net.h */,
+				B0365C9F16D5829C007103DA /* nn_stage.cpp */,
+				B0365CA016D5829C007103DA /* nn_stage.h */,
+			);
+			path = hand_net;
+			sourceTree = "<group>";
+		};
+		B0365CA916D5857F007103DA /* hand_detector */ = {
+			isa = PBXGroup;
+			children = (
+				B0365CAA16D585AA007103DA /* common_tree_funcs.cpp */,
+				B0365CAB16D585AA007103DA /* common_tree_funcs.h */,
+				B0365CAC16D585AA007103DA /* decision_tree_func.h */,
+				B0365CAD16D585AA007103DA /* evaluate_decision_forest.cpp */,
+				B0365CAE16D585AA007103DA /* evaluate_decision_forest.h */,
+				B0365CAF16D585AA007103DA /* forest_io.cpp */,
+				B0365CB016D585AA007103DA /* forest_io.h */,
+				B0365CB116D585AA007103DA /* hand_detector.cpp */,
+				B0365CB216D585AA007103DA /* hand_detector.h */,
+			);
+			name = hand_detector;
+			sourceTree = "<group>";
+		};
 		B0574C631613440A00AD4837 /* renderer */ = {
 			isa = PBXGroup;
 			children = (
@@ -882,6 +1050,8 @@
 				B0574C641613440A00AD4837 /* colors.cpp */,
 				B0574C651613440A00AD4837 /* colors.h */,
 				B0574C661613440A00AD4837 /* geometry */,
+				B0365CA516D5838F007103DA /* gl_state.cpp */,
+				B0365CA616D5838F007103DA /* gl_state.h */,
 				B02D5D9A16150F5300D01495 /* lights */,
 				B0574D2C161361B400AD4837 /* objects */,
 				B0574C6F1613440A00AD4837 /* open_gl_common.cpp */,
@@ -1143,6 +1313,26 @@
 			productReference = B00C5493165D9A7200C0D69A /* TestBFGS.app */;
 			productType = "com.apple.product-type.application";
 		};
+		B0365CB716D58879007103DA /* HandFitData */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B0365D0F16D58879007103DA /* Build configuration list for PBXNativeTarget "HandFitData" */;
+			buildPhases = (
+				B0365CB816D58879007103DA /* Sources */,
+				B0365CFF16D58879007103DA /* Frameworks */,
+				B0365D0716D58879007103DA /* Resources */,
+				B0365D0B16D58879007103DA /* ShellScript */,
+				B0365D0C16D58879007103DA /* ShellScript */,
+				B0365D0D16D58879007103DA /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = HandFitData;
+			productName = HandFit;
+			productReference = B0365D1216D58879007103DA /* HandFit copy.app */;
+			productType = "com.apple.product-type.application";
+		};
 		B080B08215F2B3BD00346466 /* TestDE */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = B080B09A15F2B3BD00346466 /* Build configuration list for PBXNativeTarget "TestDE" */;
@@ -1278,6 +1468,7 @@
 				B08A2AFD15F7B1EF00A64A6A /* TestLPRPSO */,
 				B00C5459165D987400C0D69A /* TestSDB */,
 				B00C547A165D9A7200C0D69A /* TestBFGS */,
+				B0365CB716D58879007103DA /* HandFitData */,
 			);
 		};
 /* End PBXProject section */
@@ -1304,6 +1495,16 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0365D0716D58879007103DA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B0365D0816D58879007103DA /* bee.tga in Resources */,
+				B0365D0916D58879007103DA /* CHANGES.TXT in Resources */,
+				B0365D0A16D58879007103DA /* README.TXT in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1353,6 +1554,32 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		B0365D0B16D58879007103DA /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "echo copying ${SRCROOT}/shaders to ${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\nmkdir -p ${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\ncp -r ${SRCROOT}/shaders ${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}";
+		};
+		B0365D0C16D58879007103DA /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "cp -f ${SRCROOT}/../lib/GLEW/libGLEW.1.7.0.dylib \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/libGLEW.1.7.0.dylib\";\ninstall_name_tool -change /usr/lib/libGLEW.1.7.0.dylib @executable_path/libGLEW.1.7.0.dylib \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/$PRODUCT_NAME\";\ncp -f ${SRCROOT}/../lib/GLEW/libGLEWmx.1.7.0.dylib \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/libGLEWmx.1.7.0.dylib\";\ninstall_name_tool -change /usr/lib/libGLEWmx.1.7.0.dylib @executable_path/libGLEWmx.1.7.0.dylib \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/$PRODUCT_NAME\";\ncp -f ${SRCROOT}/../lib/GLFW/libglfw.dylib \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/libglfw.dylib\";\ninstall_name_tool -change ./libglfw.dylib @executable_path/libglfw.dylib \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/$PRODUCT_NAME\";\ncp -f ${SRCROOT}/FreeImage3154/lib_mac_os_x/libfreeimage.3.15.0.dylib \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/libfreeimage.3.15.0.dylib\";\ninstall_name_tool -change ./libfreeimage.3.15.0.dylib @executable_path/libfreeimage.3.15.0.dylib \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/$PRODUCT_NAME\";\ncp -f ${SRCROOT}/assimp_3.0.1270/lib_mac_os_x/libassimp.3.0.1023.dylib \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/libassimp.3.0.1023.dylib\";\ninstall_name_tool -change ./libassimp.3.0.1023.dylib @executable_path/libassimp.3.0.1023.dylib \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/$PRODUCT_NAME\";";
+		};
 		B0574D8E161397A500AD4837 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -1474,6 +1701,14 @@
 				B00C5457165D97AF00C0D69A /* bounding_sphere.cpp in Sources */,
 				B00C5498165D9AC600C0D69A /* bfgs_fitting.cpp in Sources */,
 				B0E9DEB716627C7D001623D6 /* lprpso_fitting_hands.cpp in Sources */,
+				B0365CA116D5829C007103DA /* conv_stage.cpp in Sources */,
+				B0365CA216D5829C007103DA /* hand_net.cpp in Sources */,
+				B0365CA316D5829C007103DA /* nn_stage.cpp in Sources */,
+				B0365CA716D5838F007103DA /* gl_state.cpp in Sources */,
+				B0365CB316D585AA007103DA /* common_tree_funcs.cpp in Sources */,
+				B0365CB416D585AA007103DA /* evaluate_decision_forest.cpp in Sources */,
+				B0365CB516D585AA007103DA /* forest_io.cpp in Sources */,
+				B0365CB616D585AA007103DA /* hand_detector.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1519,6 +1754,83 @@
 				B00C548A165D9A7200C0D69A /* optimization_test_functions.cpp in Sources */,
 				B00C549A165D9AC600C0D69A /* bfgs_fitting.cpp in Sources */,
 				B00C549C165D9BD800C0D69A /* main_test_bfgs.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0365CB816D58879007103DA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B0365CB916D58879007103DA /* hash_funcs.cpp in Sources */,
+				B0365CBA16D58879007103DA /* wruntime_error.cpp in Sources */,
+				B0365CBB16D58879007103DA /* file_io.cpp in Sources */,
+				B0365CBC16D58879007103DA /* hand_model.cpp in Sources */,
+				B0365CBD16D58879007103DA /* string_util.cpp in Sources */,
+				B0365CBE16D58879007103DA /* thread.cpp in Sources */,
+				B0365CBF16D58879007103DA /* thread_pool.cpp in Sources */,
+				B0365CC116D58879007103DA /* common_fitting.cpp in Sources */,
+				B0365CC216D58879007103DA /* de_fitting.cpp in Sources */,
+				B0365CC316D58879007103DA /* lm_fitting.cpp in Sources */,
+				B0365CC416D58879007103DA /* nm_fitting.cpp in Sources */,
+				B0365CC516D58879007103DA /* pso_fitting.cpp in Sources */,
+				B0365CC616D58879007103DA /* lprpso_fitting.cpp in Sources */,
+				B0365CC716D58879007103DA /* colors.cpp in Sources */,
+				B0365CC816D58879007103DA /* open_gl_common.cpp in Sources */,
+				B0365CC916D58879007103DA /* renderer.cpp in Sources */,
+				B0365CCA16D58879007103DA /* shader.cpp in Sources */,
+				B0365CCB16D58879007103DA /* shader_program.cpp in Sources */,
+				B0365CCC16D58879007103DA /* texture.cpp in Sources */,
+				B0365CCD16D58879007103DA /* texture_renderable.cpp in Sources */,
+				B0365CCE16D58879007103DA /* window.cpp in Sources */,
+				B0365CCF16D58879007103DA /* window_settings.cpp in Sources */,
+				B0365CD016D58879007103DA /* camera.cpp in Sources */,
+				B0365CD116D58879007103DA /* aabbox.cpp in Sources */,
+				B0365CD216D58879007103DA /* light.cpp in Sources */,
+				B0365CD316D58879007103DA /* light_dir.cpp in Sources */,
+				B0365CD416D58879007103DA /* light_dir_handles.cpp in Sources */,
+				B0365CD516D58879007103DA /* hand_model_renderer.cpp in Sources */,
+				B0365CD616D58879007103DA /* hand_model_fit.cpp in Sources */,
+				B0365CD716D58879007103DA /* fastlz.c in Sources */,
+				B0365CD816D58879007103DA /* texture_utils.cpp in Sources */,
+				B0365CD916D58879007103DA /* csv_handle_read.cpp in Sources */,
+				B0365CDA16D58879007103DA /* csv_handle_write.cpp in Sources */,
+				B0365CDB16D58879007103DA /* csv_handle.cpp in Sources */,
+				B0365CDC16D58879007103DA /* hand_model_geometry_mesh.cpp in Sources */,
+				B0365CDD16D58879007103DA /* hand_model_geometry_simple.cpp in Sources */,
+				B0365CDE16D58879007103DA /* geometry_colored_mesh.cpp in Sources */,
+				B0365CDF16D58879007103DA /* geometry_colored_points.cpp in Sources */,
+				B0365CE016D58879007103DA /* geometry_manager.cpp in Sources */,
+				B0365CE116D58879007103DA /* geometry_points.cpp in Sources */,
+				B0365CE216D58879007103DA /* geometry_textured_boned_mesh.cpp in Sources */,
+				B0365CE316D58879007103DA /* geometry_textured_mesh.cpp in Sources */,
+				B0365CE416D58879007103DA /* geometry_vertices.cpp in Sources */,
+				B0365CE516D58879007103DA /* geometry.cpp in Sources */,
+				B0365CE616D58879007103DA /* math_base.cpp in Sources */,
+				B0365CE716D58879007103DA /* decompose.c in Sources */,
+				B0365CE816D58879007103DA /* edge.cpp in Sources */,
+				B0365CE916D58879007103DA /* mesh_simplification.cpp in Sources */,
+				B0365CEA16D58879007103DA /* min_heap_edges.cpp in Sources */,
+				B0365CEB16D58879007103DA /* depth_images_io.cpp in Sources */,
+				B0365CEC16D58879007103DA /* graph.cpp in Sources */,
+				B0365CED16D58879007103DA /* instances.inc in Sources */,
+				B0365CEE16D58879007103DA /* maxflow.cpp in Sources */,
+				B0365CEF16D58879007103DA /* open_ni_funcs.cpp in Sources */,
+				B0365CF016D58879007103DA /* bone_info.cpp in Sources */,
+				B0365CF116D58879007103DA /* vertex_bone_data.cpp in Sources */,
+				B0365CF216D58879007103DA /* geometry_colored_boned_mesh.cpp in Sources */,
+				B0365CF316D58879007103DA /* sdb_fitting.cpp in Sources */,
+				B0365CF416D58879007103DA /* bounding_sphere.cpp in Sources */,
+				B0365CF516D58879007103DA /* bfgs_fitting.cpp in Sources */,
+				B0365CF616D58879007103DA /* lprpso_fitting_hands.cpp in Sources */,
+				B0365CF716D58879007103DA /* conv_stage.cpp in Sources */,
+				B0365CF816D58879007103DA /* hand_net.cpp in Sources */,
+				B0365CF916D58879007103DA /* nn_stage.cpp in Sources */,
+				B0365CFA16D58879007103DA /* gl_state.cpp in Sources */,
+				B0365CFB16D58879007103DA /* common_tree_funcs.cpp in Sources */,
+				B0365CFC16D58879007103DA /* evaluate_decision_forest.cpp in Sources */,
+				B0365CFD16D58879007103DA /* forest_io.cpp in Sources */,
+				B0365CFE16D58879007103DA /* hand_detector.cpp in Sources */,
+				B0365D1616D58973007103DA /* main_data.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1681,6 +1993,7 @@
 				B00C5458165D97AF00C0D69A /* bounding_sphere.cpp in Sources */,
 				B00C5499165D9AC600C0D69A /* bfgs_fitting.cpp in Sources */,
 				B0E9DEB816627C7D001623D6 /* lprpso_fitting_hands.cpp in Sources */,
+				B0365CA816D5838F007103DA /* gl_state.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1864,6 +2177,67 @@
 				);
 				INFOPLIST_FILE = "TestBFGS-Info.plist";
 				PRODUCT_NAME = TestBFGS;
+				WRAPPER_EXTENSION = app;
+			};
+			name = Release;
+		};
+		B0365D1016D58879007103DA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LIBRARY = "libc++";
+				COMBINE_HIDPI_IMAGES = YES;
+				GCC_PRECOMPILE_PREFIX_HEADER = NO;
+				GCC_PREFIX_HEADER = "";
+				HEADER_SEARCH_PATHS = (
+					./src,
+					"./eigen-3.1.1/Eigen",
+					../include/GLFW,
+					../include/GLEW,
+					./FreeImage3154/include_mac_os_x,
+					./assimp_3.0.1270/include/,
+					../HandForests/src/,
+				);
+				INFOPLIST_FILE = "HandFitData-Info.plist";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../lib/GLEW\"",
+					"\"$(SRCROOT)/../lib/GLFW\"",
+					"\"$(SRCROOT)/FreeImage3154/lib_mac_os_x\"",
+					"\"$(SRCROOT)/assimp_3.0.1270/lib_mac_os_x\"",
+				);
+				PRODUCT_NAME = HandFitData;
+				SDKROOT = macosx10.7;
+				WRAPPER_EXTENSION = app;
+			};
+			name = Debug;
+		};
+		B0365D1116D58879007103DA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LIBRARY = "libc++";
+				COMBINE_HIDPI_IMAGES = YES;
+				GCC_PRECOMPILE_PREFIX_HEADER = NO;
+				GCC_PREFIX_HEADER = "";
+				HEADER_SEARCH_PATHS = (
+					./src,
+					"./eigen-3.1.1/Eigen",
+					../include/GLFW,
+					../include/GLEW,
+					./FreeImage3154/include_mac_os_x,
+					./assimp_3.0.1270/include/,
+					../HandForests/src/,
+				);
+				INFOPLIST_FILE = "HandFitData-Info.plist";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../lib/GLEW\"",
+					"\"$(SRCROOT)/../lib/GLFW\"",
+					"\"$(SRCROOT)/FreeImage3154/lib_mac_os_x\"",
+					"\"$(SRCROOT)/assimp_3.0.1270/lib_mac_os_x\"",
+				);
+				LLVM_LTO = NO;
+				PRODUCT_NAME = HandFitData;
+				SDKROOT = macosx10.7;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
@@ -2136,6 +2510,15 @@
 			buildConfigurations = (
 				B00C5491165D9A7200C0D69A /* Debug */,
 				B00C5492165D9A7200C0D69A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B0365D0F16D58879007103DA /* Build configuration list for PBXNativeTarget "HandFitData" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B0365D1016D58879007103DA /* Debug */,
+				B0365D1116D58879007103DA /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
