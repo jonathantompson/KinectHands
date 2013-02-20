@@ -13,10 +13,10 @@ dofile("saveNNStage.lua")  -- Load in helper function
 -- This script turns the serialized neural network file into a file that is
 -- readable by my c++ code.
 
-model_filename = "results/handmodel_fullcoeffs_tanh_abs_mid_L2Pooling.net"
+model_filename = "results/handmodel.net"
 
 -- Load in the settings file
-dofile("load_settings.lua")  -- We don't need to do this
+dofile("load_settings.lua")
 
 -- Load in the serialized convent
 model = torch.load(model_filename)
@@ -31,30 +31,35 @@ convnet:binary()
 convnet:writeInt(2)
 -- 2. Number of Neural Network stages
 convnet:writeInt(2)
+-- 3. Number of banks
+convnet:writeInt(num_hpf_banks)
 
--- ***************************************************
--- Save the first conv stage.
-stg1 = model:get(1)
--- image.display{image=stg1.weight, padding=2, zoom=4}
-saveConvStage(stg1, stg1_norm, stg1_poolsizeu, stg1_pooling, stg1_nonlinear, 
-              convnet)
+for j=1,num_hpf_banks do
+  -- ***************************************************
+  -- Save the first conv stage.
+  stg1 = model:get(1):get(j):get(1)
+  -- image.display{image=stg1.weight, padding=2, zoom=4}
+  saveConvStage(stg1, norm, poolsize[j][1], pooling, nonlinear, convnet)
 
--- ***************************************************
--- Save the second conv stage.
-stg2 = model:get(5)
-saveConvStage(stg2, stg2_norm, stg2_poolsizeu, stg2_pooling, stg2_nonlinear, 
-              convnet)
+  -- ***************************************************
+  -- Save the second conv stage.
+  print(poolsize[j][1])
+  if (poolsize[j][1] == 1) then  -- no pooling in the first stage
+    stg2 = model:get(1):get(j):get(4)
+  else
+    stg2 = model:get(1):get(j):get(5)
+  end
+  saveConvStage(stg2, norm, poolsize[j][2], pooling, nonlinear, convnet)
+end
 
 -- ***************************************************
 -- Save the first neural net stage.
-stg1 = model:get(10)
-stg1_nonlinear = "Tanh"
-saveNNStage(stg1, stg1_nonlinear, convnet)
+stg1 = model:get(3)
+saveNNStage(stg1, nonlinear, convnet)
 
 -- ***************************************************
 -- Save the second neural net stage.
-stg2 = model:get(12)
-stg2_nonlinear = "None"
-saveNNStage(stg2, stg2_nonlinear, convnet)
+stg2 = model:get(5)
+saveNNStage(stg2, nonlinear, convnet)
 
 print("All done saving convnet")

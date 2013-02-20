@@ -3,28 +3,26 @@ require 'image'
 require 'torch'
 -- require 'xlua'    -- xlua provides useful tools, like progress bars
 require 'optim'   -- an optimization package, for online and batch methods
-torch.setnumthreads(4)
+torch.setnumthreads(8)
 dofile("pbar.lua")
 dofile("shuffle_files.lua")
+dofile(
 -- require 'debugger'
 
 -- Jonathan Tompson
 -- NYU, MRL
--- Training script for 26dof hand model coefficient on kinect depth data
--- Model is a 2 stage convnet followed by a 2D neural net
--- Loss function is negative log-likelihood
---  you can run from ide: <dofile 'hand_nets.lua'>
+-- Training script for hand model on kinect depth data
 
 width = 96
 height = 96
 num_hpf_banks = 3
 dim = width * height
-frame_stride = 1  -- We don't need every file of the 30fps, so just grab a few
+frame_stride = 2  -- Maybe We don't need every 30fps, so just grab a few
 test_data_rate = 5  -- this means 1 / 5 will be test data
 num_coeff = 42
 background_depth = 2000
-perform_training = 0
-nonlinear = 0  -- 0 = tanh, 1 = SoftShrink
+perform_training = 1
+nonlinear = 0  -- 0 = tanh, 1 = SoftShrink, 2 = rectlin
 model_filename = 'handmodel.net'
 loss = 0  -- 0 = abs, 1 = mse
 im_dir = "./hand_depth_data_processed/"
@@ -238,7 +236,6 @@ if (perform_training == 1) then
 
   -- input dimensions
   nfeats = 1
-  ninputs = nfeats*width*height
   nstates = {{8, 32}, {8, 32}, {8, 32}}
   nstates_nn = 2048
   filtsize = {{5, 7}, {5, 5}, {5, 5}}
@@ -502,7 +499,7 @@ if (perform_training == 1) then
       -- get new sample
       input = {}
       for j=1,num_hpf_banks do
-        table.insert(input, trainData.data[j][cur_i])
+        table.insert(input, trainData.data[j][t])
         input[j] = input[j]:double()
       end
       target = testData.labels[t]
@@ -564,11 +561,13 @@ else  -- if perform_training
     -- print(string.format('%d of %d', t, testData:size()))
     -- get new sample
     data_pt = {
-      input = testData.data[t],
+      input = {},
       target = testData.labels[t]
     }
-
-    data_pt.input = data_pt.input:double()
+    for j=1,num_hpf_banks do
+      table.insert(data_pt.input, testData.data[j][t])
+      data_pt.input[j] = data_pt.input[j].double()
+    end
     data_pt.target = data_pt.target:double()
 
     -- image.display(data_pt.input)
@@ -599,11 +598,13 @@ else  -- if perform_training
     -- print(string.format('%d of %d', t, trainData:size()))
     -- get new sample
     data_pt = {
-      input = trainData.data[t],
+      input = {},
       target = trainData.labels[t]
     }
-
-    data_pt.input = data_pt.input:double()
+    for j=1,num_hpf_banks do
+      table.insert(data_pt.input, trainData.data[j][t])
+      data_pt.input[j] = data_pt.input[j].double()
+    end
     data_pt.target = data_pt.target:double()
 
     -- image.display(data_pt.input)
