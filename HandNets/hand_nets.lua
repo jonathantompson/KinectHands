@@ -23,7 +23,7 @@ frame_stride = 1  -- We don't need every file of the 30fps, so just grab a few
 test_data_rate = 5  -- this means 1 / 5 will be test data
 num_coeff = 42
 background_depth = 2000
-perform_training = 0
+perform_training = 1
 nonlinear = 0  -- 0 = tanh, 1 = SoftShrink
 model_filename = 'handmodel.net'
 loss = 0  -- 0 = abs, 1 = mse
@@ -564,11 +564,13 @@ else  -- if perform_training
     -- print(string.format('%d of %d', t, testData:size()))
     -- get new sample
     data_pt = {
-      input = testData.data[t],
+      input = {},
       target = testData.labels[t]
     }
-
-    data_pt.input = data_pt.input:double()
+    for j=1,num_hpf_banks do
+      table.insert(data_pt.input, testData.data[j][t])
+      data_pt.input[j] = data_pt.input[j].double()
+    end
     data_pt.target = data_pt.target:double()
 
     -- image.display(data_pt.input)
@@ -599,11 +601,13 @@ else  -- if perform_training
     -- print(string.format('%d of %d', t, trainData:size()))
     -- get new sample
     data_pt = {
-      input = trainData.data[t],
+      input = {},
       target = trainData.labels[t]
     }
-
-    data_pt.input = data_pt.input:double()
+    for j=1,num_hpf_banks do
+      table.insert(data_pt.input, trainData.data[j][t])
+      data_pt.input[j] = data_pt.input[j].double()
+    end
     data_pt.target = data_pt.target:double()
 
     -- image.display(data_pt.input)
