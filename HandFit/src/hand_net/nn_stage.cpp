@@ -86,7 +86,7 @@ namespace hand_net {
   }
 
   int32_t NNStage::dataSizeReq() const {
-    return n_inputs_ * n_outputs_;
+    return std::max<int32_t>(n_inputs_, n_outputs_);
   }
 
   void NNStage::forwardProp(float*& in, float*& out) const {

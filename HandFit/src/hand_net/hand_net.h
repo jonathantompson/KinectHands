@@ -31,7 +31,7 @@
   #define CONVNET_FILE string("./../../../../../../../../../data/" \
           "handmodel_fullcoeffs_tanh_abs_mid_L2Pooling.net.convnet")
 #else
-  #define CONVNET_FILE string("./../data/handmodel_fullcoeffs_tanh_abs_mid_L2Pooling.net.convnet")
+  #define CONVNET_FILE string("./../data/handmodel.net.convnet")
 #endif
 
 namespace hand_model { class HandModelRenderer; }
@@ -118,18 +118,21 @@ namespace hand_net {
     inline const math::Float3& uvd_com() const { return uvd_com_; }
 
   private:
-    int32_t n_conv_stages_;
+    int32_t n_conv_stages_;  // Number PER BANK!  Total = n_conv_stages_ * NUM_HPF_BANKS
     ConvStage** conv_stages_;
 
     int32_t n_nn_stages_;
     NNStage** nn_stages_;
 
-    float* datcur_;  // The current stage's input data
-    float* datnext_;  // The current stage's output data
+    // The data is split up to make multithreading easier.
+    float** conv_datcur_;  // The current stage's input data (on each bank)
+    float** conv_datnext_;  // The current stage's output data
+    float* nn_datcur_;
+    float* nn_datnext_;
 
     // Temporary data structures for image processing:
     float* hand_image_;
-    int32_t size_images_;  // Size of (96x96 + 48x48 + 24x24)
+    int32_t size_images_;  // Default: Size of (96x96 + 48x48 + 24x24)
     float* hpf_hand_images_;
     float* hpf_hand_images_coeff_;  // integral of a ones image with guass filt
     math::Float3 uvd_com_;  // UV COM of the hand image.

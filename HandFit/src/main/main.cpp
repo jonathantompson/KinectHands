@@ -150,8 +150,7 @@ uint8_t tex_data[src_dim * 3];
 
 void quit() {
   delete image_io;
-  delete clk;
-  delete render;
+  delete clk; 
   if (l_hands) {
     for (uint32_t i = 0; i < im_files.size(); i++) {
       delete l_hands[i];
@@ -164,14 +163,15 @@ void quit() {
     }
     delete[] r_hands;
   }
-  delete hand_renderer;
-  delete hand_fit;
-  GLState::shutdownGLState();
+  delete tex;
   delete wnd;
   delete geometry_points;
   delete convnet;
   delete hand_detector;
-  delete tex;
+  delete hand_renderer;
+  delete hand_fit;
+  delete render;
+  GLState::shutdownGLState();
   Window::killWindowSystem();
   exit(0);
 }
@@ -762,7 +762,7 @@ int main(int argc, char *argv[]) {
   static_cast<void>(argc); static_cast<void>(argv);
 #if defined(_DEBUG) && defined(_WIN32)
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-  // _CrtSetBreakAlloc(853);
+  // _CrtSetBreakAlloc(707);
 #endif
 
   cout << "Usage:" << endl;
