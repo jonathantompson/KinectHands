@@ -89,6 +89,7 @@ using depth_images_io::DepthImagesIO;
 using renderer::GLState;
 using renderer::Texture;
 using renderer::TEXTURE_WRAP_MODE;
+using hand_net::HandCoeffConvnet;
 
 Clock* clk = NULL;
 double t1, t0;
@@ -144,6 +145,8 @@ int playback_step = 1;
 // Convolutional Neural Network
 HandNet* convnet = NULL;
 uint8_t label[src_dim];
+float coeff_convnet[HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
+float coeff_convnet_pso[HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
 
 // Decision Forests
 HandDetector* hand_detector = NULL;
@@ -166,7 +169,6 @@ void quit() {
     delete[] r_hands;
   }
   delete tex;
-  delete wnd;
   delete geometry_points;
   delete convnet;
   delete hand_detector;
@@ -174,6 +176,7 @@ void quit() {
   delete hand_fit;
   delete render;
   GLState::shutdownGLState();
+  delete wnd;
   Window::killWindowSystem();
   exit(0);
 }
@@ -382,28 +385,13 @@ void KeyboardCB(int key, int action) {
       }
       break;
     case static_cast<int>('1'):
-      if (action == RELEASED) {
-        render_output = 1;
-      }
-      break;
     case static_cast<int>('2'):
-      if (action == RELEASED) {
-        render_output = 2;
-      }
-      break;
     case static_cast<int>('3'):
-      if (action == RELEASED) {
-        render_output = 3;
-      }
-      break;
     case static_cast<int>('4'):
-      if (action == RELEASED) {
-        render_output = 4;
-      }
-      break;
     case static_cast<int>('5'):
+    case static_cast<int>('6'):
       if (action == RELEASED) {
-        render_output = 5;
+        render_output = key - static_cast<int>('1') + 1;
       }
       break;
     case KEY_KP_ADD:
@@ -605,6 +593,37 @@ void fitFrame(bool seed_with_last_frame) {
   hand_fit->fitModel(cur_depth_data, cur_label_data, hands);
 }
 
+
+// renderCrossToImageArr - UV is 0 to 1 in U and V
+void renderCrossToImageArr(float* uv, uint8_t* im, int32_t w, int32_t h,
+  int32_t rad, uint8_t r, uint8_t g, uint8_t b) {
+  int32_t v = (int32_t)floor((uv[1] * HAND_NET_PIX) + (convnet->uvd_com()[1] - HAND_NET_PIX/2));
+  int32_t u = (int32_t)floor((uv[0] * HAND_NET_PIX) + (convnet->uvd_com()[0] - HAND_NET_PIX/2));
+  v = h - v - 1;
+
+  // Note: We need to render upside down
+  // Render the horizontal cross
+  int32_t vcross = v;
+  for (int32_t ucross = u - rad; ucross <= u + rad; ucross++) {
+    if (ucross >= 0 && ucross < w && vcross >= 0 && vcross < h) {
+      int32_t dst_index = vcross * w + ucross;
+      im[dst_index * 3] = r;
+      im[dst_index * 3+1] = g;
+      im[dst_index * 3+2] = b;
+    }
+  }
+  // Render the vertical cross
+  int32_t ucross = u;
+  for (int32_t vcross = v - rad; vcross <= v + rad; vcross++) {
+    if (ucross >= 0 && ucross < w && vcross >= 0 && vcross < h) {
+      int32_t dst_index = vcross * w + ucross;
+      im[dst_index * 3] = r;
+      im[dst_index * 3+1] = g;
+      im[dst_index * 3+2] = b;
+    }
+  }
+}
+
 void renderFrame(float dt) {
   if (rotate_light) {
     renderer::LightDir* light = render->light_dir();
@@ -636,13 +655,16 @@ void renderFrame(float dt) {
     HDLabelMethod::HDFloodfill, label);
 
   // Calculate the convnet coeffs if we want them
-  if (coeff_src == 1) {
-    convnet->calcHandCoeff(cur_depth_data, label, coeffs);
-    // TEMP CODE:
-    coeffs(0) = r_hands[cur_image]->coeff()(0);
-    coeffs(1) = r_hands[cur_image]->coeff()(1);
-    coeffs(2) = r_hands[cur_image]->coeff()(2);
-    // END TEMP CODE:
+  float* coeff_covnet_src = NULL;
+  if (render_output == 6) {
+    convnet->calcCoeffConvnet(r_hands[cur_image], hand_renderer,
+      coeff_convnet_pso);
+    if (coeff_src == 1) {
+      convnet->calcHandCoeffConvnet(cur_depth_data, label, coeff_convnet);
+      coeff_covnet_src = coeff_convnet;
+    } else {
+      coeff_covnet_src = coeff_convnet_pso;
+    }
   }
 
   if (fit_right) {
@@ -754,6 +776,31 @@ void renderFrame(float dt) {
     tex->reloadData((unsigned char*)tex_data);
     render->renderFullscreenQuad(tex);
     break;
+    case 6:
+      for (uint32_t v = 0; v < src_height; v++) {
+        for (uint32_t u = 0; u < src_width; u++) {
+          uint8_t val = (uint8_t)((cur_depth_data[v * src_width + u]) * 255.0f);
+          uint32_t idst = (src_height-v-1) * src_width + u;
+          // Texture needs to be flipped vertically and 0 --> 255
+          tex_data[idst * 3] = val;
+          tex_data[idst * 3 + 1] = val;
+          tex_data[idst * 3 + 2] = val;
+        }
+      }
+
+      renderCrossToImageArr(&coeff_covnet_src[HandCoeffConvnet::HAND_POS_U], 
+        tex_data, src_width, src_height, 5, 255, 128, 255);
+      for (uint32_t i = HandCoeffConvnet::THUMB_K1_U; 
+        i <= HandCoeffConvnet::F3_TIP_U; i += 2) {
+        const Float3* color = &renderer::colors[(i/2) % renderer::n_colors];
+        renderCrossToImageArr(&coeff_covnet_src[i], tex_data, src_width, 
+          src_height, 2, (uint8_t)(color->m[0] * 255.0f), 
+          (uint8_t)(color->m[1] * 255.0f), (uint8_t)(color->m[2] * 255.0f));
+      }
+
+      tex->reloadData((unsigned char*)tex_data);
+      render->renderFullscreenQuad(tex);
+      break;
   default:
     throw runtime_error("ERROR: render_output is an incorrect value");
   }
@@ -779,7 +826,7 @@ int main(int argc, char *argv[]) {
   cout << "b - bounding sphere rendering" << endl;
   cout << "y - Render Hands ON/OFF" << endl;
   cout << "u - Render Point Cloud ON/OFF" << endl;
-  cout << "12 - Render output type" << endl;
+  cout << "123456 - Render output type" << endl;
   cout << "+- - Change the current depth image" << endl;
   cout << "09 - Change the current depth image x 100" << endl;
   cout << "h - Store hand data to file" << endl;
@@ -789,6 +836,7 @@ int main(int argc, char *argv[]) {
   cout << "p - Playback frames (@15fps)" << endl;
   cout << "o - Change playback frame skip" << endl;
   cout << "l - Go to start frame" << endl;
+  cout << "c - Change coeff source (PSO/Convnet)" << endl;
   
   try {
     clk = new Clock();
@@ -815,7 +863,8 @@ int main(int argc, char *argv[]) {
     GLState::initGLState();    
 
     // Load the convnet from file
-    convnet = new HandNet(CONVNET_FILE);
+    convnet = new HandNet();
+    convnet->loadFromFile(CONVNET_FILE);
 
     // Load the decision forest
     hand_detector = new HandDetector(src_width, src_height, KINECT_HANDS_ROOT +

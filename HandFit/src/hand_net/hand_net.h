@@ -83,19 +83,24 @@ namespace hand_net {
   class HandNet {
   public:
     // Constructor / Destructor
-    HandNet(const std::string& convnet_filename);
+    HandNet();
     ~HandNet();
 
+    void loadFromFile(const std::string& convnet_filename);
+
     // Top level functions
-    void calcHandCoeff(const int16_t* depth, const uint8_t* label, 
-      Eigen::MatrixXf& coeff);
+    // calcHandCoeffConvnet - Calculates the convnet coeffs (not necessary
+    // the same as the coeffs the renderer uses - see above)
+    void calcHandCoeffConvnet(const int16_t* depth, const uint8_t* label, 
+      float coeff_convnet[HAND_NUM_COEFF_CONVNET]);
 
     void createLabelFromSyntheticDepth(const float* depth, uint8_t* label);
 
     // calcHandImage - creates cropped image, then creates a bank of HPF imgs
     void calcHandImage(const int16_t* depth_in, const uint8_t* label_in);
     void calcCoeffConvnet(hand_model::HandModel* hand,
-      hand_model::HandModelRenderer* renderer);
+      hand_model::HandModelRenderer* renderer, 
+      float coeff_convnet[HAND_NUM_COEFF_CONVNET]);
 
     // Some helper functions for debugging
     template <typename T>
@@ -114,7 +119,6 @@ namespace hand_net {
     float* hpf_hand_images() { return hpf_hand_images_; }
     float* hand_image() { return hand_image_; }
     int32_t size_images() { return size_images_; } 
-    float* coeff_convnet() { return coeff_convnet_; }
     inline const math::Float3& uvd_com() const { return uvd_com_; }
 
   private:
@@ -136,12 +140,10 @@ namespace hand_net {
     float* hpf_hand_images_;
     float* hpf_hand_images_coeff_;  // integral of a ones image with guass filt
     math::Float3 uvd_com_;  // UV COM of the hand image.
-    float coeff_convnet_[HAND_NUM_COEFF_CONVNET];
     float gauss_filt_[HPF_KERNEL_SIZE];  // This is unnormalized!
     float* im_temp1_;
     float* im_temp2_;
 
-    void loadFromFile(const std::string& convnet_filename);
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in);
     void calcHPFHandBanks();
     void initHPFKernels();

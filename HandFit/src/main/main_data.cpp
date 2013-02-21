@@ -146,6 +146,7 @@ HandDetector* hand_detector = NULL;
 // Convnet --> We'll mostly just use it's utility functions
 HandNet* convnet = NULL;
 float blank_coeff[HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
+float coeff_convnet[HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
 
 void quit() {
   delete image_io;
@@ -301,7 +302,8 @@ int main(int argc, char *argv[]) {
 
     hand_detector = new HandDetector(src_width, src_height, KINECT_HANDS_ROOT +
       FOREST_DATA_FILENAME);
-    convnet = new HandNet(CONVNET_FILE);
+    convnet = new HandNet();
+    convnet->loadFromFile(CONVNET_FILE);
     for (uint32_t i = 0; i < HandCoeffConvnet::HAND_NUM_COEFF_CONVNET; i++) {
       blank_coeff[i] = 0.0f;
     }
@@ -349,11 +351,11 @@ int main(int argc, char *argv[]) {
 
       // Correctly modify the coeff values to those that are learnable by the
       // convnet (for instance angles are bad --> store cos(x), sin(x) instead)
-      convnet->calcCoeffConvnet(r_hand, hand_renderer);
+      convnet->calcCoeffConvnet(r_hand, hand_renderer, coeff_convnet);
       string r_hand_file = DST_IM_DIR + string("coeffr_") + im_files[cur_image];
       string l_hand_file = DST_IM_DIR + string("coeffl_") + im_files[cur_image];
 #ifdef SAVE_FILES
-      file_io::SaveArrayToFile<float>(convnet->coeff_convnet(),
+      file_io::SaveArrayToFile<float>(coeff_convnet,
         HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, r_hand_file);
       file_io::SaveArrayToFile<float>(blank_coeff,
         HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, l_hand_file);
@@ -388,13 +390,12 @@ int main(int argc, char *argv[]) {
       }
 #endif
 
-      float* c = convnet->coeff_convnet();
-      renderCrossToImageArr(&c[HandCoeffConvnet::HAND_POS_U], tex_data,
-        TEX_W, TEX_H, 5, 255, 128, 255);
+      renderCrossToImageArr(&coeff_convnet[HandCoeffConvnet::HAND_POS_U], 
+        tex_data, TEX_W, TEX_H, 5, 255, 128, 255);
       for (uint32_t i = HandCoeffConvnet::THUMB_K1_U; 
         i <= HandCoeffConvnet::F3_TIP_U; i += 2) {
         const Float3* color = &renderer::colors[(i/2) % renderer::n_colors];
-        renderCrossToImageArr(&c[i], tex_data, TEX_W, TEX_H, 2, 
+        renderCrossToImageArr(&coeff_convnet[i], tex_data, TEX_W, TEX_H, 2, 
           (uint8_t)(color->m[0] * 255.0f), (uint8_t)(color->m[1] * 255.0f), 
           (uint8_t)(color->m[2] * 255.0f));
       }

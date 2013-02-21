@@ -14,6 +14,7 @@
 #include <fstream>
 #include <string>
 #include <stdexcept>
+#include <iostream>
 #include "forest_io.h"
 #include "common_tree_funcs.h"
 #include "generate_decision_tree.h"

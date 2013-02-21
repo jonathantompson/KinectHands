@@ -141,12 +141,14 @@ namespace hand_net {
     in = out;
     out = tmp;
 
-    performPooling(in, interm_w, interm_h, out);  // Checked against torch
+    if (pool_size_ > 1) {
+      performPooling(in, interm_w, interm_h, out);  // Checked against torch
 
-    // Buffer swap: in <--> out
-    tmp = in;
-    in = out;
-    out = tmp;
+      // Buffer swap: in <--> out
+      tmp = in;
+      in = out;
+      out = tmp;
+    }
 
     initNormCoef(out_w, out_h);  // Only does work once on startup
     performNormalization(in, out_w, out_h, out);  // Checked against torch

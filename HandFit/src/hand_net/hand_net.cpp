@@ -40,7 +40,7 @@ using renderer::BoundingSphere;
 
 namespace hand_net {
  
-  HandNet::HandNet(const std::string& convnet_filename) {
+  HandNet::HandNet() {
     n_conv_stages_ = 0;
     conv_stages_ = NULL;
     n_nn_stages_ = 0;
@@ -56,7 +56,31 @@ namespace hand_net {
     im_temp2_ = NULL;
     hpf_hand_images_coeff_ = NULL;
 
-    loadFromFile(convnet_filename);
+    // Figure out the size of the HPF bank array
+    int32_t im_sizeu = HAND_NET_IM_SIZE;
+    int32_t im_sizev = HAND_NET_IM_SIZE;
+    size_images_ = 0;
+    for (uint32_t i = 0; i < NUM_HPF_BANKS; i++) {
+      size_images_ += (im_sizeu * im_sizev);
+#if defined(DEBUG) || defined(_DEBUG)
+      if (i < (NUM_HPF_BANKS - 1) && im_sizeu % 2 != 0 && im_sizev % 2 != 0) {
+        throw std::wruntime_error("HandNet::loadFromFile() - ERROR: "
+          "HPF bank image is not divisible by 2!");
+      }
+#endif
+      im_sizeu /= 2;
+      im_sizev /= 2;
+    }
+
+    // Some temporary data structures
+    int32_t datasize = std::max<int32_t>(size_images_, 
+      HAND_NET_PIX * HAND_NET_PIX);
+    hand_image_ = new float [datasize];
+    im_temp1_ = new float[datasize];
+    im_temp2_ = new float[datasize];
+    hpf_hand_images_ = new float[datasize];
+    hpf_hand_images_coeff_ = new float[datasize];
+    initHPFKernels();
   }
 
   HandNet::~HandNet() {
@@ -144,8 +168,8 @@ namespace hand_net {
       conv_datnext_ = new float*[NUM_HPF_BANKS];
       for (uint32_t j = 0; j < NUM_HPF_BANKS; j++) {
         ConvStage* cstage;
-        int32_t im_sizeu = HAND_NET_IM_SIZE / pow(2, j);
-        int32_t im_sizev = HAND_NET_IM_SIZE / pow(2, j);
+        int32_t im_sizeu = HAND_NET_IM_SIZE / (1 << j);
+        int32_t im_sizev = HAND_NET_IM_SIZE / (1 << j);
         int32_t max_size = im_sizeu * im_sizev;
         for (int32_t i = 0; i < n_conv_stages_; i++) {
           cstage = conv_stages_[j * n_conv_stages_ + i];
@@ -188,32 +212,6 @@ namespace hand_net {
       std::cout << "Forward prop functionality will be disabled." << std::endl;
     }
 
-    // Figure out the size of the HPF bank array
-    int32_t im_sizeu = HAND_NET_IM_SIZE;
-    int32_t im_sizev = HAND_NET_IM_SIZE;
-    size_images_ = 0;
-    for (uint32_t i = 0; i < NUM_HPF_BANKS; i++) {
-      size_images_ += (im_sizeu * im_sizev);
-#if defined(DEBUG) || defined(_DEBUG)
-      if (i < (NUM_HPF_BANKS - 1) && im_sizeu % 2 != 0 && im_sizev % 2 != 0) {
-        throw std::wruntime_error("HandNet::loadFromFile() - ERROR: "
-          "HPF bank image is not divisible by 2!");
-      }
-#endif
-      im_sizeu /= 2;
-      im_sizev /= 2;
-    }
-
-    // Some temporary data structures
-    int32_t datasize = std::max<int32_t>(size_images_, 
-      HAND_NET_PIX * HAND_NET_PIX);
-    hand_image_ = new float [datasize];
-    im_temp1_ = new float[datasize];
-    im_temp2_ = new float[datasize];
-    hpf_hand_images_ = new float[datasize];
-    hpf_hand_images_coeff_ = new float[datasize];
-    initHPFKernels();
-
     std::cout << "Finished initializing HandNet" << std::endl;
   }
 
@@ -251,62 +249,62 @@ namespace hand_net {
     }
   }
 
-  void HandNet::calcHandCoeff(const int16_t* depth, const uint8_t* label, 
-    Eigen::MatrixXf& coeff) {
+  void HandNet::calcHandCoeffConvnet(const int16_t* depth, 
+    const uint8_t* label, float coeff_convnet[HAND_NUM_COEFF_CONVNET]) {
     if (n_conv_stages_ == 0) {
       std::cout << "HandNet::calcHandCoeff() - ERROR: Convnet not loaded";
       std::cout << " from file!" << std::endl;
     }
     HandNet::calcHandImage(depth, label);
 
-    /*
-    int32_t width = HAND_NET_IM_SIZE;
-    int32_t height = HAND_NET_IM_SIZE;
-
-    for (int32_t i = 0; i < n_conv_stages_; i++) {
-      conv_stages_[i]->forwardProp(datcur_, width, height, datnext_);
-      // Ping-pong the buffers
-      float* tmp = datnext_;
-      datnext_ = datcur_;
-      datcur_ = tmp;
-      // Calculate the next stage size
-      width = conv_stages_[i]->calcOutWidth(width);
-      height = conv_stages_[i]->calcOutHeight(height);
+    // Copy over the hand images in the input data structures
+    float* im = hpf_hand_images_;
+    for (int32_t j = 0; j < NUM_HPF_BANKS; j++) {
+      int32_t w = HAND_NET_IM_SIZE / (1 << j);
+      int32_t h = HAND_NET_IM_SIZE / (1 << j);
+      memcpy(conv_datcur_[j], im, w * h * sizeof(conv_datcur_[j][0]));
+      im = &im[w*h];
     }
 
-    // print3DTensorToStdCout<float>(datcur_, 0, width, height, 2, 2, 6, 6);
+    // Now propogate the outputs through each of the banks and copy each
+    // output into the nn input
+    float* nn_input = nn_datcur_;
+    ConvStage* stage = NULL;
+    for (int32_t j = 0; j < NUM_HPF_BANKS; j++) {
+      int32_t w = HAND_NET_IM_SIZE / (1 << j);
+      int32_t h = HAND_NET_IM_SIZE / (1 << j);
+      for (int32_t i = 0; i < n_conv_stages_; i++) {
+        stage = conv_stages_[j * n_conv_stages_ + i];
+        stage->forwardProp(conv_datcur_[j], w, h, conv_datnext_[j]);
+        // Ping-pong the buffers
+        float* tmp = conv_datnext_[j];
+        conv_datnext_[j] = conv_datcur_[j];
+        conv_datcur_[j] = tmp;
+        // Calculate the next stage size
+        w = stage->calcOutWidth(w);
+        h = stage->calcOutHeight(h);
+      }
+      int32_t s = w * h * stage->n_output_features();
+      memcpy(nn_input, conv_datcur_[j], s * sizeof(nn_input[0]));
+      nn_input = &nn_input[s];
+      // print3DTensorToStdCout<float>(conv_datcur_[j], 0, w, h, 2, 2, 6, 6);
+    }
+
+    // print3DTensorToStdCout<float>(nn_datcur_, 1, nn_stages_[0]->n_inputs(), 1);
 
     for (int32_t i = 0; i < n_nn_stages_; i++) {
-      nn_stages_[i]->forwardProp(datcur_, datnext_);
+      nn_stages_[i]->forwardProp(nn_datcur_, nn_datnext_);
       // Ping-pong the buffers
-      float* tmp = datnext_;
-      datnext_ = datcur_;
-      datcur_ = tmp;
+      float* tmp = nn_datnext_;
+      nn_datnext_ = nn_datcur_;
+      nn_datcur_ = tmp; 
+      // print3DTensorToStdCout<float>(nn_datcur_, 1, nn_stages_[i]->n_outputs(), 1);
     }
 
-    // print3DTensorToStdCout<float>(datcur_, 1, 25, 1);
+    memcpy(coeff_convnet, nn_datcur_, HAND_NUM_COEFF_CONVNET * 
+      sizeof(coeff_convnet[0]));
 
-    // Now the coeffs are in a scaled format which also has euler angles
-    // instead of quaternions, convert the format back
-    for (uint32_t i = HandCoeff::HAND_POS_X; i <= HandCoeff::HAND_POS_Z; i++) {
-      coeff(i) = datcur_[i] * std + xyz_com[i];
-    }
-
-    Float3 euler(datcur_[HandCoeff::HAND_ORIENT_X],
-      datcur_[HandCoeff::HAND_ORIENT_Y], datcur_[HandCoeff::HAND_ORIENT_Z]);
-    FloatQuat quat;
-    math::FloatQuat::eulerAngles2Quat(&quat, euler[0], euler[1], euler[2]);
-    for (uint32_t i = 0; i < 4; i++) {
-      coeff(HandCoeff::HAND_ORIENT_X + i) = quat[i];
-    }
-
-    // The rest are just shifted back by one
-    for (uint32_t i = HandCoeff::HAND_ORIENT_W + 1; i < HAND_NUM_COEFF; i++) {
-      coeff(i) = datcur_[i-1];
-    }
-
-    // print3DTensorToStdCout<float>(&coeff(0), 1, 26, 1);
-    */
+    // print3DTensorToStdCout<float>(nn_datcur_, 1, HAND_NUM_COEFF_CONVNET, 1);
   }
 
   void HandNet::createLabelFromSyntheticDepth(const float* depth, 
@@ -448,7 +446,7 @@ namespace hand_net {
   }
 
   void HandNet::calcCoeffConvnet(hand_model::HandModel* hand, 
-    HandModelRenderer* renderer) {
+    HandModelRenderer* renderer, float coeff_convnet[HAND_NUM_COEFF_CONVNET]) {
     HandModelGeometryMesh* geom = 
       (HandModelGeometryMesh*)renderer->geom(hand->hand_type());
     const float* coeff = hand->coeff().data();
@@ -467,15 +465,15 @@ namespace hand_net {
     BoundingSphere* sphere = geom->bspheres()[HandSphereIndices::TH_KNU1_B];
     sphere->transform();
     calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
-    coeff_convnet_[HAND_POS_U] = pos_uv[0];
-    coeff_convnet_[HAND_POS_V] = pos_uv[1];
+    coeff_convnet[HAND_POS_U] = pos_uv[0];
+    coeff_convnet[HAND_POS_V] = pos_uv[1];
 
     // Model origin as hand position
     Float3 hand_pos(coeff[HandCoeff::HAND_POS_X], 
       coeff[HandCoeff::HAND_POS_Y], coeff[HandCoeff::HAND_POS_Z]);
     //calcHandImageUVFromXYZ(renderer, hand_pos, pos_uv);
-    //coeff_convnet_[HAND_POS_U] = pos_uv[0];
-    //coeff_convnet_[HAND_POS_V] = pos_uv[1];
+    //coeff_convnet[HAND_POS_U] = pos_uv[0];
+    //coeff_convnet[HAND_POS_V] = pos_uv[1];
 
     // Convert quaternion to euler angles (might be easier to learn)
     FloatQuat quat(coeff[HandCoeff::HAND_ORIENT_X], 
@@ -504,56 +502,56 @@ namespace hand_net {
 
     // All angle coefficients are stored as (cos(x), sin(x)) to avoid
     // the singularity
-    coeff_convnet_[HAND_ORIENT_X_COS] = cosf(euler[0]);
-    coeff_convnet_[HAND_ORIENT_X_SIN] = sinf(euler[0]);
-    coeff_convnet_[HAND_ORIENT_Y_COS] = cosf(euler[1]);
-    coeff_convnet_[HAND_ORIENT_Y_SIN] = sinf(euler[1]);
-    coeff_convnet_[HAND_ORIENT_Z_COS] = cosf(euler[2]);
-    coeff_convnet_[HAND_ORIENT_Z_SIN] = sinf(euler[2]);
+    coeff_convnet[HAND_ORIENT_X_COS] = cosf(euler[0]);
+    coeff_convnet[HAND_ORIENT_X_SIN] = sinf(euler[0]);
+    coeff_convnet[HAND_ORIENT_Y_COS] = cosf(euler[1]);
+    coeff_convnet[HAND_ORIENT_Y_SIN] = sinf(euler[1]);
+    coeff_convnet[HAND_ORIENT_Z_COS] = cosf(euler[2]);
+    coeff_convnet[HAND_ORIENT_Z_SIN] = sinf(euler[2]);
 
-    coeff_convnet_[WRIST_THETA_COS] = cosf(coeff[HandCoeff::WRIST_THETA]);
-    coeff_convnet_[WRIST_THETA_SIN] = sinf(coeff[HandCoeff::WRIST_THETA]);
-    coeff_convnet_[WRIST_PHI_COS] = cosf(coeff[HandCoeff::WRIST_PHI]);
-    coeff_convnet_[WRIST_PHI_SIN] = sinf(coeff[HandCoeff::WRIST_PHI]);
+    coeff_convnet[WRIST_THETA_COS] = cosf(coeff[HandCoeff::WRIST_THETA]);
+    coeff_convnet[WRIST_THETA_SIN] = sinf(coeff[HandCoeff::WRIST_THETA]);
+    coeff_convnet[WRIST_PHI_COS] = cosf(coeff[HandCoeff::WRIST_PHI]);
+    coeff_convnet[WRIST_PHI_SIN] = sinf(coeff[HandCoeff::WRIST_PHI]);
 
     // Thumb
     sphere = geom->bspheres()[HandSphereIndices::TH_KNU3_A];
     sphere->transform();
     calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
-    coeff_convnet_[THUMB_TIP_U] = pos_uv[0];
-    coeff_convnet_[THUMB_TIP_V] = pos_uv[1];
+    coeff_convnet[THUMB_TIP_U] = pos_uv[0];
+    coeff_convnet[THUMB_TIP_V] = pos_uv[1];
 
     sphere = geom->bspheres()[HandSphereIndices::TH_KNU3_B];
     sphere->transform();
     calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
-    coeff_convnet_[THUMB_K2_U] = pos_uv[0];
-    coeff_convnet_[THUMB_K2_V] = pos_uv[1];
+    coeff_convnet[THUMB_K2_U] = pos_uv[0];
+    coeff_convnet[THUMB_K2_V] = pos_uv[1];
 
     sphere = geom->bspheres()[HandSphereIndices::TH_KNU2_B];
     sphere->transform();
     calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
-    coeff_convnet_[THUMB_K1_U] = pos_uv[0];
-    coeff_convnet_[THUMB_K1_V] = pos_uv[1];
+    coeff_convnet[THUMB_K1_U] = pos_uv[0];
+    coeff_convnet[THUMB_K1_V] = pos_uv[1];
 
     // Fingers
     for (uint32_t i = 0; i < 4; i++) {
       sphere = geom->bspheres()[HandSphereIndices::F1_KNU3_A + 6 * i];
       sphere->transform();
       calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
-      coeff_convnet_[F0_TIP_U + 6 * i] = pos_uv[0];
-      coeff_convnet_[F0_TIP_V + 6 * i] = pos_uv[1];
+      coeff_convnet[F0_TIP_U + 6 * i] = pos_uv[0];
+      coeff_convnet[F0_TIP_V + 6 * i] = pos_uv[1];
 
       sphere = geom->bspheres()[HandSphereIndices::F1_KNU3_B + 6 * i];
       sphere->transform();
       calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
-      coeff_convnet_[F0_K2_U + 6 * i] = pos_uv[0];
-      coeff_convnet_[F0_K2_V + 6 * i] = pos_uv[1];
+      coeff_convnet[F0_K2_U + 6 * i] = pos_uv[0];
+      coeff_convnet[F0_K2_V + 6 * i] = pos_uv[1];
 
       sphere = geom->bspheres()[HandSphereIndices::F1_KNU2_B + 6 * i];
       sphere->transform();
       calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
-      coeff_convnet_[F0_K1_U + 6 * i] = pos_uv[0];
-      coeff_convnet_[F0_K1_V + 6 * i] = pos_uv[1];
+      coeff_convnet[F0_K1_U + 6 * i] = pos_uv[0];
+      coeff_convnet[F0_K1_V + 6 * i] = pos_uv[1];
     }
   }
 
