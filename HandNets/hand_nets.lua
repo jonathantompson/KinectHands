@@ -3,10 +3,10 @@ require 'image'
 require 'torch'
 -- require 'xlua'    -- xlua provides useful tools, like progress bars
 require 'optim'   -- an optimization package, for online and batch methods
-torch.setnumthreads(8)
+torch.setnumthreads(4)
 dofile("pbar.lua")
 dofile("shuffle_files.lua")
-dofile(
+dofile("modules_cc.lua")
 -- require 'debugger'
 
 -- Jonathan Tompson
@@ -22,12 +22,13 @@ test_data_rate = 5  -- this means 1 / 5 will be test data
 num_coeff = 42
 background_depth = 2000
 perform_training = 1
-nonlinear = 0  -- 0 = tanh, 1 = SoftShrink, 2 = rectlin
+nonlinear = 2  -- 0 = tanh, 1 = SoftShrink, 2 = ramp
 model_filename = 'handmodel.net'
 loss = 0  -- 0 = abs, 1 = mse
 im_dir = "./hand_depth_data_processed/"
 visualize_data = 0
 pooling = 2  -- 1,2,.... or math.huge (infinity)
+use_hpf_depth = 1
 
 -- ******* Some preliminary calculations *********
 w = width
@@ -66,6 +67,7 @@ end
 coeffl_files = {}
 coeffr_files = {}
 hpf_depth_files = {}
+depth_files = {}
 for i=1,#files,1 do
   if files[i] ~= nil then
     if string.find(files[i], "coeffr_hands_") ~= nil then
@@ -74,16 +76,24 @@ for i=1,#files,1 do
       table.insert(coeffl_files, files[i])
     elseif string.find(files[i], "hpf_hands_") ~= nil then
       table.insert(hpf_depth_files, files[i])
+    elseif string.find(files[i], "hands_") ~= nil then
+      table.insert(depth_files, files[i])
     end
   end
 end 
 
+if (use_hpf_depth == 1) then
+  im_files = hpf_depth_files
+else
+  im_files = depth_files
+end
+
 -- ************ Randomly permute the files ***********
-shuffle_files(coeffr_files, coeffl_files, hpf_depth_files)
+shuffle_files(coeffr_files, coeffl_files, im_files)
 
 -- ************ Load data from Disk ***************
 print '==> Loading hand data from directory'
-nfiles = math.floor(#hpf_depth_files / frame_stride)
+nfiles = math.floor(#im_files / frame_stride)
 tesize = math.floor(nfiles / test_data_rate) + 1
 trsize = nfiles - tesize
 if tesize <= 0 then
@@ -121,7 +131,7 @@ for i=1,nfiles do
   coeff_data = coeff_file:readFloat(num_coeff)
   coeff_file:close()
 
-  hpf_depth_file = torch.DiskFile(im_dir .. hpf_depth_files[i*frame_stride],'r')
+  hpf_depth_file = torch.DiskFile(im_dir .. im_files[i*frame_stride],'r')
   hpf_depth_file:binary()
   hpf_depth_data = hpf_depth_file:readFloat(data_file_size)
   hpf_depth_file:close()
@@ -139,7 +149,7 @@ for i=1,nfiles do
       end
       trainData.labels[{itr, {}}] = torch.FloatTensor(coeff_data, 1,
         torch.LongStorage{num_coeff}):double()
-      trainData.files[itr] = hpf_depth_files[i*frame_stride]
+      trainData.files[itr] = im_files[i*frame_stride]
       itr = itr + 1
     end
   else
@@ -155,7 +165,7 @@ for i=1,nfiles do
       end
       testData.labels[{ite, {}}] = torch.FloatTensor(coeff_data, 1,
         torch.LongStorage{num_coeff}):double()
-      testData.files[ite] = hpf_depth_files[i*frame_stride]
+      testData.files[ite] = im_files[i*frame_stride]
       ite = ite + 1
     end
   end
@@ -262,6 +272,8 @@ if (perform_training == 1) then
       banks[j]:add(nn.SoftShrink())
     elseif (nonlinear == 0) then
       banks[j]:add(nn.Tanh())
+    elseif (nonlinear == 2) then
+      banks[j]:add(nn.ramp())
     end
     if (poolsize[j][1] > 1) then
       if (pooling ~= math.huge) then
@@ -284,6 +296,8 @@ if (perform_training == 1) then
       nstates[j][2], fanin[j][1]), filtsize[j][2], filtsize[j][2]))
     if (nonlinear == 1) then 
       banks[j]:add(nn.SoftShrink())
+    elseif (nonlinear == 2) then
+      banks[j]:add(nn.ramp())
     elseif (nonlinear == 0) then
       banks[j]:add(nn.Tanh())
     end
@@ -328,6 +342,8 @@ if (perform_training == 1) then
   model:add(nn.Linear(banks_total_output_size, nstates_nn))
   if (nonlinear == 1) then 
     model:add(nn.SoftShrink())
+  elseif (nonlinear == 2) then
+    model:add(nn.ramp())
   elseif (nonlinear == 0) then
     model:add(nn.Tanh())
   end
@@ -499,7 +515,7 @@ if (perform_training == 1) then
       -- get new sample
       input = {}
       for j=1,num_hpf_banks do
-        table.insert(input, trainData.data[j][t])
+        table.insert(input, testData.data[j][t])
         input[j] = input[j]:double()
       end
       target = testData.labels[t]
@@ -566,7 +582,7 @@ else  -- if perform_training
     }
     for j=1,num_hpf_banks do
       table.insert(data_pt.input, testData.data[j][t])
-      data_pt.input[j] = data_pt.input[j].double()
+      data_pt.input[j] = data_pt.input[j]:double()
     end
     data_pt.target = data_pt.target:double()
 
@@ -603,7 +619,7 @@ else  -- if perform_training
     }
     for j=1,num_hpf_banks do
       table.insert(data_pt.input, trainData.data[j][t])
-      data_pt.input[j] = data_pt.input[j].double()
+      data_pt.input[j] = data_pt.input[j]:double()
     end
     data_pt.target = data_pt.target:double()
 

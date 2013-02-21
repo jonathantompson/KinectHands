@@ -16,9 +16,11 @@ dofile("saveNNStage.lua")  -- Load in helper function
 model_filename = "results/handmodel.net"
 
 -- Load in the settings file
+print("--> Loading settings from file")
 dofile("load_settings.lua")
 
 -- Load in the serialized convent
+print("--> Loading model from file")
 model = torch.load(model_filename)
 
 -- Open an output file
@@ -35,6 +37,7 @@ convnet:writeInt(2)
 convnet:writeInt(num_hpf_banks)
 
 for j=1,num_hpf_banks do
+  print(string.format("--> Saving bank %d convnet stage 1 and 2", j))
   -- ***************************************************
   -- Save the first conv stage.
   stg1 = model:get(1):get(j):get(1)
@@ -43,7 +46,6 @@ for j=1,num_hpf_banks do
 
   -- ***************************************************
   -- Save the second conv stage.
-  print(poolsize[j][1])
   if (poolsize[j][1] == 1) then  -- no pooling in the first stage
     stg2 = model:get(1):get(j):get(4)
   else
@@ -54,11 +56,13 @@ end
 
 -- ***************************************************
 -- Save the first neural net stage.
+print("--> Saving neural net stage 1")
 stg1 = model:get(3)
 saveNNStage(stg1, nonlinear, convnet)
 
 -- ***************************************************
 -- Save the second neural net stage.
+print("--> Saving neural net stage 2")
 stg2 = model:get(5)
 saveNNStage(stg2, nonlinear, convnet)
 
