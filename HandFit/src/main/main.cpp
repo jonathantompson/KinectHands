@@ -52,13 +52,15 @@
 // 3 -> Finished (4 partially finished)
 //#define IM_DIR_BASE string("hand_data/both_hands/set03/") 
 
-#define IM_DIR_BASE string("/data/hand_depth_data_1/") 
+#define IM_DIR_BASE string("data/hand_depth_data_1/") 
 
 #if defined(__APPLE__)
-  #define IM_DIR string("./../../../../../../../../../") + IM_DIR_BASE
+  #define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
 #else
-  #define IM_DIR string("./../") + IM_DIR_BASE
+  #define KINECT_HANDS_ROOT string("./../")
 #endif
+
+#define IM_DIR (KINECT_HANDS_ROOT + IM_DIR_BASE)
 const bool fit_left = false;
 const bool fit_right = true; 
 const uint32_t num_hands = (fit_left ? 1 : 0) + (fit_right ? 1 : 0);
@@ -150,8 +152,7 @@ uint8_t tex_data[src_dim * 3];
 
 void quit() {
   delete image_io;
-  delete clk;
-  delete render;
+  delete clk; 
   if (l_hands) {
     for (uint32_t i = 0; i < im_files.size(); i++) {
       delete l_hands[i];
@@ -164,14 +165,15 @@ void quit() {
     }
     delete[] r_hands;
   }
-  delete hand_renderer;
-  delete hand_fit;
-  GLState::shutdownGLState();
+  delete tex;
   delete wnd;
   delete geometry_points;
   delete convnet;
   delete hand_detector;
-  delete tex;
+  delete hand_renderer;
+  delete hand_fit;
+  delete render;
+  GLState::shutdownGLState();
   Window::killWindowSystem();
   exit(0);
 }
@@ -762,7 +764,7 @@ int main(int argc, char *argv[]) {
   static_cast<void>(argc); static_cast<void>(argv);
 #if defined(_DEBUG) && defined(_WIN32)
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-  // _CrtSetBreakAlloc(853);
+  // _CrtSetBreakAlloc(707);
 #endif
 
   cout << "Usage:" << endl;
@@ -794,7 +796,6 @@ int main(int argc, char *argv[]) {
     
     // Initialize Windowing system
     Window::initWindowSystem();
-    GLState::initGLState();
     
     // Fill the settings structure
     settings.width = src_width*2;
@@ -811,12 +812,13 @@ int main(int argc, char *argv[]) {
     
     // Create the window
     wnd = new Window(settings);
+    GLState::initGLState();    
 
     // Load the convnet from file
     convnet = new HandNet(CONVNET_FILE);
 
     // Load the decision forest
-    hand_detector = new HandDetector(src_width, src_height, string("./../") +
+    hand_detector = new HandDetector(src_width, src_height, KINECT_HANDS_ROOT +
       FOREST_DATA_FILENAME);
     tex = new Texture(GL_RGB8, src_width, src_height, GL_RGB, 
       GL_UNSIGNED_BYTE, (unsigned char*)label, 

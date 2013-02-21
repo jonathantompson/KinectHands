@@ -28,7 +28,7 @@
 
 // #define USE_SIMPLE_GEOMETRY  // Otherwise use dense mesh
 #if defined(__APPLE__)
-  #define HAND_MODEL_PATH string("../../../../../../../../models/")
+  #define HAND_MODEL_PATH string("./../../../../../../../../../models/")
 #else
   #define HAND_MODEL_PATH string("./models/")
 #endif
