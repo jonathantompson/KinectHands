@@ -64,6 +64,7 @@ saveNNStage(stg1, nonlinear, convnet)
 -- Save the second neural net stage.
 print("--> Saving neural net stage 2")
 stg2 = model:get(5)
-saveNNStage(stg2, nonlinear, convnet)
+stg2_nn_nonlinear = "None"  -- none
+saveNNStage(stg2, stg2_nn_nonlinear, convnet)
 
 print("All done saving convnet")

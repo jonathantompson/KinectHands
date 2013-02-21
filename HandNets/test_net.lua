@@ -13,7 +13,7 @@ dofile("saveNNStage.lua")  -- Load in helper function
 -- This script turns the serialized neural network file into a file that is
 -- readable by my c++ code.
 
-model_filename = "results/handmodel_fullcoeffs_tanh_abs_mid_L2Pooling.net"
+model_filename = "results/handmodel.net"
 
 -- Load in the settings file
 dofile("load_settings.lua")  -- We don't need to do this
@@ -26,8 +26,23 @@ im_dir = "./hand_depth_data_processed/"
 width = 96
 height = 96
 dim = width * height
-num_coeff = 25  -- Keep this at 25!
-num_learned_coeff = 25
+num_coeff = 42
+use_hpf_depth = 1
+num_hpf_banks = 3
+
+-- ******* Some preliminary calculations *********
+w = width
+h = height
+bank_dim = {}
+data_file_size = 0
+for i=1,num_hpf_banks do
+  table.insert(bank_dim, {h, w})
+  data_file_size = data_file_size + w * h
+  w = w / 2
+  h = h / 2
+end
+w = nil  -- To avoid confusion
+h = nil
 
 -- ************ Get Data locations ***************
 print '==> Scanning directory for hand data'
@@ -58,7 +73,7 @@ for i=1,#files,1 do
       table.insert(coeffr_files, files[i])
     elseif string.find(files[i], "coeffl_hands_") ~= nil then
       table.insert(coeffl_files, files[i])
-    elseif string.find(files[i], "hands_") ~= nil then
+    elseif string.find(files[i], "hpf_hands_") ~= nil then
       table.insert(depth_files, files[i])
     end
   end
@@ -77,38 +92,47 @@ coeff_file:close()
 
 depth_file = torch.DiskFile(im_dir .. depth_files[cur_image], 'r')
 depth_file:binary()
-depth_data = depth_file:readFloat(dim)
+depth_data = depth_file:readFloat(data_file_size)
 depth_file:close()
 
-depth = torch.FloatTensor(1, height, width)
-depth[{1, {}, {}}] = torch.FloatTensor(depth_data, 1, torch.LongStorage{height, width})
-coeff = torch.FloatTensor(1, num_learned_coeff)
-coeff[{1,{}}] = torch.FloatTensor(coeff_data, num_coeff - num_learned_coeff + 1,
-  torch.LongStorage{num_learned_coeff}):double()
+depth = {}
+ind = 1
+for j=1,num_hpf_banks do
+  table.insert(depth, torch.FloatTensor(1, bank_dim[j][1], bank_dim[j][2]))
+  depth[j][{1, {}, {}}] = torch.FloatTensor(depth_data, ind, 
+    torch.LongStorage{bank_dim[j][1], bank_dim[j][2]})
+  ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
+  depth[j] = depth[j]:double()
+end
 
-image.display{image=depth, padding=2, zoom=3, legend='sample data point'}
-
-depth = depth:double();
+coeff = torch.FloatTensor(1, num_coeff)
+coeff[{1,{}}] = torch.FloatTensor(coeff_data, 1,
+  torch.LongStorage{num_coeff}):double()
 coeff = coeff:double();
+
+for j=1,num_hpf_banks do
+  image.display{image=depth[j], padding=2, zoom=(3*math.pow(2,j)), legend='sample data point'}
+end
+
 output = model:forward(depth)
 
-stg1_conv = model:get(1)
+stg1_conv = model:get(1):get(1):get(1)
 
 print("input data (40,40) --> (43,43)   (c++: 39 to 42)")
-print(depth[{1,{40,43},{40,43}}])
+print(depth[1][{1,{40,43},{40,43}}])
 
 stg1_conv_output = stg1_conv.output
 print("stg1 conv out (40,40) --> (43,43) of feature 1 (c++: 39 to 42 of feat 0)")
 print(stg1_conv_output[{1,{40,43},{40,43}}])
-print("stg1 conv out (40,40) --> (43,43) of feature 14 (c++: 39 to 42 of feat 13)")
-print(stg1_conv_output[{14,{40,43},{40,43}}])
+print("stg1 conv out (40,40) --> (43,43) of feature 2 (c++: 39 to 42 of feat 13)")
+print(stg1_conv_output[{2,{40,43},{40,43}}])
 
 --[[
 -- Try manually convolving here
 weights = stg1_conv.weight
 bias = stg1_conv.bias
 conn_table = stg1_conv.connTableRev
-n_conv_output_features = 16
+n_conv_output_features = 8
 interm_w = 92
 interm_h = 92
 interm_dim = interm_w * interm_h
@@ -118,7 +142,7 @@ filt_fan_in = 1
 in_dim = inw * inh
 filt_height = 5
 filt_width = 5
-input = depth
+input = depth[1]
 
 -- Initialize conv_output to the convolution bias
 stg1_conv_output_man = torch.DoubleTensor(n_conv_output_features, interm_h, interm_w)
@@ -155,47 +179,47 @@ end
 
 print("stg1 conv out manual (40,40) --> (43,43) of feature 1")
 print(stg1_conv_output_man[{1,{40,43},{40,43}}])
-print("stg1 conv out manual (40,40) --> (43,43) of feature 14")
-print(stg1_conv_output_man[{14,{40,43},{40,43}}])
+print("stg1 conv out manual (40,40) --> (43,43) of feature 2")
+print(stg1_conv_output_man[{2,{40,43},{40,43}}])
 --]]
 
-stg1_non_linear = model:get(2)
+stg1_non_linear = model:get(1):get(1):get(2)
 
 stg1_nl_output = stg1_non_linear.output
 print("stg1 nl out (40,40) --> (43,43) of feature 1 (c++: 39 to 42 of feat 0)")
 print(stg1_nl_output[{1,{40,43},{40,43}}])
-print("stg1 nl out (40,40) --> (43,43) of feature 14 (c++: 39 to 42 of feat 13)")
-print(stg1_nl_output[{14,{40,43},{40,43}}])
+print("stg1 nl out (40,40) --> (43,43) of feature 2 (c++: 39 to 42 of feat 13)")
+print(stg1_nl_output[{2,{40,43},{40,43}}])
 
-stg1_pool = model:get(3)
+stg1_pool = model:get(1):get(1):get(3)
 
 stg1_pool_output = stg1_pool:get(3).output
 
 print("stg1 pool out (20,20) --> (23,23) of feature 1 (c++: 19 to 22 of feat 0)")
 print(stg1_pool_output[{1,{20,23},{20,23}}])
-print("stg1 pool out (20,20) --> (23,23) of feature 14 (c++: 19 to 22 of feat 13)")
-print(stg1_pool_output[{14,{20,23},{20,23}}])
+print("stg1 pool out (20,20) --> (23,23) of feature 2 (c++: 19 to 22 of feat 13)")
+print(stg1_pool_output[{2,{20,23},{20,23}}])
 
-stg1_norm = model:get(4)
+stg1_norm = model:get(1):get(1):get(4)
 
 stg1_norm_out = stg1_norm.output
 
 print("stg1 norm out (20,20) --> (23,23) of feature 1 (c++: 19 to 22 of feat 0)")
 print(stg1_norm_out[{1,{20,23},{20,23}}])
-print("stg1 norm out (20,20) --> (23,23) of feature 14 (c++: 19 to 22 of feat 13)")
-print(stg1_norm_out[{14,{20,23},{20,23}}])
+print("stg1 norm out (20,20) --> (23,23) of feature 2 (c++: 19 to 22 of feat 13)")
+print(stg1_norm_out[{2,{20,23},{20,23}}])
 
 
 
 
 
-stg2_conv = model:get(5)
+stg2_conv = model:get(1):get(1):get(5)
 
 stg2_conv_output = stg2_conv.output
 print("stg2 conv out (18,18) --> (21,21) of feature 1 (c++: 17 to 20 of feat 0)")
 print(stg2_conv_output[{1,{18,21},{18,21}}])
-print("stg2 conv out (18,18) --> (21,21) of feature 14 (c++: 17 to 20 of feat 13)")
-print(stg2_conv_output[{14,{18,21},{18,21}}])
+print("stg2 conv out (18,18) --> (21,21) of feature 2 (c++: 17 to 20 of feat 13)")
+print(stg2_conv_output[{2,{18,21},{18,21}}])
 
 --[[
 -- Try manually convolving here
@@ -253,13 +277,18 @@ print("stg2 conv out man (18,18) --> (21,21) of feature 14 (c++: 17 to 20 of fea
 print(stg2_conv_output_man[{14,{18,21},{18,21}}])
 --]]
 
-stg2_norm = model:get(8)
+bank1_out_feats = model:get(1):get(1):get(8)
+print("bank1_out_feats (3,3) --> (8,8) of feature 1 (c++: 2 to 7 of feat 0)")
+print(bank1_out_feats.output[{1,{3,8},{3,8}}])
 
-stg2_norm_out = stg2_norm.output
+bank2_out_feats = model:get(1):get(2):get(8)
+print("bank2_out_feats (3,3) --> (8,8) of feature 1 (c++: 2 to 7 of feat 0)")
+print(bank2_out_feats.output[{1,{3,8},{3,8}}])
 
-print("stg2 norm out (3,8) --> (3,8) of feature 1 (c++: 2 to 7 of feat 0)")
-print(stg2_norm_out[{1,{3,8},{3,8}}])
-print("stg2 norm out (3,8) --> (3,8) of feature 14 (c++: 2 to 7 of feat 13)")
-print(stg2_norm_out[{14,{3,8},{3,8}}])
+bank3_out_feats = model:get(1):get(3):get(7)
+print("bank3_out_feats (3,3) --> (8,8) of feature 1 (c++: 2 to 7 of feat 0)")
+print(bank3_out_feats.output[{1,{3,8},{3,8}}])
+
+jointable = model:get(2)
 
 first_stage_nnet = model:get(10)
