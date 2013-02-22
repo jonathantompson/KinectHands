@@ -17,14 +17,14 @@ width = 96
 height = 96
 num_hpf_banks = 3
 dim = width * height
-frame_stride = 2  -- Maybe We don't need every 30fps, so just grab a few
+frame_stride = 200  -- Maybe We don't need every 30fps, so just grab a few
 test_data_rate = 5  -- this means 1 / 5 will be test data
 num_coeff = 42
 background_depth = 2000
 perform_training = 1
-nonlinear = 2  -- 0 = tanh, 1 = SoftShrink, 2 = ramp
+nonlinear = 0  -- 0 = tanh, 1 = SoftShrink, 2 = ramp
 model_filename = 'handmodel.net'
-loss = 0  -- 0 = abs, 1 = mse
+loss = 1  -- 0 = abs, 1 = mse
 im_dir = "./hand_depth_data_processed/"
 visualize_data = 0
 pooling = 2  -- 1,2,.... or math.huge (infinity)
@@ -223,6 +223,9 @@ end
 -- ********************** Define loss function **********************
 print '==> defining loss function'
 
+abs_criterion = nn.AbsCriterion()
+abs_criterion.sizeAverage = false
+
 if (loss == 0) then
   -- Absoulte Value criterion: loss(x,y) = 1/n \sum |x_i-y_i|.
   print '   using ABS criterion'
@@ -409,6 +412,7 @@ if (perform_training == 1) then
     print('==> doing epoch on training data:')
     print("==> online epoch # " .. epoch .. ' [batchSize = ' .. batchSize .. ']')
     local ave_err = 0
+    local ave_abs_err = 0  -- might be same as ave_err if loss = 0
     local nsamples = 0
     for t = 1,trainData:size(),batchSize do
       -- disp progress
@@ -453,6 +457,11 @@ if (perform_training == 1) then
           cur_f = cur_f + err
           ave_err = ave_err + err
           nsamples = nsamples + 1
+          local abs_err = err
+          if (loss ~= 0) then
+            abs_err = abs_criterion:forward(output, targets[i])
+          end
+          ave_abs_err = ave_abs_err + abs_err
 
           -- estimate df/dW
           local df_do = criterion:backward(output, targets[i])
@@ -478,8 +487,9 @@ if (perform_training == 1) then
     print("\n==> time to learn 1 sample = " .. (time*1000) .. 'ms')
   
     ave_err = ave_err / nsamples
+    abs_ave_err = ave_err / nsamples
     print("current loss function value: " .. (ave_err) .. " (using criterion)")
-    trainLogger:add{['average err'] = string.format('%.8e', ave_err)}
+    trainLogger:add{['average err'] = string.format('%.8e', ave_abs_err)}
     --trainLogger:plot()
 
     -- save/log current net
@@ -505,6 +515,7 @@ if (perform_training == 1) then
     end
 
     local err_ave = 0
+    local abs_err_ave = 0
 
     -- test over test data
     print('==> testing on test set:')
@@ -526,9 +537,15 @@ if (perform_training == 1) then
       err = criterion:forward(pred, target)
   
       err_ave = err_ave + err
+      abs_err = err
+      if (loss ~= 0) then
+        abs_err = abs_criterion:forward(pred, target)
+      end
+      abs_err_ave = abs_err_ave + abs_err
     end
 
     err_ave = err_ave / testData:size()
+    abs_err_ave = abs_err_ave / testData:size()
 
     -- timing
     time = sys.clock() - time
@@ -536,7 +553,7 @@ if (perform_training == 1) then
     print("\n==> time to test 1 sample = " .. (time*1000) .. 'ms')
 
     print("Average loss function value on test set: " .. (err_ave) .. " (using criterion)")
-    testLogger:add{['average err'] = string.format('%.8e', err_ave)}
+    testLogger:add{['average err'] = string.format('%.8e', abs_err_ave)}
     --testLogger:plot()
   
     -- averaged param use?
