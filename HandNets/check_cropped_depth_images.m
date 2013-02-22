@@ -79,6 +79,7 @@ tic;
 frame_rate = single(60);
 frame_time = single(1 / frame_rate);
 for i = 1:num_images
+  clf;
   if mod(i,100) == 0
     disp(['Image ',num2str(i), ' of ', num2str(num_images)]);
   end
@@ -108,11 +109,13 @@ figure;
 tic;
 frame_rate = single(60);
 frame_time = single(1 / frame_rate);
-for i = 1:num_images
+% for i = 1:num_images
+for i = 8900:num_images 
   if mod(i,100) == 0
     disp(['Image ',num2str(i), ' of ', num2str(num_images)]);
   end
-  cur_image = squeeze(hpf_im_data{1}(i, :, :)) + 0.5;
+  cur_image = squeeze(im_data{1}(i, :, :));
+  clf;
   imshow(cur_image, 'InitialMagnification', mag);
   hold on;
   % Draw the crosses

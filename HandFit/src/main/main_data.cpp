@@ -54,12 +54,12 @@
 // 3 -> Finished (4 partially finished)
 //#define IM_DIR_BASE string("hand_data/both_hands/set03/") 
 
-#define IM_DIR_BASE string("data/hand_depth_data_1/") 
+#define IM_DIR_BASE string("data/hand_depth_data_2_2/") 
 #define DST_IM_DIR_BASE string("data/hand_depth_data_processed/") 
 
 #define FILE_STRIDE 1
 #define MAX_FILES MAX_UINT32
-// #define SAVE_FILES
+#define SAVE_FILES
 // #define RENDER_FULL_DEPTH
 
 #if defined(__APPLE__)
