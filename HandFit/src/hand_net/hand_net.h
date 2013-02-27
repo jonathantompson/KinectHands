@@ -24,7 +24,7 @@
 #define HAND_SIZE 300.0f
 #define HPF_SIGMA 1.5f  // in pixels
 #define HPF_KERNEL_SIZE 11  // Hopefully >= 2*(3*sigma) + 1 (MUST BE ODD!)
-#define NUM_HPF_BANKS 3
+#define NUM_CONV_BANKS 1
 #define HPF_GAIN 2.0f
 
 #if defined(__APPLE__)
@@ -77,6 +77,11 @@ namespace hand_net {
     HAND_NUM_COEFF_CONVNET = 42, 
   } HandCoeffConvnet;
 
+  typedef enum {
+    DEPTH_DATA = 0,
+    HPF_DEPTH_DATA = 1,
+  } HandNetDataType;
+
   class ConvStage;
   class NNStage;
   
@@ -122,7 +127,11 @@ namespace hand_net {
     inline const math::Float3& uvd_com() const { return uvd_com_; }
 
   private:
-    int32_t n_conv_stages_;  // Number PER BANK!  Total = n_conv_stages_ * NUM_HPF_BANKS
+    HandNetDataType data_type_;
+
+    // n_conv_stages_ = Number PER BANK!  
+    // Total = n_conv_stages_ * NUM_CONV_BANKS
+    int32_t n_conv_stages_; 
     ConvStage** conv_stages_;
 
     int32_t n_nn_stages_;

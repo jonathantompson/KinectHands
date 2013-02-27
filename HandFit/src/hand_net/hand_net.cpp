@@ -60,10 +60,10 @@ namespace hand_net {
     int32_t im_sizeu = HAND_NET_IM_SIZE;
     int32_t im_sizev = HAND_NET_IM_SIZE;
     size_images_ = 0;
-    for (uint32_t i = 0; i < NUM_HPF_BANKS; i++) {
+    for (uint32_t i = 0; i < NUM_CONV_BANKS; i++) {
       size_images_ += (im_sizeu * im_sizev);
 #if defined(DEBUG) || defined(_DEBUG)
-      if (i < (NUM_HPF_BANKS - 1) && im_sizeu % 2 != 0 && im_sizev % 2 != 0) {
+      if (i < (NUM_CONV_BANKS - 1) && im_sizeu % 2 != 0 && im_sizev % 2 != 0) {
         throw std::wruntime_error("HandNet::loadFromFile() - ERROR: "
           "HPF bank image is not divisible by 2!");
       }
@@ -85,7 +85,7 @@ namespace hand_net {
 
   HandNet::~HandNet() {
     if (conv_stages_) {
-      for (int32_t i = 0; i < n_conv_stages_ * NUM_HPF_BANKS; i++) {
+      for (int32_t i = 0; i < n_conv_stages_ * NUM_CONV_BANKS; i++) {
         SAFE_DELETE(conv_stages_[i]);
       }
     }
@@ -99,13 +99,13 @@ namespace hand_net {
     SAFE_DELETE_ARR(nn_datcur_);
     SAFE_DELETE_ARR(nn_datnext_);
     if (conv_datcur_) {
-      for (int32_t i = 0; i < NUM_HPF_BANKS; i++) {
+      for (int32_t i = 0; i < NUM_CONV_BANKS; i++) {
         SAFE_DELETE_ARR(conv_datcur_[i]);
       }
     }
     SAFE_DELETE_ARR(conv_datcur_);
     if (conv_datnext_) {
-      for (int32_t i = 0; i < NUM_HPF_BANKS; i++) {
+      for (int32_t i = 0; i < NUM_CONV_BANKS; i++) {
         SAFE_DELETE_ARR(conv_datnext_[i]);
       }
     }
@@ -137,13 +137,16 @@ namespace hand_net {
       file.read(reinterpret_cast<char*>(&n_nn_stages_), sizeof(n_nn_stages_));
       int32_t n_hpf_banks;
       file.read(reinterpret_cast<char*>(&n_hpf_banks), sizeof(n_hpf_banks));
-      if (n_hpf_banks != NUM_HPF_BANKS) {
+      if (n_hpf_banks != NUM_CONV_BANKS) {
         throw std::wruntime_error("HandNet::loadFromFile() - ERROR: "
-          "num of hpf banks in convnet file does not equal NUM_HPF_BANKS!");
+          "num of hpf banks in convnet file does not equal NUM_CONV_BANKS!");
       }
+      int32_t data_type;
+      file.read(reinterpret_cast<char*>(&data_type), sizeof(data_type));
+      data_type_ = (HandNetDataType)data_type;
 
-      conv_stages_ = new ConvStage*[n_conv_stages_ * NUM_HPF_BANKS];
-      for (uint32_t j = 0; j < NUM_HPF_BANKS; j++) {
+      conv_stages_ = new ConvStage*[n_conv_stages_ * NUM_CONV_BANKS];
+      for (uint32_t j = 0; j < NUM_CONV_BANKS; j++) {
         // Load in the convolution stages
         for (int32_t i = 0; i < n_conv_stages_; i++) {
           conv_stages_[j * n_conv_stages_ + i] = new ConvStage();
@@ -164,9 +167,9 @@ namespace hand_net {
       // Now create sufficient temporary data so that we can propogate the
       // forward model
       int32_t total_conv_output_size = 0;
-      conv_datcur_ = new float*[NUM_HPF_BANKS];
-      conv_datnext_ = new float*[NUM_HPF_BANKS];
-      for (uint32_t j = 0; j < NUM_HPF_BANKS; j++) {
+      conv_datcur_ = new float*[NUM_CONV_BANKS];
+      conv_datnext_ = new float*[NUM_CONV_BANKS];
+      for (uint32_t j = 0; j < NUM_CONV_BANKS; j++) {
         ConvStage* cstage;
         int32_t im_sizeu = HAND_NET_IM_SIZE / (1 << j);
         int32_t im_sizev = HAND_NET_IM_SIZE / (1 << j);
@@ -239,7 +242,7 @@ namespace hand_net {
       im_temp1_[j] = 1.0f;
     }
     float* coeff = hpf_hand_images_coeff_;
-    for (uint32_t i = 0; i < NUM_HPF_BANKS; i++) {
+    for (uint32_t i = 0; i < NUM_CONV_BANKS; i++) {
       // Filter ones image
       ConvolveImageZeroCrop<float>(coeff, im_temp1_, im_temp2_, w, h, 
         gauss_filt_, HPF_KERNEL_SIZE);
@@ -258,8 +261,20 @@ namespace hand_net {
     HandNet::calcHandImage(depth, label);
 
     // Copy over the hand images in the input data structures
-    float* im = hpf_hand_images_;
-    for (int32_t j = 0; j < NUM_HPF_BANKS; j++) {
+
+    float* im;
+    switch (data_type_) {
+    case DEPTH_DATA:
+      im = hand_image_;
+      break;
+    case HPF_DEPTH_DATA:
+      im = hpf_hand_images_;
+      break;
+    default:
+      throw std::wruntime_error("HandNet::calcHandCoeffConvnet() - ERROR: "
+        "data_type value is not supported!");
+    }
+    for (int32_t j = 0; j < NUM_CONV_BANKS; j++) {
       int32_t w = HAND_NET_IM_SIZE / (1 << j);
       int32_t h = HAND_NET_IM_SIZE / (1 << j);
       memcpy(conv_datcur_[j], im, w * h * sizeof(conv_datcur_[j][0]));
@@ -270,7 +285,7 @@ namespace hand_net {
     // output into the nn input
     float* nn_input = nn_datcur_;
     ConvStage* stage = NULL;
-    for (int32_t j = 0; j < NUM_HPF_BANKS; j++) {
+    for (int32_t j = 0; j < NUM_CONV_BANKS; j++) {
       int32_t w = HAND_NET_IM_SIZE / (1 << j);
       int32_t h = HAND_NET_IM_SIZE / (1 << j);
       for (int32_t i = 0; i < n_conv_stages_; i++) {
@@ -386,7 +401,7 @@ namespace hand_net {
     int32_t w = HAND_NET_IM_SIZE;
     int32_t h = HAND_NET_IM_SIZE;
     float* src = hand_image_;
-    for (uint32_t i = 1; i < NUM_HPF_BANKS; i++) {
+    for (uint32_t i = 1; i < NUM_CONV_BANKS; i++) {
       DownsampleImage<float>(&src[w*h], src, w, h, 2);
       src = &src[w*h];
       w /= 2;
@@ -400,7 +415,7 @@ namespace hand_net {
     float* coeff = hpf_hand_images_coeff_;
     float* dst = hpf_hand_images_;
     float* src = hand_image_;
-    for (uint32_t i = 0; i < NUM_HPF_BANKS; i++) {
+    for (uint32_t i = 0; i < NUM_CONV_BANKS; i++) {
       // Apply LPF to the source image
       ConvolveImageZeroCrop<float>(dst, src, im_temp1_, w, h, 
         gauss_filt_, HPF_KERNEL_SIZE);
@@ -411,7 +426,7 @@ namespace hand_net {
         dst[j] = HPF_GAIN * (src[j] - dst[j]);  // HPF = src - LPF
       }
       // Downsample for the next iteration
-      if (i < (NUM_HPF_BANKS - 1)) {
+      if (i < (NUM_CONV_BANKS - 1)) {
         // Iterate the dst, coeff and src pointers
         src = &src[w * h];
         coeff = &coeff[w * h];

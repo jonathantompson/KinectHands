@@ -54,7 +54,7 @@ namespace windowing {
     RES_1920_1080,
     NUM_RES,
   } WINDOW_RES;
-  
+
   typedef void (*KeyboardCBFuncPtr)(int key, int action);
   typedef void (*MousePosCBFuncPtr)(int x, int y);
   typedef void (*MouseButtonCBFuncPtr)(int button, int action);
