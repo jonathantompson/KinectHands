@@ -26,6 +26,8 @@ num_coeff = tonumber(dataLineParsed[ind])
 ind = ind + 1
 num_hpf_banks = tonumber(dataLineParsed[ind])
 ind = ind + 1
+use_hpf_depth = tonumber(dataLineParsed[ind])
+ind = ind + 1
 
 nonlinear = -1
 norm = -1

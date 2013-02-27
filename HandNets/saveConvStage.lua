@@ -35,7 +35,7 @@ function saveConvStage(conv_stage, norm, poolsize, pooltype, nonlinear, out_file
     end
   end
 
-  if (norm == "spac sub.") then
+  if (norm == "spac_sub.") then
     out_file:writeInt(0)
   else
     out_file:writeInt(1)

@@ -35,6 +35,8 @@ convnet:writeInt(2)
 convnet:writeInt(2)
 -- 3. Number of banks
 convnet:writeInt(num_hpf_banks)
+-- 4. Input data type
+convnet:writeInt(use_hpf_depth)
 
 for j=1,num_hpf_banks do
   print(string.format("--> Saving bank %d convnet stage 1 and 2", j))

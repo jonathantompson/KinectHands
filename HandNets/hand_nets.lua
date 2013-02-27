@@ -17,7 +17,7 @@ width = 96
 height = 96
 num_hpf_banks = 3
 dim = width * height
-frame_stride = 200  -- Maybe We don't need every 30fps, so just grab a few
+frame_stride = 1  -- Maybe We don't need every 30fps, so just grab a few
 test_data_rate = 5  -- this means 1 / 5 will be test data
 num_coeff = 42
 background_depth = 2000
@@ -487,7 +487,7 @@ if (perform_training == 1) then
     print("\n==> time to learn 1 sample = " .. (time*1000) .. 'ms')
   
     ave_err = ave_err / nsamples
-    abs_ave_err = ave_err / nsamples
+    abs_ave_err = abs_ave_err / nsamples
     print("current loss function value: " .. (ave_err) .. " (using criterion)")
     trainLogger:add{['average err'] = string.format('%.8e', ave_abs_err)}
     --trainLogger:plot()
