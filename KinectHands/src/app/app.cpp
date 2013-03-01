@@ -121,9 +121,9 @@ namespace app {
       if (kinect_frame_number_ != kinect_->frame_number()) {
         memcpy(rgb_, kinect_->rgb(), sizeof(rgb_[0]) * src_dim * 3);
         memcpy(depth_, kinect_->depth(), sizeof(depth_[0]) * src_dim);
+        memcpy(labels_, kinect_->labels(), sizeof(labels_[0]) * src_dim);
         kinect_frame_number_ = kinect_->frame_number();
         update_tex = true;
-        std::cout << "kinect_frame_number_ = " << kinect_frame_number_ << std::endl;
       }
       kinect_->unlockData();
 
@@ -136,7 +136,7 @@ namespace app {
           break;
         case OUTPUT_DEPTH:
           for (uint32_t i = 0; i < src_dim; i++) {
-            uint8_t val = (depth_[i] / 2) % 255;
+            uint8_t val = (depth_[i] * 2) % 255;
             im_[i*3] = val;
             im_[i*3+1] = val;
             im_[i*3+2] = val;
@@ -146,6 +146,21 @@ namespace app {
           throw std::wruntime_error("App::run() - ERROR: output image type"
             "not recognized!");
         }
+
+        bool render_hand_labels;
+        GET_SETTING("render_hand_labels", bool, render_hand_labels);
+        if (render_hand_labels) {
+          // Make hand points red
+          for (uint32_t i = 0; i < src_dim; i++) {
+            if (labels_[i] != 0) {
+              im_[i*3] = (uint8_t)std::min<uint16_t>(255, 
+                3 * (uint16_t)im_[i*3] / 2);
+              im_[i*3 + 1] = (uint8_t)(3 * (uint16_t)im_[i*3+1] / 4);
+              im_[i*3 + 2] = (uint8_t)(3 * (uint16_t)im_[i*3+2] / 4);
+            }
+          }
+        }
+
         FlipImage<uint8_t>(im_flipped_, im_, src_width, src_height, 3);
         background_tex_->flagDirty();
       }
@@ -187,6 +202,9 @@ namespace app {
     ui->addSelectboxItem("kinect_output", ui::UIEnumVal(OUTPUT_RGB, "RGB"));
     ui->addSelectboxItem("kinect_output", 
       ui::UIEnumVal(OUTPUT_DEPTH, "Depth"));
+    ui->addCheckbox("detect_hands", "Enable Hand Detection");
+    ui->addCheckbox("render_hand_labels", "Mark Hand Pixels");
+    ui->addCheckbox("use_depth_from_file", "(Debug) Use Depth From File");
   }
 
   int App::closeWndCB() {

@@ -9,7 +9,10 @@
 //, *********** SETTINGS ***********
 //, APPLICATION SPECIFIC
 track_openni_skeleton,            bool,      0
-kinect_output,                    int,       0
+kinect_output,                    int,       1
+detect_hands,                     bool,      1
+render_hand_labels,               bool,      1
+use_depth_from_file,              bool,      1
 
 //, RENDERER
 screen_resolution_enum,           int,       7
@@ -45,6 +48,8 @@ dof_on,                           bool,      0
 dof_bounds,                       Float4,    0.15, 0.25, 3.0, 5.0
 ui_render_crosshairs,             bool,      0
 ui_crosshairs_size,               float,     0.025
+ui_starting_height,               int,       310
+ui_starting_width,                int,       300
 vsm_on,                           bool,      1 
 vsm_resolution_enum,              int,       2
 vsm_default_softness,             float,     0.2

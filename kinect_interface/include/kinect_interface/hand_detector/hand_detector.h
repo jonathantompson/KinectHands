@@ -4,8 +4,8 @@
 //  Created by Jonathan Tompson on 7/22/12.
 //
 
-#ifndef UNNAMED_HAND_DETECTOR_HEADER
-#define UNNAMED_HAND_DETECTOR_HEADER
+#ifndef KINECT_INTERFACE_HAND_DETECTOR_HAND_DETECTOR_HEADER
+#define KINECT_INTERFACE_HAND_DETECTOR_HAND_DETECTOR_HEADER
 
 #include <string>
 #include <mutex>
@@ -42,17 +42,18 @@ namespace hand_detector {
 
   typedef enum {
     HDUpconvert,
-    HDFloodfill
+    HDUpconvertFilter,
+    HDFloodfill  // DEFAULT METHOD
   } HDLabelMethod;
-
 
   struct DecisionTree;
 
   class HandDetector {
   public:
-    HandDetector(const uint32_t im_width, const uint32_t im_height,
-      const std::string filename = FOREST_DATA_FILENAME);
+    HandDetector();
     ~HandDetector();
+    void init(const uint32_t im_width, const uint32_t im_height,
+      const std::string filename = FOREST_DATA_FILENAME);
 
     void findHands(const int16_t* depth_data, bool& rhand_found, bool& lhand_found, 
       float* rhand_uvd, float* lhand_uvd);
@@ -61,24 +62,23 @@ namespace hand_detector {
 
     void reset();
 
-    inline int16_t* getDepthImDownsampled() { return depth_downsampled_; }
-    inline uint8_t* getLabelIm() { return labels_filtered_; }
-    inline uint32_t down_width() { return down_width_; }
-    inline uint32_t down_height() { return down_height_; }
-    inline int32_t stage2_med_filter_radius() { return stage2_med_filter_radius_; }
-    inline int32_t stage1_shrink_filter_radius() { return stage1_shrink_filter_radius_; }
-    inline void stage2_med_filter_radius(int32_t val) { stage2_med_filter_radius_ = val; }
-    inline void stage1_shrink_filter_radius(int32_t val) { stage1_shrink_filter_radius_ = val; }
-    inline uint32_t num_trees_to_evaluate() { return num_trees_to_evaluate_; }
-    inline void num_trees_to_evaluate(uint32_t val) { num_trees_to_evaluate_ = val; }
-    inline uint32_t num_trees() { return num_trees_; }
-    inline uint32_t max_height_to_evaluate() { return max_height_to_evaluate_; }
-    inline void max_height_to_evaluate(uint32_t val) { max_height_to_evaluate_ = val; }
-    inline uint32_t max_height() { return max_height_; }
+    // Getters
+    int16_t* getDepthImDownsampled() { return depth_downsampled_; }
+    const uint8_t* getLabelIm() const { return labels_filtered_; }
+    const uint32_t down_width() const { return down_width_; }
+    const uint32_t down_height() const { return down_height_; }
+    const uint32_t num_trees() const { return num_trees_; }
+    const uint32_t max_height() const { return max_height_; }
 
-    inline jtil::data_str::Vector<jtil::math::Float3>& hands_uvd() { return hands_uvd_; }
-    inline jtil::data_str::Vector<jtil::math::Int2>& hands_uv_min() { return hands_uv_min_; }
-    inline jtil::data_str::Vector<jtil::math::Int2>& hands_uv_max() { return hands_uv_max_; }
+    // Setters
+    int32_t& stage2_med_filter_radius() { return stage2_med_filter_radius_; }
+    int32_t& stage1_shrink_filter_radius() { return stage1_shrink_filter_radius_; }
+    int32_t& num_trees_to_evaluate() { return num_trees_to_evaluate_; }
+    int32_t& max_height_to_evaluate() { return max_height_to_evaluate_; }
+
+    jtil::data_str::Vector<jtil::math::Float3>& hands_uvd() { return hands_uvd_; }
+    jtil::data_str::Vector<jtil::math::Int2>& hands_uv_min() { return hands_uv_min_; }
+    jtil::data_str::Vector<jtil::math::Int2>& hands_uv_max() { return hands_uv_max_; }
 
   private:
     DecisionTree* forest_;
@@ -148,4 +148,4 @@ namespace hand_detector {
 };  // namespace hand_detector
 };  // namespace kinect_interface
 
-#endif
+#endif  // KINECT_INTERFACE_HAND_DETECTOR_HAND_DETECTOR_HEADER

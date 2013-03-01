@@ -10,7 +10,7 @@
 #include <fstream>
 #include <iostream>
 #include "kinect_interface/kinect_interface.h"
-// #include "kinect_interface/hand_detector/hand_detector.h"  // TEMP CODE
+#include "kinect_interface/hand_detector/hand_detector.h"
 #include "jtil/clk/clk.h"
 #include "jtil/image_util/image_util.h"
 #include "jtil/threading/callback.h"
@@ -18,6 +18,7 @@
 #include "jtil/settings/settings_manager.h"
 #include "jtil/exceptions/wruntime_error.h"
 #include "kinect_interface/open_ni_funcs.h"
+#include "kinect_interface/depth_images_io.h"
 
 #include "XnCppWrapper.h"
 #include "XnVNite.h"
@@ -52,6 +53,7 @@ using jtil::threading::Callback;
 using jtil::threading::MakeThread;
 using jtil::threading::MakeCallableOnce;
 using jtil::clk::Clk;
+using namespace kinect_interface::hand_detector;
 
 namespace kinect_interface {
   using hand_detector::HandDetector;
@@ -65,6 +67,9 @@ namespace kinect_interface {
     dg_ = NULL;
     ig_ = NULL;
     ug_ = NULL;
+    clk_ = NULL;
+    hand_detector_ = NULL;
+    image_io = NULL;
 
     if (g_kinect_) {
       throw std::wruntime_error("KinectInterface::KinectInterface() - ERROR: "
@@ -86,9 +91,6 @@ namespace kinect_interface {
     frame_number_ = 0;
     fps_ = 0;
 
-    clk_ = new Clk();
-    // hand_detector_ = new HandDetector(src_width, src_height);  // TEMP CODE
-
     //  Now spawn the Kinect Update Thread
     kinect_running_ = true;
     Callback<void>* threadBody = MakeCallableOnce(
@@ -107,7 +109,8 @@ namespace kinect_interface {
     SAFE_DELETE(ug_);
     SAFE_DELETE(context_);
     SAFE_DELETE(clk_);
-    // SAFE_DELETE(hand_detector_);  // TEMP CODE
+    SAFE_DELETE(hand_detector_);
+    SAFE_DELETE(image_io);
   }
 
   // ************************************************************
@@ -115,6 +118,16 @@ namespace kinect_interface {
   // ************************************************************
 
   bool KinectInterface::init() {
+    clk_ = new Clk();
+    hand_detector_ = new HandDetector();
+    hand_detector_->init(src_width, src_height);
+
+    image_io = new DepthImagesIO();
+    image_io->LoadCompressedImageWithRedHands("./kinect_image.bin", 
+      depth_from_file_, labels_from_file_, rgb_from_file_, NULL);
+    DepthImagesIO::convertSingleImageToXYZ(pts_world_from_file_,
+      depth_from_file_);
+
     XnStatus nRetVal = XN_STATUS_OK;
     xn::EnumerationErrors errors;
 
@@ -371,9 +384,20 @@ namespace kinect_interface {
           pts_uvd_[i * 3 + 2] = (float)pDepth[i];
         }
       }
+
       // Now convert kinect space to world space
       OpenNIFuncs::xnConvertProjectiveToRealWorld(src_dim, pts_uvd_, 
         pts_world_);
+
+      bool use_depth_from_file;
+      GET_SETTING("use_depth_from_file", bool, use_depth_from_file);
+      if (use_depth_from_file) {
+        memcpy(depth_, depth_from_file_, sizeof(depth_[0]) * src_dim);
+        memcpy(labels_, labels_from_file_, sizeof(labels_[0]) * src_dim);
+        memcpy(rgb_, rgb_from_file_, sizeof(rgb_[0]) * src_dim * 3);
+        memcpy(pts_world_, pts_world_from_file_, 
+          sizeof(pts_world_[0]) * src_dim * 3);
+      }
 
       // Now Get the skeleton
       if (tracking_skeleton_) {
@@ -394,24 +418,18 @@ namespace kinect_interface {
           updateJoint(aUsers[0], XN_SKEL_LEFT_HIP);
           updateJoint(aUsers[0], XN_SKEL_RIGHT_HIP);
         }
+      }
+
+      bool detect_hands;
+      GET_SETTING("detect_hands", bool, detect_hands);
+      if (detect_hands) {
+        bool found_hand = hand_detector_->findHandLabels((int16_t*)depth_, 
+          pts_world_, HDLabelMethod::HDFloodfill, labels_);
+        if (!found_hand) {
+          memset(labels_, 0, sizeof(labels_[0]) * src_dim);
+        }
       } else {
-        // TEMP CODE
-        //hand_detector_->findHands(reinterpret_cast<int16_t*>(depth),
-        //  joints_found_[XN_SKEL_RIGHT_HAND], joints_found_[XN_SKEL_LEFT_HAND],
-        //  &joints_projected_[XN_SKEL_RIGHT_HAND].X,  
-        //  &joints_projected_[XN_SKEL_LEFT_HAND].X);
-        //if (joints_found_[XN_SKEL_RIGHT_HAND]) {
-        //  dg_->ConvertProjectiveToRealWorld(1, 
-        //    &joints_projected_[XN_SKEL_RIGHT_HAND], &joints_[XN_SKEL_RIGHT_HAND]);  
-        //} else {
-        //  rHand_->resetHand();
-        //}
-        //if (joints_found_[XN_SKEL_LEFT_HAND]) {
-        //  dg_->ConvertProjectiveToRealWorld(1, 
-        //    &joints_projected_[XN_SKEL_LEFT_HAND], &joints_[XN_SKEL_LEFT_HAND]);   
-        //} else {
-        //  lHand_->resetHand();
-        //}
+        memset(labels_, 0, sizeof(labels_[0]) * src_dim);
       }
 
       frame_number_++;
@@ -612,7 +630,7 @@ namespace kinect_interface {
       joints_found_[i] = false;
     }
 
-    // hand_detector_->reset();  // TEMP CODE
+    hand_detector_->reset();
 
     data_lock_.unlock();
     context_lock_.unlock();
