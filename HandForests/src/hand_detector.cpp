@@ -119,11 +119,11 @@ HandDetector::~HandDetector() {
 bool HandDetector::findHandLabels(const int16_t* depth_in, const float* xyz, 
   const HDLabelMethod method, uint8_t* label_out) {
   depth_ = depth_in;
-  createLabels();
-  // Result is now in labels_filtered_
 
   switch (method) {
   case HDUpconvert:
+    createLabels();
+    // Result is now in labels_filtered_
     UpsampleNoFiltering<uint8_t>(label_out, labels_filtered_, 
       down_width_, down_height_, DT_DOWNSAMPLE);
   
@@ -210,13 +210,14 @@ void HandDetector::createLabels() {
   } else {
     memcpy(depth_downsampled_, depth_, 
       down_width_ * down_height_ * sizeof(depth_downsampled_[0]));
-  }
-
   for (int32_t i = 0; i < down_width_ * down_height_; i++) {
     if (depth_downsampled_[i] > GDT_MAX_DIST) {
       depth_downsampled_[i] = GDT_MAX_DIST + 1;
     }
   }  
+  }
+
+
 
   // Evaluate the decision forest
   //evaluateDecisionForest(labels_evaluated_, forest_, max_height_to_evaluate_, 

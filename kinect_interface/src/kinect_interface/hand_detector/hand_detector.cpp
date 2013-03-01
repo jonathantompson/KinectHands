@@ -129,15 +129,17 @@ namespace hand_detector {
   bool HandDetector::findHandLabels(const int16_t* depth_in, const float* xyz, 
     const HDLabelMethod method, uint8_t* label_out) {
     depth_ = depth_in;
-    createLabels();
-    // Result is now in labels_filtered_
 
     switch (method) {
     case HDUpconvert:
+      createLabels();
+      // Result is now in labels_filtered_
       UpsampleNoFiltering<uint8_t>(label_out, labels_filtered_, 
         down_width_, down_height_, DT_DOWNSAMPLE);
       return true;
     case HDUpconvertFilter:
+      createLabels();
+      // Result is now in labels_filtered_
       UpsampleNoFiltering<uint8_t>(label_out, labels_filtered_, 
         down_width_, down_height_, DT_DOWNSAMPLE);
   
@@ -245,7 +247,6 @@ namespace hand_detector {
       depth_downsampled_, down_width_, down_height_, stage2_med_filter_radius_);
     GrowFilter<uint8_t>(labels_filtered_, labels_evaluated_,
       down_width_, down_height_, stage3_grow_filter_radius_);
-
   
     //// Now swap the buffers
     //uint8_t* tmp = labels_filtered_;

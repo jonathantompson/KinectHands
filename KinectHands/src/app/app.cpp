@@ -5,6 +5,7 @@
 #include "app/app.h"
 #include "jtil/ui/ui.h"
 #include "kinect_interface/kinect_interface.h"
+#include "kinect_interface/hand_detector/decision_tree_structs.h"
 #include "jtil/glew/glew.h"
 #include "jtil/image_util/image_util.h"
 
@@ -121,7 +122,24 @@ namespace app {
       if (kinect_frame_number_ != kinect_->frame_number()) {
         memcpy(rgb_, kinect_->rgb(), sizeof(rgb_[0]) * src_dim * 3);
         memcpy(depth_, kinect_->depth(), sizeof(depth_[0]) * src_dim);
-        memcpy(labels_, kinect_->labels(), sizeof(labels_[0]) * src_dim);
+
+        bool df_labels;
+        GET_SETTING("render_decision_forest_labels", bool, df_labels);
+        if (df_labels) {
+          const uint32_t w = src_width / DT_DOWNSAMPLE;
+          const uint8_t* hdlabels = kinect_->filteredDecisionForestLabels();
+          for (uint32_t v = 0; v < src_height; v++) {
+            for (uint32_t u = 0; u < src_width; u++) {
+              uint8_t val = hdlabels[(v / DT_DOWNSAMPLE) * w + u/DT_DOWNSAMPLE];
+              uint32_t idst = v * src_width + u;
+              // Texture needs to be flipped vertically and 0 --> 255
+              labels_[idst] = val;
+            }
+          }
+        } else {
+          memcpy(labels_, kinect_->labels(), sizeof(labels_[0]) * src_dim);
+        }
+
         kinect_frame_number_ = kinect_->frame_number();
         update_tex = true;
       }
@@ -152,7 +170,7 @@ namespace app {
         if (render_hand_labels) {
           // Make hand points red
           for (uint32_t i = 0; i < src_dim; i++) {
-            if (labels_[i] != 0) {
+            if (labels_[i] == 1) {
               im_[i*3] = (uint8_t)std::min<uint16_t>(255, 
                 3 * (uint16_t)im_[i*3] / 2);
               im_[i*3 + 1] = (uint8_t)(3 * (uint16_t)im_[i*3+1] / 4);
@@ -198,13 +216,18 @@ namespace app {
     Renderer::g_renderer()->setBackgroundTexture(background_tex_);
 
     ui::UI* ui = Renderer::g_renderer()->ui();
+    ui->addHeadingText("Kinect Render Output:");
     ui->addSelectbox("kinect_output", "Kinect Output");
     ui->addSelectboxItem("kinect_output", ui::UIEnumVal(OUTPUT_RGB, "RGB"));
     ui->addSelectboxItem("kinect_output", 
       ui::UIEnumVal(OUTPUT_DEPTH, "Depth"));
+    ui->addCheckbox("use_depth_from_file", "(Debug) Use Depth From File");
+
+    ui->addHeadingText("Hand Detection:");
     ui->addCheckbox("detect_hands", "Enable Hand Detection");
     ui->addCheckbox("render_hand_labels", "Mark Hand Pixels");
-    ui->addCheckbox("use_depth_from_file", "(Debug) Use Depth From File");
+    ui->addCheckbox("render_decision_forest_labels", 
+      "Render Decision Forest Labels");
   }
 
   int App::closeWndCB() {

@@ -636,6 +636,10 @@ namespace kinect_interface {
     context_lock_.unlock();
   }
 
+  const uint8_t* KinectInterface::filteredDecisionForestLabels() {
+    return hand_detector_->getLabelIm();
+  }
+
 }  // namespace kinect
 
 

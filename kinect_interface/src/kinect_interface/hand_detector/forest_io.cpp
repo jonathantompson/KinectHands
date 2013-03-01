@@ -33,7 +33,7 @@ namespace hand_detector {
     }
     file.write(reinterpret_cast<const char*>(&num_trees), 
       1 * sizeof(num_trees));
-    for (uint32_t i = 0; i < num_trees; i++) {
+    for (int32_t i = 0; i < num_trees; i++) {
       file.write(reinterpret_cast<const char*>(&forest[i].tree_height), 
         1 * sizeof(forest->tree_height));
       file.write(reinterpret_cast<const char*>(&forest[i].num_nodes), 
@@ -60,7 +60,7 @@ namespace hand_detector {
 
     forest = new DecisionTree[num_trees];
 
-    for (uint32_t i = 0; i < num_trees; i++) {
+    for (int32_t i = 0; i < num_trees; i++) {
       uint32_t height;
       in_file.read(reinterpret_cast<char*>(&height), 1 * sizeof(height));
       forest[i].tree_height = height;
@@ -77,7 +77,7 @@ namespace hand_detector {
   }
 
   void releaseForest(DecisionTree*& forest, const int32_t num_trees) {
-    for (uint32_t i = 0; i < num_trees; i++) {
+    for (int32_t i = 0; i < num_trees; i++) {
       SAFE_DELETE_ARR(forest[i].tree);
     }
     SAFE_DELETE_ARR(forest);
