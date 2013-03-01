@@ -33,13 +33,13 @@
 
 // Some macro defines copied from ofxOpenNIMacros.h
 #define SHOW_RC(rc, what)  \
-  printf("%s status: %s\n", what, xnGetStatusString(rc));
+  std::cout << what << " status: " << xnGetStatusString(rc) << std::endl;
 
 #define CHECK_RC(rc, what)  \
   if (rc != XN_STATUS_OK) {  \
-  printf("%s failed: %s\n", what, xnGetStatusString(rc));  \
+    std::cout << what << " failed: " << xnGetStatusString(rc) << std::endl;  \
   } else {  \
-  printf("%s succeed: %s\n", what, xnGetStatusString(rc));  \
+    std::cout << what << " succeed: " << xnGetStatusString(rc) << std::endl;  \
   }
 #define CALIBRATION_POSE "Psi"
 #define CALIBRATION_FILE "UserCalibration.bin"
@@ -90,10 +90,10 @@ namespace kinect_interface {
     // hand_detector_ = new HandDetector(src_width, src_height);  // TEMP CODE
 
     //  Now spawn the Kinect Update Thread
+    kinect_running_ = true;
     Callback<void>* threadBody = MakeCallableOnce(
       &KinectInterface::kinectUpdateThread, this);
     kinect_thread_ = MakeThread(threadBody);
-    kinect_running_ = true;
   }
 
   KinectInterface::~KinectInterface() {
@@ -129,7 +129,7 @@ namespace kinect_interface {
     static std::string vendor("PrimeSense");
     static std::string key("0KOIk2JeIBYClPWVnMoRKn5cdY4=");
     addLicense(vendor, key);
-    printf("\n");
+    cout << endl;
     enableLogging();
 
     // INIT AN OPENNI DEPTHGENERATOR
@@ -222,7 +222,7 @@ namespace kinect_interface {
       XnCallbackHandle hUserCallbacks, hCalibrationStart, hCalibrationComplete; 
       XnCallbackHandle hPoseDetected;
       if (!ug_->IsCapabilitySupported(XN_CAPABILITY_SKELETON)) {
-        printf("Supplied user generator doesn't support skeleton\n");
+        cout << "Supplied user generator doesn't support skeleton" << endl;
         return 1;
       }
 
@@ -237,7 +237,7 @@ namespace kinect_interface {
         g_bNeedPose = TRUE;
         if (!ug_->IsCapabilitySupported(
           XN_CAPABILITY_POSE_DETECTION)) {
-            printf("Pose required, but not supported\n");
+            cout << "Pose required, but not supported" << endl;
             return 1;
         }
         nRetVal = ug_->GetPoseDetectionCap().RegisterToPoseDetected(
@@ -264,14 +264,14 @@ namespace kinect_interface {
       status = xnOSStrNCopy(license.strVendor, sVendor.c_str(), 
         (XnUInt32)sVendor.size(), (XnUInt32)sizeof(license.strVendor));
       if (status != XN_STATUS_OK) {
-        printf("KinectInterface error creating license (vendor)\n");
+        cout << "KinectInterface error creating license (vendor)" << endl;
         return;
       }
 
       status = xnOSStrNCopy(license.strKey, sKey.c_str(), 
         (XnUInt32)sKey.size(), (XnUInt32)sizeof(license.strKey));
       if (status != XN_STATUS_OK) {
-        printf("KinectInterface error creating license (key)\n");
+        cout << "KinectInterface error creating license (key)" << endl;
         return;
       } 
 
@@ -431,11 +431,11 @@ namespace kinect_interface {
       std::this_thread::yield();
 
     }  // end while (app::App::app_running)
-    printf("kinectUpdateThread shutting down...\n");
+    cout << "kinectUpdateThread shutting down..." << endl;
   }
 
   void KinectInterface::shutdownKinect() {
-    printf("shutdown requested\n");
+    cout << "kinectUpdateThread shutdown requested..." << endl;
     kinect_running_ = false;
     kinect_thread_.join();
   }
@@ -445,7 +445,7 @@ namespace kinect_interface {
       it != rErrors.End(); ++it) {
         XnChar desc[512];
         xnProductionNodeDescriptionToString(&it.Description(), desc, 512);
-        printf("%s failed: %s\n", desc, xnGetStatusString(it.Error()));
+        cout << desc << " failed: " << xnGetStatusString(it.Error()) << endl;
     } 
   }
 
@@ -455,7 +455,7 @@ namespace kinect_interface {
   // Callback: New user was detected
   void __stdcall KinectInterface::newUser(xn::UserGenerator& generator, 
     XnUserID nId, void* pCookie) {
-    printf("New User %d\n", nId);
+    cout << "New User " << nId << endl;
     g_kinect_->num_users_found_++;
     // ONLY TRACK ONE USER
     if (KinectInterface::g_kinect_->num_users_found_ <= 1) {
@@ -478,7 +478,7 @@ namespace kinect_interface {
   // Callback: An existing user was lost
   void __stdcall KinectInterface::lostUser(xn::UserGenerator& generator, 
     XnUserID nId, void* pCookie) {
-      printf("Lost user %d\n", nId); 
+      cout << "Lost User " << nId << endl;
       g_kinect_->ug_->GetSkeletonCap().Reset(nId);
       g_kinect_->num_users_found_--;
   }
@@ -487,7 +487,7 @@ namespace kinect_interface {
   void __stdcall KinectInterface::poseDetected(
     xn::PoseDetectionCapability& capability, const char* strPose, 
     unsigned int nId, void* pCookie) {
-    printf("Pose %s detected for user %d\n", strPose, nId);
+    cout << "Pose " << strPose << " detected for user " << nId << endl;
     g_kinect_->ug_->GetPoseDetectionCap().StopPoseDetection(nId);
     g_kinect_->ug_->GetSkeletonCap().RequestCalibration(nId, TRUE);
   }
@@ -495,7 +495,7 @@ namespace kinect_interface {
   // Callback: Started calibration
   void __stdcall KinectInterface::calStart(xn::SkeletonCapability& capability, 
     XnUserID nId, void* pCookie) {
-    printf("Calibration started for user %d\n", nId);
+    cout << "Calibration started for user " << nId << endl;
   }
 
   // Callback: Finished calibration
@@ -503,12 +503,12 @@ namespace kinect_interface {
     XnUserID nId, XnCalibrationStatus eStatus, void* pCookie) {
     if (eStatus == XN_CALIBRATION_STATUS_OK) {
       // Calibration succeeded
-      printf("Calibration complete, start tracking user %d\n", nId);  
+      cout << "Calibration complete, start tracking user " << nId << endl; 
       g_kinect_->ug_->GetSkeletonCap().StartTracking(nId);
       g_kinect_->num_users_tracked_++;
     } else {
       // Calibration failed
-      printf("Calibration failed for user %d\n", nId);
+      cout << "Calibration failed for user " << nId << endl; 
       if (g_bNeedPose) {
         g_kinect_->ug_->GetPoseDetectionCap().StartPoseDetection(g_strPose,
           nId);
@@ -528,8 +528,8 @@ namespace kinect_interface {
     XnUInt16 nUsers = 20;
     ug_->GetUsers(aUserIDs, nUsers);
     if (nUsers == 0) {
-      printf("No user's detected yet --> Move around!  ");
-      printf("Will save when calibration has finished.\n");
+      cout << "No user's detected yet --> Move around!" << endl; 
+      cout << "KinectInterface will save calibration when done." << endl; 
     } else {
       for (int i = 0; i < nUsers; ++i) {
         // Find a user who is already calibrated
@@ -542,8 +542,8 @@ namespace kinect_interface {
           SHOW_RC(rc, "SaveCalibrationDataToFile() ");
           break;
         } else {
-          printf("User %d is not yet calibrated, no data to save!  ", i);
-          printf("Will save when calibration has finished.\n");
+          cout << "User " << i << "is not yet calibrated, no data to save!" << endl; 
+          cout << "KinectInterface will save calibration when done" << endl; 
         }
       }
     }
@@ -555,7 +555,7 @@ namespace kinect_interface {
     XnUInt16 nUsers = 20;
     ug_->GetUsers(aUserIDs, nUsers);
     if (nUsers == 0) {
-      printf("No user's detected yet --> Move around!\n");
+      cout << "No user's detected yet --> Move around!" << endl; 
       return false;
     } else {
       for (int i = 0; i < nUsers; ++i) {

@@ -123,6 +123,7 @@ namespace app {
         memcpy(depth_, kinect_->depth(), sizeof(depth_[0]) * src_dim);
         kinect_frame_number_ = kinect_->frame_number();
         update_tex = true;
+        std::cout << "kinect_frame_number_ = " << kinect_frame_number_ << std::endl;
       }
       kinect_->unlockData();
 
@@ -135,7 +136,7 @@ namespace app {
           break;
         case OUTPUT_DEPTH:
           for (uint32_t i = 0; i < src_dim; i++) {
-            uint8_t val = (depth_[i] / 10) % 255;
+            uint8_t val = (depth_[i] / 2) % 255;
             im_[i*3] = val;
             im_[i*3+1] = val;
             im_[i*3+2] = val;
@@ -157,7 +158,9 @@ namespace app {
 
       Renderer::g_renderer()->renderFrame();
  
-      std::this_thread::yield();  // Give OS the opportunity to deschedule
+      // Give OS the opportunity to deschedule
+      std::this_thread::sleep_for(std::chrono::milliseconds(2));  
+      std::this_thread::yield();
     }
   }
   
