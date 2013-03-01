@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{df080ff7-7059-4efd-8cd9-7eb7415ab23c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\kinect_interface">
+      <UniqueIdentifier>{bec4fd56-fca2-4f7a-bd0f-f80af40535cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{7b66bb95-66aa-47d5-a563-deb915564c8d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\kinect_interface">
+      <UniqueIdentifier>{1366ef51-55c2-44de-b2fa-06104a8607de}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\kinect_interface\hand_detector">
+      <UniqueIdentifier>{0005c7f2-1741-4f4b-9c5a-8930bbec83ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\kinect_interface\hand_detector">
+      <UniqueIdentifier>{ac1d3e7d-9d1a-44f0-b589-ae1fda450c32}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\kinect_interface\hand_detector\hand_detector.cpp">
+      <Filter>Source Files\kinect_interface\hand_detector</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kinect_interface\kinect_interface.cpp">
+      <Filter>Source Files\kinect_interface</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kinect_interface\open_ni_funcs.cpp">
+      <Filter>Source Files\kinect_interface</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\kinect_interface\hand_detector\hand_detector.h">
+      <Filter>Header Files\kinect_interface\hand_detector</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kinect_interface\kinect_interface.h">
+      <Filter>Header Files\kinect_interface</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kinect_interface\open_ni_funcs.h">
+      <Filter>Header Files\kinect_interface</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,23 @@
+﻿Build started 2/28/2013 7:16:08 PM.
+     1>Project "C:\Users\tompson\Documents\KinectHands\KinectHands\KinectHands.vcxproj" on node 2 (Build target(s)).
+     1>InitializeBuildStatus:
+         Creating "C:\Users\tompson\Documents\KinectHands\KinectHands\\build_intermediate\x64\Release\KinectHands.unsuccessfulbuild" because "AlwaysCreate" was specified.
+       ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\x86_amd64\CL.exe /c /IC:\Users\tompson\Documents\KinectHands\KinectHands\..\kinect_interface\include /IC:\Users\tompson\Documents\KinectHands\KinectHands\headers /IC:\Users\tompson\Documents\PRenderer2\jtil\include /Zi /nologo /W3 /WX- /O2 /Oi /GL /D _AMD64_ /D WIN32 /D NDEBUG /D _WINDOWS /D _UNICODE /D UNICODE /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"C:\Users\tompson\Documents\KinectHands\KinectHands\\build_intermediate\x64\Release\\" /Fd"C:\Users\tompson\Documents\KinectHands\KinectHands\\build_intermediate\x64\Release\vc110.pdb" /Gd /TP /errorReport:prompt src\app\app.cpp src\main\main.cpp
+         app.cpp
+         main.cpp
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\x86_amd64\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\tompson\Documents\KinectHands\KinectHands\\build\x64\Release\KinectHands.exe" /INCREMENTAL:NO /NOLOGO /LIBPATH:C:\Users\tompson\Documents\PRenderer2\jtil\build\x64\Release\ /LIBPATH:C:\Users\tompson\Documents\KinectHands\KinectHands\..\lib\WIN7 /LIBPATH:C:\Users\tompson\Documents\KinectHands\KinectHands\..\kinect_interface\build\x64\Release\ kinect_interface.lib jtil.lib libzmq_d.lib openNI64.lib XnVCNITE64_1_5_2.lib XnVFeatures64_1_5_2.lib XnVHandGenerator64_1_5_2.lib XnVNITE.jni64.lib XnVNITE64_1_5_2.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\tompson\Documents\KinectHands\KinectHands\\build\x64\Release\KinectHands.pdb" /SUBSYSTEM:WINDOWS /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\tompson\Documents\KinectHands\KinectHands\\build\x64\Release\KinectHands.lib" /MACHINE:X64 C:\Users\tompson\Documents\KinectHands\KinectHands\\build_intermediate\x64\Release\app.obj
+         C:\Users\tompson\Documents\KinectHands\KinectHands\\build_intermediate\x64\Release\main.obj
+            Creating library C:\Users\tompson\Documents\KinectHands\KinectHands\\build\x64\Release\KinectHands.lib and object C:\Users\tompson\Documents\KinectHands\KinectHands\\build\x64\Release\KinectHands.exp
+         Generating code
+         Finished generating code
+         KinectHands.vcxproj -> C:\Users\tompson\Documents\KinectHands\KinectHands\\build\x64\Release\KinectHands.exe
+       FinalizeBuildStatus:
+         Deleting file "C:\Users\tompson\Documents\KinectHands\KinectHands\\build_intermediate\x64\Release\KinectHands.unsuccessfulbuild".
+         Touching "C:\Users\tompson\Documents\KinectHands\KinectHands\\build_intermediate\x64\Release\KinectHands.lastbuildstate".
+     1>Done Building Project "C:\Users\tompson\Documents\KinectHands\KinectHands\KinectHands.vcxproj" (Build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:11.73

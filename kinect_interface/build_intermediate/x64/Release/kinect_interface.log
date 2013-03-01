@@ -1,0 +1,50 @@
+﻿Build started 2/28/2013 7:07:27 PM.
+     1>Project "C:\Users\tompson\Documents\KinectHands\kinect_interface\kinect_interface.vcxproj" on node 2 (Rebuild target(s)).
+     1>_PrepareForClean:
+         Deleting file "C:\Users\tompson\Documents\KinectHands\kinect_interface\\build_intermediate\x64\Release\kinect_interface.lastbuildstate".
+       InitializeBuildStatus:
+         Creating "C:\Users\tompson\Documents\KinectHands\kinect_interface\\build_intermediate\x64\Release\kinect_interface.unsuccessfulbuild" because "AlwaysCreate" was specified.
+       ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\x86_amd64\CL.exe /c /IC:\Users\tompson\Documents\KinectHands\kinect_interface\include /IC:\Users\tompson\Documents\PRenderer2\jtil\include /IC:\Users\tompson\Documents\KinectHands\kinect_interface\..\include\WIN7\nite /IC:\Users\tompson\Documents\KinectHands\kinect_interface\..\include\WIN7\ni /IC:\Users\tompson\Documents\KinectHands\kinect_interface\..\include\WIN7\zmq /Zi /nologo /W3 /WX- /O2 /Oi /GL /D _AMD64_ /D WIN32 /D BREAK_ON_EXCEPTION_INT /D _UNICODE /D UNICODE /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"C:\Users\tompson\Documents\KinectHands\kinect_interface\\build_intermediate\x64\Release\\" /Fd"C:\Users\tompson\Documents\KinectHands\kinect_interface\\build_intermediate\x64\Release\vc110.pdb" /Gd /TP /wd4996 /errorReport:prompt src\kinect_interface\kinect_interface.cpp src\kinect_interface\open_ni_funcs.cpp
+         kinect_interface.cpp
+         open_ni_funcs.cpp
+       Lib:
+         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\x86_amd64\Lib.exe /OUT:"C:\Users\tompson\Documents\KinectHands\kinect_interface\\build\x64\Release\kinect_interface.lib" jtil.lib openNI64.lib XnVCNITE64_1_5_2.lib XnVFeatures64_1_5_2.lib XnVHandGenerator64_1_5_2.lib XnVNITE.jni64.lib XnVNITE64_1_5_2.lib /LIBPATH:C:\Users\tompson\Documents\KinectHands\kinect_interface\..\lib\WIN7 /LIBPATH:C:\Users\tompson\Documents\PRenderer2\jtil\build\x64\Release\ /NOLOGO /MACHINE:X64 /LTCG C:\Users\tompson\Documents\KinectHands\kinect_interface\\build_intermediate\x64\Release\kinect_interface.obj
+         C:\Users\tompson\Documents\KinectHands\kinect_interface\\build_intermediate\x64\Release\open_ni_funcs.obj
+     1>jtil.lib(OPENGL32.dll) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in jtil.lib(COMCTL32.dll); second definition ignored
+     1>jtil.lib(GLU32.dll) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in jtil.lib(COMCTL32.dll); second definition ignored
+     1>openNI64.lib(OpenNI64.dll) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in jtil.lib(COMCTL32.dll); second definition ignored
+     1>XnVCNITE64_1_5_2.lib(XnVCNITE64_1_5_2.dll) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in jtil.lib(COMCTL32.dll); second definition ignored
+     1>XnVFeatures64_1_5_2.lib(XnVFeatures64_1_5_2.dll) : warning LNK4006: xnModuleUnload already defined in openNI64.lib(OpenNI64.dll); second definition ignored
+     1>XnVFeatures64_1_5_2.lib(XnVFeatures64_1_5_2.dll) : warning LNK4006: __imp_xnModuleUnload already defined in openNI64.lib(OpenNI64.dll); second definition ignored
+     1>XnVFeatures64_1_5_2.lib(XnVFeatures64_1_5_2.dll) : warning LNK4006: xnModuleLoad already defined in openNI64.lib(OpenNI64.dll); second definition ignored
+     1>XnVFeatures64_1_5_2.lib(XnVFeatures64_1_5_2.dll) : warning LNK4006: __imp_xnModuleLoad already defined in openNI64.lib(OpenNI64.dll); second definition ignored
+     1>XnVFeatures64_1_5_2.lib(XnVFeatures64_1_5_2.dll) : warning LNK4006: xnModuleGetOpenNIVersion already defined in openNI64.lib(OpenNI64.dll); second definition ignored
+     1>XnVFeatures64_1_5_2.lib(XnVFeatures64_1_5_2.dll) : warning LNK4006: __imp_xnModuleGetOpenNIVersion already defined in openNI64.lib(OpenNI64.dll); second definition ignored
+     1>XnVFeatures64_1_5_2.lib(XnVFeatures64_1_5_2.dll) : warning LNK4006: xnModuleGetExportedNodesEntryPoints already defined in openNI64.lib(OpenNI64.dll); second definition ignored
+     1>XnVFeatures64_1_5_2.lib(XnVFeatures64_1_5_2.dll) : warning LNK4006: __imp_xnModuleGetExportedNodesEntryPoints already defined in openNI64.lib(OpenNI64.dll); second definition ignored
+     1>XnVFeatures64_1_5_2.lib(XnVFeatures64_1_5_2.dll) : warning LNK4006: xnModuleGetExportedNodesCount already defined in openNI64.lib(OpenNI64.dll); second definition ignored
+     1>XnVFeatures64_1_5_2.lib(XnVFeatures64_1_5_2.dll) : warning LNK4006: __imp_xnModuleGetExportedNodesCount already defined in openNI64.lib(OpenNI64.dll); second definition ignored
+     1>XnVFeatures64_1_5_2.lib(XnVFeatures64_1_5_2.dll) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in jtil.lib(COMCTL32.dll); second definition ignored
+     1>XnVHandGenerator64_1_5_2.lib(XnVHandGenerator64_1_5_2.dll) : warning LNK4006: xnModuleUnload already defined in openNI64.lib(OpenNI64.dll); second definition ignored
+     1>XnVHandGenerator64_1_5_2.lib(XnVHandGenerator64_1_5_2.dll) : warning LNK4006: __imp_xnModuleUnload already defined in openNI64.lib(OpenNI64.dll); second definition ignored
+     1>XnVHandGenerator64_1_5_2.lib(XnVHandGenerator64_1_5_2.dll) : warning LNK4006: xnModuleLoad already defined in openNI64.lib(OpenNI64.dll); second definition ignored
+     1>XnVHandGenerator64_1_5_2.lib(XnVHandGenerator64_1_5_2.dll) : warning LNK4006: __imp_xnModuleLoad already defined in openNI64.lib(OpenNI64.dll); second definition ignored
+     1>XnVHandGenerator64_1_5_2.lib(XnVHandGenerator64_1_5_2.dll) : warning LNK4006: xnModuleGetOpenNIVersion already defined in openNI64.lib(OpenNI64.dll); second definition ignored
+     1>XnVHandGenerator64_1_5_2.lib(XnVHandGenerator64_1_5_2.dll) : warning LNK4006: __imp_xnModuleGetOpenNIVersion already defined in openNI64.lib(OpenNI64.dll); second definition ignored
+     1>XnVHandGenerator64_1_5_2.lib(XnVHandGenerator64_1_5_2.dll) : warning LNK4006: xnModuleGetExportedNodesEntryPoints already defined in openNI64.lib(OpenNI64.dll); second definition ignored
+     1>XnVHandGenerator64_1_5_2.lib(XnVHandGenerator64_1_5_2.dll) : warning LNK4006: __imp_xnModuleGetExportedNodesEntryPoints already defined in openNI64.lib(OpenNI64.dll); second definition ignored
+     1>XnVHandGenerator64_1_5_2.lib(XnVHandGenerator64_1_5_2.dll) : warning LNK4006: xnModuleGetExportedNodesCount already defined in openNI64.lib(OpenNI64.dll); second definition ignored
+     1>XnVHandGenerator64_1_5_2.lib(XnVHandGenerator64_1_5_2.dll) : warning LNK4006: __imp_xnModuleGetExportedNodesCount already defined in openNI64.lib(OpenNI64.dll); second definition ignored
+     1>XnVHandGenerator64_1_5_2.lib(XnVHandGenerator64_1_5_2.dll) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in jtil.lib(COMCTL32.dll); second definition ignored
+     1>XnVNITE.jni64.lib(XnVNITE.jni64.dll) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in jtil.lib(COMCTL32.dll); second definition ignored
+     1>XnVNITE64_1_5_2.lib(XnVNITE64_1_5_2.dll) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in jtil.lib(COMCTL32.dll); second definition ignored
+         kinect_interface.vcxproj -> C:\Users\tompson\Documents\KinectHands\kinect_interface\\build\x64\Release\kinect_interface.lib
+       FinalizeBuildStatus:
+         Deleting file "C:\Users\tompson\Documents\KinectHands\kinect_interface\\build_intermediate\x64\Release\kinect_interface.unsuccessfulbuild".
+         Touching "C:\Users\tompson\Documents\KinectHands\kinect_interface\\build_intermediate\x64\Release\kinect_interface.lastbuildstate".
+     1>Done Building Project "C:\Users\tompson\Documents\KinectHands\kinect_interface\kinect_interface.vcxproj" (Rebuild target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:04.73

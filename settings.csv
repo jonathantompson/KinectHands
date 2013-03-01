@@ -1,0 +1,98 @@
+//, Settings File to load global settings
+//, tabs and spaces will be parsed out unless quotations are used ("")
+
+//, *********** TYPE FORMATS ***********
+//, Name,         Type,           Value
+//, Type: string, int, bool, Float3 or Float4
+//, Value: bool must be 0 or 1
+
+//, *********** SETTINGS ***********
+//, APPLICATION SPECIFIC
+track_openni_skeleton,            bool,      0
+kinect_output,                    int,       0
+
+//, RENDERER
+screen_resolution_enum,           int,       7
+fullscreen,                       bool,      0
+double_buffering,                 bool,      1  
+clear_color,                      Float3,    0.529, 0.808, 0.980
+open_gl_major_version,            int,       4
+open_gl_minor_version,            int,       2
+open_gl_core_profile,             bool,      1
+window_depth_buffer_bits,         int,       32
+window_stencil_buffer_bits,       int,       0
+window_rgba_bits,                 int,       8
+render_ui_app,                    bool,      1
+render_ui_renderer,               bool,      0
+render_ui_fps,                    bool,      0
+render_output_enum,               int,       0
+light_pass_stencil_opt,           bool,      0
+ssao_on,                          bool,      1
+ssao_sample_radius,               float,     0.4
+ssao_bias,                        float,     0.4
+ssao_intensity,                   float,     2.5
+ssao_scale,                       float,     0.5
+ssao_enable,                      int,       1
+ssao_number_sample_enum,          int,       0
+ssao_blur_on,                     bool,      1
+global_ambient,                   float,     0.28
+directional_lights,               bool,      0
+spot_lights,                      bool,      1
+point_lights,                     bool,      1
+render_light_volumes,             bool,      0
+render_light_sources,             bool,      1
+dof_on,                           bool,      0
+dof_bounds,                       Float4,    0.15, 0.25, 3.0, 5.0
+ui_render_crosshairs,             bool,      0
+ui_crosshairs_size,               float,     0.025
+vsm_on,                           bool,      1 
+vsm_resolution_enum,              int,       2
+vsm_default_softness,             float,     0.2
+vsm_cascade_split_log_factor,     float,     0.5
+vsm_blend_zone,                   float,     0.1
+vsm_overlap,                      float,     0.050
+vsm_depth_epsilon,                float,     0.001	
+vsm_visualize_split,              bool,      0
+vsm_min_variance,                 float,     0.0001
+vsm_soft_shadows,                 bool,      1
+render_wireframe,                 bool,      0
+render_aabboxes,                  bool,      0
+texture_filtering_on,             bool,      1
+aa_type_enum,                     int,       2
+fxaa_depth_threshold,             float,     1.0
+fxaa_angle_threshold,             float,     10.0
+fxaa_hq_subpix_quality,           float,     1.0
+motion_blur_on,                   bool,      1
+motion_blur_max_samples,          int,       13
+motion_blur_depth_cutoff,         float,     5.0
+motion_blur_target_fps,           float,     60
+flashlight_on,                    bool,      0
+flashlight_dist,                  float,     40.0
+flashlight_outer_fov,             float,     20.0
+flashlight_inner_fov,             float,     15.0
+flashlight_diffuse_intensity,     float,     1.0
+flashlight_csvm_count,            int,       1
+flashlight_pos_view,              Float3,    1.0, -0.5, -4.0
+flashlight_target_view,           Float3,    0, 0, -20.00
+flashlight_scale,                 float,     1.0
+flashlight_softness,              float,     0.35
+tess_factor,                      int,       16
+tess_on,                          bool,      1
+tess_default_disp_factor,         float,     0.5
+visualize_normals,                bool,      0
+visualize_normals_length,         float,     0.25
+
+//, CAMERA
+//, Note camera near and far view planes are just Min and Max.  
+//, Frustum will be fitted to world objects and light volumes at runtime.
+fov_deg,                          float,     60
+view_plane_near,                  float,     -1.0
+view_plane_far,                   float,     -1000.0
+starting_eye_rot,                 FloatQuat, 0.0, 0.0, 0.0, -1.0
+starting_eye_pos,                 Float3,    0.0, 0.0, -20.0
+camera_speed,                     float,     10.0
+camera_speed_fast,                float,     100.0
+camera_speed_rotation,            float,     0.0025
+
+//, PHYSICS
+gravity,                          Float3,    0.0, -9.8, 0.0
