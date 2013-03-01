@@ -324,7 +324,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>./glfw-2.7.6/bin/;./assimp_3.0.1270/lib_win7_64;./FreeImage3154/lib_win7_64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)glew/bin;$(SolutionDir)glfw/bin;./assimp_3.0.1270/lib_win7_64;./FreeImage3154/lib_win7_64</AdditionalLibraryDirectories>
       <AdditionalDependencies>FreeImage.lib;assimp.lib;GLFW_d.lib;glew32s.lib;comctl32.lib;glu32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>/NODEFAULTLIB:[msvcrt.lib, libcmt.lib, LIBCMT]</IgnoreSpecificDefaultLibraries>
     </Link>
@@ -377,7 +377,7 @@ COPY /Y $(SolutionDir)FreeImage3154\lib_win7_64\FreeImage.dll $(SolutionDir)Buil
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>FreeImage.lib;assimp.lib;GLFW.lib;glew32s.lib;comctl32.lib;glu32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)/glfw/bin;./assimp_3.0.1270/lib_win7_64;./FreeImage3154/lib_win7_64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)glew/bin;$(SolutionDir)glfw/bin;./assimp_3.0.1270/lib_win7_64;./FreeImage3154/lib_win7_64</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>/NODEFAULTLIB:[msvcrt.lib, libcmt.lib, LIBCMT]</IgnoreSpecificDefaultLibraries>
     </Link>
     <PostBuildEvent>
