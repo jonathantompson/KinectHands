@@ -148,6 +148,11 @@ namespace app {
 
         kinect_frame_number_ = kinect_->frame_number();
         update_tex = true;
+
+        snprintf(kinect_fps_str_, 255, "Kinect FPS: %.2f", 
+          (float)kinect_->fps());
+        Renderer::g_renderer()->ui()->setTextWindowString("kinect_fps_wnd",
+          kinect_fps_str_);
       }
       kinect_->unlockData();
 
@@ -184,9 +189,10 @@ namespace app {
             }
           }
         }
-        bool render_convnet_points;
+        bool render_convnet_points, detect_pose;
+        GET_SETTING("detect_pose", bool, detect_pose);
         GET_SETTING("render_convnet_points", bool, render_convnet_points);
-        if (render_convnet_points) {
+        if (render_convnet_points && detect_pose) {
           renderCrossToImageArr(&coeff_convnet_[HandCoeffConvnet::HAND_POS_U], 
             im_, src_width, src_height, 5, 255, 128, 255);
           for (uint32_t i = HandCoeffConvnet::THUMB_K1_U; 
@@ -207,6 +213,11 @@ namespace app {
         moveCamera(dt);
       }
       moveStuff(dt);
+
+      bool render_kinect_fps;
+      GET_SETTING("render_kinect_fps", bool, render_kinect_fps);
+      Renderer::g_renderer()->ui()->setTextWindowVisibility("kinect_fps_wnd",
+        render_kinect_fps);
 
       Renderer::g_renderer()->renderFrame();
  
@@ -274,6 +285,7 @@ namespace app {
     ui->addSelectboxItem("kinect_output", 
       ui::UIEnumVal(OUTPUT_DEPTH, "Depth"));
     ui->addCheckbox("use_depth_from_file", "(Debug) Use Depth From File");
+    ui->addCheckbox("render_kinect_fps", "Render Kinect FPS");
 
     ui->addHeadingText("Hand Detection:");
     ui->addCheckbox("detect_hands", "Enable Hand Detection");
@@ -283,6 +295,9 @@ namespace app {
       "Render Decision Forest Labels");
     ui->addCheckbox("render_convnet_points", 
       "Render Convnet salient points");
+    ui->createTextWindow("kinect_fps_wnd", kinect_fps_str_);
+    jtil::math::Int2 pos(400, 0);
+    ui->setTextWindowPos("kinect_fps_wnd", pos);
   }
 
   int App::closeWndCB() {

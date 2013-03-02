@@ -67,6 +67,7 @@ namespace app {
     // Kinect data
     kinect_interface::KinectInterface* kinect_;
     uint64_t kinect_frame_number_;
+    char kinect_fps_str_[256];
 
     jtil::clk::Clk* clk_;
     jtil::math::Int2 mouse_pos_;

@@ -16,11 +16,12 @@ render_hand_labels,               bool,      1
 render_decision_forest_labels,    bool,      0
 use_depth_from_file,              bool,      0
 render_convnet_points,            bool,      1
+render_kinect_fps,                bool,      1
 
 //, RENDERER
 screen_resolution_enum,           int,       7
 fullscreen,                       bool,      0
-double_buffering,                 bool,      1  
+double_buffering,                 bool,      0  
 clear_color,                      Float3,    0.529, 0.808, 0.980
 open_gl_major_version,            int,       4
 open_gl_minor_version,            int,       2
@@ -30,7 +31,7 @@ window_stencil_buffer_bits,       int,       0
 window_rgba_bits,                 int,       8
 render_ui_app,                    bool,      1
 render_ui_renderer,               bool,      0
-render_ui_fps,                    bool,      0
+render_ui_fps,                    bool,      1
 render_output_enum,               int,       0
 light_pass_stencil_opt,           bool,      0
 ssao_on,                          bool,      1
@@ -51,8 +52,8 @@ dof_on,                           bool,      0
 dof_bounds,                       Float4,    0.15, 0.25, 3.0, 5.0
 ui_render_crosshairs,             bool,      0
 ui_crosshairs_size,               float,     0.025
-ui_starting_height,               int,       310
-ui_starting_width,                int,       300
+ui_starting_height,               int,       410
+ui_starting_width,                int,       320
 vsm_on,                           bool,      1 
 vsm_resolution_enum,              int,       2
 vsm_default_softness,             float,     0.2
