@@ -9,11 +9,11 @@
 //, *********** SETTINGS ***********
 //, APPLICATION SPECIFIC
 track_openni_skeleton,            bool,      0
-kinect_output,                    int,       1
+kinect_output,                    int,       0
 detect_hands,                     bool,      1
 render_hand_labels,               bool,      1
-render_decision_forest_labels,    bool,      1
-use_depth_from_file,              bool,      1
+render_decision_forest_labels,    bool,      0
+use_depth_from_file,              bool,      0
 
 //, RENDERER
 screen_resolution_enum,           int,       7

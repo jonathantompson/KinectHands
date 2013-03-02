@@ -414,10 +414,10 @@ namespace hand_detector {
             hands_uv_min_.pushBack(cur_uv_min_);
             hands_uv_max_.pushBack(cur_uv_max_);
             hands_n_pts_.pushBack(n_blob_pts);
-            int center_u = ((cur_uv_max_[0] + cur_uv_min_[0]) / 2) * DT_DOWNSAMPLE +
-                           DT_DOWNSAMPLE / 2;
-            int center_v = ((cur_uv_max_[1] + cur_uv_min_[1]) / 2) * DT_DOWNSAMPLE +
-                           DT_DOWNSAMPLE / 2;
+            int center_u = ((cur_uv_max_[0] + cur_uv_min_[0]) / 2) * 
+              DT_DOWNSAMPLE + DT_DOWNSAMPLE / 2;
+            int center_v = ((cur_uv_max_[1] + cur_uv_min_[1]) / 2) * 
+              DT_DOWNSAMPLE + DT_DOWNSAMPLE / 2;
             uint32_t index_depth_ = center_v * (src_width_) + center_u;
             Float3 center(static_cast<float>(center_u), static_cast<float>(center_v), 
               static_cast<float>(depth_[index_depth_]));

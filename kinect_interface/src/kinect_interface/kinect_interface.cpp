@@ -19,6 +19,7 @@
 #include "jtil/exceptions/wruntime_error.h"
 #include "kinect_interface/open_ni_funcs.h"
 #include "kinect_interface/depth_images_io.h"
+#include "kinect_interface/hand_net/hand_net.h"
 
 #include "XnCppWrapper.h"
 #include "XnVNite.h"
@@ -54,6 +55,7 @@ using jtil::threading::MakeThread;
 using jtil::threading::MakeCallableOnce;
 using jtil::clk::Clk;
 using namespace kinect_interface::hand_detector;
+using namespace kinect_interface::hand_net;
 
 namespace kinect_interface {
   using hand_detector::HandDetector;
@@ -69,7 +71,8 @@ namespace kinect_interface {
     ug_ = NULL;
     clk_ = NULL;
     hand_detector_ = NULL;
-    image_io = NULL;
+    image_io_ = NULL;
+    hand_net_ = NULL;
 
     if (g_kinect_) {
       throw std::wruntime_error("KinectInterface::KinectInterface() - ERROR: "
@@ -110,7 +113,8 @@ namespace kinect_interface {
     SAFE_DELETE(context_);
     SAFE_DELETE(clk_);
     SAFE_DELETE(hand_detector_);
-    SAFE_DELETE(image_io);
+    SAFE_DELETE(image_io_);
+    SAFE_DELETE(hand_net_);
   }
 
   // ************************************************************
@@ -122,8 +126,11 @@ namespace kinect_interface {
     hand_detector_ = new HandDetector();
     hand_detector_->init(src_width, src_height);
 
-    image_io = new DepthImagesIO();
-    image_io->LoadCompressedImageWithRedHands("./kinect_image.bin", 
+    hand_net_ = new HandNet();
+    hand_net_->loadFromFile("./data/handmodel.net.convnet");
+
+    image_io_ = new DepthImagesIO();
+    image_io_->LoadCompressedImageWithRedHands("./kinect_image.bin", 
       depth_from_file_, labels_from_file_, rgb_from_file_, NULL);
     DepthImagesIO::convertSingleImageToXYZ(pts_world_from_file_,
       depth_from_file_);
@@ -420,13 +427,20 @@ namespace kinect_interface {
         }
       }
 
-      bool detect_hands;
+      bool detect_hands, detect_pose;
       GET_SETTING("detect_hands", bool, detect_hands);
       if (detect_hands) {
         bool found_hand = hand_detector_->findHandLabels((int16_t*)depth_, 
           pts_world_, HDLabelMethod::HDFloodfill, labels_);
         if (!found_hand) {
           memset(labels_, 0, sizeof(labels_[0]) * src_dim);
+        } else {
+          GET_SETTING("detect_hands", bool, detect_pose);
+          if (detect_pose) {
+          hand_net_->calcCoeffConvnet(depth_, hand_renderer, 
+            coeff_convnet_pso);
+          }
+
         }
       } else {
         memset(labels_, 0, sizeof(labels_[0]) * src_dim);

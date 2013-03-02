@@ -71,7 +71,7 @@ namespace kinect_interface {
     
     for (uint32_t i = 0; i < nCount; ++i)
     {
-      aProjective[i*3] = (float)fCoeffX * aRealWorld[i*3] / aRealWorld[i*3+1] + nHalfXres;
+      aProjective[i*3] = (float)fCoeffX * aRealWorld[i*3] / aRealWorld[i*3+2] + nHalfXres;
       aProjective[i*3+1] = nHalfYres - (float)fCoeffY * aRealWorld[i*3+1] / aRealWorld[i*3+2];
       aProjective[i*3+2] = aRealWorld[i*3+2];
     }

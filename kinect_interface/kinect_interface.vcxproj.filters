@@ -19,6 +19,12 @@
     <Filter Include="Source Files\kinect_interface\hand_detector">
       <UniqueIdentifier>{ac1d3e7d-9d1a-44f0-b589-ae1fda450c32}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\kinect_interface\hand_net">
+      <UniqueIdentifier>{9f4afa0d-b086-46e4-8084-261518d22c6d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\kinect_interface\hand_net">
+      <UniqueIdentifier>{a04cf7c3-2c25-4e01-b1ca-6ef0ccb4fb81}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\kinect_interface\hand_detector\hand_detector.cpp">
@@ -38,6 +44,18 @@
     </ClCompile>
     <ClCompile Include="src\kinect_interface\depth_images_io.cpp">
       <Filter>Source Files\kinect_interface</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kinect_interface\hand_net\conv_stage.cpp">
+      <Filter>Source Files\kinect_interface\hand_net</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kinect_interface\hand_net\hand_net.cpp">
+      <Filter>Source Files\kinect_interface\hand_net</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kinect_interface\hand_net\nn_stage.cpp">
+      <Filter>Source Files\kinect_interface\hand_net</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kinect_interface\hand_net\hand_model.cpp">
+      <Filter>Source Files\kinect_interface\hand_net</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -67,6 +85,18 @@
     </ClInclude>
     <ClInclude Include="include\kinect_interface\depth_image_data.h">
       <Filter>Header Files\kinect_interface</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kinect_interface\hand_net\conv_stage.h">
+      <Filter>Header Files\kinect_interface\hand_net</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kinect_interface\hand_net\hand_net.h">
+      <Filter>Header Files\kinect_interface\hand_net</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kinect_interface\hand_net\nn_stage.h">
+      <Filter>Header Files\kinect_interface\hand_net</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kinect_interface\hand_net\hand_model.h">
+      <Filter>Header Files\kinect_interface\hand_net</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

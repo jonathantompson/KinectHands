@@ -20,6 +20,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="src\kinect_interface\hand_net\conv_stage.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_net\hand_model.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_net\hand_net.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_net\nn_stage.cpp" />
     <ClCompile Include="src\kinect_interface\kinect_interface.cpp" />
     <ClCompile Include="src\kinect_interface\open_ni_funcs.cpp" />
   </ItemGroup>
@@ -36,6 +40,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="include\kinect_interface\hand_net\conv_stage.h" />
+    <ClInclude Include="include\kinect_interface\hand_net\hand_model.h" />
+    <ClInclude Include="include\kinect_interface\hand_net\hand_net.h" />
+    <ClInclude Include="include\kinect_interface\hand_net\nn_stage.h" />
     <ClInclude Include="include\kinect_interface\kinect_interface.h" />
     <ClInclude Include="include\kinect_interface\open_ni_funcs.h" />
   </ItemGroup>

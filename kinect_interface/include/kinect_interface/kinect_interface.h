@@ -35,6 +35,8 @@ typedef enum XnCalibrationStatus XnCalibrationStatus;
 		
 namespace kinect_interface {
   namespace hand_detector { class HandDetector; }
+  namespace hand_net { class HandNet; }
+  namespace hand_net { class HandModel; }
   class DepthImagesIO;
 
   class KinectInterface {
@@ -95,8 +97,12 @@ namespace kinect_interface {
     uint8_t rgb_from_file_[src_dim * 3];
     float pts_world_from_file_[src_dim * 3];
 
-    // Depth image IO (mostly for debug images)
-    DepthImagesIO* image_io;
+    // Convolutional Neural Network
+    hand_net::HandNet* hand_net_;
+    hand_net::HandModel* hands_[2];
+
+    // Depth image IO (mostly for loading the debug image)
+    DepthImagesIO* image_io_;
     
     // Status structures
     bool kinect_running_;
