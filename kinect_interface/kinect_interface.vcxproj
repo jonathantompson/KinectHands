@@ -89,7 +89,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;C:\Users\tompson\Documents\PRenderer2\jtil\include;$(ProjectDir)..\include\WIN7\nite;$(ProjectDir)..\include\WIN7\ni;$(ProjectDir)..\include\WIN7\zmq</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)..\..\PRenderer2\jtil\include;$(ProjectDir)..\include\WIN7\nite;$(ProjectDir)..\include\WIN7\ni;$(ProjectDir)..\include\WIN7\zmq</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PreprocessorDefinitions>_AMD64_;WIN32;BREAK_ON_EXCEPTION_INT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -98,7 +98,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\lib\WIN7;C:\Users\tompson\Documents\PRenderer2\jtil\build\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\lib\WIN7;$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
       <AdditionalDependencies>jtil_d.lib;openNI64.lib;XnVCNITE64_1_5_2.lib;XnVFeatures64_1_5_2.lib;XnVHandGenerator64_1_5_2.lib;XnVNITE.jni64.lib;XnVNITE64_1_5_2.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
     </Lib>
@@ -116,7 +116,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;C:\Users\tompson\Documents\PRenderer2\jtil\include;$(ProjectDir)..\include\WIN7\nite;$(ProjectDir)..\include\WIN7\ni;$(ProjectDir)..\include\WIN7\zmq</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)..\..\PRenderer2\jtil\include;$(ProjectDir)..\include\WIN7\nite;$(ProjectDir)..\include\WIN7\ni;$(ProjectDir)..\include\WIN7\zmq</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PreprocessorDefinitions>_AMD64_;WIN32;BREAK_ON_EXCEPTION_INT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -127,7 +127,7 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\lib\WIN7;C:\Users\tompson\Documents\PRenderer2\jtil\build\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\lib\WIN7;$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
       <AdditionalDependencies>jtil.lib;openNI64.lib;XnVCNITE64_1_5_2.lib;XnVFeatures64_1_5_2.lib;XnVHandGenerator64_1_5_2.lib;XnVNITE.jni64.lib;XnVNITE64_1_5_2.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
     </Lib>

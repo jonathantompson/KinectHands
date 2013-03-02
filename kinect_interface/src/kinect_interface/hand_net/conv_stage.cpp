@@ -4,21 +4,22 @@
 #include <stdexcept>
 #include <iomanip>
 #include <fstream>
-#include "hand_net/conv_stage.h"
-#include "hand_net/hand_net.h"  // for print3DTensorToStdCout
-#include "exceptions/wruntime_error.h"
+#include "kinect_interface/hand_net/conv_stage.h"
+#include "kinect_interface/hand_net/hand_net.h"  // for print3DTensorToStdCout
+#include "jtil/exceptions/wruntime_error.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 
-using math::Float4x4;
-using math::FloatQuat;
-using math::Float3;
+using jtil::math::Float4x4;
+using jtil::math::FloatQuat;
+using jtil::math::Float3;
 using std::string;
 using std::runtime_error;
 using std::cout;
 using std::endl;
-using math::Float3;
+using jtil::math::Float3;
 
+namespace kinect_interface {
 namespace hand_net {
 
   // In torch: >> normkernel = image.gaussian1D(7)
@@ -80,13 +81,6 @@ namespace hand_net {
   }
 
   void ConvStage::loadFromFile(std::ifstream& file) {
-//#if defined(DEBUG) || defined(_DEBUG)
-//    std::cout << "Normaization kernel: " << std::endl << "  ";
-//    for (int32_t i = 0; i < norm_kernel_size_; i++) {
-//      std::cout << norm_1dkernel_[i] << " ";
-//    }
-//#endif
-
     file.read((char*)(&filt_width_), sizeof(filt_width_));
     file.read((char*)(&filt_height_), sizeof(filt_height_));
     file.read((char*)(&n_input_features_), sizeof(n_input_features_));
@@ -234,8 +228,10 @@ namespace hand_net {
           for (int32_t outu = 0; outu < out_w; outu++) {
             out[outf * out_dim + outv * out_w + outu] = 0.0f;
             // Now perform L2 pooling:
-            for (int32_t inv = outv * pool_size_; inv < (outv + 1) * pool_size_; inv++) {
-              for (int32_t inu = outu * pool_size_; inu < (outu + 1) * pool_size_; inu++) {
+            for (int32_t inv = outv * pool_size_; 
+              inv < (outv + 1) * pool_size_; inv++) {
+              for (int32_t inu = outu * pool_size_; 
+                inu < (outu + 1) * pool_size_; inu++) {
                 float val = in[outf * in_dim + inv * inw + inu];
                 out[outf * out_dim + outv * out_w + outu] += (val * val);
               }
@@ -437,4 +433,5 @@ namespace hand_net {
     return (inh - filt_height_ + 1);
   }
 
-}  // namespace hand_model
+}  // namespace hand_net
+}  // namespace kinect_interface

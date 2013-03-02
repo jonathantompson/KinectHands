@@ -24,7 +24,7 @@
 #define HAND_SIZE 300.0f
 #define HPF_SIGMA 1.5f  // in pixels
 #define HPF_KERNEL_SIZE 11  // Hopefully >= 2*(3*sigma) + 1 (MUST BE ODD!)
-#define NUM_CONV_BANKS 1
+#define NUM_CONV_BANKS 3
 #define HPF_GAIN 2.0f
 
 #if defined(__APPLE__)
@@ -98,16 +98,13 @@ namespace hand_net {
     // Top level functions
     // calcHandCoeffConvnet - Calculates the convnet coeffs (not necessary
     // the same as the coeffs the renderer uses - see above)
-    void calcHandCoeffConvnet(const int16_t* depth, const uint8_t* label, 
-      float coeff_convnet[HAND_NUM_COEFF_CONVNET]);
+    // Result is placed in coeff_convnet
+    void calcHandCoeffConvnet(const int16_t* depth, const uint8_t* label);
 
     void createLabelFromSyntheticDepth(const float* depth, uint8_t* label);
 
     // calcHandImage - creates cropped image, then creates a bank of HPF imgs
     void calcHandImage(const int16_t* depth_in, const uint8_t* label_in);
-    void calcCoeffConvnet(hand_model::HandModel* hand,
-      hand_model::HandModelRenderer* renderer, 
-      float coeff_convnet[HAND_NUM_COEFF_CONVNET]);
 
     // Some helper functions for debugging
     template <typename T>
@@ -124,6 +121,7 @@ namespace hand_net {
 
     // Getter methods
     float* hpf_hand_images() { return hpf_hand_images_; }
+    const float* coeff_convnet() const { return coeff_convnet_; }
     float* hand_image() { return hand_image_; }
     int32_t size_images() { return size_images_; } 
     inline const jtil::math::Float3& uvd_com() const { return uvd_com_; }
@@ -138,6 +136,8 @@ namespace hand_net {
 
     int32_t n_nn_stages_;
     NNStage** nn_stages_;
+
+    float coeff_convnet_[HAND_NUM_COEFF_CONVNET];  // output data
 
     // The data is split up to make multithreading easier.
     float** conv_datcur_;  // The current stage's input data (on each bank)

@@ -153,41 +153,39 @@ namespace hand_net {
 
 
   FloatQuat tmp_quat_;
-  void HandModel::renormalizeCoeffs(Eigen::MatrixXf& coeff) {
+  void HandModel::renormalizeCoeffs(float* coeff) {
     // Normalize the quaternion
-    tmp_quat_.set(static_cast<float>(coeff(HAND_ORIENT_X)),
-                  static_cast<float>(coeff(HAND_ORIENT_Y)),
-                  static_cast<float>(coeff(HAND_ORIENT_Z)),
-                  static_cast<float>(coeff(HAND_ORIENT_W)));
+    tmp_quat_.set(coeff[HAND_ORIENT_X], coeff[HAND_ORIENT_Y],
+      coeff[HAND_ORIENT_Z], coeff[HAND_ORIENT_W]);
     tmp_quat_.normalize();
-    coeff(HAND_ORIENT_X) = tmp_quat_[0];
-    coeff(HAND_ORIENT_Y) = tmp_quat_[1];
-    coeff(HAND_ORIENT_Z) = tmp_quat_[2];
-    coeff(HAND_ORIENT_W) = tmp_quat_[3];
+    coeff[HAND_ORIENT_X] = tmp_quat_[0];
+    coeff[HAND_ORIENT_Y] = tmp_quat_[1];
+    coeff[HAND_ORIENT_Z] = tmp_quat_[2];
+    coeff[HAND_ORIENT_W] = tmp_quat_[3];
     
     // Set all angles 0 --> 2pi
-    WrapTwoPI(coeff(WRIST_THETA));
-    WrapTwoPI(coeff(WRIST_PHI));
-    WrapTwoPI(coeff(THUMB_THETA));
-    WrapTwoPI(coeff(THUMB_PHI));
-    WrapTwoPI(coeff(THUMB_K1_THETA));
-    WrapTwoPI(coeff(THUMB_K1_PHI));
-    WrapTwoPI(coeff(THUMB_K2_PHI));
-    WrapTwoPI(coeff(F0_THETA));
-    WrapTwoPI(coeff(F0_PHI));
-    WrapTwoPI(coeff(F0_KNUCKLE_CURL));
-    WrapTwoPI(coeff(F1_THETA));
-    WrapTwoPI(coeff(F1_PHI));
-    WrapTwoPI(coeff(F1_KNUCKLE_CURL));
-    WrapTwoPI(coeff(F2_THETA));
-    WrapTwoPI(coeff(F2_PHI));
-    WrapTwoPI(coeff(F2_KNUCKLE_CURL));
-    WrapTwoPI(coeff(F3_THETA));
-    WrapTwoPI(coeff(F3_PHI));
-    WrapTwoPI(coeff(F3_KNUCKLE_CURL));
+    WrapTwoPI(coeff[WRIST_THETA]);
+    WrapTwoPI(coeff[WRIST_PHI]);
+    WrapTwoPI(coeff[THUMB_THETA]);
+    WrapTwoPI(coeff[THUMB_PHI]);
+    WrapTwoPI(coeff[THUMB_K1_THETA]);
+    WrapTwoPI(coeff[THUMB_K1_PHI]);
+    WrapTwoPI(coeff[THUMB_K2_PHI]);
+    WrapTwoPI(coeff[F0_THETA]);
+    WrapTwoPI(coeff[F0_PHI]);
+    WrapTwoPI(coeff[F0_KNUCKLE_CURL]);
+    WrapTwoPI(coeff[F1_THETA]);
+    WrapTwoPI(coeff[F1_PHI]);
+    WrapTwoPI(coeff[F1_KNUCKLE_CURL]);
+    WrapTwoPI(coeff[F2_THETA]);
+    WrapTwoPI(coeff[F2_PHI]);
+    WrapTwoPI(coeff[F2_KNUCKLE_CURL]);
+    WrapTwoPI(coeff[F3_THETA]);
+    WrapTwoPI(coeff[F3_PHI]);
+    WrapTwoPI(coeff[F3_KNUCKLE_CURL]);
   }
   
-  string HandCoeffToString(uint32_t coeff) {
+  string HandCoeffToString(const uint32_t coeff) {
     switch(coeff) {
       case HAND_POS_X:
         return "HAND_POS_X";
@@ -253,23 +251,26 @@ namespace hand_net {
     return "undefined";
   };
 
-  void HandModel::saveToFile(std::string directory, std::string filename) {
-    string full_filename = directory + filename;
+  void HandModel::saveToFile(const std::string& dir, 
+    const std::string& filename) const {
+    string full_filename = dir + filename;
     std::ofstream file(full_filename.c_str(), std::ios::out | std::ios::binary);
     if (!file.is_open()) {
       throw std::runtime_error(std::string("error opening file:") + filename);
     }
-    float* data = coeff_.data();
-    file.write(reinterpret_cast<const char*>(data), HAND_NUM_COEFF * sizeof(data[0]));
-    file.write(reinterpret_cast<const char*>(&wrist_length), sizeof(wrist_length));
+    file.write(reinterpret_cast<const char*>(coeff_), 
+      HAND_NUM_COEFF * sizeof(coeff_[0]));
+    file.write(reinterpret_cast<const char*>(&wrist_length), 
+      sizeof(wrist_length));
     file.write(reinterpret_cast<const char*>(&scale), sizeof(scale));
     file.flush();
     file.close();
   }
 
-  void HandModel::saveBlankFile(std::string directory, std::string filename) {
-    string full_filename = directory + filename;
-    std::ofstream file(full_filename.c_str(), std::ios::out | std::ios::binary);
+  void HandModel::saveBlankFile(const std::string& dir, 
+    const std::string& filename) const {
+    string full_filename = dir + filename;
+    std::ofstream file(full_filename.c_str(), std::ios::out|std::ios::binary);
     if (!file.is_open()) {
       throw std::runtime_error(std::string("error opening file:") + filename);
     }
@@ -281,24 +282,27 @@ namespace hand_net {
       blank[i] = 0;
     }
     
-    file.write(reinterpret_cast<const char*>(blank), HAND_NUM_COEFF * sizeof(blank[0]));
-    file.write(reinterpret_cast<const char*>(&wrist_length), sizeof(wrist_length));
+    file.write(reinterpret_cast<const char*>(blank), 
+      HAND_NUM_COEFF * sizeof(blank[0]));
+    file.write(reinterpret_cast<const char*>(&wrist_length), 
+      sizeof(wrist_length));
     file.write(reinterpret_cast<const char*>(&scale), sizeof(scale));
     file.flush();
     file.close();
   }
 
-  bool HandModel::loadFromFile(std::string directory, std::string filename) {
-    string full_filename = directory + filename;
+  bool HandModel::loadFromFile(const std::string& dir, 
+    const std::string& filename) {
+    string full_filename = dir + filename;
     std::ifstream file(full_filename.c_str(), std::ios::in | std::ios::binary);
     if (!file.is_open()) {
       return false;
     }
-    float* data = coeff_.data();
     file.seekg(0, std::ios::beg);
     // Make sure this isn't a blank file (indicating no hands on the screen)
-    file.read(reinterpret_cast<char*>(data), HAND_NUM_COEFF * sizeof(data[0]));
-    if (data[0] < EPSILON && data[1] < EPSILON && data[2] < EPSILON) {
+    file.read(reinterpret_cast<char*>(coeff_), 
+      HAND_NUM_COEFF * sizeof(coeff_[0]));
+    if (coeff_[0] < EPSILON && coeff_[1] < EPSILON && coeff_[2] < EPSILON) {
       resetPose();
     }
     file.read(reinterpret_cast<char*>(&wrist_length), sizeof(wrist_length));

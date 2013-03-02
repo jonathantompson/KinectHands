@@ -46,11 +46,13 @@ namespace kinect_interface {
     ~KinectInterface();  // Must not be called until thread is joined
     void shutdownKinect();  // Blocking until the kinect thread has shut down
     
+    const uint8_t* rgb() const { return rgb_; }  // NOT THREAD SAFE!  Use lockData()
+    const uint16_t* depth() const { return depth_; }  // NOT THREAD SAFE!  Use lockData()
+    const uint8_t* labels() const { return labels_; }  // NOT THREAD SAFE!  Use lockData()
+    const float* coeff_convnet() const;  // NOT THREAD SAFE!  Use lockData()
+    const uint8_t* filteredDecisionForestLabels() const;  // NOT THREAD SAFE!  Use lockData()
+    const jtil::math::Float3& uvd_com() const;
 
-    uint8_t* rgb() { return rgb_; }  // NOT THREAD SAFE!  Use lockData()
-    uint16_t* depth() { return depth_; }  // NOT THREAD SAFE!  Use lockData()
-    uint8_t* labels() { return labels_; }  // NOT THREAD SAFE!  Use lockData()
-    const uint8_t* filteredDecisionForestLabels();   // NOT THREAD SAFE! 
     inline void lockData() { data_lock_.lock(); };
     inline void unlockData() { data_lock_.unlock(); };
     

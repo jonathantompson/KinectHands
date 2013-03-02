@@ -23,6 +23,7 @@ using namespace jtil::settings;
 using namespace jtil::math;
 using namespace jtil::settings;
 using namespace kinect_interface;
+using kinect_interface::hand_net::HandCoeffConvnet;
 using namespace jtil::renderer;
 using namespace jtil::image_util;
 
@@ -44,7 +45,9 @@ namespace app {
   }
 
   App::~App() {
-    kinect_->shutdownKinect();
+    if (kinect_) {
+      kinect_->shutdownKinect();
+    }
     SAFE_DELETE(kinect_);
     SAFE_DELETE(clk_);
     SAFE_DELETE(rand_norm_);
@@ -139,6 +142,9 @@ namespace app {
         } else {
           memcpy(labels_, kinect_->labels(), sizeof(labels_[0]) * src_dim);
         }
+        memcpy(coeff_convnet_, kinect_->coeff_convnet(), 
+          sizeof(coeff_convnet_[0]) * HandCoeffConvnet::HAND_NUM_COEFF_CONVNET);
+        uvd_com_.set(kinect_->uvd_com());
 
         kinect_frame_number_ = kinect_->frame_number();
         update_tex = true;
@@ -178,6 +184,19 @@ namespace app {
             }
           }
         }
+        bool render_convnet_points;
+        GET_SETTING("render_convnet_points", bool, render_convnet_points);
+        if (render_convnet_points) {
+          renderCrossToImageArr(&coeff_convnet_[HandCoeffConvnet::HAND_POS_U], 
+            im_, src_width, src_height, 5, 255, 128, 255);
+          for (uint32_t i = HandCoeffConvnet::THUMB_K1_U; 
+            i <= HandCoeffConvnet::F3_TIP_U; i += 2) {
+              const Float3* color = &renderer::colors[(i/2) % renderer::n_colors];
+              renderCrossToImageArr(&coeff_convnet_[i], im_, src_width, 
+                src_height, 2, (uint8_t)(color->m[0] * 255.0f), 
+                (uint8_t)(color->m[1] * 255.0f), (uint8_t)(color->m[2] * 255.0f));
+          }
+        }
 
         FlipImage<uint8_t>(im_flipped_, im_, src_width, src_height, 3);
         background_tex_->flagDirty();
@@ -196,9 +215,42 @@ namespace app {
       std::this_thread::yield();
     }
   }
-  
+
+  // renderCrossToImageArr - UV is 0 to 1 in U and V
+  // Render's directly to the texture array data (not using OpenGL)
+  void App::renderCrossToImageArr(float* uv, uint8_t* im, int32_t w, int32_t h,
+    int32_t rad, uint8_t r, uint8_t g, uint8_t b) {
+      int32_t v = (int32_t)floor((uv[1] * HAND_NET_PIX) + 
+        (uvd_com_[1] - HAND_NET_PIX/2));
+      int32_t u = (int32_t)floor((uv[0] * HAND_NET_PIX) + 
+        (uvd_com_[0] - HAND_NET_PIX/2));
+      // v = h - v - 1;
+
+      // Note: We need to render upside down
+      // Render the horizontal cross
+      int32_t vcross = v;
+      for (int32_t ucross = u - rad; ucross <= u + rad; ucross++) {
+        if (ucross >= 0 && ucross < w && vcross >= 0 && vcross < h) {
+          int32_t dst_index = vcross * w + ucross;
+          im[dst_index * 3] = r;
+          im[dst_index * 3+1] = g;
+          im[dst_index * 3+2] = b;
+        }
+      }
+      // Render the vertical cross
+      int32_t ucross = u;
+      for (int32_t vcross = v - rad; vcross <= v + rad; vcross++) {
+        if (ucross >= 0 && ucross < w && vcross >= 0 && vcross < h) {
+          int32_t dst_index = vcross * w + ucross;
+          im[dst_index * 3] = r;
+          im[dst_index * 3+1] = g;
+          im[dst_index * 3+2] = b;
+        }
+      }
+  }
+
   void App::moveCamera(double dt) {
-    
+
   }
 
   void App::moveStuff(const double dt) {
@@ -225,9 +277,12 @@ namespace app {
 
     ui->addHeadingText("Hand Detection:");
     ui->addCheckbox("detect_hands", "Enable Hand Detection");
+    ui->addCheckbox("detect_pose", "Enable Pose Detection");
     ui->addCheckbox("render_hand_labels", "Mark Hand Pixels");
     ui->addCheckbox("render_decision_forest_labels", 
       "Render Decision Forest Labels");
+    ui->addCheckbox("render_convnet_points", 
+      "Render Convnet salient points");
   }
 
   int App::closeWndCB() {

@@ -4,40 +4,34 @@
 #include <stdexcept>
 #include <fstream>
 #include <cmath>
-#include "hand_net/hand_net.h"
-#include "hand_net/conv_stage.h"
-#include "hand_net/nn_stage.h"
-#include "data_str/vector.h"
-#include "exceptions/wruntime_error.h"
-#include "hand_model/hand_model.h"  // for HandCoeff
-#include "hand_model/hand_model_renderer.h"
-#include "hand_model/hand_model_geometry.h"
-#include "hand_model/hand_model_geometry_mesh.h"
-#include "hand_model/bounding_sphere.h"
-#include "renderer/camera/camera.h"
-#include "open_ni_funcs.h"
-#include "image_util.h"
+#include <sstream>
+#include "kinect_interface/hand_net/hand_net.h"
+#include "kinect_interface/hand_net/conv_stage.h"
+#include "kinect_interface/hand_net/nn_stage.h"
+#include "kinect_interface/hand_net/hand_model.h"  // for HandCoeff
+#include "kinect_interface/open_ni_funcs.h"
+#include "kinect_interface/hand_detector/decision_tree_structs.h"  // for GDT_MAX_DIST
+#include "jtil/image_util/image_util.h"
+#include "jtil/data_str/vector.h"
+#include "jtil/exceptions/wruntime_error.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
-using math::Float4x4;
-using math::FloatQuat;
-using math::Float3;
-using math::Float4;
-using math::Float2;
+using jtil::math::Float4x4;
+using jtil::math::FloatQuat;
+using jtil::math::Float3;
+using jtil::math::Float4;
+using jtil::math::Float2;
 using std::string;
 using std::runtime_error;
 using std::cout;
 using std::endl;
-using math::Float3;
-using depth_images_io::DepthImagesIO;
-using hand_model::HandCoeff;
-using hand_model::HandModelRenderer;
-using hand_model::HandModelGeometryMesh;
-using hand_model::HandSphereIndices;
-using renderer::BoundingSphere;
+using jtil::math::Float3;
+using namespace jtil::image_util;
+using kinect_interface::hand_net::HandCoeff;
 
+namespace kinect_interface {
 namespace hand_net {
  
   HandNet::HandNet() {
@@ -117,16 +111,16 @@ namespace hand_net {
     SAFE_DELETE_ARR(hpf_hand_images_coeff_);
   }
 
-  void HandNet::loadFromFile(const std::string& convnet_filename) {
+  void HandNet::loadFromFile(const std::string& filename) {
     if (conv_stages_ != NULL) {
       throw std::wruntime_error("ConvStage::loadFromFile() - ERROR: "
         "Convnet data already exists. If you want to reload the convnet, then"
         " call the destructor and reload.");
     }
 
-    std::cout << "loading HandNet from " << convnet_filename << std::endl;
+    std::cout << "loading HandNet from " << filename << std::endl;
 
-    std::ifstream file(convnet_filename.c_str(), std::ios::in | std::ios::binary);
+    std::ifstream file(filename.c_str(), std::ios::in|std::ios::binary);
     if (file.is_open()) {
 
       file.seekg(0, std::ios::beg);
@@ -210,9 +204,10 @@ namespace hand_net {
       nn_datnext_ = new float[max_size];
 
     } else {
-      std::cout << "HandNet::loadFromFile() - ERROR: Could not open convnet";
-      std::cout << " file " << convnet_filename << std::endl;
-      std::cout << "Forward prop functionality will be disabled." << std::endl;
+      std::stringstream ss;
+      ss << "HandNet::loadFromFile() - ERROR: Could not open convnet";
+      ss << " file " << filename << std::endl;
+      throw std::wruntime_error(ss.str());
     }
 
     std::cout << "Finished initializing HandNet" << std::endl;
@@ -253,7 +248,7 @@ namespace hand_net {
   }
 
   void HandNet::calcHandCoeffConvnet(const int16_t* depth, 
-    const uint8_t* label, float coeff_convnet[HAND_NUM_COEFF_CONVNET]) {
+    const uint8_t* label) {
     if (n_conv_stages_ == 0) {
       std::cout << "HandNet::calcHandCoeff() - ERROR: Convnet not loaded";
       std::cout << " from file!" << std::endl;
@@ -305,7 +300,8 @@ namespace hand_net {
       // print3DTensorToStdCout<float>(conv_datcur_[j], 0, w, h, 2, 2, 6, 6);
     }
 
-    // print3DTensorToStdCout<float>(nn_datcur_, 1, nn_stages_[0]->n_inputs(), 1);
+    // print3DTensorToStdCout<float>(nn_datcur_, 1, 
+    //   nn_stages_[0]->n_inputs(), 1);
 
     for (int32_t i = 0; i < n_nn_stages_; i++) {
       nn_stages_[i]->forwardProp(nn_datcur_, nn_datnext_);
@@ -313,11 +309,12 @@ namespace hand_net {
       float* tmp = nn_datnext_;
       nn_datnext_ = nn_datcur_;
       nn_datcur_ = tmp; 
-      // print3DTensorToStdCout<float>(nn_datcur_, 1, nn_stages_[i]->n_outputs(), 1);
+      // print3DTensorToStdCout<float>(nn_datcur_, 1, 
+      //   nn_stages_[i]->n_outputs(), 1);
     }
 
-    memcpy(coeff_convnet, nn_datcur_, HAND_NUM_COEFF_CONVNET * 
-      sizeof(coeff_convnet[0]));
+    memcpy(coeff_convnet_, nn_datcur_, HAND_NUM_COEFF_CONVNET * 
+      sizeof(coeff_convnet_[0]));
 
     // print3DTensorToStdCout<float>(nn_datcur_, 1, HAND_NUM_COEFF_CONVNET, 1);
   }
@@ -353,7 +350,7 @@ namespace hand_net {
         }
       }
     }
-    uvd_com_.scale(1.0f / (float)cnt);
+    Float3::scale(uvd_com_, 1.0f / (float)cnt);
     uvd_com_[0] = floor(uvd_com_[0]);
     uvd_com_[1] = floor(uvd_com_[1]);
     uint32_t u_start = (uint32_t)uvd_com_[0] - (HAND_NET_PIX / 2);
@@ -444,130 +441,133 @@ namespace hand_net {
     }
   }
 
-  void HandNet::calcHandImageUVFromXYZ(HandModelRenderer* renderer, 
-    Float3& xyz_pos, Float2& uv_pos) {
-    Float4 pos(xyz_pos[0], xyz_pos[1], xyz_pos[2], 1.0f);
-    Float4 homog_pos;
-    Float4::mult(&homog_pos, renderer->camera()->proj(), &pos);
-    uv_pos[0] = (homog_pos[0] / homog_pos[3]);  // NDC X: -1 --> 1
-    uv_pos[1] = (homog_pos[1] / homog_pos[3]);  // NDC Y: -1 --> 1
-    // http://www.songho.ca/opengl/gl_transform.html
-    // TO DO: figure out why uv[0] needs to be flipped.  It makes no sense!
-    uv_pos[0] = (float)src_width * 0.5f * (-uv_pos[0] + 1);  // Window X: 0 --> W
-    uv_pos[1] = (float)src_height * 0.5f * (uv_pos[1] + 1);  // Window Y: 0 --> H
-    // Now take off the uv COM and scale back to 0 --> 1
-    uv_pos[0] = (uv_pos[0] - (uvd_com_[0] - (HAND_NET_PIX/2))) / HAND_NET_PIX;
-    uv_pos[1] = (uv_pos[1] - (uvd_com_[1] - (HAND_NET_PIX/2))) / HAND_NET_PIX;
-  }
+  //// NOT NECESSARY FOR FORWARD ONLY MODEL --> STILL USED IN HANDFIT
+  //// TO CREATE TRAINING DATA FROM PSO POSE
+//  void HandNet::calcHandImageUVFromXYZ(HandModelRenderer* renderer, 
+//    Float3& xyz_pos, Float2& uv_pos) {
+//    Float4 pos(xyz_pos[0], xyz_pos[1], xyz_pos[2], 1.0f);
+//    Float4 homog_pos;
+//    Float4::mult(&homog_pos, renderer->camera()->proj(), &pos);
+//    uv_pos[0] = (homog_pos[0] / homog_pos[3]);  // NDC X: -1 --> 1
+//    uv_pos[1] = (homog_pos[1] / homog_pos[3]);  // NDC Y: -1 --> 1
+//    // http://www.songho.ca/opengl/gl_transform.html
+//    // TO DO: figure out why uv[0] needs to be flipped.  It makes no sense!
+//    uv_pos[0] = (float)src_width * 0.5f * (-uv_pos[0] + 1);  // Window X: 0 --> W
+//    uv_pos[1] = (float)src_height * 0.5f * (uv_pos[1] + 1);  // Window Y: 0 --> H
+//    // Now take off the uv COM and scale back to 0 --> 1
+//    uv_pos[0] = (uv_pos[0] - (uvd_com_[0] - (HAND_NET_PIX/2))) / HAND_NET_PIX;
+//    uv_pos[1] = (uv_pos[1] - (uvd_com_[1] - (HAND_NET_PIX/2))) / HAND_NET_PIX;
+//  }
+//
+//  void HandNet::calcCoeffConvnet(hand_model::HandModel* hand, 
+//    HandModelRenderer* renderer, float coeff_convnet[HAND_NUM_COEFF_CONVNET]) {
+//    HandModelGeometryMesh* geom = 
+//      (HandModelGeometryMesh*)renderer->geom(hand->hand_type());
+//    const float* coeff = hand->coeff().data();
+//    Float2 pos_uv;
+//
+//   // Thumb and finger angles are actually learned as salient points -->
+//    // Luckily we have a good way to get these.  Use the positions of some of
+//    // the key bounding sphere positions --> Then project these into UV.
+//    renderer->updateMatrices(hand->coeff(), hand->hand_type());
+//    renderer->updateHeirachyMatrices(hand->hand_type());
+//    renderer->fixBoundingSphereMatrices(hand->hand_type());
+//
+//    // Project the XYZ position into UV space
+//    // Use the base of the thumb (which is constant in the hand's coord system)
+//    // since the model origin is usually off the 192x192 pixels.
+//    BoundingSphere* sphere = geom->bspheres()[HandSphereIndices::TH_KNU1_B];
+//    sphere->transform();
+//    calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
+//    coeff_convnet[HAND_POS_U] = pos_uv[0];
+//    coeff_convnet[HAND_POS_V] = pos_uv[1];
+//
+//    // Model origin as hand position
+//    Float3 hand_pos(coeff[HandCoeff::HAND_POS_X], 
+//      coeff[HandCoeff::HAND_POS_Y], coeff[HandCoeff::HAND_POS_Z]);
+//    //calcHandImageUVFromXYZ(renderer, hand_pos, pos_uv);
+//    //coeff_convnet[HAND_POS_U] = pos_uv[0];
+//    //coeff_convnet[HAND_POS_V] = pos_uv[1];
+//
+//    // Convert quaternion to euler angles (might be easier to learn)
+//    FloatQuat quat(coeff[HandCoeff::HAND_ORIENT_X], 
+//                   coeff[HandCoeff::HAND_ORIENT_Y], 
+//                   coeff[HandCoeff::HAND_ORIENT_Z],
+//                   coeff[HandCoeff::HAND_ORIENT_W]);
+//    float euler[3];
+//    quat.quat2EulerAngles(euler[0], euler[1], euler[2]);
+//
+//#if defined(DEBUG) || defined(_DEBUG)
+//    // At least make sure the inverse mapping and the conversion to matrix is
+//    // correct
+//    FloatQuat quat_tmp;
+//    FloatQuat::eulerAngles2Quat(&quat_tmp, euler[0], euler[1], euler[2]);
+//    if (!quat.approxEqual(&quat_tmp)) {
+//      throw std::runtime_error("ERROR: Quat --> Euler is not correct!");
+//    }
+//    Float4x4 mat;
+//    Float4x4 mat2;
+//    quat.quat2Mat4x4(&mat);
+//    Float4x4::euler2RotMat(&mat2, euler[0], euler[1], euler[2]);
+//    if (!mat.approxEqual(&mat2)) {
+//      throw std::runtime_error("ERROR: Quat --> Euler is not correct!");
+//    }
+//#endif
+//
+//    // All angle coefficients are stored as (cos(x), sin(x)) to avoid
+//    // the singularity
+//    coeff_convnet[HAND_ORIENT_X_COS] = cosf(euler[0]);
+//    coeff_convnet[HAND_ORIENT_X_SIN] = sinf(euler[0]);
+//    coeff_convnet[HAND_ORIENT_Y_COS] = cosf(euler[1]);
+//    coeff_convnet[HAND_ORIENT_Y_SIN] = sinf(euler[1]);
+//    coeff_convnet[HAND_ORIENT_Z_COS] = cosf(euler[2]);
+//    coeff_convnet[HAND_ORIENT_Z_SIN] = sinf(euler[2]);
+//
+//    coeff_convnet[WRIST_THETA_COS] = cosf(coeff[HandCoeff::WRIST_THETA]);
+//    coeff_convnet[WRIST_THETA_SIN] = sinf(coeff[HandCoeff::WRIST_THETA]);
+//    coeff_convnet[WRIST_PHI_COS] = cosf(coeff[HandCoeff::WRIST_PHI]);
+//    coeff_convnet[WRIST_PHI_SIN] = sinf(coeff[HandCoeff::WRIST_PHI]);
+//
+//    // Thumb
+//    sphere = geom->bspheres()[HandSphereIndices::TH_KNU3_A];
+//    sphere->transform();
+//    calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
+//    coeff_convnet[THUMB_TIP_U] = pos_uv[0];
+//    coeff_convnet[THUMB_TIP_V] = pos_uv[1];
+//
+//    sphere = geom->bspheres()[HandSphereIndices::TH_KNU3_B];
+//    sphere->transform();
+//    calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
+//    coeff_convnet[THUMB_K2_U] = pos_uv[0];
+//    coeff_convnet[THUMB_K2_V] = pos_uv[1];
+//
+//    sphere = geom->bspheres()[HandSphereIndices::TH_KNU2_B];
+//    sphere->transform();
+//    calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
+//    coeff_convnet[THUMB_K1_U] = pos_uv[0];
+//    coeff_convnet[THUMB_K1_V] = pos_uv[1];
+//
+//    // Fingers
+//    for (uint32_t i = 0; i < 4; i++) {
+//      sphere = geom->bspheres()[HandSphereIndices::F1_KNU3_A + 6 * i];
+//      sphere->transform();
+//      calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
+//      coeff_convnet[F0_TIP_U + 6 * i] = pos_uv[0];
+//      coeff_convnet[F0_TIP_V + 6 * i] = pos_uv[1];
+//
+//      sphere = geom->bspheres()[HandSphereIndices::F1_KNU3_B + 6 * i];
+//      sphere->transform();
+//      calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
+//      coeff_convnet[F0_K2_U + 6 * i] = pos_uv[0];
+//      coeff_convnet[F0_K2_V + 6 * i] = pos_uv[1];
+//
+//      sphere = geom->bspheres()[HandSphereIndices::F1_KNU2_B + 6 * i];
+//      sphere->transform();
+//      calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
+//      coeff_convnet[F0_K1_U + 6 * i] = pos_uv[0];
+//      coeff_convnet[F0_K1_V + 6 * i] = pos_uv[1];
+//    }
+//  }
 
-  void HandNet::calcCoeffConvnet(hand_model::HandModel* hand, 
-    HandModelRenderer* renderer, float coeff_convnet[HAND_NUM_COEFF_CONVNET]) {
-    HandModelGeometryMesh* geom = 
-      (HandModelGeometryMesh*)renderer->geom(hand->hand_type());
-    const float* coeff = hand->coeff().data();
-    Float2 pos_uv;
-
-   // Thumb and finger angles are actually learned as salient points -->
-    // Luckily we have a good way to get these.  Use the positions of some of
-    // the key bounding sphere positions --> Then project these into UV.
-    renderer->updateMatrices(hand->coeff(), hand->hand_type());
-    renderer->updateHeirachyMatrices(hand->hand_type());
-    renderer->fixBoundingSphereMatrices(hand->hand_type());
-
-    // Project the XYZ position into UV space
-    // Use the base of the thumb (which is constant in the hand's coord system)
-    // since the model origin is usually off the 192x192 pixels.
-    BoundingSphere* sphere = geom->bspheres()[HandSphereIndices::TH_KNU1_B];
-    sphere->transform();
-    calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
-    coeff_convnet[HAND_POS_U] = pos_uv[0];
-    coeff_convnet[HAND_POS_V] = pos_uv[1];
-
-    // Model origin as hand position
-    Float3 hand_pos(coeff[HandCoeff::HAND_POS_X], 
-      coeff[HandCoeff::HAND_POS_Y], coeff[HandCoeff::HAND_POS_Z]);
-    //calcHandImageUVFromXYZ(renderer, hand_pos, pos_uv);
-    //coeff_convnet[HAND_POS_U] = pos_uv[0];
-    //coeff_convnet[HAND_POS_V] = pos_uv[1];
-
-    // Convert quaternion to euler angles (might be easier to learn)
-    FloatQuat quat(coeff[HandCoeff::HAND_ORIENT_X], 
-                   coeff[HandCoeff::HAND_ORIENT_Y], 
-                   coeff[HandCoeff::HAND_ORIENT_Z],
-                   coeff[HandCoeff::HAND_ORIENT_W]);
-    float euler[3];
-    quat.quat2EulerAngles(euler[0], euler[1], euler[2]);
-
-#if defined(DEBUG) || defined(_DEBUG)
-    // At least make sure the inverse mapping and the conversion to matrix is
-    // correct
-    FloatQuat quat_tmp;
-    FloatQuat::eulerAngles2Quat(&quat_tmp, euler[0], euler[1], euler[2]);
-    if (!quat.approxEqual(&quat_tmp)) {
-      throw std::runtime_error("ERROR: Quat --> Euler is not correct!");
-    }
-    Float4x4 mat;
-    Float4x4 mat2;
-    quat.quat2Mat4x4(&mat);
-    Float4x4::euler2RotMat(&mat2, euler[0], euler[1], euler[2]);
-    if (!mat.approxEqual(&mat2)) {
-      throw std::runtime_error("ERROR: Quat --> Euler is not correct!");
-    }
-#endif
-
-    // All angle coefficients are stored as (cos(x), sin(x)) to avoid
-    // the singularity
-    coeff_convnet[HAND_ORIENT_X_COS] = cosf(euler[0]);
-    coeff_convnet[HAND_ORIENT_X_SIN] = sinf(euler[0]);
-    coeff_convnet[HAND_ORIENT_Y_COS] = cosf(euler[1]);
-    coeff_convnet[HAND_ORIENT_Y_SIN] = sinf(euler[1]);
-    coeff_convnet[HAND_ORIENT_Z_COS] = cosf(euler[2]);
-    coeff_convnet[HAND_ORIENT_Z_SIN] = sinf(euler[2]);
-
-    coeff_convnet[WRIST_THETA_COS] = cosf(coeff[HandCoeff::WRIST_THETA]);
-    coeff_convnet[WRIST_THETA_SIN] = sinf(coeff[HandCoeff::WRIST_THETA]);
-    coeff_convnet[WRIST_PHI_COS] = cosf(coeff[HandCoeff::WRIST_PHI]);
-    coeff_convnet[WRIST_PHI_SIN] = sinf(coeff[HandCoeff::WRIST_PHI]);
-
-    // Thumb
-    sphere = geom->bspheres()[HandSphereIndices::TH_KNU3_A];
-    sphere->transform();
-    calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
-    coeff_convnet[THUMB_TIP_U] = pos_uv[0];
-    coeff_convnet[THUMB_TIP_V] = pos_uv[1];
-
-    sphere = geom->bspheres()[HandSphereIndices::TH_KNU3_B];
-    sphere->transform();
-    calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
-    coeff_convnet[THUMB_K2_U] = pos_uv[0];
-    coeff_convnet[THUMB_K2_V] = pos_uv[1];
-
-    sphere = geom->bspheres()[HandSphereIndices::TH_KNU2_B];
-    sphere->transform();
-    calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
-    coeff_convnet[THUMB_K1_U] = pos_uv[0];
-    coeff_convnet[THUMB_K1_V] = pos_uv[1];
-
-    // Fingers
-    for (uint32_t i = 0; i < 4; i++) {
-      sphere = geom->bspheres()[HandSphereIndices::F1_KNU3_A + 6 * i];
-      sphere->transform();
-      calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
-      coeff_convnet[F0_TIP_U + 6 * i] = pos_uv[0];
-      coeff_convnet[F0_TIP_V + 6 * i] = pos_uv[1];
-
-      sphere = geom->bspheres()[HandSphereIndices::F1_KNU3_B + 6 * i];
-      sphere->transform();
-      calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
-      coeff_convnet[F0_K2_U + 6 * i] = pos_uv[0];
-      coeff_convnet[F0_K2_V + 6 * i] = pos_uv[1];
-
-      sphere = geom->bspheres()[HandSphereIndices::F1_KNU2_B + 6 * i];
-      sphere->transform();
-      calcHandImageUVFromXYZ(renderer, *sphere->transformed_center(), pos_uv);
-      coeff_convnet[F0_K1_U + 6 * i] = pos_uv[0];
-      coeff_convnet[F0_K1_V + 6 * i] = pos_uv[1];
-    }
-  }
-
-}  // namespace hand_model
+}  // namespace hand_net
+}  // namespace kinect_interface

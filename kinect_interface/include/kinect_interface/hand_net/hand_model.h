@@ -103,8 +103,9 @@ namespace hand_net {
     void setCoeff(uint32_t index, float coeff_value);
     
     // FILE IO
-    void saveToFile(const std::string& dir, const std::string& filename);
-    void saveBlankFile(const std::string& dir, const std::string& filename);
+    void saveToFile(const std::string& dir, const std::string& filename) const;
+    void saveBlankFile(const std::string& dir, const std::string& filename) 
+      const;
     bool loadFromFile(const std::string& dir, const std::string& filename);
 
     static void renormalizeCoeffs(float* coeff);

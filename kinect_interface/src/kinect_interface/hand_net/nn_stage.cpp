@@ -4,20 +4,21 @@
 #include <stdexcept>
 #include <iomanip>
 #include <fstream>
-#include "hand_net/nn_stage.h"
-#include "exceptions/wruntime_error.h"
+#include "kinect_interface/hand_net/nn_stage.h"
+#include "jtil/exceptions/wruntime_error.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 
-using math::Float4x4;
-using math::FloatQuat;
-using math::Float3;
+using jtil::math::Float4x4;
+using jtil::math::FloatQuat;
+using jtil::math::Float3;
 using std::string;
 using std::runtime_error;
 using std::cout;
 using std::endl;
-using math::Float3;
+using jtil::math::Float3;
 
+namespace kinect_interface {
 namespace hand_net {
  
   NNStage::NNStage() {
@@ -122,4 +123,5 @@ namespace hand_net {
     }
   }
 
-}  // namespace hand_model
+}  // namespace hand_net
+}  // namespace kinect_interface

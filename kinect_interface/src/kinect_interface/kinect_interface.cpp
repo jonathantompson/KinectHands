@@ -435,12 +435,10 @@ namespace kinect_interface {
         if (!found_hand) {
           memset(labels_, 0, sizeof(labels_[0]) * src_dim);
         } else {
-          GET_SETTING("detect_hands", bool, detect_pose);
+          GET_SETTING("detect_pose", bool, detect_pose);
           if (detect_pose) {
-          hand_net_->calcCoeffConvnet(depth_, hand_renderer, 
-            coeff_convnet_pso);
+            hand_net_->calcHandCoeffConvnet((int16_t*)depth_, labels_);
           }
-
         }
       } else {
         memset(labels_, 0, sizeof(labels_[0]) * src_dim);
@@ -650,8 +648,16 @@ namespace kinect_interface {
     context_lock_.unlock();
   }
 
-  const uint8_t* KinectInterface::filteredDecisionForestLabels() {
+  const uint8_t* KinectInterface::filteredDecisionForestLabels() const {
     return hand_detector_->getLabelIm();
+  }
+
+  const float* KinectInterface::coeff_convnet() const {
+    return hand_net_->coeff_convnet();
+  }
+
+  const jtil::math::Float3& KinectInterface::uvd_com() const {
+    return hand_net_->uvd_com();
   }
 
 }  // namespace kinect
