@@ -7,8 +7,10 @@
 #include "kinect_interface/hand_net/conv_stage.h"
 #include "kinect_interface/hand_net/hand_net.h"  // for print3DTensorToStdCout
 #include "jtil/exceptions/wruntime_error.h"
+#include "jtil/threading/thread_pool.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
+#define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
 using jtil::math::Float4x4;
 using jtil::math::FloatQuat;
@@ -18,6 +20,7 @@ using std::runtime_error;
 using std::cout;
 using std::endl;
 using jtil::math::Float3;
+using namespace jtil::threading;
 
 namespace kinect_interface {
 namespace hand_net {
@@ -61,6 +64,8 @@ namespace hand_net {
     norm_coef_ = NULL;
     norm_accum_ = NULL;
     norm_filt_tmp_ = NULL;
+    conv_thread_cbs_ = NULL;
+    nonlin_thread_cbs_ = NULL;
   }
 
   ConvStage::~ConvStage() {
@@ -78,6 +83,18 @@ namespace hand_net {
     SAFE_DELETE(conn_table_);
     SAFE_DELETE(biases_);
     SAFE_DELETE(norm_coef_);
+    if (conv_thread_cbs_) {
+      for (int32_t i = 0; i < n_output_features_; i++) {
+        SAFE_DELETE(conv_thread_cbs_[i]);
+      }
+    }
+    SAFE_DELETE_ARR(conv_thread_cbs_);
+    if (nonlin_thread_cbs_) {
+      for (int32_t i = 0; i < n_output_features_; i++) {
+        SAFE_DELETE(nonlin_thread_cbs_[i]);
+      }
+    }
+    SAFE_DELETE_ARR(nonlin_thread_cbs_);
   }
 
   void ConvStage::loadFromFile(std::ifstream& file) {
@@ -117,18 +134,28 @@ namespace hand_net {
 
     biases_ = new float[n_output_features_];
     file.read((char*)(biases_), sizeof(biases_[0]) * n_output_features_);
+
+    // Make thread callbacks for multithreaded execution
+    conv_thread_cbs_ = new Callback<void>*[n_output_features_];
+    nonlin_thread_cbs_ = new Callback<void>*[n_output_features_];
+    for (int32_t i = 0; i < n_output_features_; i++) {
+      conv_thread_cbs_[i] = 
+        MakeCallableMany(&ConvStage::performSpacialConvolutionFeat, this, i);
+      nonlin_thread_cbs_[i] = 
+        MakeCallableMany(&ConvStage::performNonlinearityFeat, this, i);
+    }
   }
 
   void ConvStage::forwardProp(float*& in, const int32_t inw, const int32_t inh, 
-    float*& out) {
+    float*& out, jtil::threading::ThreadPool* tp) {
     const int32_t interm_w = calcIntermWidth(inw);
     const int32_t interm_h = calcIntermHeight(inh);
     const int32_t out_w = calcOutWidth(inw);
     const int32_t out_h = calcOutHeight(inh);
 
-    performSpacialConvolution(in, inw, inh, out);  // Checked against torch
+    performSpacialConvolution(in, inw, inh, out, tp);  // Checked against torch
 
-    performNonlinearity(out, interm_w, interm_h);  // Checked against torch
+    performNonlinearity(out, interm_w, interm_h, tp);  // Checked against torch
 
     // Buffer swap: in <--> out
     float* tmp = in;
@@ -151,61 +178,95 @@ namespace hand_net {
   }
 
   void ConvStage::performSpacialConvolution(float*&in, const int32_t inw, 
-    const int32_t inh, float*& out) const {
-    const int32_t interm_w = calcIntermWidth(inw);
-    const int32_t interm_h = calcIntermHeight(inh);
+    const int32_t inh, float*& out, jtil::threading::ThreadPool* tp) {
+    cur_in_ = in;
+    cur_inw_ = inw;
+    cur_inh_ = inh;
+    cur_out_ = out;
+
+    // Now accumulate the connections by the correct weights into the output
+    threads_finished_ = 0;
+    for (int32_t outf = 0; outf < n_output_features_; outf++) {
+      tp->addTask(conv_thread_cbs_[outf]);
+    } 
+
+    // Wait for all threads to finish
+    std::unique_lock<std::mutex> ul(thread_update_lock_);  // Get lock
+    while (threads_finished_ != n_output_features_) {
+      not_finished_.wait(ul);
+    }
+    ul.unlock();  // Release lock
+  }
+
+  void ConvStage::performSpacialConvolutionFeat(const int32_t outf) {
+    const int32_t interm_w = calcIntermWidth(cur_inw_);
+    const int32_t interm_h = calcIntermHeight(cur_inh_);
     const int32_t interm_dim = interm_w * interm_h;
-    const int32_t in_dim = inw * inh;
+    const int32_t in_dim = cur_inw_ * cur_inh_;
 
     // Initialize the output array to the convolution bias:
     // http://www.torch.ch/manual/nn/index#spatialconvolution
-    for (int32_t i = 0; i < n_output_features_; i++) {
-      // Set the output layer to the current bias
-      for (int32_t uv = 0; uv < interm_dim; uv++) {
-        out[i * interm_dim + uv] = biases_[i];
-      }
+    // Set the output layer to the current bias
+    for (int32_t uv = outf * interm_dim; uv < ((outf+1) * interm_dim); uv++) {
+      cur_out_[uv] = biases_[outf];
     }
 
-    // Now accumulate the connections by the correct weights into the output
-    for (int32_t outf = 0; outf < n_output_features_; outf++) {
-      // Now iterate through the connection table:
-      for (int32_t inf = 0; inf < filt_fan_in_; inf++) {
-        int32_t inf_index = (int32_t)conn_table_[outf][inf * 2];
-        int32_t weight_index = (int32_t)conn_table_[outf][inf * 2 + 1];
-        float* cur_filt = weights_[weight_index];
+    // Now iterate through the connection table:
+    for (int32_t inf = 0; inf < filt_fan_in_; inf++) {
+      int32_t inf_index = (int32_t)conn_table_[outf][inf * 2];
+      int32_t weight_index = (int32_t)conn_table_[outf][inf * 2 + 1];
+      float* cur_filt = weights_[weight_index];
 
-        // for each output pixel, perform the convolution over the input
-        for (int32_t outv = 0; outv < interm_h; outv++) {
-          for (int32_t outu = 0; outu < interm_w; outu++) {
-            // Now perform the convolution of the inputs
-            for (int32_t filtv = 0; filtv < filt_height_; filtv++) {
-              for (int32_t filtu = 0; filtu < filt_width_; filtu++) {
-                int32_t inu = outu + filtu;
-                int32_t inv = outv + filtv;
-                out[outf * interm_dim + outv * interm_w + outu] +=
-                  (cur_filt[filtv * filt_width_ + filtu] *
-                  in[inf_index * in_dim + inv * inw + inu]);
-              }
+      // for each output pixel, perform the convolution over the input
+      for (int32_t outv = 0; outv < interm_h; outv++) {
+        for (int32_t outu = 0; outu < interm_w; outu++) {
+          // Now perform the convolution of the inputs
+          for (int32_t filtv = 0; filtv < filt_height_; filtv++) {
+            for (int32_t filtu = 0; filtu < filt_width_; filtu++) {
+              int32_t inu = outu + filtu;
+              int32_t inv = outv + filtv;
+              cur_out_[outf * interm_dim + outv * interm_w + outu] +=
+                (cur_filt[filtv * filt_width_ + filtu] *
+                cur_in_[inf_index * in_dim + inv * cur_inw_ + inu]);
             }
           }
         }
-        // Convolution finished for this input feature
       }
-      // Convolution finished for this output feature
+      // Convolution finished for this input feature
     }
+    std::unique_lock<std::mutex> ul(thread_update_lock_);
+    threads_finished_++;
+    not_finished_.notify_all();  // Signify that all threads might have finished
+    ul.unlock();
   }
 
   void ConvStage::performNonlinearity(float*&data, const int32_t w, 
-    const int32_t h) const {
-    const int32_t dim = w * h;
+    const int32_t h, ThreadPool* tp) {
+    cur_inw_ = w;
+    cur_inh_ = h;
+    cur_out_ = data;
+    // Now accumulate the connections by the correct weights into the output
+    threads_finished_ = 0;
+    for (int32_t outf = 0; outf < n_output_features_; outf++) {
+      tp->addTask(nonlin_thread_cbs_[outf]);
+    } 
+
+    // Wait for all threads to finish
+    std::unique_lock<std::mutex> ul(thread_update_lock_);  // Get lock
+    while (threads_finished_ != n_output_features_) {
+      not_finished_.wait(ul);
+    }
+    ul.unlock();  // Release lock
+  }
+
+  void ConvStage::performNonlinearityFeat(const int32_t outf) {
+    const int32_t dim = cur_inw_ * cur_inh_;
     switch (nonlin_type_) {
     case TanhNonlin:
-      for (int32_t outf = 0; outf < n_output_features_; outf++) {
-        for (int32_t outv = 0; outv < w; outv++) {
-          for (int32_t outu = 0; outu < h; outu++) {
-            data[outf * dim + outv * w + outu] = 
-              tanh(data[outf * dim + outv * w + outu]);
-          }
+      for (int32_t outv = 0; outv < cur_inw_; outv++) {
+        for (int32_t outu = 0; outu < cur_inh_; outu++) {
+          cur_out_[outf * dim + outv * cur_inw_ + outu] = 
+            tanh(cur_out_[outf * dim + outv * cur_inw_ + outu]);
         }
       }
       break;
@@ -213,6 +274,10 @@ namespace hand_net {
       throw std::wruntime_error("ConvStage::performNonlinearity() - ERROR: "
         "Only TanhNonlin supported for now.");
     }
+    std::unique_lock<std::mutex> ul(thread_update_lock_);
+    threads_finished_++;
+    not_finished_.notify_all();  // Signify that all threads might have finished
+    ul.unlock();
   }
 
   void ConvStage::performPooling(float*&in, const int32_t inw, 

@@ -14,6 +14,7 @@
 #include "jtil/image_util/image_util.h"
 #include "jtil/data_str/vector.h"
 #include "jtil/exceptions/wruntime_error.h"
+#include "jtil/threading/thread_pool.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
@@ -23,6 +24,7 @@ using jtil::math::FloatQuat;
 using jtil::math::Float3;
 using jtil::math::Float4;
 using jtil::math::Float2;
+using jtil::threading::ThreadPool;
 using std::string;
 using std::runtime_error;
 using std::cout;
@@ -49,6 +51,7 @@ namespace hand_net {
     im_temp1_ = NULL;
     im_temp2_ = NULL;
     hpf_hand_images_coeff_ = NULL;
+    tp_ = NULL;
 
     // Figure out the size of the HPF bank array
     int32_t im_sizeu = HAND_NET_IM_SIZE;
@@ -78,6 +81,10 @@ namespace hand_net {
   }
 
   HandNet::~HandNet() {
+    if (tp_) {
+      tp_->stop();
+    }
+    SAFE_DELETE(tp_);
     if (conv_stages_) {
       for (int32_t i = 0; i < n_conv_stages_ * NUM_CONV_BANKS; i++) {
         SAFE_DELETE(conv_stages_[i]);
@@ -203,6 +210,9 @@ namespace hand_net {
       nn_datcur_ = new float[max_size];
       nn_datnext_ = new float[max_size];
 
+      // Now set up multithreaded callbacks.
+      tp_ = new ThreadPool(HN_NUM_WORKER_THREADS);
+
     } else {
       std::stringstream ss;
       ss << "HandNet::loadFromFile() - ERROR: Could not open convnet";
@@ -285,7 +295,7 @@ namespace hand_net {
       int32_t h = HAND_NET_IM_SIZE / (1 << j);
       for (int32_t i = 0; i < n_conv_stages_; i++) {
         stage = conv_stages_[j * n_conv_stages_ + i];
-        stage->forwardProp(conv_datcur_[j], w, h, conv_datnext_[j]);
+        stage->forwardProp(conv_datcur_[j], w, h, conv_datnext_[j], tp_);
         // Ping-pong the buffers
         float* tmp = conv_datnext_[j];
         conv_datnext_[j] = conv_datcur_[j];
@@ -304,7 +314,7 @@ namespace hand_net {
     //   nn_stages_[0]->n_inputs(), 1);
 
     for (int32_t i = 0; i < n_nn_stages_; i++) {
-      nn_stages_[i]->forwardProp(nn_datcur_, nn_datnext_);
+      nn_stages_[i]->forwardProp(nn_datcur_, nn_datnext_, tp_);
       // Ping-pong the buffers
       float* tmp = nn_datnext_;
       nn_datnext_ = nn_datcur_;
