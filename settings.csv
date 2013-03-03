@@ -34,7 +34,7 @@ render_ui_renderer,               bool,      0
 render_ui_fps,                    bool,      1
 render_output_enum,               int,       0
 light_pass_stencil_opt,           bool,      0
-ssao_on,                          bool,      1
+ssao_on,                          bool,      0
 ssao_sample_radius,               float,     0.4
 ssao_bias,                        float,     0.4
 ssao_intensity,                   float,     2.5
@@ -54,7 +54,7 @@ ui_render_crosshairs,             bool,      0
 ui_crosshairs_size,               float,     0.025
 ui_starting_height,               int,       410
 ui_starting_width,                int,       320
-vsm_on,                           bool,      1 
+vsm_on,                           bool,      0 
 vsm_resolution_enum,              int,       2
 vsm_default_softness,             float,     0.2
 vsm_cascade_split_log_factor,     float,     0.5
@@ -71,7 +71,7 @@ aa_type_enum,                     int,       2
 fxaa_depth_threshold,             float,     1.0
 fxaa_angle_threshold,             float,     10.0
 fxaa_hq_subpix_quality,           float,     1.0
-motion_blur_on,                   bool,      1
+motion_blur_on,                   bool,      0
 motion_blur_max_samples,          int,       13
 motion_blur_depth_cutoff,         float,     5.0
 motion_blur_target_fps,           float,     60
@@ -86,7 +86,7 @@ flashlight_target_view,           Float3,    0, 0, -20.00
 flashlight_scale,                 float,     1.0
 flashlight_softness,              float,     0.35
 tess_factor,                      int,       16
-tess_on,                          bool,      1
+tess_on,                          bool,      0
 tess_default_disp_factor,         float,     0.5
 visualize_normals,                bool,      0
 visualize_normals_length,         float,     0.25

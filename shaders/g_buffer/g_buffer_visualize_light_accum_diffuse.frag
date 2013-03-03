@@ -2,6 +2,7 @@
 #include "./shaders/g_buffer/g_buffer_include.frag"
 
 in vec2 f_texture;
+uniform sampler2D f_texture_sampler;
 
 out vec4 color;
 
