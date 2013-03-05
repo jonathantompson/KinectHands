@@ -215,6 +215,7 @@
     <None Include="shaders\residue_calc.frag" />
     <None Include="shaders\residue_calc.vert" />
     <None Include="shaders\residue_calc_bak.frag" />
+    <None Include="shaders\residue_calc_depth_only.frag" />
     <None Include="shaders\tmesh_bone_dlight.frag" />
     <None Include="shaders\tmesh_bone_dlight.vert" />
     <None Include="shaders\tmesh_bone_dlight_lbs.vert" />

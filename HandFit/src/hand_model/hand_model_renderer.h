@@ -11,6 +11,7 @@
 #include "renderer/open_gl_common.h"  // GLfloat
 #include "hand_model/hand_model_geometry.h"  // NUM_BOUNDING_SPHERES
 #include "hand_model/hand_model.h"
+#include "hand_model/hand_model_fit.h"
 #include "math/math_types.h"
 #include "data_str/pair.h"
 #include "data_str/vector.h"
@@ -30,6 +31,18 @@
 #define NTILES_X 8  // Don't change these --> If you do you'll have to change 
 #define NTILES_Y 8  //                        the downsample chain
 #define NTILES (NTILES_X * NTILES_Y)
+
+#ifdef DEPTH_ONLY_RESIDUE_FUNC
+  #define RESIDUE_INT_FORMAT GL_R32F
+  #define RESIDUE_FORMAT GL_RED
+  #define RESIDUE_TYPE GL_FLOAT
+  #define UNION 1000000.0f  // A made up scaling factor
+#else
+  #define RESIDUE_INT_FORMAT GL_RGB32F
+  #define RESIDUE_FORMAT GL_RGB
+  #define RESIDUE_TYPE GL_FLOAT
+#endif
+#define LINEAR_PENALTY  // otherwise quadratic
 
 // #define PERFORM_BROAD_PHASE_COLLISION_TEST
 

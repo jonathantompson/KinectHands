@@ -206,7 +206,11 @@ namespace hand_model {
 
     // Shader to calculate the residue
     v_shader_residue_calc_ = new Shader("shaders/residue_calc.vert", ShaderType::VERTEX_SHADER);
+#ifdef DEPTH_ONLY_RESIDUE_FUNC
+    f_shader_residue_calc_ = new Shader("shaders/residue_calc_depth_only.frag", ShaderType::FRAGMENT_SHADER);
+#else
     f_shader_residue_calc_ = new Shader("shaders/residue_calc.frag", ShaderType::FRAGMENT_SHADER);
+#endif
     sp_residue_calc_ = new ShaderProgram(v_shader_residue_calc_, f_shader_residue_calc_);
     sp_residue_calc_->bindVertShaderInputLocation(Renderer::pos);
     sp_residue_calc_->link();
@@ -216,25 +220,25 @@ namespace hand_model {
     //h_residue_calc_texel_dim_ = sp_residue_calc_->getUniformLocation("texel_dim");
 
     // Textures to downsample and integrate
-    residue_texture_1_ = new TextureRenderable(GL_RGB32F, 
-      DEPTH_IMAGE_WIDTH, DEPTH_IMAGE_HEIGHT, GL_RGB, GL_FLOAT, 1, false);
-    residue_texture_2_ = new TextureRenderable(GL_RGB32F, 
-      DEPTH_IMAGE_WIDTH/2, DEPTH_IMAGE_HEIGHT/2, GL_RGB, GL_FLOAT, 1, false);
-    residue_texture_4_ = new TextureRenderable(GL_RGB32F, 
-      DEPTH_IMAGE_WIDTH/4, DEPTH_IMAGE_HEIGHT/4, GL_RGB, GL_FLOAT, 1, false);
-    residue_texture_16_ = new TextureRenderable(GL_RGB32F, 
-      DEPTH_IMAGE_WIDTH/16, DEPTH_IMAGE_HEIGHT/16, GL_RGB, GL_FLOAT, 1, false);
-    residue_texture_20_ = new TextureRenderable(GL_RGB32F, 
-      DEPTH_IMAGE_WIDTH/20, DEPTH_IMAGE_HEIGHT/20, GL_RGB, GL_FLOAT, 1, false);
-    residue_texture_32_ = new TextureRenderable(GL_RGB32F, 
-      DEPTH_IMAGE_WIDTH/32, DEPTH_IMAGE_HEIGHT/32, GL_RGB, GL_FLOAT, 1, false);
-    residue_texture_160_ = new TextureRenderable(GL_RGB32F, 
-      DEPTH_IMAGE_WIDTH/160, DEPTH_IMAGE_HEIGHT/160, GL_RGB, GL_FLOAT, 1, false);
+    residue_texture_1_ = new TextureRenderable(RESIDUE_INT_FORMAT, 
+      DEPTH_IMAGE_WIDTH, DEPTH_IMAGE_HEIGHT, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
+    residue_texture_2_ = new TextureRenderable(RESIDUE_INT_FORMAT, 
+      DEPTH_IMAGE_WIDTH/2, DEPTH_IMAGE_HEIGHT/2, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
+    residue_texture_4_ = new TextureRenderable(RESIDUE_INT_FORMAT, 
+      DEPTH_IMAGE_WIDTH/4, DEPTH_IMAGE_HEIGHT/4, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
+    residue_texture_16_ = new TextureRenderable(RESIDUE_INT_FORMAT, 
+      DEPTH_IMAGE_WIDTH/16, DEPTH_IMAGE_HEIGHT/16, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
+    residue_texture_20_ = new TextureRenderable(RESIDUE_INT_FORMAT, 
+      DEPTH_IMAGE_WIDTH/20, DEPTH_IMAGE_HEIGHT/20, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
+    residue_texture_32_ = new TextureRenderable(RESIDUE_INT_FORMAT, 
+      DEPTH_IMAGE_WIDTH/32, DEPTH_IMAGE_HEIGHT/32, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
+    residue_texture_160_ = new TextureRenderable(RESIDUE_INT_FORMAT, 
+      DEPTH_IMAGE_WIDTH/160, DEPTH_IMAGE_HEIGHT/160, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
 
-    residue_texture_x2_ = new TextureRenderable(GL_RGB32F, 
-      DEPTH_IMAGE_WIDTH*2, DEPTH_IMAGE_HEIGHT*2, GL_RGB, GL_FLOAT, 1, false);
-    residue_texture_x8_ = new TextureRenderable(GL_RGB32F, 
-      DEPTH_IMAGE_WIDTH*8, DEPTH_IMAGE_HEIGHT*8, GL_RGB, GL_FLOAT, 1, false);
+    residue_texture_x2_ = new TextureRenderable(RESIDUE_INT_FORMAT, 
+      DEPTH_IMAGE_WIDTH*2, DEPTH_IMAGE_HEIGHT*2, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
+    residue_texture_x8_ = new TextureRenderable(RESIDUE_INT_FORMAT, 
+      DEPTH_IMAGE_WIDTH*8, DEPTH_IMAGE_HEIGHT*8, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
 
     kinect_depth_texture_ = NULL;
     kinect_depth_texture_tiled_ = NULL;
@@ -577,21 +581,30 @@ namespace hand_model {
     glFlush();
     residue_texture_160_->getTexture0Data<float>(depth_tmp_);
 
+#ifdef DEPTH_ONLY_RESIDUE_FUNC
+    float depth_integral = 0.0f;  // Integral(abs(d_kin - d_syn))
+    float o_s_union_r_s = UNION;  // union of kinect and depth pixels
+    float o_s_intersect_r_s = 0.0f;  // intersection of kinect and depth pixels
+    const int decimation = 4 * 4 * 2 * 5;
+    for (uint32_t i = 0; i < DEPTH_IMAGE_DIM / (decimation*decimation); i++) {
+      depth_integral += depth_tmp_[i];
+    }
+#else
     float depth_integral = 0.0f;  // Integral(abs(d_kin - d_syn))
     float o_s_union_r_s = 0.0f;  // union of kinect and depth pixels
-    float o_s_intersect_r_s = 0.0f;  // union of kinect and depth pixels
+    float o_s_intersect_r_s = 0.0f;  // intersection of kinect and depth pixels
     const int decimation = 4 * 4 * 2 * 5;
     for (uint32_t i = 0; i < DEPTH_IMAGE_DIM / (decimation*decimation); i++) {
       depth_integral += depth_tmp_[i*3];
       o_s_union_r_s += depth_tmp_[i*3+1];
       o_s_intersect_r_s += depth_tmp_[i*3+2];
     }
+#endif
 
     // Finally, calculate the objective function value
     static float lambda = DATA_TERM_LAMBDA;
 #ifdef DEPTH_ONLY_RESIDUE_FUNC
-    // float data_term = lambda * (depth_integral / (o_s_union_r_s + EPSILON));
-    float data_term = lambda * (depth_integral / 10000.0f);
+    float data_term = lambda * (depth_integral / (o_s_union_r_s + EPSILON));
 #else
     float data_term = lambda * (depth_integral / (o_s_union_r_s + EPSILON)) +
       (1.0f - (2.0f*o_s_intersect_r_s / (o_s_intersect_r_s + o_s_union_r_s)));
@@ -671,9 +684,21 @@ namespace hand_model {
         if (tile_v*NTILES_X + tile_u < residues.size()) {
           uint32_t u_off = tile_u * (DEPTH_IMAGE_WIDTH / decimation);
 
+#ifdef DEPTH_ONLY_RESIDUE_FUNC
+          float depth_integral = 0.0f;  // Integral(abs(d_kin - d_syn))
+          float o_s_union_r_s = UNION;  // union of kinect and depth pixels
+          float o_s_intersect_r_s = 0.0f;  // intersection of kinect and depth pixels
+
+          for (uint32_t v = 0; v < (DEPTH_IMAGE_HEIGHT / decimation); v++) {
+            for (uint32_t u = 0; u < (DEPTH_IMAGE_WIDTH / decimation); u++) {
+              uint32_t i = (v_off + v) * ((NTILES_X * DEPTH_IMAGE_WIDTH) / decimation) + u_off + u;
+              depth_integral += depth_tmp_[i];
+            }
+          }
+#else
           float depth_integral = 0.0f;  // Integral(abs(d_kin - d_syn))
           float o_s_union_r_s = 0.0f;  // union of kinect and depth pixels
-          float o_s_intersect_r_s = 0.0f;  // union of kinect and depth pixels
+          float o_s_intersect_r_s = 0.0f;  // intersection of kinect and depth pixels
 
           for (uint32_t v = 0; v < (DEPTH_IMAGE_HEIGHT / decimation); v++) {
             for (uint32_t u = 0; u < (DEPTH_IMAGE_WIDTH / decimation); u++) {
@@ -683,6 +708,7 @@ namespace hand_model {
               o_s_intersect_r_s += depth_tmp_[i*3+2];
             }
           }
+#endif
 #ifdef DEPTH_ONLY_RESIDUE_FUNC
           float data_term = lambda * (depth_integral / (o_s_union_r_s + EPSILON));
 #else

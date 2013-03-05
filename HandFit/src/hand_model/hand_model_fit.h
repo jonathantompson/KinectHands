@@ -53,7 +53,7 @@
 #define DESCENT_PENALTY_SIZE 0.1f
 
 #define DEPTH_ONLY_RESIDUE_FUNC
-#define MAX_DEPTH_IN_RESIDUE 30.0f  // default 40 (from paper) but 20 works better
+#define MAX_DEPTH_IN_RESIDUE 30.0f  // default 40 (from paper) but 30 works better
 #define DATA_TERM_LAMBDA 0.2f  // default 0.0025f  (higher values = depth difference is more important)
 #define INTERPENETRATION_ALLOWENCE 1.0f;  // Let them intepenetrate a little bit
 
