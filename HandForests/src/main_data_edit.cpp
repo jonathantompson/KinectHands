@@ -38,7 +38,7 @@ using depth_images_io::DepthImagesIO;
 //#define IMAGE_DIRECTORY_BASE string("hand_data/left_only/set01/")
 //#define IMAGE_DIRECTORY_BASE string("hand_data/right_only/set03/")
 //#define IMAGE_DIRECTORY_BASE string("hand_data/both_hands/set01/")
-#define IMAGE_DIRECTORY_BASE string("hand_depth_data/")
+#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_4/")
 
 #define LOAD_LABELS_FROM_FILE  // if they exist load them from file
 
@@ -439,18 +439,25 @@ void keyboard(unsigned char key, int x, int y) {
     case '7':
       DepthImagesIO::red_red_min = (DepthImagesIO::red_red_min == 0) ? 255 : DepthImagesIO::red_red_min - 1;
       break;
+    case '*':
+      DepthImagesIO::hsv_total_threshold = (DepthImagesIO::hsv_total_threshold + 1) % 765;
+      break;
+    case '8':
+      DepthImagesIO::hsv_total_threshold = (DepthImagesIO::hsv_total_threshold == 0) ? 765 : DepthImagesIO::hsv_total_threshold - 1;
+      break;
   }
   
   if (key == '!' || key == '1' || key == '@' || key == '2' ||
       key == '#' || key == '3' || key == '$' || key == '4' ||
       key == '%' || key == '5' || key == '^' || key == '6' ||
-      key == '&' || key == '7') {
+      key == '&' || key == '7' || key == '*' || key == '8') {
     image_changed = true;
     cout << "RED HSV Thesholds = <" << DepthImagesIO::red_hue_threshold << ", ";
     cout << DepthImagesIO::red_sat_threshold << ", " << DepthImagesIO::red_val_threshold << ">" << endl;
     cout << "RED HSV Targets = <" << DepthImagesIO::red_hue_target << ", ";
     cout << DepthImagesIO::red_sat_target << ", " << DepthImagesIO::red_val_target << ">" << endl;
-    cout << "RED Minimum R-channel value = " << DepthImagesIO::red_red_min << endl << endl;
+    cout << "RED Minimum R-channel value = " << DepthImagesIO::red_red_min << endl;
+    cout << "HSV Total threshold = " << DepthImagesIO::hsv_total_threshold << endl << endl;
   }   
   
   if (image_changed) {

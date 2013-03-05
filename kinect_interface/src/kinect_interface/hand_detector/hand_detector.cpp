@@ -63,7 +63,7 @@ namespace hand_detector {
     SAFE_DELETE_ARR(labels_filtered_);
     SAFE_DELETE_ARR(depth_downsampled_);
     if (thread_cbs_) {
-      for (uint32_t i = 0; i <= HD_NUM_WORKER_THREADS; i++) {
+      for (uint32_t i = 0; i < HD_NUM_WORKER_THREADS; i++) {
         SAFE_DELETE(thread_cbs_);
       }
     }
@@ -106,15 +106,14 @@ namespace hand_detector {
                              : num_trees_to_evaluate_;
 
     tp_ = new ThreadPool(HD_NUM_WORKER_THREADS);
-    thread_cbs_ = new Callback<void>*[HD_NUM_WORKER_THREADS+1];
+    thread_cbs_ = new Callback<void>*[HD_NUM_WORKER_THREADS];
 
     // Figure out the load balance accross worker threads.  This thread will act
     // as a worker thread as well.
     const uint32_t nthr = HD_NUM_WORKER_THREADS;
-    threads_finished_ = 0;
     uint32_t n_pixels = down_width_*down_height_;
-    uint32_t n_pixels_per_thread = n_pixels / (nthr + 1);
-    for (uint32_t i = 0; i < nthr; i++) {
+    uint32_t n_pixels_per_thread = n_pixels / nthr;
+    for (uint32_t i = 0; i < (nthr - 1); i++) {
       uint32_t start = i * n_pixels_per_thread;
       uint32_t end = ((i + 1) * n_pixels_per_thread) - 1;
       thread_cbs_[i] = MakeCallableMany(&HandDetector::evaluateForestPixelRange, 
@@ -122,8 +121,8 @@ namespace hand_detector {
     }
     // The last thread may have more pixels then the other due to integer
     // round off, but this is OK.
-    thread_cbs_[nthr] = MakeCallableMany(&HandDetector::evaluateForestPixelRange, 
-        this, nthr * n_pixels_per_thread, n_pixels-1);
+    thread_cbs_[nthr-1] = MakeCallableMany(&HandDetector::evaluateForestPixelRange, 
+        this, (nthr-1) * n_pixels_per_thread, n_pixels-1);
   }
 
   bool HandDetector::findHandLabels(const int16_t* depth_in, const float* xyz, 
@@ -259,12 +258,10 @@ namespace hand_detector {
     for (uint32_t i = 0; i < HD_NUM_WORKER_THREADS; i++) {
       tp_->addTask(thread_cbs_[i]);
     }
-    // Now execute the callback for this thread.
-    (*thread_cbs_[HD_NUM_WORKER_THREADS])();
 
     // Wait until the other threads are done
     std::unique_lock<std::mutex> ul(thread_update_lock_);  // Get lock
-    while (threads_finished_ != HD_NUM_WORKER_THREADS + 1) {
+    while (threads_finished_ != HD_NUM_WORKER_THREADS) {
       not_finished_.wait(ul);
     }
     ul.unlock();  // Release lock

@@ -24,7 +24,7 @@
 #define HAND_SIZE 300.0f
 #define HPF_SIGMA 1.5f  // in pixels
 #define HPF_KERNEL_SIZE 11  // Hopefully >= 2*(3*sigma) + 1 (MUST BE ODD!)
-#define NUM_CONV_BANKS 1
+#define NUM_CONV_BANKS 3
 #define HPF_GAIN 2.0f
 
 #if defined(__APPLE__)

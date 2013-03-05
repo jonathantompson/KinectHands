@@ -21,7 +21,7 @@
 #define HD_STARTING_SHRINK_FILT_RAD 0
 #define HD_STARTING_MED_FILT_RAD 3  // EDIT: 2/13 (prev 1)
 #define HD_STARTING_GROW_FILT_RAD 2
-#define HD_NUM_WORKER_THREADS 7
+#define HD_NUM_WORKER_THREADS 8
 
 // Post processing variables
 #define HD_SMALL_HAND_RADIUS 10.0f

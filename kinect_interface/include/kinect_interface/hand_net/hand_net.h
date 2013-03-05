@@ -17,6 +17,7 @@
 
 #include "jtil/math/math_types.h"
 #include "kinect_interface/depth_images_io.h"  // for src_dim
+#include "jtil/threading/callback.h"
 
 #define HAND_NET_PIX 192  // U, V size (before downsampling)
 #define HAND_NET_DOWN_FACT 2
@@ -26,6 +27,7 @@
 #define HPF_KERNEL_SIZE 11  // Hopefully >= 2*(3*sigma) + 1 (MUST BE ODD!)
 #define NUM_CONV_BANKS 3
 #define HPF_GAIN 2.0f
+#define HN_NUM_WORKER_THREADS 8
 
 #if defined(__APPLE__)
   #define CONVNET_FILE string("./../../../../../../../../../data/" \
@@ -33,6 +35,8 @@
 #else
   #define CONVNET_FILE string("./../data/handmodel.net.convnet")
 #endif
+
+namespace jtil { namespace threading { class ThreadPool; } }
 
 namespace kinect_interface {
 
@@ -144,6 +148,9 @@ namespace hand_net {
     float** conv_datnext_;  // The current stage's output data
     float* nn_datcur_;
     float* nn_datnext_;
+
+    // Multithreading
+    jtil::threading::ThreadPool* tp_;
 
     // Temporary data structures for image processing:
     float* hand_image_;

@@ -111,7 +111,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)glut-3.7.6-bin;$(ProjectDir)src;../src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)glut-3.7.6-bin;$(ProjectDir)src;../src;../HandFit/src</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -157,7 +157,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)glut-3.7.6-bin;$(ProjectDir)src;../src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)glut-3.7.6-bin;$(ProjectDir)src;../src;../HandFit/src</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
@@ -174,12 +174,9 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\exceptions\wruntime_error.cpp" />
-    <ClCompile Include="..\src\fastlz\fastlz.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsC</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\src\string_util\string_util.cpp" />
+    <ClCompile Include="..\HandFit\src\exceptions\wruntime_error.cpp" />
+    <ClCompile Include="..\HandFit\src\fastlz\fastlz.c" />
+    <ClCompile Include="..\HandFit\src\string_util\string_util.cpp" />
     <ClCompile Include="src\debug_util\debug_util_win32.cpp" />
     <ClCompile Include="src\depth_images_io.cpp" />
     <ClCompile Include="src\file_io\csv_handle.cpp" />
@@ -196,9 +193,9 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\src\clock\clock.h" />
     <ClInclude Include="..\..\..\src\math\math_types.h" />
-    <ClInclude Include="..\src\exceptions\wruntime_error.h" />
-    <ClInclude Include="..\src\fastlz\fastlz.h" />
-    <ClInclude Include="..\src\string_util\string_util.h" />
+    <ClInclude Include="..\HandFit\src\exceptions\wruntime_error.h" />
+    <ClInclude Include="..\HandFit\src\fastlz\fastlz.h" />
+    <ClInclude Include="..\HandFit\src\string_util\string_util.h" />
     <ClInclude Include="src\block.h" />
     <ClInclude Include="src\data_str\vector.h" />
     <ClInclude Include="src\data_str\vector_managed.h" />

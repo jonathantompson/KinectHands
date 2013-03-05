@@ -106,6 +106,7 @@ namespace depth_images_io {
     static int32_t red_hue_target;
     static int32_t red_sat_target;
     static int32_t red_val_target;
+    static int32_t hsv_total_threshold;
     static float sink_source_beta;
     static uint32_t graph_cut_affiliation_radius;
     static int32_t red_red_min;

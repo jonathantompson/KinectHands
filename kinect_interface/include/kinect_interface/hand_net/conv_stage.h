@@ -9,10 +9,15 @@
 #ifndef KINECT_INTERFACE_HAND_NET_CONV_STAGE_HEADER
 #define KINECT_INTERFACE_HAND_NET_CONV_STAGE_HEADER
 
+#include <mutex>
+#include <condition_variable>
 #include <fstream>
 #include "jtil/math/math_types.h"
+#include "jtil/threading/callback.h"
 
 #define MAX_PRINT_LENGTH 10
+
+namespace jtil { namespace threading { class ThreadPool; } }
 
 namespace kinect_interface {
 namespace hand_net {
@@ -42,7 +47,7 @@ namespace hand_net {
     ~ConvStage();
 
     void forwardProp(float*&in, const int32_t inw, const int32_t inh, 
-      float*& out);
+      float*& out, jtil::threading::ThreadPool* tp);
     void loadFromFile(std::ifstream& file);
     void printToStdOut() const;
     // Calculate the temp data size requirement: 
@@ -83,10 +88,25 @@ namespace hand_net {
     const static float norm_1dkernel_[7];
     const static int32_t norm_kernel_size_;
 
+    // MULTITHREADING
+    uint32_t threads_finished_;
+    std::mutex thread_update_lock_;
+    std::condition_variable not_finished_;
+    // One per conv output feat:
+    jtil::threading::Callback<void>** conv_thread_cbs_;  
+    jtil::threading::Callback<void>** nonlin_thread_cbs_;  
+    float* cur_in_;
+    float* cur_out_;
+    int32_t cur_inw_;
+    int32_t cur_inh_;
+
+
     void performSpacialConvolution(float*&in, const int32_t inw, 
-      const int32_t inh, float*& out) const;
+      const int32_t inh, float*& out, jtil::threading::ThreadPool* tp);
+    void performSpacialConvolutionFeat(const int32_t outf);
     void performNonlinearity(float*&data, const int32_t w, 
-      const int32_t h) const;
+      const int32_t h, jtil::threading::ThreadPool* tp);
+    void performNonlinearityFeat(const int32_t outf);
     void performPooling(float*&in, const int32_t inw, 
       const int32_t inh, float*& out) const;
     void performNormalization(float*&in, const int32_t inw, 

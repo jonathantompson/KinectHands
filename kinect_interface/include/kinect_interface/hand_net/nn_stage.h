@@ -9,10 +9,15 @@
 #ifndef KINECT_INTERFACE_HAND_NET_NN_STAGE_HEADER
 #define KINECT_INTERFACE_HAND_NET_NN_STAGE_HEADER
 
+#include <mutex>
+#include <condition_variable>
 #include <fstream>
 #include "jtil/math/math_types.h"
+#include "jtil/threading/callback.h"
 
 #define NN_MAX_PRINT_LENGTH 10
+
+namespace jtil { namespace threading { class ThreadPool; } }
 
 namespace kinect_interface {
 namespace hand_net {
@@ -28,7 +33,7 @@ namespace hand_net {
     NNStage();
     ~NNStage();
 
-    void forwardProp(float*& in, float*& out) const;
+    void forwardProp(float*& in, float*& out, jtil::threading::ThreadPool* tp);
     void loadFromFile(std::ifstream& file);
     void printToStdOut() const;
     int32_t dataSizeReq() const;  // Calculate the temp data size requirement
@@ -44,9 +49,21 @@ namespace hand_net {
     float* weights_;
     float* bias_;
 
-    void performNonlinearity(float*&data, const int32_t size) const;
-    void performLinearNetwork(float*&out, const int32_t outsize, 
-    const float*& in, const int32_t insize) const;
+    // MULTITHREADING
+    uint32_t threads_finished_;
+    std::mutex thread_update_lock_;
+    std::condition_variable not_finished_;
+    // One per conv output feat:
+    jtil::threading::Callback<void>** linnet_thread_cbs_;  
+    jtil::threading::Callback<void>** nonlin_thread_cbs_;
+    const float* cur_in_;
+    float* cur_out_;
+
+    void performNonlin(float*&data, jtil::threading::ThreadPool* tp);
+    void performNonlinRange(const int32_t start, const int32_t end);
+    void performLinearNet(float*&out, const float*& in, 
+      jtil::threading::ThreadPool* tp);
+    void performLinearNetRange(const int32_t start, const int32_t end);
 
     // Non-copyable, non-assignable.
     NNStage(NNStage&);

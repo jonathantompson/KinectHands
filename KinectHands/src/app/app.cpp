@@ -14,6 +14,12 @@
 #endif
 #define SAFE_DELETE(x) if (x) { delete x; x = NULL; }
 
+#ifdef _WIN32
+#ifndef snprintf
+#define snprintf _snprintf_s
+#endif
+#endif
+
 using std::wruntime_error;
 using namespace jtil;
 using namespace jtil::data_str;
@@ -222,7 +228,6 @@ namespace app {
       Renderer::g_renderer()->renderFrame();
  
       // Give OS the opportunity to deschedule
-      std::this_thread::sleep_for(std::chrono::milliseconds(2));  
       std::this_thread::yield();
     }
   }

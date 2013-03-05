@@ -51,15 +51,6 @@
     <ClCompile Include="src\debug_util\debug_util_win32.cpp">
       <Filter>Source Files\src\debug_util</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\fastlz\fastlz.c">
-      <Filter>Source Files\src\fastlz</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\string_util\string_util.cpp">
-      <Filter>Source Files\src\string_util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\exceptions\wruntime_error.cpp">
-      <Filter>Source Files\src\exceptions</Filter>
-    </ClCompile>
     <ClCompile Include="src\file_io\csv_handle_read.cpp">
       <Filter>Source Files\src\file_io</Filter>
     </ClCompile>
@@ -93,6 +84,15 @@
     <ClCompile Include="src\open_ni_funcs.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
+    <ClCompile Include="..\HandFit\src\exceptions\wruntime_error.cpp">
+      <Filter>Source Files\src\exceptions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HandFit\src\string_util\string_util.cpp">
+      <Filter>Source Files\src\string_util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HandFit\src\fastlz\fastlz.c">
+      <Filter>Source Files\src\fastlz</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\image_util.h">
@@ -107,17 +107,8 @@
     <ClInclude Include="src\debug_util\debug_util.h">
       <Filter>Source Files\src\debug_util</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\fastlz\fastlz.h">
-      <Filter>Source Files\src\fastlz</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\string_util\string_util.h">
-      <Filter>Source Files\src\string_util</Filter>
-    </ClInclude>
     <ClInclude Include="src\data_str\vector_managed.h">
       <Filter>Source Files\src\data_str</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\exceptions\wruntime_error.h">
-      <Filter>Source Files\src\exceptions</Filter>
     </ClInclude>
     <ClInclude Include="src\file_io\csv_handle.h">
       <Filter>Source Files\src\file_io</Filter>
@@ -154,6 +145,15 @@
     </ClInclude>
     <ClInclude Include="src\open_ni_funcs.h">
       <Filter>Source Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HandFit\src\exceptions\wruntime_error.h">
+      <Filter>Source Files\src\exceptions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HandFit\src\string_util\string_util.h">
+      <Filter>Source Files\src\string_util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HandFit\src\fastlz\fastlz.h">
+      <Filter>Source Files\src\fastlz</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
