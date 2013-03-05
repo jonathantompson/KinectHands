@@ -590,7 +590,8 @@ namespace hand_model {
     // Finally, calculate the objective function value
     static float lambda = DATA_TERM_LAMBDA;
 #ifdef DEPTH_ONLY_RESIDUE_FUNC
-    float data_term = lambda * (depth_integral / (o_s_union_r_s + EPSILON));
+    // float data_term = lambda * (depth_integral / (o_s_union_r_s + EPSILON));
+    float data_term = lambda * (depth_integral / 10000.0f);
 #else
     float data_term = lambda * (depth_integral / (o_s_union_r_s + EPSILON)) +
       (1.0f - (2.0f*o_s_intersect_r_s / (o_s_intersect_r_s + o_s_union_r_s)));

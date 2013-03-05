@@ -41,11 +41,11 @@ namespace depth_images_io {
 
   int32_t DepthImagesIO::red_hue_threshold = 27;
   int32_t DepthImagesIO::red_sat_threshold = 48;  // 40
-  int32_t DepthImagesIO::red_val_threshold = 79;
+  int32_t DepthImagesIO::red_val_threshold = 73;  // prev 79 (3/3/2013)
   int32_t DepthImagesIO::red_hue_target = 250;
   int32_t DepthImagesIO::red_sat_target = 214;  // 225
   int32_t DepthImagesIO::red_val_target = 161;
-  int32_t DepthImagesIO::red_red_min = 95;
+  int32_t DepthImagesIO::red_red_min = 70;  // prev 95 (3/4/2013)
   int32_t DepthImagesIO::red_blue_max = 100;
   int32_t DepthImagesIO::hsv_total_threshold = 660;
 
