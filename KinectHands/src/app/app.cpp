@@ -228,7 +228,6 @@ namespace app {
       Renderer::g_renderer()->renderFrame();
  
       // Give OS the opportunity to deschedule
-      std::this_thread::sleep_for(std::chrono::milliseconds(2));  
       std::this_thread::yield();
     }
   }

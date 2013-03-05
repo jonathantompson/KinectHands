@@ -52,7 +52,7 @@
 // 3 -> Finished (4 partially finished)
 //#define IM_DIR_BASE string("hand_data/both_hands/set03/") 
 
-#define IM_DIR_BASE string("data/hand_depth_data_1/")  
+#define IM_DIR_BASE string("data/hand_depth_data_4/")  
  
 #if defined(__APPLE__)
   #define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
@@ -217,9 +217,12 @@ void InitXYZPointsForRendering() {
       cur_col[1] = 1.2f * static_cast<float>(cur_image_rgb[i*3+1]) / 255.0f;
       cur_col[2] = 1.2f * static_cast<float>(cur_image_rgb[i*3+2]) / 255.0f;
     } else {
-      cur_col[0] = 1.6f * static_cast<float>(cur_image_rgb[i*3]) / 255.0f;
-      cur_col[1] = 1.6f * static_cast<float>(cur_image_rgb[i*3+1]) / 255.0f;
-      cur_col[2] = 1.6f * static_cast<float>(cur_image_rgb[i*3+2]) / 255.0f;
+      //cur_col[0] = 1.6f * static_cast<float>(cur_image_rgb[i*3]) / 255.0f;
+      //cur_col[1] = 1.6f * static_cast<float>(cur_image_rgb[i*3+1]) / 255.0f;
+      //cur_col[2] = 1.6f * static_cast<float>(cur_image_rgb[i*3+2]) / 255.0f;
+      cur_col[0] = 0;
+      cur_col[1] = 255;
+      cur_col[2] = 0;
     }
     cols->at(i)->set(cur_col);
   }
