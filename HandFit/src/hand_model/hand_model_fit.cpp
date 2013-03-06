@@ -336,19 +336,22 @@ namespace hand_model {
       cur_fit_->hand_renderer_->calcInterpenetrationTerm();
 
     // Now calculate the penalty terms:
-    float penalty_term = 0.1f * calcPenalty(coeff);
+    float penalty_term = calcPenalty(coeff);  // formally scaled by 0.1
 
-    return penalty_term + data_term + interpen_term;
+    // return penalty_term * (data_term + interpen_term);
+    return penalty_term * data_term * interpen_term;
   }
 
   void HandModelFit::calculateResidualTiled(data_str::Vector<float>& residues, 
-      data_str::VectorManaged<Eigen::MatrixXf>& coeffs) {
+    data_str::VectorManaged<Eigen::MatrixXf>& coeffs) {
+    // Note: at this point interpenetration term is already calculated and is
+    // sitting in residues[i]
     cur_fit_->hand_renderer_->calculateResidualDataTermTiled(residues);
 
     // Now calculate the penalty terms:
     for (uint32_t i = 0; i < coeffs.size(); i++) {
-      float penalty_term = 0.1f * calcPenalty(coeffs[i]);
-      residues[i] += penalty_term;
+      float penalty_term = calcPenalty(coeffs[i]);  // formally scaled by 0.1
+      residues[i] *= penalty_term;
     }
   }
 

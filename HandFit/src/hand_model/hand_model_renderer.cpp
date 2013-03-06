@@ -715,7 +715,7 @@ namespace hand_model {
           float data_term = lambda * (depth_integral / (o_s_union_r_s + EPSILON)) +
             (1.0f - (2.0f*o_s_intersect_r_s / (o_s_intersect_r_s + o_s_union_r_s)));
 #endif
-          residues[tile_v*NTILES_X + tile_u] += data_term;
+          residues[tile_v*NTILES_X + tile_u] *= data_term;
         }
       }
     }
@@ -984,7 +984,8 @@ namespace hand_model {
     }
 #endif
 
-    return total_penetration_distance * total_penetration_distance;
+    return 1.0f + INTERPENETRATION_CONSTANT * total_penetration_distance * 
+      total_penetration_distance;
   }
 
   void HandModelRenderer::insertionSortAxisExtents(uint32_t* arr,
