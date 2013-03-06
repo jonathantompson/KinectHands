@@ -128,14 +128,14 @@ bool render_hand = true;
 Eigen::MatrixXf coeffs;
 uint32_t coeff_src = 0;
 
-// Kinect Image data
+// Kinect Image data 
 DepthImagesIO* image_io = NULL;
 data_str::VectorManaged<char*> im_files;
 float cur_xyz_data[src_dim*3];
 int16_t cur_depth_data[src_dim*3];
 uint8_t cur_label_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
-uint32_t cur_image = 0;
+uint32_t cur_image = 5794;
 GeometryColoredPoints* geometry_points= NULL;
 float temp_xyz[3 * src_dim];
 float temp_rgb[3 * src_dim];

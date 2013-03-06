@@ -680,5 +680,8 @@
     <None Include="shaders\downsample5_integ.frag">
       <Filter>shaders</Filter>
     </None>
+    <None Include="shaders\residue_calc_depth_only.frag">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -11,6 +11,7 @@
 #include <iostream>
 #include "kinect_interface/kinect_interface.h"
 #include "kinect_interface/hand_detector/hand_detector.h"
+#include "jtil/jtil.h"
 #include "jtil/clk/clk.h"
 #include "jtil/image_util/image_util.h"
 #include "jtil/threading/callback.h"
@@ -134,6 +135,20 @@ namespace kinect_interface {
       depth_from_file_, labels_from_file_, rgb_from_file_, NULL);
     DepthImagesIO::convertSingleImageToXYZ(pts_world_from_file_,
       depth_from_file_);
+
+    // TEMP CODE:
+    //jtil::file_io::SaveArrayToFile<int16_t>(depth_from_file_, src_dim, 
+    //  "./kinect_depth_image_uncompressed.bin"); 
+    //float* d = new float[src_dim];
+    //float* d_down = new float[src_dim];
+    //for (uint32_t i = 0; i < src_dim; i++) {
+    //  d[i] = (float)depth_from_file_[i];
+    //}
+    //jtil::image_util::FracDownsampleImage<float>(d_down, 0, 0, 320, 240, 320,
+    //  d, 0, 0, src_width, src_height, src_width);
+    //jtil::file_io::SaveArrayToFile<float>(d_down, 320 * 240, 
+    //  "./kinect_depth_image_uncompressed_down_float.bin"); 
+    // END TEMP CODE
 
     XnStatus nRetVal = XN_STATUS_OK;
     xn::EnumerationErrors errors;

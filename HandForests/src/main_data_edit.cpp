@@ -54,7 +54,7 @@ double t1; double t0;
 
 // DATA VARIABLES
 data_str::VectorManaged<char*> im_files;
-int32_t cur_image = 0;
+int32_t cur_image = 927;
 DepthImagesIO* image_io = NULL;
 
 // The current image being worked on

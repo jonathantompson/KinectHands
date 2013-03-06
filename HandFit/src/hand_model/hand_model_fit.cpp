@@ -22,6 +22,7 @@
 #include "file_io/csv_handle_write.h"
 #include "Eigen"
 #include "renderer/gl_state.h"
+#include "image_data.h"
 
 #define SAFE_DELETE(target) \
   if (target != NULL) { \
@@ -127,11 +128,15 @@ namespace hand_model {
   void HandModelFit::prepareKinectData(int16_t* depth, uint8_t* label) {
     memcpy(kinect_depth_masked_, depth, 
       sizeof(kinect_depth_masked_[0]) * DEPTH_IMAGE_DIM);
+#ifdef DEPTH_ONLY_RESIDUE_FUNC
+    // Do nothing
+#else
     for (uint32_t i = 0; i < DEPTH_IMAGE_DIM; i++) {
       if (label[i] == 0) {
         kinect_depth_masked_[i] = 0;
       }
     }
+#endif
     hand_renderer_->uploadKinectDepth(kinect_depth_masked_);
   }
 
@@ -409,6 +414,7 @@ namespace hand_model {
       if (coeff_penalty_scale_[i % HAND_NUM_COEFF] > EPSILON) {
         float cur_coeff_val = coeff(i);
 
+#ifdef LINEAR_PENALTY
         // Linear penalty
         if (cur_coeff_val > coeff_max_limit[i%HAND_NUM_COEFF]) {
           penalty += coeff_penalty_scale_[i%HAND_NUM_COEFF] * 
@@ -418,6 +424,19 @@ namespace hand_model {
           penalty += coeff_penalty_scale_[i%HAND_NUM_COEFF] * 
             fabsf(coeff_min_limit[i%HAND_NUM_COEFF] - cur_coeff_val) / 10.0f;
         }
+#else
+        // Quadra penalty
+        if (cur_coeff_val > coeff_max_limit[i%HAND_NUM_COEFF]) {
+          float cur_penalty = coeff_penalty_scale_[i%HAND_NUM_COEFF] * 
+            fabsf(cur_coeff_val - coeff_max_limit[i%HAND_NUM_COEFF]) / 2.0f;
+          penalty += (cur_penalty * cur_penalty);
+        }
+        if (cur_coeff_val < coeff_min_limit[i%HAND_NUM_COEFF]) { 
+          float cur_penalty = coeff_penalty_scale_[i%HAND_NUM_COEFF] * 
+            fabsf(coeff_min_limit[i%HAND_NUM_COEFF] - cur_coeff_val) / 2.0f;
+          penalty += (cur_penalty * cur_penalty);
+        }
+#endif
       }
     }
 
@@ -703,10 +722,10 @@ namespace hand_model {
     -0.400f,  // F0_THETA
     -1.143f,  // F0_PHI
     -1.263f,  // F0_KNUCKLE_CURL
-    -0.400f,  // F1_THETA
+    -0.550f,  // F1_THETA
     -1.143f,  // F1_PHI
     -1.263f,  // F1_KNUCKLE_CURL
-    -0.400f,  // F2_THETA
+    -0.500f,  // F2_THETA
     -1.143f,  // F2_PHI
     -1.263f,  // F2_KNUCKLE_CURL
     -0.400f,  // F3_THETA

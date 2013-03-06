@@ -39,15 +39,27 @@ namespace depth_images_io {
   float DepthImagesIO::adjacency_beta = 0.25f;
   float DepthImagesIO::sink_source_beta = 5.0f;
 
-  int32_t DepthImagesIO::red_hue_threshold = 27;
-  int32_t DepthImagesIO::red_sat_threshold = 48;  // 40
-  int32_t DepthImagesIO::red_val_threshold = 73;  // prev 79 (3/3/2013)
-  int32_t DepthImagesIO::red_hue_target = 250;
-  int32_t DepthImagesIO::red_sat_target = 214;  // 225
+  // Values for Fits from take 4 5 6 7
+  int32_t DepthImagesIO::red_hue_threshold = 15;
+  int32_t DepthImagesIO::red_sat_threshold = 41; 
+  int32_t DepthImagesIO::red_val_threshold = 73; 
+  int32_t DepthImagesIO::red_hue_target = 1;
+  int32_t DepthImagesIO::red_sat_target = 231;  // 225
   int32_t DepthImagesIO::red_val_target = 161;
-  int32_t DepthImagesIO::red_red_min = 70;  // prev 95 (3/4/2013)
+  int32_t DepthImagesIO::red_red_min = 70;
   int32_t DepthImagesIO::red_blue_max = 100;
   int32_t DepthImagesIO::hsv_total_threshold = 660;
+
+  //// Values for Fits from take 1 2 3
+  //int32_t DepthImagesIO::red_hue_threshold = 27;
+  //int32_t DepthImagesIO::red_sat_threshold = 48; 
+  //int32_t DepthImagesIO::red_val_threshold = 79;
+  //int32_t DepthImagesIO::red_hue_target = 250;
+  //int32_t DepthImagesIO::red_sat_target = 214;
+  //int32_t DepthImagesIO::red_val_target = 161;
+  //int32_t DepthImagesIO::red_red_min = 95;
+  //int32_t DepthImagesIO::red_blue_max = 100;
+  //int32_t DepthImagesIO::hsv_total_threshold = 660;
 
   // Previous Values (11 Jan)
   //int32_t DepthImagesIO::red_hue_threshold = 32;
@@ -362,9 +374,11 @@ namespace depth_images_io {
 
     getRedPixels(rgb, hsv, red_pixels);
     // Run an aggressive median filter to remove outliers
-    MedianBoolFilter<uint8_t>(red_pixels_tmp, red_pixels, src_width,
+    GrowFilter<uint8_t>(red_pixels_tmp, red_pixels, src_width,
+      src_height, 1);
+    MedianBoolFilter<uint8_t>(red_pixels, red_pixels_tmp, src_width,
       src_height, RED_MED_FILT_RAD, 1);
-    memcpy(red_pixels, red_pixels_tmp, sizeof(red_pixels[0])*src_dim);
+    //memcpy(red_pixels, red_pixels_tmp, sizeof(red_pixels[0])*src_dim);
     if (red_pixels_ret != NULL) {
       memcpy(red_pixels_ret, red_pixels, src_dim * sizeof(red_pixels_ret[0]));
     }
