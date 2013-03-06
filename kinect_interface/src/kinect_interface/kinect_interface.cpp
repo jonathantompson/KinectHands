@@ -139,15 +139,15 @@ namespace kinect_interface {
     // TEMP CODE:
     //jtil::file_io::SaveArrayToFile<int16_t>(depth_from_file_, src_dim, 
     //  "./kinect_depth_image_uncompressed.bin"); 
-    //float* d = new float[src_dim];
-    //float* d_down = new float[src_dim];
-    //for (uint32_t i = 0; i < src_dim; i++) {
-    //  d[i] = (float)depth_from_file_[i];
-    //}
-    //jtil::image_util::FracDownsampleImage<float>(d_down, 0, 0, 320, 240, 320,
-    //  d, 0, 0, src_width, src_height, src_width);
-    //jtil::file_io::SaveArrayToFile<float>(d_down, 320 * 240, 
-    //  "./kinect_depth_image_uncompressed_down_float.bin"); 
+    float* d = new float[src_dim];
+    float* d_down = new float[src_dim];
+    for (uint32_t i = 0; i < src_dim; i++) {
+      d[i] = (float)depth_from_file_[i];
+    }
+    jtil::image_util::FracDownsampleImage<float>(d_down, 0, 0, 320, 240, 320,
+      d, 0, 0, src_width, src_height, src_width);
+    jtil::file_io::SaveArrayToFile<float>(d_down, 320 * 240, 
+      "./HandNets/kinect_depth_image_uncompressed_down_float.bin"); 
     // END TEMP CODE
 
     XnStatus nRetVal = XN_STATUS_OK;

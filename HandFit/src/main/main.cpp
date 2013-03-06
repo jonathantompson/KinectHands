@@ -52,7 +52,7 @@
 // 3 -> Finished (4 partially finished)
 //#define IM_DIR_BASE string("hand_data/both_hands/set03/") 
 
-#define IM_DIR_BASE string("data/hand_depth_data_4/")  
+#define IM_DIR_BASE string("data/hand_depth_data_6/")  
  
 #if defined(__APPLE__)
   #define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
@@ -135,7 +135,7 @@ float cur_xyz_data[src_dim*3];
 int16_t cur_depth_data[src_dim*3];
 uint8_t cur_label_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
-uint32_t cur_image = 5794;
+uint32_t cur_image = 0;
 GeometryColoredPoints* geometry_points= NULL;
 float temp_xyz[3 * src_dim];
 float temp_rgb[3 * src_dim];
@@ -213,16 +213,13 @@ void InitXYZPointsForRendering() {
   for (uint32_t i = 0; i < src_dim; i++) {
     vert->at(i)->set(&cur_xyz_data[i*3]);
     if (cur_label_data[i] == 0) {
-      cur_col[0] = 1.2f * static_cast<float>(cur_image_rgb[i*3]) / 255.0f;
-      cur_col[1] = 1.2f * static_cast<float>(cur_image_rgb[i*3+1]) / 255.0f;
-      cur_col[2] = 1.2f * static_cast<float>(cur_image_rgb[i*3+2]) / 255.0f;
+      cur_col[0] = 1.0f * static_cast<float>(cur_image_rgb[i*3]) / 255.0f;
+      cur_col[1] = 1.0f * static_cast<float>(cur_image_rgb[i*3+1]) / 255.0f;
+      cur_col[2] = 1.0f * static_cast<float>(cur_image_rgb[i*3+2]) / 255.0f;
     } else {
-      //cur_col[0] = 1.6f * static_cast<float>(cur_image_rgb[i*3]) / 255.0f;
-      //cur_col[1] = 1.6f * static_cast<float>(cur_image_rgb[i*3+1]) / 255.0f;
-      //cur_col[2] = 1.6f * static_cast<float>(cur_image_rgb[i*3+2]) / 255.0f;
-      cur_col[0] = 0;
-      cur_col[1] = 255;
-      cur_col[2] = 0;
+      cur_col[0] = std::max<float>(0.0f, (float)(cur_image_rgb[i*3]) / 255.0f - 0.1f);
+      cur_col[1] = std::min<float>((float)(cur_image_rgb[i*3+1]) / 255.0f + 0.4f, 255.0f);
+      cur_col[2] = std::max<float>(0.0f, (float)(cur_image_rgb[i*3+2]) / 255.0f - 0.1f);
     }
     cols->at(i)->set(cur_col);
   }

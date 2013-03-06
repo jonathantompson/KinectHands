@@ -17,21 +17,18 @@ upScaleX = src_width / dst_width;
 upScaleY = src_height / dst_height;
 
 depth = single(loadImageFile(filename, src_width, src_height, 1, 'int16'));
-depth = (depth - min(min(depth))) / (max(max(depth)) - min(min(depth)));
 mag = 200;
-imshow(depth, 'InitialMagnification', mag);
+% imshow((depth - min(min(depth))) / (max(max(depth)) - min(min(depth))), ...
+%     'InitialMagnification', mag);
 
-int_image = integral_image(depth, src_width, src_height);
-
-for x = dst_x:(dst_x + dst_w - 1)
-  s1 = (x - src_x) * upScaleX + src_x;
-  sr = (x + 1 - dx)
-end
-
-imshow((int_image - min(min(int_image))) / (max(max(int_image)) - min(min(int_image))));
+depth_down = downsample(depth, 2);
+figure;
+imshow((depth_down - min(min(depth_down))) / (max(max(depth_down)) - min(min(depth_down))), ...
+    'InitialMagnification', mag);
 
 filename = 'kinect_depth_image_uncompressed_down_float.bin';
-depth = single(loadImageFile(filename, dst_width, dst_height, 1, 'single'));
-depth = (depth - min(min(depth))) / (max(max(depth)) - min(min(depth)));
+depth_frac = single(loadImageFile(filename, dst_width, dst_height, 1, 'single'));
 mag = 200;
-imshow(depth, 'InitialMagnification', mag);
+figure;
+imshow((depth_frac - min(min(depth_down))) / (max(max(depth_down)) - min(min(depth_down))), ...
+    'InitialMagnification', mag);
