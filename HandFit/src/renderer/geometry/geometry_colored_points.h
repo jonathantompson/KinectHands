@@ -15,8 +15,8 @@
 
 #include "renderer/open_gl_common.h"  // For GLtypes
 #include "renderer/geometry/geometry.h"
-#include "math/math_types.h"
-#include "data_str/vector.h"
+#include "jtil/math/math_types.h"
+#include "jtil/data_str/vector.h"
 
 namespace renderer {
 
@@ -40,8 +40,8 @@ namespace renderer {
     void syncVAO();  // At startup
     void unsyncVAO();  // Might be slow!
 
-    data_str::Vector<math::Float3>* vertices() { return &vertices_; }
-    data_str::Vector<math::Float3>* colors() { return &colors_; }
+    jtil::data_str::Vector<jtil::math::Float3>* vertices() { return &vertices_; }
+    jtil::data_str::Vector<jtil::math::Float3>* colors() { return &colors_; }
 
     // Virtual methods
     virtual void draw();
@@ -51,8 +51,8 @@ namespace renderer {
     virtual Geometry* copy();
 
   private:
-    data_str::Vector<math::Float3> vertices_;
-    data_str::Vector<math::Float3> colors_;
+    jtil::data_str::Vector<jtil::math::Float3> vertices_;
+    jtil::data_str::Vector<jtil::math::Float3> colors_;
     GLuint vao_;  // Containing 1 VBOs which itself has vertex
     GLuint vbo_;  // Vertex buffer
     bool synced_;

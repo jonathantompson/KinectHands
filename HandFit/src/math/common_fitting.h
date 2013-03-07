@@ -9,7 +9,7 @@
 #ifndef MATH_COMMON_FITTING_HEADER
 #define MATH_COMMON_FITTING_HEADER
 
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 #include "Eigen"
 
 #if defined(WIN32) || defined(_WIN32)
@@ -24,6 +24,7 @@
   #define NORMAL_REAL_DISTRIBUTION std::normal_distribution<float>
 #endif
 
+namespace jtil {
 namespace math {
 
   // NOW USING CALLBACKS SO WE CAN WRAP MEMBER FUNCTIONS!
@@ -70,5 +71,6 @@ namespace math {
   };
 
 };  // namespace math
+};  // namespace jtil
 
 #endif  // MATH_COMMON_SOLVER_HEADER

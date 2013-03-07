@@ -1,7 +1,7 @@
 #include "renderer/geometry/geometry_vertices.h"
 #include "renderer/gl_state.h"
 
-using math::Float3;
+using jtil::math::Float3;
 using std::wstring;
 using std::wruntime_error;
 

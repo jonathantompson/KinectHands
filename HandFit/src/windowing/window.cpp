@@ -3,11 +3,11 @@
 #include <iostream>
 #include <sstream>
 #include "windowing/window.h"
-#include "exceptions/wruntime_error.h"
+#include "jtil/exceptions/wruntime_error.h"
 
 using std::wstring;
 using std::wruntime_error;
-using math::Int2;
+using jtil::math::Int2;
 
 namespace windowing {
 
@@ -15,7 +15,7 @@ namespace windowing {
   int Window::mouse_wheel_pos_ = 0;
   bool Window::key_down_[NUM_KEYS];
   bool Window::mouse_button_down_[NUM_MOUSE_BUTTONS];
-  math::Int2 Window::mouse_pos_;
+  Int2 Window::mouse_pos_;
   bool Window::init_glew_ = true;
   uint32_t Window::num_windows_ = 0;
   std::mutex Window::window_init_lock_;
@@ -155,8 +155,8 @@ namespace windowing {
   }
 
   // Return true if the mouse is within the window
-  bool Window::getMousePosition(math::Int2* pos) {
-    pos->set(&mouse_pos_);
+  bool Window::getMousePosition(jtil::math::Int2* pos) {
+    pos->set(mouse_pos_);
     return pos->m[0] >= 0 && pos->m[0] < settings_.width &&
            pos->m[1] >= 0 && pos->m[1] < settings_.height;
   }

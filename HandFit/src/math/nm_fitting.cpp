@@ -1,24 +1,7 @@
-//
-//  nm_fitting.cpp
-//
-//  Created by Jonathan Tompson on 8/23/12.
-//
-//  A black box implementation of the Nelder-Mead non-linear optimization
-//  algorithm.  Does not require Hessian or Jacobian evaluations.
-//
-//  This class and its supporting functions takes in a set of data points y 
-//  evaluated at points x and will perform a non-linear fit for the user 
-//  supplied function f(x,c) by modifying the function coefficients c.  The 
-//  user supplied residual function is used to evaluate the "quality" of the 
-//  fit (otherwise the L2 norm of the error is used if no residual function is
-//  supplied).
-//
-
 #include <random>
 #include <stdexcept>
 #include <iostream>
 #include "math/nm_fitting.h"
-#include "clock/clock.h"
 #include "Eigen"
 
 using Eigen::MatrixXf;
@@ -26,6 +9,7 @@ using std::cout;
 using std::endl;
 using std::runtime_error;
 
+namespace jtil {
 namespace math {
   MERSINE_TWISTER_ENG NMFitting::eng;  // a core engine class
   NORMAL_REAL_DISTRIBUTION NMFitting::dist;
@@ -453,4 +437,5 @@ namespace math {
     ordered_vert_[num_coeffs_]->coeff = c_tmp_;
   }
 
-};  // namespace math
+}  // namespace math
+}  // namespace jtil

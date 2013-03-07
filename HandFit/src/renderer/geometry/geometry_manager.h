@@ -21,9 +21,9 @@
 #define RENDERER_GEOMETRY_MANAGER_HEADER
 
 #include <map>
-#include "math/math_types.h"
-#include "data_str/vector.h"
-#include "data_str/vector_managed.h"
+#include "jtil/math/math_types.h"
+#include "jtil/data_str/vector.h"
+#include "jtil/data_str/vector_managed.h"
 #include "geometry.h"  // For GeometryType
 
 struct aiScene;
@@ -32,8 +32,10 @@ struct aiMesh;
 
 #define GM_START_HM_SIZE 211  // Starting hash-map size.  Best if it is prime.
 
+namespace jtil {
 namespace data_str { template <typename TFirst, typename TSecond> class Pair; }
 namespace data_str { template <class TKey, class TValue> class HashMapManaged; }
+}
 
 namespace renderer {
 
@@ -98,7 +100,7 @@ namespace renderer {
 
     // Textures for all GeometryTexturedMesh and GeometryTexturedBonedMesh are
     // stored here (so we can avoid loading in the same texture twice).
-    data_str::HashMapManaged<std::string, Texture*>* tex_;
+    jtil::data_str::HashMapManaged<std::string, Texture*>* tex_;
 
     // Bones may be shared accross multiple geometry elements (different meshes
     // use the same bones for instance).  Bones are stored first by the 
@@ -106,14 +108,14 @@ namespace renderer {
     // file.
     // We need O(1) string lookup but also we need to linearly iterate through 
     // the database, so we need BOTH a hash map and a vector.
-    data_str::VectorManaged<BoneFileInfo*> bones_;
+    jtil::data_str::VectorManaged<BoneFileInfo*> bones_;
     std::map<std::string, uint32_t> bones_filename_index_map_;
 
     static uint32_t strHashFunc(uint32_t size, const char* key);
 
     // The global scene graph used by the renderer
     Geometry* scene_graph_root_;
-    data_str::Vector<Geometry*> render_stack_;
+    jtil::data_str::Vector<Geometry*> render_stack_;
 
     Geometry* convertAssimpScene(const std::string& path, 
       const std::string& filename, const aiScene* scene);

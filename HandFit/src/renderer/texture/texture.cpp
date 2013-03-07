@@ -2,8 +2,8 @@
 #include <sstream>
 #include "renderer/open_gl_common.h"
 #include "renderer/texture/texture.h"
-#include "exceptions/wruntime_error.h"
-#include "string_util/string_util.h"
+#include "jtil/exceptions/wruntime_error.h"
+#include "jtil/string_util/string_util.h"
 #include "freeimage.h"
 #include "renderer/gl_state.h"
 
@@ -61,7 +61,7 @@ namespace renderer {
 	  // if still unkown, return failure
 	  if (fif == FIF_UNKNOWN) {
       throw wruntime_error(wstring(L"Texture() - ERROR: Cannot deduce ") +
-        wstring(L"format of the file: ") + string_util::ToWideString(filename));
+        wstring(L"format of the file: ") + jtil::string_util::ToWideString(filename));
     }
 
     // check that FreeImage has reading capabilities and if so load the file
@@ -71,7 +71,7 @@ namespace renderer {
     //if the image failed to load, return failure
     if (!dib) {
       throw wruntime_error(wstring(L"Texture() - ERROR: FreeImage couldn't ") +
-        wstring(L"load the file: ") + string_util::ToWideString(filename));
+        wstring(L"load the file: ") + jtil::string_util::ToWideString(filename));
     }
 
     // Convert everything to RGBA:
@@ -90,7 +90,7 @@ namespace renderer {
 	  // if this somehow one of these failed (they shouldn't), return failure
 	  if ((fi_bits == 0) || (w_ == 0) || (h_ == 0)) {
       throw wruntime_error(wstring(L"Texture() - ERROR: FreeImage couldn't ") +
-        wstring(L"load the file: ") + string_util::ToWideString(filename));
+        wstring(L"load the file: ") + jtil::string_util::ToWideString(filename));
     }
 
     // Copy it into memory and leave it there in case we need it later.

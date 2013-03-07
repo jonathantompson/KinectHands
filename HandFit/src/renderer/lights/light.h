@@ -7,7 +7,7 @@
 #ifndef RENDERER_LIGHT_HEADER
 #define RENDERER_LIGHT_HEADER
 
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 
 namespace renderer {
 

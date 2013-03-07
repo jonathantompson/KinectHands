@@ -11,7 +11,7 @@
 #ifndef MATH_OPTIMIZATION_TEST_FUNCTIONS_HEADER
 #define MATH_OPTIMIZATION_TEST_FUNCTIONS_HEADER
 
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 #include "Eigen"
 
 #define NUM_COEFFS_ROSENBROCK 4
@@ -22,6 +22,7 @@
 #define NUM_COEFFS_HW7_4A 3  // Don't change!
 #define NUM_COEFFS_HW7_4B 4  // Don't change!
 
+namespace jtil {
 namespace math {
   void initOptimizationTestFunctions();
 
@@ -58,6 +59,7 @@ namespace math {
   float hw7_4b(const Eigen::MatrixXf& coeff);
   void hw7_4b_jacob(Eigen::MatrixXf& jacob, const Eigen::MatrixXf& coeff);
 
-};  // namespace math
+}  // namespace math
+}  // namespace jtil
 
 #endif  // MATH_OPTIMIZATION_TEST_FUNCTIONS_HEADER

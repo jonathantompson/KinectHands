@@ -1,8 +1,8 @@
 #include "renderer/geometry/bone_info.h"
-#include "math/math_types.h"
-#include "data_str/pair.h"
+#include "jtil/math/math_types.h"
+#include "jtil/data_str/pair.h"
 
-using math::Float4x4;
+using jtil::math::Float4x4;
 
 namespace renderer {
 
@@ -10,7 +10,7 @@ namespace renderer {
     // Only do assignment if RHS is a different object from this.
     if (this != &rhs) {
       memcpy(this->bone_offset, rhs.bone_offset, 16 * sizeof(this->bone_offset[0]));
-      this->final_trans.set(const_cast<Float4x4*>(&rhs.final_trans));
+      this->final_trans.set(*const_cast<Float4x4*>(&rhs.final_trans));
       this->name = rhs.name;
       this->node = rhs.node;
       for (uint32_t i = 0; i < 2; i++) {
@@ -52,8 +52,8 @@ namespace renderer {
   }
 
   // Convert the node and it's geometry into a data array for saving to file
-  data_str::Pair<uint8_t*,uint32_t> BoneFileInfo::saveToArray() {
-    data_str::Pair<uint8_t*,uint32_t> data;
+  jtil::data_str::Pair<uint8_t*,uint32_t> BoneFileInfo::saveToArray() {
+    jtil::data_str::Pair<uint8_t*,uint32_t> data;
     data.first = NULL;
     data.second = 0;
 

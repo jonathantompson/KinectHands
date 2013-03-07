@@ -14,6 +14,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "kinect_interface", "kinect_
 		{B6B147F5-C7F9-4E94-A58C-1B4855967A48} = {B6B147F5-C7F9-4E94-A58C-1B4855967A48}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HandFit", "HandFit\HandFit.vcxproj", "{FA1F90EF-6346-4108-9BD6-7D86092FBEC6}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A6E0728B-50C6-4F44-88FA-AAF932B769DF} = {A6E0728B-50C6-4F44-88FA-AAF932B769DF}
+		{B6B147F5-C7F9-4E94-A58C-1B4855967A48} = {B6B147F5-C7F9-4E94-A58C-1B4855967A48}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -32,6 +38,10 @@ Global
 		{A6E0728B-50C6-4F44-88FA-AAF932B769DF}.Debug|x64.Build.0 = Debug|x64
 		{A6E0728B-50C6-4F44-88FA-AAF932B769DF}.Release|x64.ActiveCfg = Release|x64
 		{A6E0728B-50C6-4F44-88FA-AAF932B769DF}.Release|x64.Build.0 = Release|x64
+		{FA1F90EF-6346-4108-9BD6-7D86092FBEC6}.Debug|x64.ActiveCfg = Debug|x64
+		{FA1F90EF-6346-4108-9BD6-7D86092FBEC6}.Debug|x64.Build.0 = Debug|x64
+		{FA1F90EF-6346-4108-9BD6-7D86092FBEC6}.Release|x64.ActiveCfg = Release|x64
+		{FA1F90EF-6346-4108-9BD6-7D86092FBEC6}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

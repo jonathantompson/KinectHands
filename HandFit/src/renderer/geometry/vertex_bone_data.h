@@ -7,9 +7,11 @@
 #ifndef RENDERER_VERTEX_BONE_DATA_HEADER
 #define RENDERER_VERTEX_BONE_DATA_HEADER
 
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 
+namespace jtil {
 namespace data_str { template <typename TFirst, typename TSecond> class Pair; }
+}
 
 #define BONE_VERTEX_DATA_FILE_DATA_SIZE (512 / 8)  // Bytes
 

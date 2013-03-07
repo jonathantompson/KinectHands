@@ -151,6 +151,13 @@ namespace hand_net {
       static_cast<float>(2.0 * M_PI)) - static_cast<float>(M_PI);
   }
 
+  void HandModel::copyCoeffFrom(const HandModel* model) {
+    copyCoeffFrom(model->coeff_);
+  }
+
+  void HandModel::copyCoeffFrom(const float* coeff) {
+    memcpy(coeff_, coeff, sizeof(coeff_[0]) * HAND_NUM_COEFF);
+  }
 
   FloatQuat tmp_quat_;
   void HandModel::renormalizeCoeffs(float* coeff) {

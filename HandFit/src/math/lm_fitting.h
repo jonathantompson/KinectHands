@@ -19,12 +19,13 @@
 #ifndef MATH_LM_FITTING_HEADER
 #define MATH_LM_FITTING_HEADER
 
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 #include "math/common_fitting.h"
 #include "Eigen"
 
 // #define LM_VERBOSE_SOLVER  // Print out per-iteration information
 
+namespace jtil {
 namespace math {
 
   // Levenberg-Marquardt optimization
@@ -106,5 +107,6 @@ namespace math {
   };
 
 };  // namespace math
+};  // namespace jtil
 
 #endif  // MATH_LM_FITTING_HEADER

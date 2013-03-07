@@ -1,8 +1,8 @@
 #include <random>
 #include <stdexcept>
 #include <iostream>
-#include "hand_model/hand_model.h"
-#include "hand_model/hand_model_fit.h"
+#include "kinect_interface/hand_net/hand_model.h"
+#include "hand_fit/hand_fit.h"
 #include "math/lprpso_fitting_hands.h"
 #include "Eigen"
 
@@ -10,16 +10,17 @@ using Eigen::MatrixXf;
 using std::cout;
 using std::endl;
 using std::runtime_error;
-using hand_model::HandModelFit;
-using hand_model::HandModel;
+using hand_model::HandFit;
+using kinect_interface::hand_net::HandModel;
 
+namespace jtil {
 namespace math {
 
   MERSINE_TWISTER_ENG LPRPSOFittingHands::eng;
   UNIFORM_REAL_DISTRIBUTION LPRPSOFittingHands::dist_real(0, 1);
 
   LPRPSOFittingHands::LPRPSOFittingHands(uint32_t num_coeffs, int swarm_size,
-    HandModelFit* hand_model_fit) {
+    HandFit* hand_model_fit) {
     if (swarm_size % 64 != 0) {
       throw std::runtime_error("swarm_size must be a multiple of 64!");
     }
@@ -110,7 +111,7 @@ namespace math {
     // position and residue for the particle x_i as it's starting position
     best_residue_global_ = std::numeric_limits<float>::infinity();
     for (uint32_t i = 0; i < swarm_size_; i++) {
-      HandModel::renormalizeCoeffs(swarm_[i].pos);
+      HandModel::renormalizeCoeffs(swarm_[i].pos.data());
     }
     for (uint32_t i = 0; i < (swarm_size_ / NTILES); i++) {
       for (uint32_t j = 0; j < NTILES; j++) {
@@ -256,7 +257,7 @@ namespace math {
         //  }  // for each dimension
         //}
 
-        HandModel::renormalizeCoeffs(cur_node->pos);
+        HandModel::renormalizeCoeffs(cur_node->pos.data());
       }  // for each agent
 
       // Calculate the tiled residues
@@ -394,4 +395,5 @@ namespace math {
 #endif
   }
 
-};  // namespace math
+}  // namespace math
+}  // namespace jtil

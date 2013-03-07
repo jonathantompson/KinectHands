@@ -2,7 +2,6 @@
 #include <stdexcept>
 #include <iostream>
 #include "math/sdb_fitting.h"
-#include "clock/clock.h"
 #include "Eigen"
 
 using Eigen::MatrixXf;
@@ -10,6 +9,7 @@ using std::cout;
 using std::endl;
 using std::runtime_error;
 
+namespace jtil {
 namespace math {
   SDBFitting::SDBFitting(uint32_t num_coeffs) {
     num_coeffs_ = num_coeffs;
@@ -190,4 +190,5 @@ namespace math {
     }
   }
 
-};  // namespace math
+}  // namespace math
+}  // namespace jtil

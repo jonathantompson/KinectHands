@@ -40,9 +40,6 @@ namespace jtil { namespace threading { class ThreadPool; } }
 
 namespace kinect_interface {
 
-namespace hand_model { class HandModelRenderer; }
-namespace hand_model { class HandModel; }
-
 namespace hand_net {
   // Note 1: All hand positions are in the hand coordinate frame (defined as 
   //         the origin at the UV COM of the hand points).
@@ -165,8 +162,6 @@ namespace hand_net {
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in);
     void calcHPFHandBanks();
     void initHPFKernels();
-    void calcHandImageUVFromXYZ(hand_model::HandModelRenderer* renderer, 
-      jtil::math::Float3& xyz_pos, jtil::math::Float2& uv_pos);
 
     // Non-copyable, non-assignable.
     HandNet(HandNet&);

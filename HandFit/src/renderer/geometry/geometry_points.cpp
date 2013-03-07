@@ -1,11 +1,11 @@
 #include "renderer/geometry/geometry_points.h"
 #include "renderer/objects/aabbox.h"
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 #include "renderer/gl_state.h"
 
 #define max std::max
 
-using math::Float3;
+using jtil::math::Float3;
 using std::wstring;
 using std::wruntime_error;
 using renderer::objects::AABBox;

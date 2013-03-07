@@ -7,9 +7,11 @@
 #ifndef RENDERER_OBJECTS_AABBOX_HEADER
 #define RENDERER_OBJECTS_AABBOX_HEADER
 
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 
+namespace jtil {
 namespace data_str { template <typename T> class Vector; }
+}
 
 namespace renderer {
   namespace objects {
@@ -18,25 +20,25 @@ namespace renderer {
       AABBox();
       ~AABBox();
 
-      void init(data_str::Vector<math::Float3>* vertices);
-      void update(math::Float4x4* mat_world);
+      void init(jtil::data_str::Vector<jtil::math::Float3>* vertices);
+      void update(jtil::math::Float4x4* mat_world);
 
-      inline math::Float3* min_bounds() { return &min_; }
-      inline math::Float3* max_bounds() { return &max_; }
-      inline math::Float3* center() { return &center_; }
-      inline math::Float3* half_lengths() { return &half_lengths_; }
+      inline jtil::math::Float3* min_bounds() { return &min_; }
+      inline jtil::math::Float3* max_bounds() { return &max_; }
+      inline jtil::math::Float3* center() { return &center_; }
+      inline jtil::math::Float3* half_lengths() { return &half_lengths_; }
 
     private:
-      math::Float3 min_;
-      math::Float3 max_;
-      math::Float3 object_bounds_[8];
-      math::Float3 world_bounds_[8];
-      math::Float3 center_;
-      math::Float3 half_lengths_;
+      jtil::math::Float3 min_;
+      jtil::math::Float3 max_;
+      jtil::math::Float3 object_bounds_[8];
+      jtil::math::Float3 world_bounds_[8];
+      jtil::math::Float3 center_;
+      jtil::math::Float3 half_lengths_;
 
       // Expand(), check current min/max value against input vector and set new 
       // min/max if appropriate
-      void expand(math::Float3* vec);
+      void expand(jtil::math::Float3* vec);
     };
   };  // namespace objects
 };  // namespace renderer

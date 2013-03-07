@@ -12,7 +12,7 @@
 #define MATH_SDB_FITTING_HEADER
 
 #include <random>
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 #include "math/common_fitting.h"
 #include "Eigen"
 
@@ -22,6 +22,7 @@
 
 #define SDB_VERBOSE_SOLVER  // Print out per-iteration information
 
+namespace jtil {
 namespace math {
 
   // Steepest Descent with backtracking optimization
@@ -87,5 +88,6 @@ namespace math {
   };
 
 };  // namespace math
+};  // namespace jtil
 
 #endif  // SDB_VERBOSE_SOLVER

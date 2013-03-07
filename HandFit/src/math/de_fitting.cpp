@@ -1,21 +1,3 @@
-//
-//  de_fitting.cpp
-//
-//  Created by Jonathan Tompson on 8/23/12.
-//
-//  A black box implementation of the Differential-Evolution non-linear optimization
-//  algorithm.  Does not require Hessian or Jacobian evaluations.
-//
-//  Based on the DE algorithm described by "Good Parameters for Differential
-//  Evolution" by Magnus Erik Hvass Pedersen:
-//  http://www.hvass-labs.org/people/magnus/publications/pedersen10good-de.pdf
-//  This is called: "DE/rand/1/bin"
-//
-//  The default CR, F and NP optimization parameters are just rule of thumb.
-//  Read the above paper, as well as "On the Usage of Differential Evolution 
-//  for Function Optimization" by Rainer Storn.
-//
-
 #include <random>
 #include <stdexcept>
 #include <iostream>
@@ -28,6 +10,7 @@ using std::cout;
 using std::endl;
 using std::runtime_error;
 
+namespace jtil {
 namespace math {
 
   MERSINE_TWISTER_ENG DEFitting::eng;
@@ -255,4 +238,5 @@ namespace math {
     return interp;
   }
 
-};  // namespace math
+}  // namespace math
+}  // namespace jtil

@@ -9,7 +9,7 @@
 #define RENDERER_TEXURE_UTILS_HEADER
 
 #include "renderer/open_gl_common.h"
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 
 namespace renderer {
   uint32_t ElementSizeOfGLType(GLint gl_type);

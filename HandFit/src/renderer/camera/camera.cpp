@@ -1,13 +1,13 @@
 #include <string>
 #include "renderer/camera/camera.h"
 #include "renderer/open_gl_common.h"
-#include "math/math_types.h"
-#include "data_str/vector_managed.h"
-#include "exceptions/wruntime_error.h"
+#include "jtil/math/math_types.h"
+#include "jtil/data_str/vector_managed.h"
+#include "jtil/exceptions/wruntime_error.h"
 
-using math::Float3;
-using math::Float4x4;
-using math::FloatQuat;
+using jtil::math::Float3;
+using jtil::math::Float4x4;
+using jtil::math::FloatQuat;
 using std::wruntime_error;
 using std::wstring;
 
@@ -16,9 +16,9 @@ namespace renderer {
   Camera::Camera(FloatQuat* eye_rot, Float3* eye_pos, int screen_width,
     int screen_height, float field_of_view, float near, float far) {
     proj_.identity();
-    eye_rot_.set(eye_rot);
-    math::FloatQuat::inverse(&eye_rot_inv_, &eye_rot_);
-    eye_pos_.set(eye_pos);
+    eye_rot_.set(*eye_rot);
+    FloatQuat::inverse(eye_rot_inv_, eye_rot_);
+    eye_pos_.set(*eye_pos);
     x_axis_rot_ = 0;
     y_axis_rot_ = 0;
     
@@ -40,23 +40,23 @@ namespace renderer {
 
   void Camera::updateView() {
     // Before updating view, record the old value
-    view_prev_frame_.set(&view_);
+    view_prev_frame_.set(view_);
     
     // Find the inverse rotation using quaternion
-    math::FloatQuat::inverse(&eye_rot_inv_, &eye_rot_);  // Very fast
-    eye_rot_inv_.quat2Mat4x4(&view_);
+    FloatQuat::inverse(eye_rot_inv_, eye_rot_);  // Very fast
+    FloatQuat::quat2Mat4x4(view_, eye_rot_inv_);
     
     view_[2] *= -1.0f;
     view_[6] *= -1.0f;
     view_[10] *= -1.0f;
 
     view_.rightMultTranslation(eye_pos_[0], eye_pos_[1], eye_pos_[2]);
-    Float4x4::affineRotationTranslationInverse(&view_inverse_, &view_);
+    Float4x4::affineRotationTranslationInverse(view_inverse_, view_);
   }
 
   void Camera::updateProjection() {
     // Before updating projection, record the old value
-    proj_prev_frame_.set(&proj_);
+    proj_prev_frame_.set(proj_);
 
     // Calculate tangent of the field of view --> Used for unprojecting view
     // space depth in shaders.
@@ -87,19 +87,19 @@ namespace renderer {
 
     // Rotate by y-axis first
     eye_rot_.identity();
-    math::FloatQuat rot_mouse;
+    FloatQuat rot_mouse;
     rot_mouse.yAxisRotation(y_axis_rot_);
-    math::FloatQuat rot_tmp;
-    rot_tmp.mult(&eye_rot_, &rot_mouse);
+    FloatQuat rot_tmp;
+    FloatQuat::mult(rot_tmp, eye_rot_, rot_mouse);
     // Now rotate by x-axis
     rot_mouse.xAxisRotation(x_axis_rot_);
-    eye_rot_.mult(&rot_tmp, &rot_mouse);
+    FloatQuat::mult(eye_rot_, rot_tmp, rot_mouse);
   }
   
   void Camera::moveCamera(Float3* dir_eye_space) {
     // First calcuate the direction in world coords
     Float3 dir_world_coords;
-    dir_world_coords.affineTransformVec(&view_inverse_, dir_eye_space);
+    Float3::affineTransformVec(dir_world_coords, view_inverse_, *dir_eye_space);
     eye_pos_.accum(dir_world_coords.m);
   }
 

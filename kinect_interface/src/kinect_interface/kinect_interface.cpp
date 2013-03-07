@@ -136,23 +136,6 @@ namespace kinect_interface {
     DepthImagesIO::convertSingleImageToXYZ(pts_world_from_file_,
       depth_from_file_);
 
-    //// TEMP CODE:
-    ////jtil::file_io::SaveArrayToFile<int16_t>(depth_from_file_, src_dim, 
-    ////  "./kinect_depth_image_uncompressed.bin"); 
-    //float* d = new float[src_dim];
-    //float* d_tmp = new float[src_dim];
-    //float* d_down = new float[src_dim];
-    //for (uint32_t i = 0; i < src_dim; i++) {
-    //  d[i] = (float)depth_from_file_[i];
-    //}
-
-    //float scale = 6.4f;
-    //jtil::image_util::FracDownsampleImageMipMap<float>(d_down, d, 
-    //  src_width, src_height, scale, d_tmp);
-    //jtil::file_io::SaveArrayToFile<float>(d_down, 100 * 75, 
-    //  "./HandNets/kinect_depth_image_uncompressed_down_float.bin"); 
-    //// END TEMP CODE
-
     XnStatus nRetVal = XN_STATUS_OK;
     xn::EnumerationErrors errors;
 

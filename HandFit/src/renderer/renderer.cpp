@@ -4,7 +4,7 @@
 #include "renderer/shader/shader.h"
 #include "renderer/shader/shader_program.h"
 #include "renderer/camera/camera.h"
-#include "exceptions/wruntime_error.h"
+#include "jtil/exceptions/wruntime_error.h"
 #include "renderer/geometry/geometry_manager.h"
 #include "renderer/geometry/geometry.h"
 #include "renderer/geometry/geometry_colored_mesh.h"
@@ -19,18 +19,18 @@
 #include "renderer/colors.h"
 #include "renderer/lights/light_dir.h"
 #include "renderer/lights/light_dir_handles.h"
-#include "hand_model/bounding_sphere.h"
+#include "hand_fit/bounding_sphere.h"
 #include "windowing/window.h"
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 #include "renderer/gl_state.h"
 
 using std::wstring;
 using std::wruntime_error;
-using math::Float2;
-using math::Float3;
-using math::Float4;
-using math::FloatQuat;
-using math::Float4x4;
+using jtil::math::Float2;
+using jtil::math::Float3;
+using jtil::math::Float4;
+using jtil::math::FloatQuat;
+using jtil::math::Float4x4;
 using renderer::Geometry;
 using windowing::Window;
 
@@ -457,11 +457,11 @@ namespace renderer {
           BoundingSphere* sphere = reinterpret_cast<BoundingSphere*>(cur_geom);
           Geometry* cur_root = sphere->hand_root();
           if (cur_root != root) {
-            Float4x4::inverse(&root_inverse, sphere->hand_root()->mat());
+            Float4x4::inverse(root_inverse, *sphere->hand_root()->mat());
             root = cur_root;
           }
-          Float4x4::mult(&tmp, &root_inverse, sphere->mat_hierarchy());
-          Float4x4::mult(sphere->mat_hierarchy(), sphere->mesh_node()->mat_hierarchy(), &tmp);
+          Float4x4::mult(tmp, root_inverse, *sphere->mat_hierarchy());
+          Float4x4::mult(*sphere->mat_hierarchy(), *sphere->mesh_node()->mat_hierarchy(), tmp);
           renderColoredMesh(reinterpret_cast<GeometryColoredMesh*>(cur_geom));
         }
       }
@@ -531,18 +531,18 @@ namespace renderer {
 
   void Renderer::renderColoredMesh(GeometryColoredMesh* geom) {
     // Calculate the model view matrix and bind it to the shader
-    Float4x4::mult(&VW_mat_, camera_->view(), geom->mat_hierarchy());
+    Float4x4::mult(VW_mat_, *camera_->view(), *geom->mat_hierarchy());
     bindFloat4x4(&VW_mat_, h_VW_mat_cmesh_dlight_);
 
     // Calculate the model view normal matrix and bind it to the shader
     // Normal matrix is the (M_modelview^-1)^T:
     // --> http://www.songho.ca/opengl/gl_transform.html
-    Float4x4::affineInverse(&Normal_mat_, &VW_mat_);
+    Float4x4::affineInverse(Normal_mat_, VW_mat_);
     Normal_mat_.transpose();
     bindFloat4x4(&Normal_mat_, h_Normal_mat_cmesh_dlight_);
 
     // Calculate model view projection matrix and bind it to the shader
-    Float4x4::mult(&PVW_mat_, camera_->proj(), &VW_mat_ );
+    Float4x4::mult(PVW_mat_, *camera_->proj(), VW_mat_ );
     bindFloat4x4(&PVW_mat_, h_PVW_mat_cmesh_dlight_);
 
     // Set the material properties
@@ -557,18 +557,18 @@ namespace renderer {
 
   void Renderer::renderColoredBonedMesh(GeometryColoredBonedMesh* geom) {
     // Calculate the model view matrix and bind it to the shader
-    Float4x4::mult(&VW_mat_, camera_->view(), geom->mat_hierarchy());
+    Float4x4::mult(VW_mat_, *camera_->view(), *geom->mat_hierarchy());
     bindFloat4x4(&VW_mat_, h_VW_mat_cmesh_bone_dlight_);
 
     // Calculate the model view normal matrix and bind it to the shader
     // Normal matrix is the (M_modelview^-1)^T:
     // --> http://www.songho.ca/opengl/gl_transform.html
-    Float4x4::affineInverse(&Normal_mat_, &VW_mat_);
+    Float4x4::affineInverse(Normal_mat_, VW_mat_);
     Normal_mat_.transpose();
     bindFloat4x4(&Normal_mat_, h_Normal_mat_cmesh_bone_dlight_);
 
     // Calculate model view projection matrix and bind it to the shader
-    Float4x4::mult(&PVW_mat_, camera_->proj(), &VW_mat_ );
+    Float4x4::mult(PVW_mat_, *camera_->proj(), VW_mat_ );
     bindFloat4x4(&PVW_mat_, h_PVW_mat_cmesh_bone_dlight_);
 
     // Send the bone matrix heirachy down to the shader:
@@ -595,18 +595,18 @@ namespace renderer {
 
   void Renderer::renderTexturedMesh(GeometryTexturedMesh* geom) {
     // Calculate the model view matrix and bind it to the shader
-    Float4x4::mult(&VW_mat_, camera_->view(), geom->mat_hierarchy());
+    Float4x4::mult(VW_mat_, *camera_->view(), *geom->mat_hierarchy());
     bindFloat4x4(&VW_mat_, h_VW_mat_tmesh_dlight_);
 
     // Calculate the model view normal matrix and bind it to the shader
     // Normal matrix is the (M_modelview^-1)^T:
     // --> http://www.songho.ca/opengl/gl_transform.html
-    Float4x4::affineInverse(&Normal_mat_, &VW_mat_);
+    Float4x4::affineInverse(Normal_mat_, VW_mat_);
     Normal_mat_.transpose();
     bindFloat4x4(&Normal_mat_, h_Normal_mat_tmesh_dlight_);
 
     // Calculate model view projection matrix and bind it to the shader
-    Float4x4::mult(&PVW_mat_, camera_->proj(), &VW_mat_ );
+    Float4x4::mult(PVW_mat_, *camera_->proj(), VW_mat_ );
     bindFloat4x4(&PVW_mat_, h_PVW_mat_tmesh_dlight_);
 
     // Set the material properties
@@ -624,18 +624,18 @@ namespace renderer {
 
   void Renderer::renderTexturedBonedMesh(GeometryTexturedBonedMesh* geom) {
     // Calculate the model view matrix and bind it to the shader
-    Float4x4::mult(&VW_mat_, camera_->view(), geom->mat_hierarchy());
+    Float4x4::mult(VW_mat_, *camera_->view(), *geom->mat_hierarchy());
     bindFloat4x4(&VW_mat_, h_VW_mat_tmesh_bone_dlight_);
 
     // Calculate the model view normal matrix and bind it to the shader
     // Normal matrix is the (M_modelview^-1)^T:
     // --> http://www.songho.ca/opengl/gl_transform.html
-    Float4x4::affineInverse(&Normal_mat_, &VW_mat_);
+    Float4x4::affineInverse(Normal_mat_, VW_mat_);
     Normal_mat_.transpose();
     bindFloat4x4(&Normal_mat_, h_Normal_mat_tmesh_bone_dlight_);
 
     // Calculate model view projection matrix and bind it to the shader
-    Float4x4::mult(&PVW_mat_, camera_->proj(), &VW_mat_ );
+    Float4x4::mult(PVW_mat_, *camera_->proj(), VW_mat_ );
     bindFloat4x4(&PVW_mat_, h_PVW_mat_tmesh_bone_dlight_);
 
     // Send the bone matrix heirachy down to the shader:
@@ -721,15 +721,15 @@ namespace renderer {
       Geometry* cur_geom =  geom_manager->renderStackPop();
       // Update the render matrix based on our parents position
       if (cur_geom->parent() != NULL) {
-        Float4x4::mult(cur_geom->mat_hierarchy(),
-                       cur_geom->parent()->mat_hierarchy(), cur_geom->mat());
+        Float4x4::mult(*cur_geom->mat_hierarchy(),
+                       *cur_geom->parent()->mat_hierarchy(), *cur_geom->mat());
       } else {
-        cur_geom->mat_hierarchy()->set(cur_geom->mat());
+        cur_geom->mat_hierarchy()->set(*cur_geom->mat());
       }
     }
   }
 
-  void Renderer::bindFloat4x4(const math::Float4x4* mat, const GLint h_mat) {
+  void Renderer::bindFloat4x4(const Float4x4* mat, const GLint h_mat) {
     glUniformMatrix4fv(h_mat, 1, GL_FALSE, mat->m);
     ERROR_CHECK;
   }
@@ -761,17 +761,17 @@ namespace renderer {
     ERROR_CHECK;
   }
 
-  void Renderer::bindFloat2(const math::Float2* vec, const GLint h_vec) {
+  void Renderer::bindFloat2(const Float2* vec, const GLint h_vec) {
     glUniform2fv(h_vec, 1, vec->m);
     ERROR_CHECK;
   }
 
-  void Renderer::bindFloat3(const math::Float3* vec, const GLint h_vec) {
+  void Renderer::bindFloat3(const Float3* vec, const GLint h_vec) {
     glUniform3fv(h_vec, 1, vec->m);
     ERROR_CHECK;
   }
 
-  void Renderer::bindFloat4(const math::Float4* vec, const GLint h_vec) {
+  void Renderer::bindFloat4(const Float4* vec, const GLint h_vec) {
     glUniform4fv(h_vec, 1, vec->m);
     ERROR_CHECK;
   }
@@ -856,9 +856,9 @@ namespace renderer {
     bindFloat3(color, h_point_color_points_);
     
     // Calculate the model view projection matrix and bind it to the shader
-    Float4x4::mult(&VW_mat_, camera_->view(), mat_world);
+    Float4x4::mult(VW_mat_, *camera_->view(), *mat_world);
     bindFloat4x4(&VW_mat_, h_VW_mat_points_);
-    Float4x4::mult(&PVW_mat_, camera_->proj(), &VW_mat_ );
+    Float4x4::mult(PVW_mat_, *camera_->proj(), VW_mat_ );
     bindFloat4x4(&PVW_mat_, h_PVW_mat_points_);
     
     points->draw();
@@ -872,9 +872,9 @@ namespace renderer {
     bindFloat1(point_size_constant, h_cpoint_size_constant_);
     
     // Calculate the model view projection matrix and bind it to the shader
-    Float4x4::mult(&VW_mat_, camera_->view(), mat_world);
+    Float4x4::mult(VW_mat_, *camera_->view(), *mat_world);
     bindFloat4x4(&VW_mat_, h_VW_mat_cpoints_);
-    Float4x4::mult(&PVW_mat_, camera_->proj(), &VW_mat_ );
+    Float4x4::mult(PVW_mat_, *camera_->proj(), VW_mat_ );
     bindFloat4x4(&PVW_mat_, h_PVW_mat_cpoints_);
     
     points->draw();
@@ -893,7 +893,7 @@ namespace renderer {
     sp_downsample2_->useProgram();
     
     src->bind(0, GL_TEXTURE0, h_downsample2_texture_sampler_);
-    math::Float2 texel_size(1.0f / src->w(), 1.0f / src->h());
+    Float2 texel_size(1.0f / src->w(), 1.0f / src->h());
     bindFloat2(&texel_size, h_downsample2_texel_size_);
     
     GLState::glsEnable(GL_CULL_FACE);
@@ -919,7 +919,7 @@ namespace renderer {
     sp_downsample2_integ_->useProgram();
     
     src->bind(0, GL_TEXTURE0, h_downsample2_integ_texture_sampler_);
-    math::Float2 texel_size(1.0f / src->w(), 1.0f / src->h());
+    Float2 texel_size(1.0f / src->w(), 1.0f / src->h());
     bindFloat2(&texel_size, h_downsample2_integ_texel_size_);
     
     GLState::glsEnable(GL_CULL_FACE);
@@ -945,7 +945,7 @@ namespace renderer {
     sp_downsample4_->useProgram();
     
     src->bind(0, GL_TEXTURE0, h_downsample4_texture_sampler_);
-    math::Float2 texel_size(1.0f / src->w(), 1.0f / src->h());
+    Float2 texel_size(1.0f / src->w(), 1.0f / src->h());
     bindFloat2(&texel_size, h_downsample4_texel_size_);
 
     GLState::glsTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -976,7 +976,7 @@ namespace renderer {
     sp_downsample4_integ_->useProgram();
     
     src->bind(0, GL_TEXTURE0, h_downsample4_integ_texture_sampler_);
-    math::Float2 texel_size(1.0f / src->w(), 1.0f / src->h());
+    Float2 texel_size(1.0f / src->w(), 1.0f / src->h());
     bindFloat2(&texel_size, h_downsample4_integ_texel_size_);
 
     GLState::glsTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -1007,7 +1007,7 @@ namespace renderer {
     sp_downsample5_integ_->useProgram();
     
     src->bind(0, GL_TEXTURE0, h_downsample5_integ_texture_sampler_);
-    math::Float2 texel_size(1.0f / src->w(), 1.0f / src->h());
+    Float2 texel_size(1.0f / src->w(), 1.0f / src->h());
     bindFloat2(&texel_size, h_downsample5_integ_texel_size_);
 
     GLState::glsTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);

@@ -11,7 +11,7 @@
 
 #include <string>
 #include "renderer/open_gl_common.h"  // For GL* types and ERROR_CHECK
-#include "data_str/vector.h"
+#include "jtil/data_str/vector.h"
 
 namespace renderer {
 

@@ -7,26 +7,26 @@
 #ifndef RENDERER_COLORS_HEADER
 #define RENDERER_COLORS_HEADER
 
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 
 namespace renderer {
 
-  extern const math::Float3 white;
-  extern const math::Float3 black;
-  extern const math::Float3 red;
-  extern const math::Float3 lred;
-  extern const math::Float3 green;
-  extern const math::Float3 lgreen;
-  extern const math::Float3 blue;
-  extern const math::Float3 lblue;
-  extern const math::Float3 yellow;
-  extern const math::Float3 pink;
-  extern const math::Float3 cyan;
-  extern const math::Float3 grey;
-  extern const math::Float3 gold;
+  extern const jtil::math::Float3 white;
+  extern const jtil::math::Float3 black;
+  extern const jtil::math::Float3 red;
+  extern const jtil::math::Float3 lred;
+  extern const jtil::math::Float3 green;
+  extern const jtil::math::Float3 lgreen;
+  extern const jtil::math::Float3 blue;
+  extern const jtil::math::Float3 lblue;
+  extern const jtil::math::Float3 yellow;
+  extern const jtil::math::Float3 pink;
+  extern const jtil::math::Float3 cyan;
+  extern const jtil::math::Float3 grey;
+  extern const jtil::math::Float3 gold;
 
   const uint32_t n_colors = 13;
-  extern const math::Float3 colors[n_colors];
+  extern const jtil::math::Float3 colors[n_colors];
 
 };  // renderer namespace
 

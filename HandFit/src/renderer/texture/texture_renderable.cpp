@@ -2,8 +2,8 @@
 #include <sstream>
 #include <fstream>
 #include "renderer/texture/texture_renderable.h"
-#include "exceptions/wruntime_error.h"
-#include "string_util/string_util.h"
+#include "jtil/exceptions/wruntime_error.h"
+#include "jtil/string_util/string_util.h"
 #include "renderer/texture/texture_utils.h"
 #include "renderer/gl_state.h"
 

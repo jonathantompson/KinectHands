@@ -11,7 +11,7 @@
 #include "generate_decision_tree.h"
 #include "common_tree_funcs.h"
 #include "decision_tree_func.h"
-#include "image_util.h"
+#include "jtil/image_util/image_util.h"
 
 void evaluateDecisionForest(uint8_t* label_data,       // output  --> Must be preallocated
                             DecisionTree* forest,      // input

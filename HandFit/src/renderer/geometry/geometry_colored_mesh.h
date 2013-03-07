@@ -15,8 +15,8 @@
 
 #include "renderer/open_gl_common.h"  // For GLtypes
 #include "renderer/geometry/geometry.h"
-#include "math/math_types.h"
-#include "data_str/vector.h"
+#include "jtil/math/math_types.h"
+#include "jtil/data_str/vector.h"
 
 struct aiScene;
 struct aiNode;
@@ -24,7 +24,9 @@ struct aiMesh;
 
 #define COLORED_MESH_FILE_DATA_SIZE (704 / 8) // Bytes
 
+namespace jtil {
 namespace data_str { template <typename TFirst, typename TSecond> class Pair; }
+}
 
 namespace renderer {
 
@@ -57,41 +59,41 @@ namespace renderer {
     virtual ~GeometryColoredMesh();
     
     // getter and setter methods
-    void addVertex(const math::Float3& vertex);
+    void addVertex(const jtil::math::Float3& vertex);
     void addVertex(const float x, const float y, const float z);
     void addVertex(const float* xyz);
-    void addNormal(const math::Float3& norm);
+    void addNormal(const jtil::math::Float3& norm);
     void addNormal(const float x, const float y, const float z);
     void addNormal(const float* xyz);
-    void addColor(const math::Float3& color);
+    void addColor(const jtil::math::Float3& color);
     void addColor(const float r, const float g, const float b);
     void addColor(const float* rgb);
     void addFace(const uint32_t* v012);
     void addFace(const uint32_t v0, const uint32_t v1, const uint32_t v2);
 
-    data_str::Vector<math::Float3>* vertices() { return &vertices_; }
-    data_str::Vector<math::Float3>* normals() { return &normals_; }
-    data_str::Vector<math::Float3>* colors() { return &colors_; }
-    data_str::Vector<uint32_t>* indices() { return &indices_; }
+    jtil::data_str::Vector<jtil::math::Float3>* vertices() { return &vertices_; }
+    jtil::data_str::Vector<jtil::math::Float3>* normals() { return &normals_; }
+    jtil::data_str::Vector<jtil::math::Float3>* colors() { return &colors_; }
+    jtil::data_str::Vector<uint32_t>* indices() { return &indices_; }
 
     // Geometry builder methods --> Make new geometry primatives
-    static GeometryColoredMesh* makeCube(const math::Float3& color);
+    static GeometryColoredMesh* makeCube(const jtil::math::Float3& color);
     static GeometryColoredMesh* makeCubeRainbow();
-    static GeometryColoredMesh* makePyramid(const math::Float3& color);
+    static GeometryColoredMesh* makePyramid(const jtil::math::Float3& color);
     static GeometryColoredMesh* makePyramidRainbow();
-    static GeometryColoredMesh* makeTorusKnot(const math::Float3& color, 
+    static GeometryColoredMesh* makeTorusKnot(const jtil::math::Float3& color, 
       uint32_t turns, uint32_t slices, uint32_t stacks);
     static GeometryColoredMesh* makeSphere(uint32_t n_stacks, 
       uint32_t n_slices, float inside_radius, 
-      const math::Float3& color);
+      const jtil::math::Float3& color);
     static GeometryColoredMesh* makeCone(uint32_t n_slices, float height, 
-      float inside_radius, const math::Float3& color);
+      float inside_radius, const jtil::math::Float3& color);
     static GeometryColoredMesh* makeCylinder(uint32_t n_slices, float height,
       float base_inside_radius, float top_inside_radius,
-      const math::Float3& color);
+      const jtil::math::Float3& color);
     static GeometryColoredMesh* makeOpenCylinder(uint32_t n_slices, 
       float height, float base_inside_radius, float top_inside_radius,
-      const math::Float3& color);
+      const jtil::math::Float3& color);
 
     static float calcSphereOutsideRadius(uint32_t n_stacks, 
       uint32_t n_slices, float inside_radius);
@@ -108,10 +110,10 @@ namespace renderer {
     void unsyncVAO();  // Unsync in preperation for modification
 
   protected:
-    data_str::Vector<math::Float3> vertices_;
-    data_str::Vector<math::Float3> normals_;
-    data_str::Vector<math::Float3> colors_;
-    data_str::Vector<uint32_t> indices_;
+    jtil::data_str::Vector<jtil::math::Float3> vertices_;
+    jtil::data_str::Vector<jtil::math::Float3> normals_;
+    jtil::data_str::Vector<jtil::math::Float3> colors_;
+    jtil::data_str::Vector<uint32_t> indices_;
     GLuint vao_;  // Containing 1 VBOs which itself has vertex, normal and col
     GLuint vbo_;  // Vertex buffer
     GLuint ibo_;  // index buffer (optional)
@@ -119,16 +121,16 @@ namespace renderer {
     uint32_t synced_num_vertices_;
     uint32_t synced_num_indices_;
 
-    static const math::Float3 cube_vertices_[8];
-    static const math::Float3 pyramid_vertices_[5];
-    static const math::Float3 rainbow_colors_[9];
+    static const jtil::math::Float3 cube_vertices_[8];
+    static const jtil::math::Float3 pyramid_vertices_[5];
+    static const jtil::math::Float3 rainbow_colors_[9];
     
     static void addTriangle(GeometryColoredMesh* mesh, 
-      const math::Float3& color, int i0, int i1, int i2, 
-      const math::Float3* vert);
+      const jtil::math::Float3& color, int i0, int i1, int i2, 
+      const jtil::math::Float3* vert);
     static void makeSphere(GeometryColoredMesh* ret, uint32_t n_stacks,
-      uint32_t n_slices, float inside_radius, const math::Float3& center, 
-      const math::Float3& color);
+      uint32_t n_slices, float inside_radius, const jtil::math::Float3& center, 
+      const jtil::math::Float3& color);
     
     // Bind the buffers with OpenGL
     void bindVAO();  // For rendering
@@ -144,7 +146,7 @@ namespace renderer {
       const aiMesh* mesh);
 
     // Convert the node and it's geometry into a data array for saving to file
-    virtual data_str::Pair<uint8_t*,uint32_t> saveToArray();
+    virtual jtil::data_str::Pair<uint8_t*,uint32_t> saveToArray();
 
     // Non-copyable, non-assignable.
     GeometryColoredMesh(GeometryColoredMesh&);

@@ -4,14 +4,14 @@
 #include "renderer/geometry/geometry_manager.h"
 #include "renderer/objects/aabbox.h"
 #include "renderer/texture/texture.h"
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 #include "renderer/colors.h"
 #include "assimp/Importer.hpp"      // C++ importer interface
 #include "assimp/scene.h"           // Output data structure
 #include "assimp/postprocess.h"     // Post processing flags
-#include "fastlz/fastlz.h"
-#include "string_util/string_util.h"
-#include "data_str/pair.h"
+#include "jtil/fastlz/fastlz.h"
+#include "jtil/string_util/string_util.h"
+#include "jtil/data_str/pair.h"
 #include "renderer/gl_state.h"
 
 #ifdef max
@@ -19,12 +19,12 @@
 #endif
 #define max std::max
 
-using math::Float3;
-using math::Float2;
-using math::FloatQuat;
-using math::Float4x4;
+using jtil::math::Float3;
+using jtil::math::Float2;
+using jtil::math::FloatQuat;
+using jtil::math::Float4x4;
 using renderer::objects::AABBox;
-using data_str::Pair;
+using jtil::data_str::Pair;
 using std::wstring;
 using std::wruntime_error;
 using std::string;
@@ -350,7 +350,7 @@ namespace renderer {
     return geom;
   }
 
-  data_str::Pair<uint8_t*,uint32_t> GeometryTexturedBonedMesh::saveToArray() {
+  Pair<uint8_t*,uint32_t> GeometryTexturedBonedMesh::saveToArray() {
     Pair<uint8_t*,uint32_t> data;
     data.first = NULL;
     data.second = 0;

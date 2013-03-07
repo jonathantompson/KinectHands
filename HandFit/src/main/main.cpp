@@ -29,19 +29,20 @@
 #include "renderer/geometry/geometry_colored_points.h"
 #include "windowing/window.h"
 #include "windowing/window_settings.h"
-#include "math/math_types.h"
-#include "data_str/vector.h"
-#include "clock/clock.h"
-#include "string_util/string_util.h"
-#include "hand_model/hand_model.h"
-#include "hand_model/hand_model_geometry.h"
-#include "hand_model/hand_model_renderer.h"
-#include "hand_model/hand_model_fit.h"
-#include "hand_net/hand_net.h"
-#include "depth_images_io.h"
-#include "open_ni_funcs.h"
+#include "jtil/math/math_types.h"
+#include "jtil/data_str/vector.h"
+#include "jtil/clk/clk.h"
+#include "jtil/string_util/string_util.h"
+#include "kinect_interface/hand_net/hand_model.h"
+#include "hand_fit/hand_geometry.h"
+#include "hand_fit/hand_renderer.h"
+#include "hand_fit/hand_fit.h"
+#include "kinect_interface/hand_net/hand_net.h"
+#include "kinect_interface/depth_images_io.h"
+#include "kinect_interface/open_ni_funcs.h"
 #include "renderer/gl_state.h"
-#include "hand_detector.h"
+#include "kinect_interface/hand_detector/hand_detector.h"
+#include "kinect_interface/hand_detector/decision_tree_structs.h"
 
 #if defined(WIN32) || defined(_WIN32)
   #define snprintf _snprintf_s
@@ -60,24 +61,26 @@
   #define KINECT_HANDS_ROOT string("./../")
 #endif
 
+#ifndef HAND_FIT
+  #error "HAND_FIT is not defined in the preprocessor definitions!"
+#endif
+
 #define IM_DIR (KINECT_HANDS_ROOT + IM_DIR_BASE)
 const bool fit_left = false;
 const bool fit_right = true; 
 const uint32_t num_hands = (fit_left ? 1 : 0) + (fit_right ? 1 : 0);
 
 using namespace std;
-using math::Float3;
-using math::Int3;
-using math::Float4;
-using math::FloatQuat;
-using math::Float4x4;
-using data_str::Vector;
-using hand_model::HandModel;
-using hand_model::HandModelFit;
-using hand_model::HandModelRenderer;
-using hand_model::HandModelGeometry;
-using hand_model::HandCoeff;
-using hand_net::HandNet;
+using jtil::math::Float3;
+using jtil::math::Int3;
+using jtil::math::Float4;
+using jtil::math::FloatQuat;
+using jtil::math::Float4x4;
+using jtil::data_str::Vector;
+
+using hand_model::HandFit;
+using hand_model::HandRenderer;
+using hand_model::HandGeometry;
 using renderer::Renderer;
 using renderer::Geometry;
 using renderer::GeometryManager;
@@ -85,13 +88,18 @@ using renderer::GeometryColoredMesh;
 using renderer::GeometryColoredPoints;
 using windowing::Window;
 using windowing::WindowSettings;
-using depth_images_io::DepthImagesIO;
 using renderer::GLState;
 using renderer::Texture;
 using renderer::TEXTURE_WRAP_MODE;
-using hand_net::HandCoeffConvnet;
 
-Clock* clk = NULL;
+using kinect_interface::DepthImagesIO;
+using kinect_interface::hand_detector::HandDetector;
+using kinect_interface::hand_net::HandCoeffConvnet;
+using kinect_interface::hand_net::HandCoeff;
+using kinect_interface::hand_net::HandModel;
+using kinect_interface::hand_net::HandNet;
+
+jtil::clk::Clk* clk = NULL;
 double t1, t0;
 
 // The main window and basic rendering system
@@ -119,8 +127,8 @@ bool running = false;
 HandModel** l_hands = NULL;  // Not using this yet
 HandModel** r_hands = NULL;
 uint32_t cur_coeff = 0;
-HandModelRenderer* hand_renderer = NULL;
-HandModelFit* hand_fit = NULL;
+HandRenderer* hand_renderer = NULL;
+HandFit* hand_fit = NULL;
 bool continuous_fit = false;  // fit frames continuously each frame
 bool continuous_play = false;  // Play back recorded frames
 int hand_to_modify = fit_left ? 0 : 1;
@@ -130,7 +138,7 @@ uint32_t coeff_src = 0;
 
 // Kinect Image data 
 DepthImagesIO* image_io = NULL;
-data_str::VectorManaged<char*> im_files;
+jtil::data_str::VectorManaged<char*> im_files;
 float cur_xyz_data[src_dim*3];
 int16_t cur_depth_data[src_dim*3];
 uint8_t cur_label_data[src_dim];
@@ -145,7 +153,6 @@ int playback_step = 1;
 // Convolutional Neural Network
 HandNet* convnet = NULL;
 uint8_t label[src_dim];
-float coeff_convnet[HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
 float coeff_convnet_pso[HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
 
 // Decision Forests
@@ -197,8 +204,8 @@ void InitXYZPointsForRendering() {
   } else {
     geometry_points->unsyncVAO();
   }
-  data_str::Vector<math::Float3>* vert = geometry_points->vertices();
-  data_str::Vector<math::Float3>* cols = geometry_points->colors();
+  jtil::data_str::Vector<jtil::math::Float3>* vert = geometry_points->vertices();
+  jtil::data_str::Vector<jtil::math::Float3>* cols = geometry_points->colors();
 
   if (vert->capacity() < src_dim) {
     vert->capacity(src_dim);
@@ -293,7 +300,7 @@ void MousePosCB(int x, int y) {
       coeff_val = r_hands[cur_image]->getCoeff(cur_coeff);
       r_hands[cur_image]->setCoeff(cur_coeff, coeff_val - theta_y);
     }
-    cout << "cur_coeff " << hand_model::HandCoeffToString(cur_coeff);
+    cout << "cur_coeff " << kinect_interface::hand_net::HandCoeffToString(cur_coeff);
     cout << " --> " << coeff_val - theta_y << endl;
   }
 }
@@ -434,7 +441,7 @@ void KeyboardCB(int key, int action) {
     case static_cast<int>(']'):
       if (action == RELEASED) {
         cur_coeff = (cur_coeff + 1) % HandCoeff::NUM_PARAMETERS;
-        cout << "cur_coeff = " << hand_model::HandCoeffToString(cur_coeff); 
+        cout << "cur_coeff = " << kinect_interface::hand_net::HandCoeffToString(cur_coeff); 
         if (hand_to_modify == 0) {
           cout << " = " << l_hands[cur_image]->getCoeff(cur_coeff);
         } else {
@@ -447,7 +454,7 @@ void KeyboardCB(int key, int action) {
     case static_cast<int>('['):
       if (action == RELEASED) {
         cur_coeff = cur_coeff != 0 ? (cur_coeff - 1) : HandCoeff::NUM_PARAMETERS - 1;
-        cout << "cur_coeff = " << hand_model::HandCoeffToString(cur_coeff); 
+        cout << "cur_coeff = " << kinect_interface::hand_net::HandCoeffToString(cur_coeff); 
         if (hand_to_modify == 0) {
           cout << " = " << l_hands[cur_image]->getCoeff(cur_coeff);
         } else {
@@ -566,17 +573,17 @@ void KeyboardCB(int key, int action) {
 
 using std::cout;
 using std::endl;
-math::Float4x4 mat_tmp;
+jtil::math::Float4x4 mat_tmp;
 WindowSettings settings;
 
 void fitFrame(bool seed_with_last_frame) {
   if (seed_with_last_frame && cur_image > 0) {
     cout << "Using the previous frame as the optimization seed." << endl;
     if (fit_right) {
-      r_hands[cur_image]->coeff() = r_hands[cur_image - 1]->coeff();
+      r_hands[cur_image]->copyCoeffFrom(r_hands[cur_image - 1]);
     }
     if (fit_left) {
-      l_hands[cur_image]->coeff() = l_hands[cur_image - 1]->coeff();
+      l_hands[cur_image]->copyCoeffFrom(l_hands[cur_image - 1]);
     }
   }
   HandModel* hands[2];
@@ -595,7 +602,7 @@ void fitFrame(bool seed_with_last_frame) {
 
 
 // renderCrossToImageArr - UV is 0 to 1 in U and V
-void renderCrossToImageArr(float* uv, uint8_t* im, int32_t w, int32_t h,
+void renderCrossToImageArr(const float* uv, uint8_t* im, int32_t w, int32_t h,
   int32_t rad, uint8_t r, uint8_t g, uint8_t b) {
   int32_t v = (int32_t)floor((uv[1] * HAND_NET_PIX) + (convnet->uvd_com()[1] - HAND_NET_PIX/2));
   int32_t u = (int32_t)floor((uv[0] * HAND_NET_PIX) + (convnet->uvd_com()[0] - HAND_NET_PIX/2));
@@ -628,10 +635,10 @@ void renderFrame(float dt) {
   if (rotate_light) {
     renderer::LightDir* light = render->light_dir();
     Float3* dir = light->direction_world();
-    mat_tmp.rotateMatYAxis(dt);
+    Float4x4::rotateMatYAxis(mat_tmp, dt);
     Float3 new_dir;
-    Float3::affineTransformVec(&new_dir, &mat_tmp, dir);
-    dir->set(&new_dir);
+    Float3::affineTransformVec(new_dir, mat_tmp, *dir);
+    dir->set(new_dir);
   }
 
   // Update the global HandScale with the current model version
@@ -641,27 +648,28 @@ void renderFrame(float dt) {
   HandModel::scale = r_hands[cur_image]->local_scale();
 
   // Move the camera
-  delta_pos.set(&cur_dir);
-  if (!delta_pos.equal(0,0,0)) {
+  delta_pos.set(cur_dir);
+  const Float3 zeros(0, 0, 0);
+  if (!Float3::equal(delta_pos, zeros)) {
     delta_pos.normalize();
-    delta_pos.scale(camera_speed * dt);
+    Float3::scale(delta_pos, camera_speed * dt);
     if (running) {
-      delta_pos.scale(camera_run_mulitiplier);
+      Float3::scale(delta_pos, camera_run_mulitiplier);
     }
     render->camera()->moveCamera(&delta_pos);
   }
 
   hand_detector->findHandLabels(cur_depth_data, cur_xyz_data,
-    HDLabelMethod::HDFloodfill, label);
+    kinect_interface::hand_detector::HDLabelMethod::HDFloodfill, label);
 
   // Calculate the convnet coeffs if we want them
-  float* coeff_covnet_src = NULL;
+  const float* coeff_covnet_src = NULL;
   if (render_output == 6) {
-    convnet->calcCoeffConvnet(r_hands[cur_image], hand_renderer,
-      coeff_convnet_pso);
+    convnet->calcHandCoeffConvnet(cur_depth_data, label);
+    hand_renderer->handCoeff2CoeffConvnet(r_hands[cur_image], 
+      coeff_convnet_pso, convnet->uvd_com());
     if (coeff_src == 1) {
-      convnet->calcHandCoeffConvnet(cur_depth_data, label, coeff_convnet);
-      coeff_covnet_src = coeff_convnet;
+      coeff_covnet_src = convnet->coeff_convnet();
     } else {
       coeff_covnet_src = coeff_convnet_pso;
     }
@@ -669,24 +677,26 @@ void renderFrame(float dt) {
 
   if (fit_right) {
     hand_renderer->updateMatrices(
-      (coeff_src == 0) ? r_hands[cur_image]->coeff() : coeffs,
+      (coeff_src == 0) ? r_hands[cur_image]->coeff() : coeffs.data(),
       r_hands[cur_image]->hand_type());
   }
   if (fit_left) {
     hand_renderer->updateMatrices(
-      (coeff_src == 0) ? l_hands[cur_image]->coeff() : coeffs,
+      (coeff_src == 0) ? l_hands[cur_image]->coeff() : coeffs.data(),
       l_hands[cur_image]->hand_type());
   }
 
   // Now render the final frame
+  Float4x4 identity;
+  identity.identity();
   int16_t max, min;
-  uint8_t* hdlabels;
+  const uint8_t* hdlabels;
   uint32_t w;
   switch (render_output) {
   case 1:
     render->renderFrame(dt);
     if (render_depth) {
-      render->renderColoredPointCloud(geometry_points, &math::identity,
+      render->renderColoredPointCloud(geometry_points, &identity,
         3.0f * static_cast<float>(settings.width) / 4.0f);
         // 4.0f * static_cast<float>(settings.width) / 4.0f);
     }
@@ -694,16 +704,22 @@ void renderFrame(float dt) {
   case 2:
     HandModel* hands[2];
     if (fit_left && !fit_right) {
-      coeffs = l_hands[cur_image]->coeff();
+      memcpy(coeffs.data(), l_hands[cur_image]->coeff(), 
+        HAND_NUM_COEFF * sizeof(coeffs.data()[0]));
       hands[0] = l_hands[cur_image];
       hands[1] = NULL;
     } else if (!fit_left && fit_right) {
-      coeffs = r_hands[cur_image]->coeff();
+      memcpy(coeffs.data(), r_hands[cur_image]->coeff(), 
+        HAND_NUM_COEFF * sizeof(coeffs.data()[0]));
       hands[0] = r_hands[cur_image];
       hands[1] = NULL;
     } else {
-      coeffs.block<1, HAND_NUM_COEFF>(0, 0) = l_hands[cur_image]->coeff();
-      coeffs.block<1, HAND_NUM_COEFF>(0, HAND_NUM_COEFF) = r_hands[cur_image]->coeff();
+      memcpy(coeffs.block<1, HAND_NUM_COEFF>(0, 0).data(), 
+        l_hands[cur_image]->coeff(), 
+        HAND_NUM_COEFF * sizeof(coeffs.data()[0]));
+      memcpy(coeffs.block<1, HAND_NUM_COEFF>(0, HAND_NUM_COEFF).data(), 
+        r_hands[cur_image]->coeff(), 
+        HAND_NUM_COEFF * sizeof(coeffs.data()[0]));
       hands[0] = l_hands[cur_image];
       hands[1] = r_hands[cur_image];
     }
@@ -839,7 +855,7 @@ int main(int argc, char *argv[]) {
   cout << "c - Change coeff source (PSO/Convnet)" << endl;
   
   try {
-    clk = new Clock();
+    clk = new jtil::clk::Clk();
     t1 = clk->getTime();
     
     // Initialize Windowing system
@@ -867,15 +883,16 @@ int main(int argc, char *argv[]) {
     convnet->loadFromFile(CONVNET_FILE);
 
     // Load the decision forest
-    hand_detector = new HandDetector(src_width, src_height, KINECT_HANDS_ROOT +
+    hand_detector = new HandDetector();
+    hand_detector->init(src_width, src_height, KINECT_HANDS_ROOT +
       FOREST_DATA_FILENAME);
     tex = new Texture(GL_RGB8, src_width, src_height, GL_RGB, 
       GL_UNSIGNED_BYTE, (unsigned char*)label, 
       TEXTURE_WRAP_MODE::TEXTURE_CLAMP, false);
     
     // Create an instance of the renderer
-    math::FloatQuat eye_rot; eye_rot.identity();
-    math::Float3 eye_pos(0, 0, 0);
+    FloatQuat eye_rot; eye_rot.identity();
+    Float3 eye_pos(0, 0, 0);
     render = new Renderer();
     render->init(eye_rot, eye_pos, settings.width, settings.height,
                  -HAND_CAMERA_VIEW_PLANE_NEAR, -HAND_CAMERA_VIEW_PLANE_FAR, 
@@ -894,17 +911,17 @@ int main(int argc, char *argv[]) {
     wnd->registerCharacterInputCB(NULL);
     
     // Create the hand data and attach it to the renderer for lighting
-    hand_renderer = new HandModelRenderer(render, fit_left, fit_right);
+    hand_renderer = new HandRenderer(render, fit_left, fit_right);
     coeffs.resize(1, HAND_NUM_COEFF * num_hands);
-    hand_fit = new HandModelFit(hand_renderer, num_hands);
+    hand_fit = new HandFit(hand_renderer, num_hands);
     r_hands = new HandModel*[im_files.size()];
     for (uint32_t i = 0; i < im_files.size(); i++) {
-      r_hands[i] = new HandModel(hand_model::HandType::RIGHT);
+      r_hands[i] = new HandModel(kinect_interface::hand_net::HandType::RIGHT);
       r_hands[i]->loadFromFile(IM_DIR, string("coeffr_") + im_files[i]);
     }
     l_hands = new HandModel*[im_files.size()];
     for (uint32_t i = 0; i < im_files.size(); i++) {
-      l_hands[i] = new HandModel(hand_model::HandType::LEFT);
+      l_hands[i] = new HandModel(kinect_interface::hand_net::HandType::LEFT);
       l_hands[i]->loadFromFile(IM_DIR, string("coeffl_") + im_files[i]);
     }
     hand_renderer->setRendererAttachement(render_hand);
@@ -924,8 +941,8 @@ int main(int argc, char *argv[]) {
           cout << im_files.size() << endl;
           cur_image++;
           // Transfer over the current global scale
-          r_hands[cur_image]->local_scale(HandModel::scale);
-          l_hands[cur_image]->local_scale(HandModel::scale);
+          r_hands[cur_image]->local_scale() = HandModel::scale;
+          l_hands[cur_image]->local_scale() = HandModel::scale;
           loadCurrentImage();
           fitFrame(true);
           saveCurrentHandCoeffs();

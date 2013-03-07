@@ -1,5 +1,6 @@
 #include "math/optimization_test_functions.h"
 
+namespace jtil {
 namespace math {
 
   void initOptimizationTestFunctions() {
@@ -149,3 +150,4 @@ namespace math {
     jacob(3) = 100.0f*coeff(3) + 1.0f;
   }
 }  // namespace math
+}  // namespace jtil

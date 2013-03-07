@@ -38,6 +38,11 @@ depth_frac2 = imresize(depth, scale, 'box');
 figure;
 imshow((depth_frac2 - dmin) / (dmax - dmin), 'InitialMagnification', mag  / scale);
 
+filename = 'kinect_depth_image_uncompressed_down_float2.bin';
+depth_frac2 = single(loadImageFile(filename, w, h, 1, 'single'));
+figure;
+imshow((depth_frac2 - dmin) / (dmax - dmin), 'InitialMagnification', mag / scale);
+
 % figure;
 % delta = abs(depth_frac - depth_frac2);
 % deltamin = min(min(delta));

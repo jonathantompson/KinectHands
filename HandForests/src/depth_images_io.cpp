@@ -19,7 +19,7 @@
 #include "math/math_types.h"
 #include "depth_images_io.h"
 #include "generate_decision_tree.h"
-#include "image_util.h"
+#include "jtil/image_util/image_util.h"
 #include "string_util/string_util.h"
 #include "data_str/vector_managed.h"
 #include "fastlz/fastlz.h"
