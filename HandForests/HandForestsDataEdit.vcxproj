@@ -59,7 +59,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)../kinect_interface/include;$(ProjectDir)../../PRenderer2/jtil/include;$(ProjectDir)glut-3.7.6-bin;$(ProjectDir)src;../src;../HandFit/src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)../kinect_interface/include;$(ProjectDir)../../PRenderer2/jtil/include;$(ProjectDir)glut-3.7.6-bin;$(ProjectDir)src</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -81,7 +81,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)../kinect_interface/include;$(ProjectDir)../../PRenderer2/jtil/include;$(ProjectDir)glut-3.7.6-bin;$(ProjectDir)src;../src;../HandFit/src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)../kinect_interface/include;$(ProjectDir)../../PRenderer2/jtil/include;$(ProjectDir)glut-3.7.6-bin;$(ProjectDir)src</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
