@@ -136,7 +136,7 @@ float cur_xyz_data[src_dim*3];
 int16_t cur_depth_data[src_dim*3];
 uint8_t cur_label_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
-uint32_t cur_image = 900;
+uint32_t cur_image = 1116;
 GeometryColoredPoints* geometry_points= NULL;
 float temp_xyz[3 * src_dim];
 float temp_rgb[3 * src_dim];
@@ -390,6 +390,7 @@ void KeyboardCB(int key, int action) {
     case static_cast<int>('4'):
     case static_cast<int>('5'):
     case static_cast<int>('6'):
+    case static_cast<int>('7'):
       if (action == RELEASED) {
         render_output = key - static_cast<int>('1') + 1;
       }
@@ -597,8 +598,11 @@ void fitFrame(bool seed_with_last_frame) {
 // renderCrossToImageArr - UV is 0 to 1 in U and V
 void renderCrossToImageArr(const float* uv, uint8_t* im, int32_t w, int32_t h,
   int32_t rad, uint8_t r, uint8_t g, uint8_t b) {
-  int32_t v = (int32_t)floor((uv[1] * HAND_NET_PIX) + (convnet->uvd_com()[1] - HAND_NET_PIX/2));
-  int32_t u = (int32_t)floor((uv[0] * HAND_NET_PIX) + (convnet->uvd_com()[0] - HAND_NET_PIX/2));
+    // TO: FIX THIS
+  int32_t v = 0;
+  int32_t u = 0;
+  //int32_t v = (int32_t)floor((uv[1] * HAND_NET_PIX) + (convnet->uvd_com()[1] - HAND_NET_PIX/2));
+  //int32_t u = (int32_t)floor((uv[0] * HAND_NET_PIX) + (convnet->uvd_com()[0] - HAND_NET_PIX/2));
   v = h - v - 1;
 
   // Note: We need to render upside down
@@ -657,7 +661,7 @@ void renderFrame(float dt) {
 
   // Calculate the convnet coeffs if we want them
   const float* coeff_covnet_src = NULL;
-  if (render_output == 6) {
+  if (render_output == 7) {
     convnet->calcHandCoeffConvnet(cur_depth_data, label);
     hand_renderer->handCoeff2CoeffConvnet(r_hands[cur_image], 
       coeff_convnet_pso, convnet->uvd_com());
@@ -721,8 +725,13 @@ void renderFrame(float dt) {
     hand_renderer->visualizeDepthMap(wnd);
     break;
   case 3:
+  case 4:
+    if (render_output == 3) {
+      hdlabels = hand_detector->getLabelImUnfiltered();
+    } else {
+      hdlabels = hand_detector->getLabelIm();
+    }
     w = hand_detector->down_width();
-    hdlabels = hand_detector->getLabelIm();
     for (uint32_t v = 0; v < src_height; v++) {
       for (uint32_t u = 0; u < src_width; u++) {
         uint8_t val = 
@@ -737,7 +746,7 @@ void renderFrame(float dt) {
     tex->reloadData((unsigned char*)tex_data);
     render->renderFullscreenQuad(tex);
     break;
-  case 4:
+  case 5:
     for (uint32_t v = 0; v < src_height; v++) {
       for (uint32_t u = 0; u < src_width; u++) {
         uint8_t val = label[v*src_width + u] * 255;
@@ -751,7 +760,7 @@ void renderFrame(float dt) {
     tex->reloadData((unsigned char*)tex_data);
     render->renderFullscreenQuad(tex);
     break;
-  case 5:
+  case 6:
     max = 1600;
     min = 600;
     //for (uint32_t i = 0; i < src_dim; i++) {
@@ -785,7 +794,7 @@ void renderFrame(float dt) {
     tex->reloadData((unsigned char*)tex_data);
     render->renderFullscreenQuad(tex);
     break;
-    case 6:
+    case 7:
       for (uint32_t v = 0; v < src_height; v++) {
         for (uint32_t u = 0; u < src_width; u++) {
           uint8_t val = (uint8_t)((cur_depth_data[v * src_width + u]) * 255.0f);

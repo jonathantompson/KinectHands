@@ -21,6 +21,7 @@
       </ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="src\kinect_interface\hand_net\conv_stage.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_net\hand_image_generator.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\hand_model.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\hand_net.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\nn_stage.cpp" />
@@ -41,6 +42,7 @@
       </ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="include\kinect_interface\hand_net\conv_stage.h" />
+    <ClInclude Include="include\kinect_interface\hand_net\hand_image_generator.h" />
     <ClInclude Include="include\kinect_interface\hand_net\hand_model.h" />
     <ClInclude Include="include\kinect_interface\hand_net\hand_net.h" />
     <ClInclude Include="include\kinect_interface\hand_net\nn_stage.h" />

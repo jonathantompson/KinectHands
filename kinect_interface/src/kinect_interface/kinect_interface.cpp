@@ -136,10 +136,30 @@ namespace kinect_interface {
     DepthImagesIO::convertSingleImageToXYZ(pts_world_from_file_,
       depth_from_file_);
 
-
-    // TEMP CODE:
-
-    // END TEMP CODE
+    //// TEMP CODE:
+    //float frac = 6.4f;
+    //float* d = new float[src_dim];
+    //float* d_down = new float[src_dim];
+    //float* d_up = new float[4096 * 3072];
+    //float* d_temp = new float[src_dim/4];
+    //for (uint32_t i = 0; i < src_dim; i++) { d[i] = (float)depth_from_file_[i]; }
+    //jtil::image_util::FracDownsampleImageBilinear<float>(d_down, d, src_width,
+    //  src_height, frac, d_temp);
+    //jtil::file_io::SaveArrayToFile<float>(d_down, 100*75, 
+    //  "./HandNets/kinect_depth_image_uncompressed_down_float.bin");
+    //jtil::image_util::FracUpsampleImageBilinear<float>(d_up, d, src_width,
+    //  src_height, frac);
+    //jtil::file_io::SaveArrayToFile<float>(d_up, 4096 * 3072, 
+    //  "./HandNets/kinect_depth_image_uncompressed_up_float.bin");
+    //jtil::image_util::FracDownsampleImageSAT<float>(d_down, 0, 0, 100, 75, 100,
+    //  d, 0, 0, src_width, src_height, src_width);  // Destroys d
+    //jtil::file_io::SaveArrayToFile<float>(d_down, 100*75, 
+    //  "./HandNets/kinect_depth_image_uncompressed_down_float2.bin");
+    //delete[] d;
+    //delete[] d_down;
+    //delete[] d_up;
+    //delete[] d_temp;
+    //// END TEMP CODE
 
     XnStatus nRetVal = XN_STATUS_OK;
     xn::EnumerationErrors errors;

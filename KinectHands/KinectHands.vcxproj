@@ -18,6 +18,7 @@
     <ClInclude Include="headers\app\app.h" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="..\TO_DO.txt" />
     <Text Include="README.txt" />
   </ItemGroup>
   <ItemGroup>

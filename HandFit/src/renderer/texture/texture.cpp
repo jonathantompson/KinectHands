@@ -13,10 +13,10 @@ using std::wruntime_error;
 namespace renderer {
 
   // Load a texture from disk
-  Texture::Texture(const std::string& filename, 
-    const TEXTURE_WRAP_MODE wrap, bool origin_ul) {
+  Texture::Texture(const std::string& filename, const TEXTURE_WRAP_MODE wrap, 
+    bool origin_ul, const TEXTURE_FILTER_MODE filter) {
     unsigned int nbits;
-
+    filter_ = filter;
     wrap_ = wrap;
     filename_ = filename;
     managed_ = false;
@@ -113,9 +113,9 @@ namespace renderer {
   // managed = true, transfer ownership of the bits memory
   Texture::Texture(const int format_internal, const int w, const int h, 
     const int format, const int type, const unsigned char *bits, 
-    const TEXTURE_WRAP_MODE wrap, 
-    bool managed) {
-
+    const TEXTURE_WRAP_MODE wrap, bool managed, 
+    const TEXTURE_FILTER_MODE filter) {
+    filter_ = filter;
     wrap_ = wrap;
     filename_ = std::string("");
     managed_ = managed;
@@ -178,9 +178,17 @@ namespace renderer {
   }
 
   void Texture::setTextureProperties() {
-    // Assumes the current texture is already bound
-    GLState::glsTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-    GLState::glsTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+      // Assumes the current texture is already bound
+    switch (filter_) {
+    case TEXTURE_LINEAR:
+      GLState::glsTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      GLState::glsTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      break;
+    case TEXTURE_NEAREST:
+      GLState::glsTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      GLState::glsTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      break;
+    }
 
     switch (wrap_) {
     case TEXTURE_CLAMP:

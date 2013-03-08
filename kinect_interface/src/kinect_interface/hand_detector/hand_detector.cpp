@@ -61,6 +61,7 @@ namespace hand_detector {
     releaseForest(forest_, num_trees_);
     SAFE_DELETE_ARR(labels_evaluated_);
     SAFE_DELETE_ARR(labels_filtered_);
+    SAFE_DELETE_ARR(labels_temp_);
     SAFE_DELETE_ARR(depth_downsampled_);
     if (thread_cbs_) {
       for (uint32_t i = 0; i < HD_NUM_WORKER_THREADS; i++) {
@@ -85,6 +86,7 @@ namespace hand_detector {
 
     labels_evaluated_ = new uint8_t[down_width_ * down_height_];
     labels_filtered_ = new uint8_t[down_width_ * down_height_];
+    labels_temp_ = new uint8_t[down_width_ * down_height_];
     depth_downsampled_ = new int16_t[down_width_ * down_height_];
     pixel_queue_ = new uint32_t[src_width_ * src_height_];
     pixel_on_queue_ = new uint8_t[src_width_ * src_height_];
@@ -102,18 +104,17 @@ namespace hand_detector {
         max_height_ = forest_[i].tree_height;
       }
     }
-    num_trees_to_evaluate_ = max_height_ < num_trees_to_evaluate_ ? max_height_ 
-                             : num_trees_to_evaluate_;
+    max_height_to_evaluate_ = max_height_ < max_height_to_evaluate_ ? max_height_ 
+                             : max_height_to_evaluate_;
 
     tp_ = new ThreadPool(HD_NUM_WORKER_THREADS);
     thread_cbs_ = new Callback<void>*[HD_NUM_WORKER_THREADS];
 
     // Figure out the load balance accross worker threads.  This thread will act
     // as a worker thread as well.
-    const uint32_t nthr = HD_NUM_WORKER_THREADS;
     uint32_t n_pixels = down_width_*down_height_;
-    uint32_t n_pixels_per_thread = n_pixels / nthr;
-    for (uint32_t i = 0; i < (nthr - 1); i++) {
+    uint32_t n_pixels_per_thread = n_pixels / HD_NUM_WORKER_THREADS;
+    for (uint32_t i = 0; i < (HD_NUM_WORKER_THREADS - 1); i++) {
       uint32_t start = i * n_pixels_per_thread;
       uint32_t end = ((i + 1) * n_pixels_per_thread) - 1;
       thread_cbs_[i] = MakeCallableMany(&HandDetector::evaluateForestPixelRange, 
@@ -121,8 +122,9 @@ namespace hand_detector {
     }
     // The last thread may have more pixels then the other due to integer
     // round off, but this is OK.
-    thread_cbs_[nthr-1] = MakeCallableMany(&HandDetector::evaluateForestPixelRange, 
-        this, (nthr-1) * n_pixels_per_thread, n_pixels-1);
+    thread_cbs_[HD_NUM_WORKER_THREADS-1] = 
+      MakeCallableMany(&HandDetector::evaluateForestPixelRange, this, 
+      (HD_NUM_WORKER_THREADS - 1) * n_pixels_per_thread, n_pixels-1);
   }
 
   bool HandDetector::findHandLabels(const int16_t* depth_in, const float* xyz, 
@@ -240,17 +242,17 @@ namespace hand_detector {
     evaluateForest();
 
     // Filter the results
-    ShrinkFilter<uint8_t>(labels_filtered_, labels_evaluated_,
+    ShrinkFilter<uint8_t>(labels_temp_, labels_evaluated_,
       down_width_, down_height_, stage1_shrink_filter_radius_);
-    MedianLabelFilter<uint8_t, int16_t>(labels_evaluated_, labels_filtered_, 
+    MedianLabelFilter<uint8_t, int16_t>(labels_filtered_, labels_temp_, 
       depth_downsampled_, down_width_, down_height_, stage2_med_filter_radius_);
-    GrowFilter<uint8_t>(labels_filtered_, labels_evaluated_,
+    GrowFilter<uint8_t>(labels_temp_, labels_filtered_,
       down_width_, down_height_, stage3_grow_filter_radius_);
   
-    //// Now swap the buffers
-    //uint8_t* tmp = labels_filtered_;
-    //labels_filtered_ = labels_evaluated_;
-    //labels_evaluated_ = tmp;
+    // Now swap the buffers
+    uint8_t* tmp = labels_temp_;
+    labels_temp_ = labels_filtered_;
+    labels_filtered_ = tmp;
   }
 
   void HandDetector::evaluateForest() {

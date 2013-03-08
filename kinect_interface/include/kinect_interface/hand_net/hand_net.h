@@ -19,16 +19,7 @@
 #include "kinect_interface/depth_images_io.h"  // for src_dim
 #include "jtil/threading/callback.h"
 
-#define HAND_NET_PIX 192  // U, V size (before downsampling)
-#define HAND_NET_DOWN_FACT 2
-#define HAND_NET_IM_SIZE (HAND_NET_PIX / HAND_NET_DOWN_FACT)
-#define HAND_SIZE 300.0f
-#define HPF_SIGMA 1.5f  // in pixels
-#define HPF_KERNEL_SIZE 11  // Hopefully >= 2*(3*sigma) + 1 (MUST BE ODD!)
-#define NUM_CONV_BANKS 3
-#define HPF_GAIN 2.0f
 #define HN_NUM_WORKER_THREADS 8
-#define HAND_NET_NOM_DIST 1100  // Scaling is 1:4 at this distance
 
 #if defined(__APPLE__)
   #define CONVNET_FILE string("./../../../../../../../../../data/" \
@@ -88,6 +79,7 @@ namespace hand_net {
 
   class ConvStage;
   class NNStage;
+  class HandImageGenerator;
   
   class HandNet {
   public:
@@ -103,11 +95,6 @@ namespace hand_net {
     // Result is placed in coeff_convnet
     void calcHandCoeffConvnet(const int16_t* depth, const uint8_t* label);
 
-    void createLabelFromSyntheticDepth(const float* depth, uint8_t* label);
-
-    // calcHandImage - creates cropped image, then creates a bank of HPF imgs
-    void calcHandImage(const int16_t* depth_in, const uint8_t* label_in);
-
     // Some helper functions for debugging
     template <typename T>
     static void print3DTensorToStdCout(T* data, const int32_t n_feats,
@@ -122,18 +109,19 @@ namespace hand_net {
       const int32_t height, const int32_t width);
 
     // Getter methods
-    float* hpf_hand_images() { return hpf_hand_images_; }
+    const float* hpf_hand_images() const;
     const float* coeff_convnet() const { return coeff_convnet_; }
-    float* hand_image() { return hand_image_; }
-    int32_t size_images() { return size_images_; } 
-    inline const jtil::math::Float3& uvd_com() const { return uvd_com_; }
+    const float* hand_image() const;
+    const int32_t size_images() const;
+    const jtil::math::Float3& uvd_com() const;
 
   private:
+    HandImageGenerator* image_generator_;
+
     HandNetDataType data_type_;
 
-    // n_conv_stages_ = Number PER BANK!  
-    // Total = n_conv_stages_ * NUM_CONV_BANKS
-    int32_t n_conv_stages_; 
+    int32_t num_conv_banks_;
+    int32_t n_conv_stages_;  // n_conv_stages_ = Number PER BANK!  
     ConvStage** conv_stages_;
 
     int32_t n_nn_stages_;
@@ -150,19 +138,9 @@ namespace hand_net {
     // Multithreading
     jtil::threading::ThreadPool* tp_;
 
-    // Temporary data structures for image processing:
-    float* hand_image_;
-    int32_t size_images_;  // Default: Size of (96x96 + 48x48 + 24x24)
-    float* hpf_hand_images_;
-    float* hpf_hand_images_coeff_;  // integral of a ones image with guass filt
-    jtil::math::Float3 uvd_com_;  // UV COM of the hand image.
-    float gauss_filt_[HPF_KERNEL_SIZE];  // This is unnormalized!
-    float* im_temp1_;
-    float* im_temp2_;
-
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in);
     void calcHPFHandBanks();
-    void initHPFKernels();
+    void releaseData();  // Call destructor on all dynamic data
 
     // Non-copyable, non-assignable.
     HandNet(HandNet&);

@@ -236,10 +236,11 @@ namespace app {
   // Render's directly to the texture array data (not using OpenGL)
   void App::renderCrossToImageArr(float* uv, uint8_t* im, int32_t w, int32_t h,
     int32_t rad, uint8_t r, uint8_t g, uint8_t b) {
-      int32_t v = (int32_t)floor((uv[1] * HAND_NET_PIX) + 
-        (uvd_com_[1] - HAND_NET_PIX/2));
-      int32_t u = (int32_t)floor((uv[0] * HAND_NET_PIX) + 
-        (uvd_com_[0] - HAND_NET_PIX/2));
+      // TO DO (FIX SCALING)
+      //int32_t v = (int32_t)floor((uv[1] * HAND_NET_PIX) + 
+      //  (uvd_com_[1] - HAND_NET_PIX/2));
+      //int32_t u = (int32_t)floor((uv[0] * HAND_NET_PIX) + 
+      //  (uvd_com_[0] - HAND_NET_PIX/2));
       // v = h - v - 1;
 
       // Note: We need to render upside down

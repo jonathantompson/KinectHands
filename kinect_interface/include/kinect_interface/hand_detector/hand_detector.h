@@ -65,6 +65,7 @@ namespace hand_detector {
     // Getters
     int16_t* getDepthImDownsampled() { return depth_downsampled_; }
     const uint8_t* getLabelIm() const { return labels_filtered_; }
+    const uint8_t* getLabelImUnfiltered() const { return labels_evaluated_; }
     const uint32_t down_width() const { return down_width_; }
     const uint32_t down_height() const { return down_height_; }
     const uint32_t num_trees() const { return num_trees_; }
@@ -86,6 +87,7 @@ namespace hand_detector {
     int32_t max_height_;
     uint8_t* labels_evaluated_;
     uint8_t* labels_filtered_;
+    uint8_t* labels_temp_;
     const int16_t* depth_;  // Not owned here!
     int16_t* depth_downsampled_;
     int32_t down_width_;

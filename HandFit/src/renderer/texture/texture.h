@@ -18,15 +18,21 @@ namespace renderer {
     TEXTURE_REPEAT
   } TEXTURE_WRAP_MODE;
 
+  typedef enum {
+    TEXTURE_LINEAR,
+    TEXTURE_NEAREST
+  } TEXTURE_FILTER_MODE;
+
   class Texture {
   public:
     // Load texture from file:
     Texture(const std::string& filename, const TEXTURE_WRAP_MODE wrap, 
-      bool origin_ul = false);
+      bool origin_ul = false, const TEXTURE_FILTER_MODE filter = TEXTURE_LINEAR);
     // Create texture from internal data structure:
     Texture(const int format_internal, const int w, const int h, 
       const int format, const int type, const unsigned char *bits, 
-      const TEXTURE_WRAP_MODE wrap, bool managed);
+      const TEXTURE_WRAP_MODE wrap, bool managed, 
+      const TEXTURE_FILTER_MODE filter = TEXTURE_LINEAR);
     ~Texture();
 
     inline GLuint texture() { return texture_; }
@@ -52,6 +58,7 @@ namespace renderer {
     GLenum type_;
     unsigned char *bits_;
     TEXTURE_WRAP_MODE wrap_;
+    TEXTURE_FILTER_MODE filter_;
     bool managed_;
     bool from_file_;
     // void* img_;  // Used to be GLFWimage, now using FreeImage library

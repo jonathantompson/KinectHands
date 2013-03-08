@@ -1209,8 +1209,12 @@ namespace hand_fit {
     uv_pos[0] = (float)src_width * 0.5f * (-uv_pos[0] + 1);  // Window X: 0 --> W
     uv_pos[1] = (float)src_height * 0.5f * (uv_pos[1] + 1);  // Window Y: 0 --> H
     // Now take off the uv COM and scale back to 0 --> 1
-    uv_pos[0] = (uv_pos[0] - (uvd_com[0] - (HAND_NET_PIX/2))) / HAND_NET_PIX;
-    uv_pos[1] = (uv_pos[1] - (uvd_com[1] - (HAND_NET_PIX/2))) / HAND_NET_PIX;
+    //uv_pos[0] = (uv_pos[0] - (uvd_com[0] - (HAND_NET_PIX/2))) / HAND_NET_PIX;
+    //uv_pos[1] = (uv_pos[1] - (uvd_com[1] - (HAND_NET_PIX/2))) / HAND_NET_PIX;
+    // TO DO: FIX THIS
+    uv_pos[0] = 0;
+    uv_pos[1] = 0;
+    // TEMP CODE
   }
 
 }  // namespace hand_fit

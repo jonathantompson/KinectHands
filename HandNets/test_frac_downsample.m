@@ -43,6 +43,15 @@ depth_frac2 = single(loadImageFile(filename, w, h, 1, 'single'));
 figure;
 imshow((depth_frac2 - dmin) / (dmax - dmin), 'InitialMagnification', mag / scale);
 
+filename = 'kinect_depth_image_uncompressed_up_float.bin';
+depth_frac3 = single(loadImageFile(filename, 640/scale, 480/scale, 1, 'single'));
+figure;
+imshow((depth_frac3 - dmin) / (dmax - dmin), 'InitialMagnification', mag * scale);
+
+depth_frac4 = imresize(depth, 1/scale, 'bilinear');
+figure;
+imshow((depth_frac4 - dmin) / (dmax - dmin), 'InitialMagnification', mag * scale);
+
 % figure;
 % delta = abs(depth_frac - depth_frac2);
 % deltamin = min(min(delta));

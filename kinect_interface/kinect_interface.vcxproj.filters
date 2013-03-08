@@ -57,6 +57,9 @@
     <ClCompile Include="src\kinect_interface\hand_net\hand_model.cpp">
       <Filter>Source Files\kinect_interface\hand_net</Filter>
     </ClCompile>
+    <ClCompile Include="src\kinect_interface\hand_net\hand_image_generator.cpp">
+      <Filter>Source Files\kinect_interface\hand_net</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\kinect_interface\hand_detector\hand_detector.h">
@@ -96,6 +99,9 @@
       <Filter>Header Files\kinect_interface\hand_net</Filter>
     </ClInclude>
     <ClInclude Include="include\kinect_interface\hand_net\hand_model.h">
+      <Filter>Header Files\kinect_interface\hand_net</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kinect_interface\hand_net\hand_image_generator.h">
       <Filter>Header Files\kinect_interface\hand_net</Filter>
     </ClInclude>
   </ItemGroup>
