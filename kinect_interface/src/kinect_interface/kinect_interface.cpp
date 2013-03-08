@@ -136,6 +136,11 @@ namespace kinect_interface {
     DepthImagesIO::convertSingleImageToXYZ(pts_world_from_file_,
       depth_from_file_);
 
+
+    // TEMP CODE:
+
+    // END TEMP CODE
+
     XnStatus nRetVal = XN_STATUS_OK;
     xn::EnumerationErrors errors;
 
