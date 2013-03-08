@@ -23,8 +23,8 @@
 #define BACKGROUND_DEPTH_THRESH 20  // Maximum depth distance
 #define BACKGROUND_DEPTH_THRESH_GROW 15
 #define RED_MED_FILT_RAD 4
-#define RED_SHRINK_FILT_RAD 2  // OLD Value = 3
-#define RED_DISCONT_FILT_RAD 3 // OLD_VALUE = 3
+#define RED_SHRINK_FILT_RAD 1  // OLD Value = 3
+#define RED_DISCONT_FILT_RAD 1 // OLD_VALUE = 3
 #define RED_DISCONT_FILT_DEPTH_THRESH BACKGROUND_DEPTH_THRESH
 #define HAND_PTS_GROW_RAD 2000  // Divided by depth!
 #define HAND_PTS_GROW_RAD_ITERATIONS 6  // OLD value = 4
@@ -99,8 +99,7 @@ namespace kinect_interface {
     static int32_t red_hue_target;
     static int32_t red_sat_target;
     static int32_t red_val_target;
-    static float sink_source_beta;
-    // static uint32_t graph_cut_affiliation_radius;
+    static int32_t hsv_total_threshold;
     static int32_t red_red_min;
     static int32_t red_blue_max;
     static float adjacency_gamma;

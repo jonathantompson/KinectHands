@@ -78,7 +78,7 @@ using renderer::BoundingSphere;
 using renderer::GLState;
 using namespace kinect_interface::hand_net;
 
-namespace hand_model {
+namespace hand_fit {
   
   HandRenderer::HandRenderer(renderer::Renderer* g_renderer, 
     bool left, bool right) {
@@ -1125,22 +1125,22 @@ namespace hand_model {
     quat.normalize();  // just in case
     FloatQuat::quat2EulerAngles(euler[0], euler[1], euler[2], quat);
 
-#if defined(DEBUG) || defined(_DEBUG)
-    // At least make sure the inverse mapping and the conversion to matrix is
-    // correct
-    FloatQuat quat_tmp;
-    FloatQuat::eulerAngles2Quat(&quat_tmp, euler[0], euler[1], euler[2]);
-    if (!quat.approxEqual(&quat_tmp)) {
-      throw std::runtime_error("ERROR: Quat --> Euler is not correct!");
-    }
-    Float4x4 mat;
-    Float4x4 mat2;
-    quat.quat2Mat4x4(&mat);
-    Float4x4::euler2RotMat(&mat2, euler[0], euler[1], euler[2]);
-    if (!mat.approxEqual(&mat2)) {
-      throw std::runtime_error("ERROR: Quat --> Euler is not correct!");
-    }
-#endif
+//#if defined(DEBUG) || defined(_DEBUG)
+//    // At least make sure the inverse mapping and the conversion to matrix is
+//    // correct
+//    FloatQuat quat_tmp;
+//    FloatQuat::eulerAngles2Quat(quat_tmp, euler[0], euler[1], euler[2]);
+//    if (!FloatQuat::approxEqual(quat, quat_tmp)) {
+//      throw std::runtime_error("ERROR: Quat --> Euler is not correct!");
+//    }
+//    Float4x4 mat;
+//    Float4x4 mat2;
+//    FloatQuat::quat2Mat4x4(mat, quat);
+//    Float4x4::euler2RotMat(mat2, euler[0], euler[1], euler[2]);
+//    if (!Float4x4::approxEqual(mat, mat2)) {
+//      throw std::runtime_error("ERROR: Quat --> Euler is not correct!");
+//    }
+//#endif
 
     // All angle coefficients are stored as (cos(x), sin(x)) to avoid
     // the singularity
@@ -1213,4 +1213,4 @@ namespace hand_model {
     uv_pos[1] = (uv_pos[1] - (uvd_com[1] - (HAND_NET_PIX/2))) / HAND_NET_PIX;
   }
 
-}  // namespace hand_model
+}  // namespace hand_fit

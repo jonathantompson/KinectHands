@@ -24,7 +24,7 @@
 
 // #define LPRPSO_VERBOSE_SOLVER  // Print out per-iteration information
 
-namespace hand_model { class HandFit; }
+namespace hand_fit { class HandFit; }
 
 namespace jtil {
 namespace math {
@@ -35,7 +35,7 @@ namespace math {
     // Set population size (num_agents) to -1 to let the optimizer choose a
     // population size for you.
     LPRPSOFittingHands(uint32_t num_coeffs, int swarm_size_,
-      hand_model::HandFit* hand_model_fit);
+      hand_fit::HandFit* hand_model_fit);
     ~LPRPSOFittingHands();
 
     // fitModel = Top level function:
@@ -65,7 +65,7 @@ namespace math {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   private:
-    hand_model::HandFit* hand_model_fit_;  // Not owned here
+    hand_fit::HandFit* hand_model_fit_;  // Not owned here
     const bool* angle_coeffs_;
     uint32_t num_coeffs_;
     uint32_t swarm_size_;

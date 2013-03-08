@@ -40,7 +40,7 @@
 
 namespace renderer { class Geometry; }
 
-namespace hand_model {
+namespace hand_fit {
 
   typedef enum {
     F1_KNU3_A = 0,
@@ -99,6 +99,6 @@ namespace hand_model {
     HandGeometry(HandGeometry&);
     HandGeometry& operator=(const HandGeometry&);
   };
-};  // namespace hand_model
+};  // namespace hand_fit
 
 #endif  // HAND_MODEL_HAND_MODEL_RENDERER_GEOMETRY_HEADER

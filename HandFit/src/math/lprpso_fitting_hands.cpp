@@ -10,7 +10,7 @@ using Eigen::MatrixXf;
 using std::cout;
 using std::endl;
 using std::runtime_error;
-using hand_model::HandFit;
+using hand_fit::HandFit;
 using kinect_interface::hand_net::HandModel;
 
 namespace jtil {

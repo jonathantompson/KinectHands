@@ -22,7 +22,7 @@ namespace renderer { struct Bone; }
 namespace renderer { class Renderer; }
 namespace renderer { class BoundingSphere; }
 
-namespace hand_model {
+namespace hand_fit {
   class HandRenderer;
 
   class HandGeometryMesh : public HandGeometry {
@@ -85,6 +85,6 @@ namespace hand_model {
     HandGeometryMesh(HandGeometryMesh&);
     HandGeometryMesh& operator=(const HandGeometryMesh&);
   };
-};  // namespace hand_model
+};  // namespace hand_fit
 
 #endif  // HAND_MODEL_HAND_MODEL_GEOMETRY_HESH_HEADER

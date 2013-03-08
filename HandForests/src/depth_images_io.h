@@ -7,10 +7,12 @@
 #ifndef UNNAMED_LOAD_DEPTH_IMAGE_HEADER
 #define UNNAMED_LOAD_DEPTH_IMAGE_HEADER
 
+#error "this depth_images_io.h is no longer the latest version"
+
 #include <string>
 #include <iostream>
 #include <fstream>
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 #include "image_data.h"
 #include "data_str/vector_managed.h"
 #include "maxflow-v3.02/graph.h"

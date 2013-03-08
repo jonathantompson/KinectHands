@@ -59,7 +59,7 @@ namespace renderer { class BoundingSphere; }
 namespace renderer { class GeometryColoredBonedMesh; }
 namespace windowing { class Window; }
 
-namespace hand_model {
+namespace hand_fit {
 
   class HandGeometry;
 

@@ -22,19 +22,19 @@
 #include "renderer/texture/texture_renderable.h"
 #include "windowing/window.h"
 #include "windowing/window_settings.h"
-#include "math/math_types.h"
-#include "data_str/vector.h"
-#include "clock/clock.h"
-#include "string_util/string_util.h"
-#include "hand_model/hand_model.h"
-#include "hand_model/hand_model_fit.h"
-#include "hand_model/hand_model_renderer.h"
-#include "hand_model/hand_model_geometry.h"
-#include "hand_model/bounding_sphere.h"
-#include "hand_model/hand_model_geometry_mesh.h"
-#include "mesh_simplification/mesh_simplification.h"
-#include "math/noise.h"
+#include "jtil/math/math_types.h"
+#include "jtil/data_str/vector.h"
+#include "jtil/string_util/string_util.h"
+#include "kinect_interface/hand_net/hand_model.h"
+#include "hand_fit/hand_fit.h"
+#include "hand_fit/hand_renderer.h"
+#include "hand_fit/hand_geometry.h"
+#include "hand_fit/bounding_sphere.h"
+#include "hand_fit/hand_geometry_mesh.h"
+#include "jtil/math/noise.h"
+#include "jtil/clk/clk.h"
 #include "renderer/gl_state.h"
+#include "jtil/renderer/geometry/mesh_simplification/mesh_simplification.h"
 
 #if defined(WIN32) || defined(_WIN32)
   #define snprintf _snprintf_s
@@ -51,20 +51,11 @@
 #endif
 
 using namespace std;
-using math::Float3;
-using math::Int3;
-using math::Float4;
-using math::FloatQuat;
-using math::Float4x4;
-using data_str::Vector;
-using hand_model::HandModelFit;
-using hand_model::HandModel;
-using hand_model::HandCoeff;
-using hand_model::HandLabel;
-using hand_model::HandModelRenderer;
-using hand_model::HandModelGeometry;
-using hand_model::HandModelGeometryMesh;
-using hand_model::HandType;
+using namespace jtil::math;
+using namespace jtil::data_str;
+using namespace hand_fit;
+using namespace kinect_interface::hand_net;
+using namespace kinect_interface::hand_detector;
 using renderer::Renderer;
 using renderer::GeometryColoredMesh;
 using renderer::Geometry;
@@ -75,11 +66,10 @@ using renderer::GLState;
 using renderer::GeometryType;
 using windowing::Window;
 using windowing::WindowSettings;
-using mesh_simplification::MeshSimplification;
-using mesh_simplification::MeshSettings;
-using math::Noise;
+using jtil::renderer::mesh_simplification::MeshSimplification;
+using jtil::renderer::mesh_simplification::MeshSettings;
 
-Clock* clk = NULL;
+jtil::clk::Clk* clk = NULL;
 double t1, t0;
 
 // The main window and basic rendering system
@@ -104,16 +94,16 @@ bool running = false;
 HandModel* rhand = NULL;
 HandModel* lhand = NULL;
 HandModel* rhand_rest_pose = NULL;
-HandModelRenderer* hand_renderer = NULL;
+HandRenderer* hand_renderer = NULL;
 uint32_t cur_coeff = 0;
 bool animate_hand = false;
 double t_animation = 0;
 static const uint32_t num_keyframes = 100;
 Noise<float>* hand_frames[HAND_NUM_COEFF];
 bool save_frames_to_file = false;
-float depth_tmp[DEPTH_IMAGE_DIM * 4];
-int16_t depth[DEPTH_IMAGE_DIM];
-uint8_t labels[DEPTH_IMAGE_DIM];
+float depth_tmp[src_dim * 4];
+int16_t depth[src_dim];
+uint8_t labels[src_dim];
 Eigen::MatrixXf coeffs;
 
 // Bunny model for decimation test
@@ -125,23 +115,23 @@ GeometryColoredMesh* sphere;
 
 void saveCDepthDataToDisk(float* data, std::string filename) {
   // First collect all the depth values:
-  for (uint32_t i = 0; i < DEPTH_IMAGE_DIM; i++) {
+  for (uint32_t i = 0; i < src_dim; i++) {
     depth[i] = static_cast<int16_t>(data[4*i]);
   }
   // Now collect all the label values from RGB:
-  for (uint32_t i = 0; i < DEPTH_IMAGE_DIM; i++) {
+  for (uint32_t i = 0; i < src_dim; i++) {
     float r = data[4*i + 1];
     float g = data[4*i + 2];
     float b = data[4*i + 3];
-    labels[i] = hand_model::labelFromRGB(r, g, b);
+    labels[i] = labelFromRGB(r, g, b);
   }
   std::ofstream file(filename.c_str(), std::ios::out | std::ios::binary);
   if (!file.is_open()) {
     throw std::runtime_error(string("error opening file:") + filename);
   }
-  file.write((const char*)(depth), sizeof(depth[0]) * DEPTH_IMAGE_DIM);
+  file.write((const char*)(depth), sizeof(depth[0]) * src_dim);
   file.flush();
-  file.write((const char*)(labels), sizeof(labels[0]) * DEPTH_IMAGE_DIM);
+  file.write((const char*)(labels), sizeof(labels[0]) * src_dim);
   file.flush();
   float cur_coeff;
   for (uint32_t i = 0; i < HAND_NUM_COEFF; i++) {
@@ -172,12 +162,11 @@ void MouseButtonCB(int button, int action) {
   }
 }
 
-math::Float4x4 trans_mat;
-math::Float4x4 new_bone_mat;
+Float4x4 trans_mat;
+Float4x4 new_bone_mat;
 float xoffset = 0;
 float yoffset = 0;
 float zoffset = 0;
-using hand_model::HandSphereIndices;
 uint64_t frame_count = 0;
 
 void MousePosCB(int x, int y) {
@@ -207,7 +196,7 @@ void MousePosCB(int x, int y) {
       float coeff_val;
       coeff_val = lhand->getCoeff(cur_coeff);
       lhand->setCoeff(cur_coeff, coeff_val - theta_y);
-      cout << "cur_coeff " << hand_model::HandCoeffToString(cur_coeff);
+      cout << "cur_coeff " << HandCoeffToString(cur_coeff);
       cout << " --> " << coeff_val - theta_y << endl;
     }
 
@@ -320,7 +309,7 @@ void KeyboardCB(int key, int action) {
     case static_cast<int>(']'):
       if (action == RELEASED) {
         cur_coeff = (cur_coeff + 1) % HandCoeff::NUM_PARAMETERS;
-        cout << "cur_coeff = " << hand_model::HandCoeffToString(cur_coeff); 
+        cout << "cur_coeff = " << HandCoeffToString(cur_coeff); 
         cout << " = " << rhand->getCoeff(cur_coeff);
         cout << std::endl;
       }
@@ -329,7 +318,7 @@ void KeyboardCB(int key, int action) {
     case static_cast<int>('['):
       if (action == RELEASED) {
         cur_coeff = cur_coeff != 0 ? (cur_coeff - 1) : HandCoeff::NUM_PARAMETERS - 1;
-        cout << "cur_coeff = " << hand_model::HandCoeffToString(cur_coeff); 
+        cout << "cur_coeff = " << HandCoeffToString(cur_coeff); 
         cout << " = " << rhand->getCoeff(cur_coeff);
         cout << std::endl;
       }
@@ -424,8 +413,8 @@ void KeyboardCB(int key, int action) {
     } else {
       GeometryColoredMesh* mesh = reinterpret_cast<GeometryColoredMesh*>(bunny);
       mesh->unsyncVAO();
-      mesh_simplifier->simplifyMesh(num_edges_to_remove, mesh->vertices(),
-        mesh->indices(), mesh->normals(), mesh->colors());
+      mesh_simplifier->simplifyMesh(*mesh->normals(), *mesh->indices(), 
+        num_edges_to_remove, *mesh->vertices(), *mesh->colors());
       mesh->syncVAO();
       root->setChild(bunny, bunny_index);
     }
@@ -434,8 +423,8 @@ void KeyboardCB(int key, int action) {
 
 using std::cout;
 using std::endl;
-math::Float4x4 mat_tmp;
-math::Float4x4 mat_result;
+Float4x4 mat_tmp;
+Float4x4 mat_result;
 
 int main(int argc, char *argv[]) {
 #if defined(_DEBUG) && defined(_WIN32)
@@ -458,7 +447,7 @@ int main(int argc, char *argv[]) {
   cout << "l - Save frames to file" << endl << endl;
   
   try {
-    clk = new Clock();
+    clk = new jtil::clk::Clk();
     t1 = clk->getTime();
 
     for (uint32_t i = 0; i < HAND_NUM_COEFF; i++) {
@@ -491,53 +480,42 @@ int main(int argc, char *argv[]) {
     mesh_simplifier = new MeshSimplification();
     
     // Create an instance of the renderer
-    math::FloatQuat eye_rot; eye_rot.identity();
-    math::Float3 eye_pos(0, 0, 0);
+    FloatQuat eye_rot; 
+    eye_rot.identity();
+    Float3 eye_pos(0, 0, 0);
     render = new Renderer();
     render->init(eye_rot, eye_pos, wnd_settings->width, wnd_settings->height,
       -1.0f, -2000.0f, HAND_CAMERA_FOV);
     
     // Spawn some pretty objects (to test the renderer)
-    //GeometryColoredMesh* tmp;
-    //tmp = GeometryColoredMesh::makeTorusKnot(renderer::red, 5, 64, 512);
-    //tmp->mat()->scaleMat(100, 100, 100);
-    //tmp->mat()->leftMultTranslation(0.0f, 100.0f, 1000.0f);
-    //GeometryManager::scene_graph_root()->addChild(tmp);
-    //tmp = GeometryColoredMesh::makeSphere(64, 64, 1.0f, renderer::blue);
-    //tmp->mat()->scaleMat(100, 100, 100);
-    //tmp->mat()->leftMultTranslation(0.0f, 100.0f, 1000.0f);
-    //GeometryManager::scene_graph_root()->addChild(tmp);
+    GeometryColoredMesh* tmp;
+    tmp = GeometryColoredMesh::makeTorusKnot(renderer::red, 5, 64, 512);
+    tmp->mat()->scaleMat(100, 100, 100);
+    tmp->mat()->leftMultTranslation(0.0f, 100.0f, 1000.0f);
+    GeometryManager::scene_graph_root()->addChild(tmp);
+    tmp = GeometryColoredMesh::makeSphere(64, 64, 1.0f, renderer::blue);
+    tmp->mat()->scaleMat(100, 100, 100);
+    tmp->mat()->leftMultTranslation(0.0f, 100.0f, 1000.0f);
+    GeometryManager::scene_graph_root()->addChild(tmp);
 
     // Try loading some meshes from file
     // Some nice ones here: http://graphics.cs.williams.edu/data/meshes.xml
     // and here: http://www.models-resource.com/
     // and definitely here: http://www.blendswap.com/blends/category/characters/
-//#ifndef LOAD_PROCESSED_FILES
-//    Geometry* bunny = GeometryManager::g_geom_manager()->loadFromFile(
-//      MODELS_PATH, "stanford_bunny.dae");
-//    GeometryManager::g_geom_manager()->saveToJFile(bunny, MODELS_PATH, 
-//      "stanford_bunny.jbin");
-//#else
-//    bunny = GeometryManager::g_geom_manager()->loadFromJFile(MODELS_PATH, 
-//      "stanford_bunny.jbin");
-//#endif
-//    bunny->mat()->scaleMat(1000, 1000, 1000);
-//    bunny->mat()->leftMultTranslation(-300.0f, 0, 750.0f);
-//    bunny_copy = bunny->copy();
-//    GeometryManager::scene_graph_root()->addChild(bunny);
+    bunny = GeometryManager::g_geom_manager()->loadFromFile(
+      MODELS_PATH, "bunny.obj");
+    bunny->mtrl()->specular_intensity = 1.0f;
+    bunny->mtrl()->specular_power = 32.0f;
+    bunny->mat()->scaleMat(1000, 1000, 1000);
+    bunny->mat()->leftMultTranslation(-300.0f, 0, 750.0f);
+    bunny_copy = bunny->copy();
+    GeometryManager::scene_graph_root()->addChild(bunny);
 
-//#ifndef LOAD_PROCESSED_FILES
-//    Geometry* dog = GeometryManager::g_geom_manager()->loadFromFile(
-//      MODELS_PATH + "SmallDog/", "SDog.dae");
-//    GeometryManager::g_geom_manager()->saveToJFile(dog, MODELS_PATH + "SmallDog/", 
-//      "SDog.jbin");
-//#else
-//    Geometry* dog = GeometryManager::g_geom_manager()->loadFromJFile(MODELS_PATH + "SmallDog/",
-//      "SDog.jbin");
-//#endif
-//    dog->mat()->scaleMat(200, 200, 200);
-//    dog->mat()->leftMultTranslation(300.0f, 0, 750.0f);
-//    GeometryManager::scene_graph_root()->addChild(dog);
+    Geometry* dog = GeometryManager::g_geom_manager()->loadFromFile(
+      MODELS_PATH + "SmallDog/", "small_dog.dae");
+    dog->mat()->scaleMat(200, 200, 200);
+    dog->mat()->leftMultTranslation(300.0f, 0, 750.0f);
+    GeometryManager::scene_graph_root()->addChild(dog);
 
     
     sphere = GeometryColoredMesh::makeSphere(64, 64, 1.0f, renderer::white);
@@ -552,7 +530,7 @@ int main(int argc, char *argv[]) {
     wnd->registerMouseWheelCB(NULL);
     wnd->registerCharacterInputCB(NULL);
 
-    hand_renderer = new HandModelRenderer(render, true, false);
+    hand_renderer = new HandRenderer(render, true, false);
     rhand = new HandModel(HandType::RIGHT);
     lhand = new HandModel(HandType::LEFT);
     lhand->setCoeff(HandCoeff::HAND_POS_X, 100);
@@ -568,10 +546,10 @@ int main(int argc, char *argv[]) {
       if (rotate_light) {
         renderer::LightDir* light = render->light_dir();
         Float3* dir = light->direction_world();
-        mat_tmp.rotateMatYAxis(dt);
+        Float4x4::rotateMatYAxis(mat_tmp, dt);
         Float3 new_dir;
-        Float3::affineTransformVec(&new_dir, &mat_tmp, dir);
-        dir->set(&new_dir);
+        Float3::affineTransformVec(new_dir, mat_tmp, *dir);
+        dir->set(new_dir);
       }
 
       static const float pos_amp = 200;
@@ -582,46 +560,50 @@ int main(int argc, char *argv[]) {
           rhand->setCoeff(i, rhand_rest_pose->getCoeff(i) + pos_amp * noise);
         }
         Float3 euler_ang;
-        euler_ang[0] =  (float)M_2PI * 0.5f * 
+        euler_ang[0] =  (float)(2.0 * M_PI) * 0.5f * 
           (1.0f + hand_frames[HandCoeff::HAND_ORIENT_X]->sample((float)t_animation*0.25f));  
-        euler_ang[1] =  (float)M_2PI * 0.5f * 
+        euler_ang[1] =  (float)(2.0 * M_PI) * 0.5f * 
           (1.0f + hand_frames[HandCoeff::HAND_ORIENT_Y]->sample((float)t_animation*0.25f)); 
-        euler_ang[0] =  (float)M_2PI * 0.5f * 
+        euler_ang[0] =  (float)(2.0 * M_PI) * 0.5f * 
           (1.0f + hand_frames[HandCoeff::HAND_ORIENT_Z]->sample((float)t_animation*0.25f)); 
         FloatQuat quat;
-        quat.eulerAngles2Quat(euler_ang[0], euler_ang[1], euler_ang[2]);
-        lhand->setRotation(&quat);
+        FloatQuat::eulerAngles2Quat(quat, euler_ang[0], euler_ang[1], euler_ang[2]);
+        lhand->setRotation(quat);
         for (uint32_t i = 0; i < 4; i++) {
           // Knuckle curl
           // noise = [0, 1]
           float noise = (0.5f*
             (hand_frames[HandCoeff::F0_KNUCKLE_CURL + i*3]->sample((float)t_animation) + 1.0f));
-          float min = HandModelFit::coeff_min_limit[HandCoeff::F0_KNUCKLE_CURL + i*3];
-          float max = HandModelFit::coeff_max_limit[HandCoeff::F0_KNUCKLE_CURL + i*3];
+          float min = HandFit::coeff_min_limit[HandCoeff::F0_KNUCKLE_CURL + i*3];
+          float max = HandFit::coeff_max_limit[HandCoeff::F0_KNUCKLE_CURL + i*3];
           lhand->setCoeff(HandCoeff::F0_KNUCKLE_CURL + i*3, min + noise * (max-min));
           // finger bend
           noise = (0.5f * 
             (hand_frames[HandCoeff::F0_PHI + i*3]->sample((float)t_animation) + 1.0f));
-          min = HandModelFit::coeff_min_limit[HandCoeff::F0_PHI + i*3];
-          max = HandModelFit::coeff_max_limit[HandCoeff::F0_PHI + i*3];
+          min = HandFit::coeff_min_limit[HandCoeff::F0_PHI + i*3];
+          max = HandFit::coeff_max_limit[HandCoeff::F0_PHI + i*3];
         }
       }
 
       // Move the camera
-      delta_pos.set(&cur_dir);
-      if (!delta_pos.equal(0,0,0)) {
+      Float3 zeros;
+      zeros.zeros();
+      delta_pos.set(cur_dir);
+      if (!Float3::equal(zeros, delta_pos)) {
         delta_pos.normalize();
-        delta_pos.scale(camera_speed * dt);
+        Float3::scale(delta_pos, camera_speed * dt);
         if (running) {
-          delta_pos.scale(camera_run_mulitiplier);
+          Float3::scale(delta_pos, camera_run_mulitiplier);
         }
         render->camera()->moveCamera(&delta_pos);
       }
 
       // hand_renderer->updateMatrices(rhand->coeff(), rhand->hand_type());
       hand_renderer->updateMatrices(lhand->coeff(), lhand->hand_type());
-      coeffs.block<1, HAND_NUM_COEFF>(0, 0) = lhand->coeff();
-      coeffs.block<1, HAND_NUM_COEFF>(0, HAND_NUM_COEFF) = rhand->coeff();
+      memcpy(coeffs.block<1, HAND_NUM_COEFF>(0, 0).data(), lhand->coeff(), 
+        sizeof(lhand->coeff()[0]) * HAND_NUM_COEFF);
+      memcpy(coeffs.block<1, HAND_NUM_COEFF>(0, HAND_NUM_COEFF).data(), 
+        rhand->coeff(), sizeof(rhand->coeff()[0]) * HAND_NUM_COEFF);
       
       HandModel* hands[2];
       hands[0] = lhand;
@@ -631,7 +613,7 @@ int main(int argc, char *argv[]) {
       case 1:
         render->renderFrame(dt);
         interpenetration = hand_renderer->calcInterpenetrationTerm();
-        if (interpenetration > EPSILON) {
+        if (interpenetration > 1.0f + EPSILON) {
           cout << "interpenetration = " << interpenetration << endl;
         }
         break;
@@ -655,7 +637,7 @@ int main(int argc, char *argv[]) {
         TextureRenderable* tex = hand_renderer->cdepth_texture();
         tex->getTexture0Data<float>(depth_tmp);
         std::stringstream ss;
-        ss << "data/hands_" << clk->getAbsoluteTimeNano() << ".bin";
+        ss << "data/hands_" << (uint64_t)(clk->getTime()*1e9) << ".bin";
         saveCDepthDataToDisk(depth_tmp, ss.str());
       }
 

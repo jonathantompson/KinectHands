@@ -10,29 +10,8 @@
     <Filter Include="src\renderer">
       <UniqueIdentifier>{38404503-d9e2-4f9d-b9b5-aa0823dfdde6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\alignment">
-      <UniqueIdentifier>{d722986d-0a80-45e0-b57e-28c21c1073ca}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\clock">
-      <UniqueIdentifier>{fc5f02d3-b8f6-428d-91e8-5c1446c5f24e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\data_str">
-      <UniqueIdentifier>{64c88618-2077-49b7-9cd0-e3a4aabb1187}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\exceptions">
-      <UniqueIdentifier>{df54c9d8-18f0-4e45-9caa-0d115407e467}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\hand_model">
-      <UniqueIdentifier>{b45c826e-8c6b-48fd-931a-c28483e635b9}</UniqueIdentifier>
-    </Filter>
     <Filter Include="src\math">
       <UniqueIdentifier>{7ae0e51e-34d4-42ab-835b-ff148a26bbe9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\string_util">
-      <UniqueIdentifier>{5aee1289-2578-454a-aaec-85ead1c52a27}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\threading">
-      <UniqueIdentifier>{1f0a061b-3f00-4ed1-bd1e-67aea84ae825}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\renderer\camera">
       <UniqueIdentifier>{9dc5b4ac-9830-46eb-9aa0-29e4be36ab6b}</UniqueIdentifier>
@@ -49,9 +28,6 @@
     <Filter Include="src\renderer\texture">
       <UniqueIdentifier>{a7f35cd5-5810-4bf5-9a82-704fd4955cbb}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\file_io">
-      <UniqueIdentifier>{d6f866d9-554f-4f8c-9467-3a8a391e0f26}</UniqueIdentifier>
-    </Filter>
     <Filter Include="src\windowing">
       <UniqueIdentifier>{bb3effa1-1f8f-41d2-bf5b-e4140e01919d}</UniqueIdentifier>
     </Filter>
@@ -61,34 +37,13 @@
     <Filter Include="src\renderer\lights">
       <UniqueIdentifier>{72198500-128e-4dbb-868d-ecee7ebead4d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\fastlz">
-      <UniqueIdentifier>{170ecd46-9fbd-4204-b0f1-60bb6a58ef99}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\mesh_simplification">
-      <UniqueIdentifier>{454ed4c1-b19e-4543-a5e4-fc65d9fc8963}</UniqueIdentifier>
+    <Filter Include="src\hand_fit">
+      <UniqueIdentifier>{b45c826e-8c6b-48fd-931a-c28483e635b9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main\main_hand_pose.cpp">
       <Filter>src\main</Filter>
-    </ClCompile>
-    <ClCompile Include="src\data_str\hash_funcs.cpp">
-      <Filter>src\data_str</Filter>
-    </ClCompile>
-    <ClCompile Include="src\exceptions\wruntime_error.cpp">
-      <Filter>src\exceptions</Filter>
-    </ClCompile>
-    <ClCompile Include="src\hand_model\hand_model.cpp">
-      <Filter>src\hand_model</Filter>
-    </ClCompile>
-    <ClCompile Include="src\string_util\string_util.cpp">
-      <Filter>src\string_util</Filter>
-    </ClCompile>
-    <ClCompile Include="src\threading\thread.cpp">
-      <Filter>src\threading</Filter>
-    </ClCompile>
-    <ClCompile Include="src\threading\thread_pool.cpp">
-      <Filter>src\threading</Filter>
     </ClCompile>
     <ClCompile Include="src\renderer\colors.cpp">
       <Filter>src\renderer</Filter>
@@ -126,17 +81,11 @@
     <ClCompile Include="src\renderer\texture\texture.cpp">
       <Filter>src\renderer\texture</Filter>
     </ClCompile>
-    <ClCompile Include="src\file_io\file_io.cpp">
-      <Filter>src\file_io</Filter>
-    </ClCompile>
     <ClCompile Include="src\windowing\window.cpp">
       <Filter>src\windowing</Filter>
     </ClCompile>
     <ClCompile Include="src\windowing\window_settings.cpp">
       <Filter>src\windowing</Filter>
-    </ClCompile>
-    <ClCompile Include="src\math\math_base.cpp">
-      <Filter>src\math</Filter>
     </ClCompile>
     <ClCompile Include="src\math\nm_fitting.cpp">
       <Filter>src\math</Filter>
@@ -168,9 +117,6 @@
     <ClCompile Include="src\renderer\geometry\geometry_points.cpp">
       <Filter>src\renderer\geometry</Filter>
     </ClCompile>
-    <ClCompile Include="src\hand_model\hand_model_renderer.cpp">
-      <Filter>src\hand_model</Filter>
-    </ClCompile>
     <ClCompile Include="src\renderer\texture\texture_utils.cpp">
       <Filter>src\renderer\texture</Filter>
     </ClCompile>
@@ -180,32 +126,11 @@
     <ClCompile Include="src\renderer\geometry\geometry_colored_points.cpp">
       <Filter>src\renderer\geometry</Filter>
     </ClCompile>
-    <ClCompile Include="src\fastlz\fastlz.c">
-      <Filter>src\fastlz</Filter>
-    </ClCompile>
-    <ClCompile Include="src\hand_model\hand_model_geometry_simple.cpp">
-      <Filter>src\hand_model</Filter>
-    </ClCompile>
-    <ClCompile Include="src\hand_model\hand_model_geometry_mesh.cpp">
-      <Filter>src\hand_model</Filter>
-    </ClCompile>
-    <ClCompile Include="src\mesh_simplification\edge.cpp">
-      <Filter>src\mesh_simplification</Filter>
-    </ClCompile>
-    <ClCompile Include="src\mesh_simplification\mesh_simplification.cpp">
-      <Filter>src\mesh_simplification</Filter>
-    </ClCompile>
-    <ClCompile Include="src\mesh_simplification\min_heap_edges.cpp">
-      <Filter>src\mesh_simplification</Filter>
-    </ClCompile>
     <ClCompile Include="src\renderer\geometry\geometry_textured_boned_mesh.cpp">
       <Filter>src\renderer\geometry</Filter>
     </ClCompile>
     <ClCompile Include="src\renderer\geometry\geometry_manager.cpp">
       <Filter>src\renderer\geometry</Filter>
-    </ClCompile>
-    <ClCompile Include="src\math\decompose.c">
-      <Filter>src\math</Filter>
     </ClCompile>
     <ClCompile Include="src\renderer\geometry\vertex_bone_data.cpp">
       <Filter>src\renderer\geometry</Filter>
@@ -216,21 +141,6 @@
     <ClCompile Include="src\renderer\geometry\geometry_colored_boned_mesh.cpp">
       <Filter>src\renderer\geometry</Filter>
     </ClCompile>
-    <ClCompile Include="src\hand_model\hand_model_fit.cpp">
-      <Filter>src\hand_model</Filter>
-    </ClCompile>
-    <ClCompile Include="src\file_io\csv_handle.cpp">
-      <Filter>src\file_io</Filter>
-    </ClCompile>
-    <ClCompile Include="src\file_io\csv_handle_read.cpp">
-      <Filter>src\file_io</Filter>
-    </ClCompile>
-    <ClCompile Include="src\file_io\csv_handle_write.cpp">
-      <Filter>src\file_io</Filter>
-    </ClCompile>
-    <ClCompile Include="src\hand_model\bounding_sphere.cpp">
-      <Filter>src\hand_model</Filter>
-    </ClCompile>
     <ClCompile Include="src\math\lprpso_fitting_hands.cpp">
       <Filter>src\math</Filter>
     </ClCompile>
@@ -240,74 +150,20 @@
     <ClCompile Include="src\renderer\gl_state.cpp">
       <Filter>src\renderer</Filter>
     </ClCompile>
+    <ClCompile Include="src\hand_fit\hand_renderer.cpp">
+      <Filter>src\hand_fit</Filter>
+    </ClCompile>
+    <ClCompile Include="src\hand_fit\bounding_sphere.cpp">
+      <Filter>src\hand_fit</Filter>
+    </ClCompile>
+    <ClCompile Include="src\hand_fit\hand_fit.cpp">
+      <Filter>src\hand_fit</Filter>
+    </ClCompile>
+    <ClCompile Include="src\hand_fit\hand_geometry_mesh.cpp">
+      <Filter>src\hand_fit</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\alignment\data_align.h">
-      <Filter>src\alignment</Filter>
-    </ClInclude>
-    <ClInclude Include="src\clock\clock.h">
-      <Filter>src\clock</Filter>
-    </ClInclude>
-    <ClInclude Include="src\data_str\circular_buffer.h">
-      <Filter>src\data_str</Filter>
-    </ClInclude>
-    <ClInclude Include="src\data_str\hash_funcs.h">
-      <Filter>src\data_str</Filter>
-    </ClInclude>
-    <ClInclude Include="src\data_str\hash_map.h">
-      <Filter>src\data_str</Filter>
-    </ClInclude>
-    <ClInclude Include="src\data_str\hash_map_managed.h">
-      <Filter>src\data_str</Filter>
-    </ClInclude>
-    <ClInclude Include="src\data_str\hash_set.h">
-      <Filter>src\data_str</Filter>
-    </ClInclude>
-    <ClInclude Include="src\data_str\min_heap.h">
-      <Filter>src\data_str</Filter>
-    </ClInclude>
-    <ClInclude Include="src\data_str\pair.h">
-      <Filter>src\data_str</Filter>
-    </ClInclude>
-    <ClInclude Include="src\data_str\vector.h">
-      <Filter>src\data_str</Filter>
-    </ClInclude>
-    <ClInclude Include="src\data_str\vector_managed.h">
-      <Filter>src\data_str</Filter>
-    </ClInclude>
-    <ClInclude Include="src\exceptions\wruntime_error.h">
-      <Filter>src\exceptions</Filter>
-    </ClInclude>
-    <ClInclude Include="src\hand_model\hand_model.h">
-      <Filter>src\hand_model</Filter>
-    </ClInclude>
-    <ClInclude Include="src\string_util\macros.h">
-      <Filter>src\string_util</Filter>
-    </ClInclude>
-    <ClInclude Include="src\string_util\string_util.h">
-      <Filter>src\string_util</Filter>
-    </ClInclude>
-    <ClInclude Include="src\string_util\win32_debug_buffer.h">
-      <Filter>src\string_util</Filter>
-    </ClInclude>
-    <ClInclude Include="src\threading\callback.h">
-      <Filter>src\threading</Filter>
-    </ClInclude>
-    <ClInclude Include="src\threading\callback_instances.h">
-      <Filter>src\threading</Filter>
-    </ClInclude>
-    <ClInclude Include="src\threading\callback_queue.h">
-      <Filter>src\threading</Filter>
-    </ClInclude>
-    <ClInclude Include="src\threading\callback_queue_item.h">
-      <Filter>src\threading</Filter>
-    </ClInclude>
-    <ClInclude Include="src\threading\thread.h">
-      <Filter>src\threading</Filter>
-    </ClInclude>
-    <ClInclude Include="src\threading\thread_pool.h">
-      <Filter>src\threading</Filter>
-    </ClInclude>
     <ClInclude Include="src\renderer\colors.h">
       <Filter>src\renderer</Filter>
     </ClInclude>
@@ -347,9 +203,6 @@
     <ClInclude Include="src\renderer\texture\texture.h">
       <Filter>src\renderer\texture</Filter>
     </ClInclude>
-    <ClInclude Include="src\file_io\file_io.h">
-      <Filter>src\file_io</Filter>
-    </ClInclude>
     <ClInclude Include="src\windowing\keys_and_buttons.h">
       <Filter>src\windowing</Filter>
     </ClInclude>
@@ -362,40 +215,10 @@
     <ClInclude Include="src\windowing\glfw.h">
       <Filter>src\windowing</Filter>
     </ClInclude>
-    <ClInclude Include="src\math\mat2x2.h">
-      <Filter>src\math</Filter>
-    </ClInclude>
-    <ClInclude Include="src\math\mat3x3.h">
-      <Filter>src\math</Filter>
-    </ClInclude>
-    <ClInclude Include="src\math\mat4x4.h">
-      <Filter>src\math</Filter>
-    </ClInclude>
-    <ClInclude Include="src\math\math_base.h">
-      <Filter>src\math</Filter>
-    </ClInclude>
-    <ClInclude Include="src\math\math_types.h">
-      <Filter>src\math</Filter>
-    </ClInclude>
     <ClInclude Include="src\math\nm_fitting.h">
       <Filter>src\math</Filter>
     </ClInclude>
-    <ClInclude Include="src\math\plane.h">
-      <Filter>src\math</Filter>
-    </ClInclude>
     <ClInclude Include="src\math\pso_fitting.h">
-      <Filter>src\math</Filter>
-    </ClInclude>
-    <ClInclude Include="src\math\quat.h">
-      <Filter>src\math</Filter>
-    </ClInclude>
-    <ClInclude Include="src\math\vec2.h">
-      <Filter>src\math</Filter>
-    </ClInclude>
-    <ClInclude Include="src\math\vec3.h">
-      <Filter>src\math</Filter>
-    </ClInclude>
-    <ClInclude Include="src\math\vec4.h">
       <Filter>src\math</Filter>
     </ClInclude>
     <ClInclude Include="src\math\common_fitting.h">
@@ -422,9 +245,6 @@
     <ClInclude Include="src\renderer\geometry\geometry_points.h">
       <Filter>src\renderer\geometry</Filter>
     </ClInclude>
-    <ClInclude Include="src\hand_model\hand_model_renderer.h">
-      <Filter>src\hand_model</Filter>
-    </ClInclude>
     <ClInclude Include="src\renderer\texture\texture_utils.h">
       <Filter>src\renderer\texture</Filter>
     </ClInclude>
@@ -434,35 +254,11 @@
     <ClInclude Include="src\renderer\geometry\geometry_colored_points.h">
       <Filter>src\renderer\geometry</Filter>
     </ClInclude>
-    <ClInclude Include="src\hand_model\hand_model_geometry.h">
-      <Filter>src\hand_model</Filter>
-    </ClInclude>
-    <ClInclude Include="src\fastlz\fastlz.h">
-      <Filter>src\fastlz</Filter>
-    </ClInclude>
-    <ClInclude Include="src\hand_model\hand_model_geometry_simple.h">
-      <Filter>src\hand_model</Filter>
-    </ClInclude>
-    <ClInclude Include="src\hand_model\hand_model_geometry_mesh.h">
-      <Filter>src\hand_model</Filter>
-    </ClInclude>
-    <ClInclude Include="src\mesh_simplification\edge.h">
-      <Filter>src\mesh_simplification</Filter>
-    </ClInclude>
-    <ClInclude Include="src\mesh_simplification\mesh_simplification.h">
-      <Filter>src\mesh_simplification</Filter>
-    </ClInclude>
-    <ClInclude Include="src\mesh_simplification\min_heap_edges.h">
-      <Filter>src\mesh_simplification</Filter>
-    </ClInclude>
     <ClInclude Include="src\renderer\geometry\geometry_textured_boned_mesh.h">
       <Filter>src\renderer\geometry</Filter>
     </ClInclude>
     <ClInclude Include="src\renderer\geometry\geometry_manager.h">
       <Filter>src\renderer\geometry</Filter>
-    </ClInclude>
-    <ClInclude Include="src\math\decompose.h">
-      <Filter>src\math</Filter>
     </ClInclude>
     <ClInclude Include="src\renderer\geometry\vertex_bone_data.h">
       <Filter>src\renderer\geometry</Filter>
@@ -473,24 +269,6 @@
     <ClInclude Include="src\renderer\geometry\geometry_colored_boned_mesh.h">
       <Filter>src\renderer\geometry</Filter>
     </ClInclude>
-    <ClInclude Include="src\math\noise.h">
-      <Filter>src\math</Filter>
-    </ClInclude>
-    <ClInclude Include="src\hand_model\hand_model_fit.h">
-      <Filter>src\hand_model</Filter>
-    </ClInclude>
-    <ClInclude Include="src\file_io\csv_handle_write.h">
-      <Filter>src\file_io</Filter>
-    </ClInclude>
-    <ClInclude Include="src\file_io\csv_handle.h">
-      <Filter>src\file_io</Filter>
-    </ClInclude>
-    <ClInclude Include="src\file_io\csv_handle_read.h">
-      <Filter>src\file_io</Filter>
-    </ClInclude>
-    <ClInclude Include="src\hand_model\bounding_sphere.h">
-      <Filter>src\hand_model</Filter>
-    </ClInclude>
     <ClInclude Include="src\math\lprpso_fitting_hands.h">
       <Filter>src\math</Filter>
     </ClInclude>
@@ -500,11 +278,23 @@
     <ClInclude Include="src\renderer\gl_state.h">
       <Filter>src\renderer</Filter>
     </ClInclude>
+    <ClInclude Include="src\hand_fit\hand_renderer.h">
+      <Filter>src\hand_fit</Filter>
+    </ClInclude>
+    <ClInclude Include="src\hand_fit\bounding_sphere.h">
+      <Filter>src\hand_fit</Filter>
+    </ClInclude>
+    <ClInclude Include="src\hand_fit\hand_fit.h">
+      <Filter>src\hand_fit</Filter>
+    </ClInclude>
+    <ClInclude Include="src\hand_fit\hand_geometry.h">
+      <Filter>src\hand_fit</Filter>
+    </ClInclude>
+    <ClInclude Include="src\hand_fit\hand_geometry_mesh.h">
+      <Filter>src\hand_fit</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\threading\callback_instances.py">
-      <Filter>src\threading</Filter>
-    </None>
     <None Include="shaders\fullscreen_quad.frag">
       <Filter>shaders</Filter>
     </None>

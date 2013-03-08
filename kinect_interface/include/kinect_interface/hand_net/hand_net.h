@@ -28,6 +28,7 @@
 #define NUM_CONV_BANKS 3
 #define HPF_GAIN 2.0f
 #define HN_NUM_WORKER_THREADS 8
+#define HAND_NET_NOM_DIST 1100  // Scaling is 1:4 at this distance
 
 #if defined(__APPLE__)
   #define CONVNET_FILE string("./../../../../../../../../../data/" \

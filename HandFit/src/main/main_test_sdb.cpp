@@ -19,7 +19,7 @@
 #endif
 
 using namespace std;
-using namespace math;
+using namespace jtil::math;
 using Eigen::MatrixXf;
 
 int main(int argc, char *argv[]) { 
@@ -40,12 +40,12 @@ int main(int argc, char *argv[]) {
   ret_coeffs.transpose();
 
   cout << endl << "Final coeff values:" << endl;
-  math::PrintEigenMatrix(ret_coeffs);
+  PrintEigenMatrix(ret_coeffs);
   cout << "  --> with func value = ";
   cout << hw7_4a(ret_coeffs) << endl;
 
   cout << endl << "Expecting:" << endl << "|";
-  math::PrintEigenMatrix(c_answer_hw7_4a);
+  PrintEigenMatrix(c_answer_hw7_4a);
   cout << "  --> with func value = ";
   cout << hw7_4a(c_answer_hw7_4a) << endl << endl;
   delete solver;
@@ -65,12 +65,12 @@ int main(int argc, char *argv[]) {
   ret_coeffs2.transpose();
   
   cout << endl << "Final coeff values:" << endl;
-  math::PrintEigenMatrix(ret_coeffs2);
+  PrintEigenMatrix(ret_coeffs2);
   cout << "  --> with func value = ";
   cout << hw7_4a(ret_coeffs2) << endl;
   
   cout << endl << "Expecting:" << endl << "|";
-  math::PrintEigenMatrix(c_answer_hw7_4b);
+  PrintEigenMatrix(c_answer_hw7_4b);
   cout << "  --> with func value = ";
   cout << hw7_4a(c_answer_hw7_4b) << endl << endl;
   delete solver2;

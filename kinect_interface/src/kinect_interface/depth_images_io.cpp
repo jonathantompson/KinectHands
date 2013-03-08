@@ -38,16 +38,28 @@ namespace kinect_interface {
   // uint32_t DepthImagesIO::graph_cut_affiliation_radius = 5;
   float DepthImagesIO::adjacency_gamma = 25.0f;
   float DepthImagesIO::adjacency_beta = 0.25f;
-  float DepthImagesIO::sink_source_beta = 5.0f;
 
-  int32_t DepthImagesIO::red_hue_threshold = 27;
-  int32_t DepthImagesIO::red_sat_threshold = 48;  // 40
-  int32_t DepthImagesIO::red_val_threshold = 79;
-  int32_t DepthImagesIO::red_hue_target = 250;
-  int32_t DepthImagesIO::red_sat_target = 214;  // 225
+  // Values for Fits from take 4 5 6 7
+  int32_t DepthImagesIO::red_hue_threshold = 15;
+  int32_t DepthImagesIO::red_sat_threshold = 41; 
+  int32_t DepthImagesIO::red_val_threshold = 73; 
+  int32_t DepthImagesIO::red_hue_target = 1;
+  int32_t DepthImagesIO::red_sat_target = 231;  // 225
   int32_t DepthImagesIO::red_val_target = 161;
-  int32_t DepthImagesIO::red_red_min = 95;
+  int32_t DepthImagesIO::red_red_min = 70;
   int32_t DepthImagesIO::red_blue_max = 100;
+  int32_t DepthImagesIO::hsv_total_threshold = 660;
+
+  //// Values for Fits from take 1 2 3
+  //int32_t DepthImagesIO::red_hue_threshold = 27;
+  //int32_t DepthImagesIO::red_sat_threshold = 48; 
+  //int32_t DepthImagesIO::red_val_threshold = 79;
+  //int32_t DepthImagesIO::red_hue_target = 250;
+  //int32_t DepthImagesIO::red_sat_target = 214;
+  //int32_t DepthImagesIO::red_val_target = 161;
+  //int32_t DepthImagesIO::red_red_min = 95;
+  //int32_t DepthImagesIO::red_blue_max = 100;
+  //int32_t DepthImagesIO::hsv_total_threshold = 660;
 
   // Previous Values (11 Jan)
   //int32_t DepthImagesIO::red_hue_threshold = 32;
@@ -362,9 +374,11 @@ namespace kinect_interface {
 
     getRedPixels(rgb, hsv, red_pixels);
     // Run an aggressive median filter to remove outliers
-    MedianBoolFilter<uint8_t>(red_pixels_tmp, red_pixels, src_width,
+    GrowFilter<uint8_t>(red_pixels_tmp, red_pixels, src_width,
+      src_height, 1);
+    MedianBoolFilter<uint8_t>(red_pixels, red_pixels_tmp, src_width,
       src_height, RED_MED_FILT_RAD, 1);
-    memcpy(red_pixels, red_pixels_tmp, sizeof(red_pixels[0])*src_dim);
+    //memcpy(red_pixels, red_pixels_tmp, sizeof(red_pixels[0])*src_dim);
     if (red_pixels_ret != NULL) {
       memcpy(red_pixels_ret, red_pixels, src_dim * sizeof(red_pixels_ret[0]));
     }
@@ -625,7 +639,7 @@ namespace kinect_interface {
     if (rgb[index*3] <= red_red_min) {
       std::cout << "pixel Red bellow min level." << std::endl;
     }
-    if ((hsv[index*3] + hsv[index*3+1] + hsv[index*3+2]) < 660) {
+    if ((hsv[index*3] + hsv[index*3+1] + hsv[index*3+2]) < hsv_total_threshold) {
       std::cout << "HSV Total out of range." << std::endl;
     }
     if (rgb[index*3+2] >= red_blue_max) {
@@ -635,7 +649,7 @@ namespace kinect_interface {
          cur_delta[1] < red_sat_threshold && 
          cur_delta[2] < red_val_threshold && 
          rgb[index*3] > red_red_min && rgb[index*3+2] < red_blue_max) || 
-        ((hsv[index*3] + hsv[index*3+1] + hsv[index*3+2]) >= 660)) {
+        ((hsv[index*3] + hsv[index*3+1] + hsv[index*3+2]) >= hsv_total_threshold)) {
       std::cout << "Pixel is in HSV and RGB range" << std::endl;
     }
   }
@@ -668,7 +682,7 @@ namespace kinect_interface {
              cur_delta[1] < red_sat_threshold && 
              cur_delta[2] < red_val_threshold && 
              rgb[index*3] > red_red_min && rgb[index*3+2] < red_blue_max) || 
-             ((hsv[index*3] + hsv[index*3+1] + hsv[index*3+2]) >= 660)) {
+             ((hsv[index*3] + hsv[index*3+1] + hsv[index*3+2]) >= hsv_total_threshold)) {
           red_pixels[index] = 1;
         }
         index++;
@@ -1098,7 +1112,7 @@ namespace kinect_interface {
     delete[] uvd_data;
   }
 
-  // ************* NO LONGER USING GRAPH CUTE *************
+  // ************* NO LONGER USING GRAPH CUT *************
   //void DepthImagesIO::AddVertex(GraphFloat* graph, uint32_t cur_ind, 
   //  int* label_count) {
   //  vert[cur_ind] = graph->add_node();

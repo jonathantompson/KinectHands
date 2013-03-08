@@ -53,7 +53,7 @@
 // 3 -> Finished (4 partially finished)
 //#define IM_DIR_BASE string("hand_data/both_hands/set03/") 
 
-#define IM_DIR_BASE string("data/hand_depth_data_7/")  
+#define IM_DIR_BASE string("data/hand_depth_data_6/")  
  
 #if defined(__APPLE__)
   #define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
@@ -71,16 +71,9 @@ const bool fit_right = true;
 const uint32_t num_hands = (fit_left ? 1 : 0) + (fit_right ? 1 : 0);
 
 using namespace std;
-using jtil::math::Float3;
-using jtil::math::Int3;
-using jtil::math::Float4;
-using jtil::math::FloatQuat;
-using jtil::math::Float4x4;
-using jtil::data_str::Vector;
-
-using hand_model::HandFit;
-using hand_model::HandRenderer;
-using hand_model::HandGeometry;
+using namespace jtil::math;
+using namespace jtil::data_str;
+using namespace hand_fit;
 using renderer::Renderer;
 using renderer::Geometry;
 using renderer::GeometryManager;
@@ -128,7 +121,7 @@ HandModel** l_hands = NULL;  // Not using this yet
 HandModel** r_hands = NULL;
 uint32_t cur_coeff = 0;
 HandRenderer* hand_renderer = NULL;
-HandFit* hand_fit = NULL;
+HandFit* fit = NULL;
 bool continuous_fit = false;  // fit frames continuously each frame
 bool continuous_play = false;  // Play back recorded frames
 int hand_to_modify = fit_left ? 0 : 1;
@@ -143,7 +136,7 @@ float cur_xyz_data[src_dim*3];
 int16_t cur_depth_data[src_dim*3];
 uint8_t cur_label_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
-uint32_t cur_image = 0;
+uint32_t cur_image = 900;
 GeometryColoredPoints* geometry_points= NULL;
 float temp_xyz[3 * src_dim];
 float temp_rgb[3 * src_dim];
@@ -180,7 +173,7 @@ void quit() {
   delete convnet;
   delete hand_detector;
   delete hand_renderer;
-  delete hand_fit;
+  delete fit;
   delete render;
   GLState::shutdownGLState();
   delete wnd;
@@ -475,7 +468,7 @@ void KeyboardCB(int key, int action) {
       if (action == RELEASED) {
         continuous_fit = !continuous_play && !continuous_fit;
         if (continuous_fit) {
-          hand_fit->resetFuncEvalCount();
+          fit->resetFuncEvalCount();
           continuous_fit_timer_start = clk->getTime();
         }
       }
@@ -553,7 +546,7 @@ void KeyboardCB(int key, int action) {
           hands[1] = r_hands[cur_image];
         }
         cout << "Objective Function: ";
-        cout << hand_fit->queryObjectiveFunction(cur_depth_data, cur_label_data,
+        cout << fit->queryObjectiveFunction(cur_depth_data, cur_label_data,
           hands) << endl;
       }
       break;
@@ -597,7 +590,7 @@ void fitFrame(bool seed_with_last_frame) {
     hands[0] = l_hands[cur_image];
     hands[1] = r_hands[cur_image];
   }
-  hand_fit->fitModel(cur_depth_data, cur_label_data, hands);
+  fit->fitModel(cur_depth_data, cur_label_data, hands);
 }
 
 
@@ -913,7 +906,7 @@ int main(int argc, char *argv[]) {
     // Create the hand data and attach it to the renderer for lighting
     hand_renderer = new HandRenderer(render, fit_left, fit_right);
     coeffs.resize(1, HAND_NUM_COEFF * num_hands);
-    hand_fit = new HandFit(hand_renderer, num_hands);
+    fit = new HandFit(hand_renderer, num_hands);
     r_hands = new HandModel*[im_files.size()];
     for (uint32_t i = 0; i < im_files.size(); i++) {
       r_hands[i] = new HandModel(kinect_interface::hand_net::HandType::RIGHT);
@@ -949,7 +942,7 @@ int main(int argc, char *argv[]) {
           InitXYZPointsForRendering();
         } else {
           std::cout << "Function Evals Per Second = ";
-          std::cout << hand_fit->func_eval_count() / (clk->getTime() - 
+          std::cout << fit->func_eval_count() / (clk->getTime() - 
             continuous_fit_timer_start);
           continuous_fit = false;
         }

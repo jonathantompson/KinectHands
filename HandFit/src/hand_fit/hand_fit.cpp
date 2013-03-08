@@ -45,7 +45,7 @@ using jtil::data_str::VectorManaged;
 using renderer::GLState;
 using namespace kinect_interface::hand_net;
 
-namespace hand_model {
+namespace hand_fit {
   
   // Static variables
   HandFit* HandFit::cur_fit_ = NULL;
@@ -916,4 +916,4 @@ namespace hand_model {
     }
   }
 
-}  // namespace hand_model
+}  // namespace hand_fit

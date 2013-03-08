@@ -66,7 +66,7 @@ namespace jtil {
   }
 }
 
-namespace hand_model {
+namespace hand_fit {
   
   class HandRenderer;
 

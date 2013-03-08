@@ -4,6 +4,8 @@
 //  Created by Jonathan Tompson on 7/20/12.
 //
 
+#error "this depth_images_io.cpp is no longer the latest version"
+
 #if defined(WIN32) || defined(_WIN32)
 #include <windows.h>
 #include <tchar.h> 

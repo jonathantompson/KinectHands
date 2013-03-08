@@ -48,7 +48,7 @@ using renderer::BoneFileInfo;
 using renderer::BoundingSphere;
 using namespace kinect_interface::hand_net;
 
-namespace hand_model {
+namespace hand_fit {
   
   HandGeometryMesh::HandGeometryMesh(HandType hand_type, 
     Renderer* g_renderer, HandRenderer* g_hand_renderer) : 
@@ -263,7 +263,7 @@ namespace hand_model {
     // Set the palm bone (depending on wrist angle)
     mat = bones_in_file_->bones[bone_palm_index_]->getNode()->mat();
     Float4x4::rotateMatXAxis(mat_tmp1, coeff[WRIST_PHI]);
-    Float4x4::rotateMatXAxis(mat_tmp2, coeff[WRIST_THETA]);
+    Float4x4::rotateMatZAxis(mat_tmp2, coeff[WRIST_THETA]);
     Float4x4::mult(mat_tmp3, mat_tmp1, mat_tmp2);
     // Float4x4::rotateMatXAxis(mat_tmp1, HandModel::wrist_twist);
     // Float4x4::mult(mat_tmp2, mat_tmp1, mat_tmp3);
@@ -439,4 +439,4 @@ namespace hand_model {
     0.28f,  // TH_KNU1_B = 19,
   };
 
-}  // namespace hand_model
+}  // namespace hand_fit

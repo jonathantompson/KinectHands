@@ -19,55 +19,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\data_str\hash_funcs.cpp" />
-    <ClCompile Include="src\exceptions\wruntime_error.cpp" />
     <ClCompile Include="src\main\main_test_sdb.cpp" />
     <ClCompile Include="src\math\common_fitting.cpp" />
-    <ClCompile Include="src\math\math_base.cpp" />
     <ClCompile Include="src\math\optimization_test_functions.cpp" />
     <ClCompile Include="src\math\sdb_fitting.cpp" />
-    <ClCompile Include="src\string_util\string_util.cpp" />
-    <ClCompile Include="src\threading\thread.cpp" />
-    <ClCompile Include="src\threading\thread_pool.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\alignment\data_align.h" />
-    <ClInclude Include="src\clock\clock.h" />
-    <ClInclude Include="src\data_str\circular_buffer.h" />
-    <ClInclude Include="src\data_str\hash_funcs.h" />
-    <ClInclude Include="src\data_str\hash_map.h" />
-    <ClInclude Include="src\data_str\hash_map_managed.h" />
-    <ClInclude Include="src\data_str\hash_set.h" />
-    <ClInclude Include="src\data_str\min_heap.h" />
-    <ClInclude Include="src\data_str\pair.h" />
-    <ClInclude Include="src\data_str\vector.h" />
-    <ClInclude Include="src\data_str\vector_managed.h" />
-    <ClInclude Include="src\exceptions\wruntime_error.h" />
     <ClInclude Include="src\math\common_fitting.h" />
-    <ClInclude Include="src\math\mat2x2.h" />
-    <ClInclude Include="src\math\mat3x3.h" />
-    <ClInclude Include="src\math\mat4x4.h" />
-    <ClInclude Include="src\math\math_base.h" />
-    <ClInclude Include="src\math\math_types.h" />
     <ClInclude Include="src\math\optimization_test_functions.h" />
-    <ClInclude Include="src\math\plane.h" />
-    <ClInclude Include="src\math\quat.h" />
     <ClInclude Include="src\math\sdb_fitting.h" />
-    <ClInclude Include="src\math\vec2.h" />
-    <ClInclude Include="src\math\vec3.h" />
-    <ClInclude Include="src\math\vec4.h" />
-    <ClInclude Include="src\string_util\macros.h" />
-    <ClInclude Include="src\string_util\string_util.h" />
-    <ClInclude Include="src\string_util\win32_debug_buffer.h" />
-    <ClInclude Include="src\threading\callback.h" />
-    <ClInclude Include="src\threading\callback_instances.h" />
-    <ClInclude Include="src\threading\callback_queue.h" />
-    <ClInclude Include="src\threading\callback_queue_item.h" />
-    <ClInclude Include="src\threading\thread.h" />
-    <ClInclude Include="src\threading\thread_pool.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="src\threading\callback_instances.py" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCTargetsPath Condition="'$(VCTargetsPath11)' != '' and '$(VSVersion)' == '' and '$(VisualStudioVersion)' == ''">$(VCTargetsPath11)</VCTargetsPath>
@@ -125,16 +85,16 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)Build\TestSDB\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)Build\TestSDB\$(Configuration)\</IntDir>
+    <OutDir>$(ProjectDir)Build\TestSDB\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Build\TestSDB\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)Build\TestSDB\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)Build\TestSDB\$(Configuration)\</IntDir>
+    <OutDir>$(ProjectDir)Build\TestSDB\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Build\TestSDB\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -162,7 +122,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./glut-3.7.6-bin;./src;./eigen-3.1.1/Eigen</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./glut-3.7.6-bin;./src;./eigen-3.1.1/Eigen;$(ProjectDir)../../PRenderer2/jtil/include</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -209,7 +169,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>./glut-3.7.6-bin;./src;./eigen-3.1.1/Eigen</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./glut-3.7.6-bin;./src;./eigen-3.1.1/Eigen;$(ProjectDir)../../PRenderer2/jtil/include</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
