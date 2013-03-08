@@ -17,10 +17,10 @@
 #include <string>
 #include <iostream>
 #include <thread>
-#include "math/math_types.h"
-#include "data_str/vector_managed.h"
-#include "depth_images_io.h"
-#include "forest_io.h"
+#include "jtil/math/math_types.h"
+#include "jtil/data_str/vector_managed.h"
+#include "kinect_interface/depth_images_io.h"
+#include "kinect_interface/hand_detector/forest_io.h"
 #include "string_util/string_util.h"
 #include "image_util.h"
 #include "clock/clock.h"

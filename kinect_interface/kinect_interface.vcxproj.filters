@@ -60,6 +60,12 @@
     <ClCompile Include="src\kinect_interface\hand_net\hand_image_generator.cpp">
       <Filter>Source Files\kinect_interface\hand_net</Filter>
     </ClCompile>
+    <ClCompile Include="src\kinect_interface\hand_detector\generate_decision_tree.cpp">
+      <Filter>Source Files\kinect_interface\hand_detector</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kinect_interface\hand_detector\evaluate_decision_forest.cpp">
+      <Filter>Source Files\kinect_interface\hand_detector</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\kinect_interface\hand_detector\hand_detector.h">
@@ -103,6 +109,12 @@
     </ClInclude>
     <ClInclude Include="include\kinect_interface\hand_net\hand_image_generator.h">
       <Filter>Header Files\kinect_interface\hand_net</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kinect_interface\hand_detector\generate_decision_tree.h">
+      <Filter>Header Files\kinect_interface\hand_detector</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kinect_interface\hand_detector\evaluate_decision_forest.h">
+      <Filter>Header Files\kinect_interface\hand_detector</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

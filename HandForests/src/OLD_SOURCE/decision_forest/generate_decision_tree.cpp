@@ -1,5 +1,5 @@
 //
-//  generate_decision_tree.cpp
+//  generate_decision_tree.c
 //
 //  Created by Jonathan Tompson on 7/20/12.
 //
@@ -20,11 +20,11 @@
 #endif
 #include <iostream>
 #include <mutex>
-#include "kinect_interface/hand_detector/generate_decision_tree.h"
-#include "kinect_interface/hand_detector/common_tree_funcs.h"
-#include "jtil/data_str/circular_buffer.h"
-#include "kinect_interface/hand_detector/decision_tree_func.h"
-#include "kinect_interface/hand_detector/evaluate_decision_forest.h"
+#include "generate_decision_tree.h"
+#include "common_tree_funcs.h"
+#include "circular_buffer.h"
+#include "decision_tree_func.h"
+#include "evaluate_decision_forest.h"
 
 using std::string;
 using std::runtime_error;

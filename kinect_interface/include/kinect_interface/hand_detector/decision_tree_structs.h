@@ -1,5 +1,5 @@
 //
-//  generate_decision_tree.h
+//  decision_tree_structs.h
 //
 //  Created by Jonathan Tompson on 7/20/12.
 //

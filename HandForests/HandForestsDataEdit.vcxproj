@@ -1,17 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|x64">
       <Configuration>Release</Configuration>
@@ -27,24 +19,11 @@
     <RootNamespace>HandForestsDataEdit</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v110</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v110</PlatformToolset>
     <CharacterSet>NotSet</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v110</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -56,54 +35,23 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LinkIncremental>true</LinkIncremental>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)build\$(ProjectName)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)build\$(ProjectName)\$(Configuration)\</IntDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(ProjectDir)Build\HandForestsDataEdit\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Build\HandForestsDataEdit\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)build\$(ProjectName)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)build\$(ProjectName)\$(Configuration)\</IntDir>
+    <OutDir>$(ProjectDir)Build\HandForestsDataEdit\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Build\HandForestsDataEdit\$(Configuration)\</IntDir>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <ClCompile>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../../../include/glew;../../../include/glu;$(ProjectDir)src;../../../include</AdditionalIncludeDirectories>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>../../../lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glew32s.lib;glu32.lib;glut32.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-    <PostBuildEvent>
-      <Command>copy ..\..\..\lib\glut32.dll $(SolutionDir)\$(Configuration)\glut32.dll</Command>
-    </PostBuildEvent>
-  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PrecompiledHeader>
@@ -111,41 +59,17 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)glut-3.7.6-bin;$(ProjectDir)src;../src;../HandFit/src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)../kinect_interface/include;$(ProjectDir)../../PRenderer2/jtil/include;$(ProjectDir)glut-3.7.6-bin;$(ProjectDir)src;../src;../HandFit/src</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>./glut-3.7.6-bin</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glut64.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)../kinect_interface/build/$(Platform)/$(Configuration)/;$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\;./glut-3.7.6-bin</AdditionalLibraryDirectories>
+      <AdditionalDependencies>jtil_d.lib;kinect_interface_d.lib;glut64.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)glut-3.7.6-bin\glut64.dll $(SolutionDir)build\$(ProjectName)\$(Configuration)\glut64.dll</Command>
-    </PostBuildEvent>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../../../include/glew;../../../include/glu;$(ProjectDir)src;../../../include</AdditionalIncludeDirectories>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>glew32s.lib;glu32.lib;glut32.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>../../../lib</AdditionalLibraryDirectories>
-    </Link>
-    <PostBuildEvent>
-      <Command>copy ..\..\..\lib\glut32.dll $(SolutionDir)\$(Configuration)\glut32.dll</Command>
+      <Command>copy $(ProjectDir)glut-3.7.6-bin\glut64.dll $(ProjectDir)Build\HandForestsDataEdit\$(Configuration)\glut64.dll</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -157,7 +81,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)glut-3.7.6-bin;$(ProjectDir)src;../src;../HandFit/src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)../kinect_interface/include;$(ProjectDir)../../PRenderer2/jtil/include;$(ProjectDir)glut-3.7.6-bin;$(ProjectDir)src;../src;../HandFit/src</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
@@ -166,51 +90,15 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>glut64.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>./glut-3.7.6-bin</AdditionalLibraryDirectories>
+      <AdditionalDependencies>jtil.lib;kinect_interface.lib;glut64.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)../kinect_interface/build/$(Platform)/$(Configuration)/;$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\;./glut-3.7.6-bin</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)glut-3.7.6-bin\glut64.dll $(SolutionDir)build\$(ProjectName)\$(Configuration)\glut64.dll</Command>
+      <Command>copy $(ProjectDir)glut-3.7.6-bin\glut64.dll $(ProjectDir)Build\HandForestsDataEdit\$(Configuration)\glut64.dll</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\HandFit\src\exceptions\wruntime_error.cpp" />
-    <ClCompile Include="..\HandFit\src\fastlz\fastlz.c" />
-    <ClCompile Include="..\HandFit\src\string_util\string_util.cpp" />
-    <ClCompile Include="src\debug_util\debug_util_win32.cpp" />
-    <ClCompile Include="src\depth_images_io.cpp" />
-    <ClCompile Include="src\file_io\csv_handle.cpp" />
-    <ClCompile Include="src\file_io\csv_handle_read.cpp" />
-    <ClCompile Include="src\file_io\csv_handle_write.cpp" />
     <ClCompile Include="src\main_data_edit.cpp" />
-    <ClCompile Include="src\marching_squares\contour.cpp" />
-    <ClCompile Include="src\marching_squares\marching_squares.cpp" />
-    <ClCompile Include="src\marching_squares\min_heap_contours.cpp" />
-    <ClCompile Include="src\maxflow-v3.02\graph.cpp" />
-    <ClCompile Include="src\maxflow-v3.02\maxflow.cpp" />
-    <ClCompile Include="src\open_ni_funcs.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\src\clock\clock.h" />
-    <ClInclude Include="..\..\..\src\math\math_types.h" />
-    <ClInclude Include="..\HandFit\src\exceptions\wruntime_error.h" />
-    <ClInclude Include="..\HandFit\src\fastlz\fastlz.h" />
-    <ClInclude Include="..\HandFit\src\string_util\string_util.h" />
-    <ClInclude Include="src\block.h" />
-    <ClInclude Include="src\data_str\vector.h" />
-    <ClInclude Include="src\data_str\vector_managed.h" />
-    <ClInclude Include="src\debug_util\debug_util.h" />
-    <ClInclude Include="src\depth_images_io.h" />
-    <ClInclude Include="src\file_io\csv_handle.h" />
-    <ClInclude Include="src\file_io\csv_handle_read.h" />
-    <ClInclude Include="src\file_io\csv_handle_write.h" />
-    <ClInclude Include="src\image_util.h" />
-    <ClInclude Include="src\marching_squares\contour.h" />
-    <ClInclude Include="src\marching_squares\marching_squares.h" />
-    <ClInclude Include="src\marching_squares\min_heap_contours.h" />
-    <ClInclude Include="src\maxflow-v3.02\block.h" />
-    <ClInclude Include="src\maxflow-v3.02\graph.h" />
-    <ClInclude Include="src\open_ni_funcs.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include=".\TO DO.txt" />

@@ -13,7 +13,12 @@
   <ItemGroup>
     <ClCompile Include="src\kinect_interface\depth_images_io.cpp" />
     <ClCompile Include="src\kinect_interface\hand_detector\common_tree_funcs.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_detector\evaluate_decision_forest.cpp" />
     <ClCompile Include="src\kinect_interface\hand_detector\forest_io.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_detector\generate_decision_tree.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\kinect_interface\hand_detector\hand_detector.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </ExcludedFromBuild>
@@ -34,7 +39,9 @@
     <ClInclude Include="include\kinect_interface\hand_detector\common_tree_funcs.h" />
     <ClInclude Include="include\kinect_interface\hand_detector\decision_tree_func.h" />
     <ClInclude Include="include\kinect_interface\hand_detector\decision_tree_structs.h" />
+    <ClInclude Include="include\kinect_interface\hand_detector\evaluate_decision_forest.h" />
     <ClInclude Include="include\kinect_interface\hand_detector\forest_io.h" />
+    <ClInclude Include="include\kinect_interface\hand_detector\generate_decision_tree.h" />
     <ClInclude Include="include\kinect_interface\hand_detector\hand_detector.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </ExcludedFromBuild>

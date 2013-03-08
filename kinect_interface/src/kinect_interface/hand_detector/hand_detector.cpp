@@ -3,8 +3,8 @@
 #include <iostream>
 #include "kinect_interface/hand_detector/hand_detector.h"
 #include "kinect_interface/hand_detector/forest_io.h"
-#include "kinect_interface/hand_detector/decision_tree_func.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
+#include "kinect_interface/hand_detector/evaluate_decision_forest.h"
 #include "kinect_interface/open_ni_funcs.h"
 #include "jtil/image_util/image_util.h"
 #include "jtil/threading/thread_pool.h"
@@ -282,64 +282,9 @@ namespace hand_detector {
   }
 
   void HandDetector::evaluateForestPixel(const uint32_t index) {
-    float hist[NUM_LABELS];
-    if (depth_downsampled_[index] == 0 || 
-        depth_downsampled_[index] >= GDT_MAX_DIST) {
-      labels_evaluated_[index] = 0;
-    } else {
-      // For each tree, evaluate the pixel adding to the accumulated histogram
-      for (uint32_t i = 0; i < NUM_LABELS; i++) {
-  #ifndef MULTIPLY_LEAVES
-        hist[i] = 0;
-  #else
-        hist[i] = 1;
-  #endif
-      }
-      for (int32_t cur_tree = 0; cur_tree < num_trees_to_evaluate_; cur_tree++) {
-        DecisionTreeNode* cur_node = &forest_[cur_tree].tree[0];
-        uint32_t cur_height = 1;
-        while (true) {       
-          bool isLeaf = (cur_height == max_height_to_evaluate_ || 
-            cur_height == forest_[cur_tree].tree_height || 
-            cur_node->left_child == -1);
-          if (isLeaf) {
-  #ifndef MULTIPLY_LEAVES
-            for (uint32_t i = 0; i < NUM_LABELS; i++) {
-              hist[i] += cur_node->prob[i];
-            }
-  #else
-            for (uint32_t i = 0; i < NUM_LABELS; i++) {
-              hist[i] *= cur_node->prob[i];
-            }
-  #endif
-            break;
-          }
-
-          bool result;
-          WL_FUNC(index, cur_node->coeff0, cur_node->coeff1, cur_node->coeff2, 
-            cur_node->wl_func, down_width_, down_height_, depth_downsampled_, 
-            result);
-
-          if (result) {
-            // Go left
-            cur_node = &forest_[cur_tree].tree[cur_node->left_child];
-          } else {
-            // Go right
-            cur_node = &forest_[cur_tree].tree[cur_node->right_child];
-          }
-          cur_height++;
-        }
-      }  // for (int32_t i = 0; i < num_trees; i++)
-      uint8_t pixel_label = 0;
-      float max_hist = -1;
-      for (uint8_t i = 0; i < NUM_LABELS; i++) {
-        if (hist[i] > max_hist) {
-          max_hist = hist[i];
-          pixel_label = i;
-        }
-      }
-      labels_evaluated_[index] = pixel_label;
-    }  // if (image_data[index] == 0 || image_data[index] >= GDT_MAX_DIST)
+    hand_detector::evaluateDecisionForestPixel(labels_evaluated_, forest_,
+      max_height_to_evaluate_, num_trees_to_evaluate_, depth_downsampled_, 
+      down_width_, down_height_, index);
   }
 
   void HandDetector::reset() {
