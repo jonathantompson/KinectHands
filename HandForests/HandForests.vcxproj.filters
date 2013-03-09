@@ -16,171 +16,24 @@
     <Filter Include="Source Files\src">
       <UniqueIdentifier>{78741596-a4dc-4fb7-8e6c-3fdf38a0d986}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\src\threading">
-      <UniqueIdentifier>{1860f3f4-1026-45f3-8bea-136073536f09}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\src\math">
-      <UniqueIdentifier>{63392449-dba1-433f-87c7-b4c5c1f171d5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\src\string_util">
-      <UniqueIdentifier>{4db57272-456b-4627-af8d-e12dd08af505}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\src\clock">
-      <UniqueIdentifier>{b0b12238-ef8d-4b85-ac45-a6a6885090bf}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\src\debug_util">
-      <UniqueIdentifier>{43dbf6c0-9cd3-4595-aa91-d0e1054e0a22}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\src\fastlz">
-      <UniqueIdentifier>{03b41aef-b9ab-47b7-942c-a987ede76790}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\src\file_io">
-      <UniqueIdentifier>{4c1a1914-52d3-46d6-b3e9-1fb5b632ea08}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\src\data_str">
-      <UniqueIdentifier>{314b682b-0fdd-47bb-96d6-6d3410fee599}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\src\exceptions">
-      <UniqueIdentifier>{1bed4992-699a-4946-b130-00cfce7424ff}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
-    <ClCompile Include="src\threading\thread.cpp">
-      <Filter>Source Files\src\threading</Filter>
-    </ClCompile>
-    <ClCompile Include=".\src\common_tree_funcs.cpp">
-      <Filter>Source Files\src</Filter>
-    </ClCompile>
-    <ClCompile Include=".\src\evaluate_decision_forest.cpp">
-      <Filter>Source Files\src</Filter>
-    </ClCompile>
-    <ClCompile Include=".\src\forest_io.cpp">
-      <Filter>Source Files\src</Filter>
-    </ClCompile>
-    <ClCompile Include=".\src\generate_decision_tree.cpp">
-      <Filter>Source Files\src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\debug_util\debug_util_win32.cpp">
-      <Filter>Source Files\src\debug_util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\fastlz\fastlz.c">
-      <Filter>Source Files\src\fastlz</Filter>
-    </ClCompile>
-    <ClCompile Include="src\depth_images_io.cpp">
-      <Filter>Source Files\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\string_util\string_util.cpp">
-      <Filter>Source Files\src\string_util</Filter>
-    </ClCompile>
-    <ClCompile Include="src\threading\thread_pool.cpp">
-      <Filter>Source Files\src\threading</Filter>
-    </ClCompile>
     <ClCompile Include="src\load_settings_from_file.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\exceptions\wruntime_error.cpp">
-      <Filter>Source Files\src\exceptions</Filter>
-    </ClCompile>
-    <ClCompile Include="src\file_io\csv_handle_read.cpp">
-      <Filter>Source Files\src\file_io</Filter>
-    </ClCompile>
-    <ClCompile Include="src\file_io\csv_handle_write.cpp">
-      <Filter>Source Files\src\file_io</Filter>
-    </ClCompile>
-    <ClCompile Include="src\file_io\csv_handle.cpp">
-      <Filter>Source Files\src\file_io</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\kinect_interface\open_ni_funcs.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="src\circular_buffer.h">
-      <Filter>Source Files\src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\threading\callback_instances.h">
-      <Filter>Source Files\src\threading</Filter>
-    </ClInclude>
-    <ClInclude Include="src\threading\callback_queue.h">
-      <Filter>Source Files\src\threading</Filter>
-    </ClInclude>
-    <ClInclude Include="src\threading\callback_queue_item.h">
-      <Filter>Source Files\src\threading</Filter>
-    </ClInclude>
-    <ClInclude Include="src\threading\thread.h">
-      <Filter>Source Files\src\threading</Filter>
-    </ClInclude>
-    <ClInclude Include="src\threading\callback.h">
-      <Filter>Source Files\src\threading</Filter>
-    </ClInclude>
-    <ClInclude Include="src\image_util.h">
-      <Filter>Source Files\src</Filter>
-    </ClInclude>
-    <ClInclude Include=".\src\common_tree_funcs.h">
-      <Filter>Source Files\src</Filter>
-    </ClInclude>
-    <ClInclude Include=".\src\evaluate_decision_forest.h">
-      <Filter>Source Files\src</Filter>
-    </ClInclude>
-    <ClInclude Include=".\src\forest_io.h">
-      <Filter>Source Files\src</Filter>
-    </ClInclude>
-    <ClInclude Include=".\src\generate_decision_tree.h">
-      <Filter>Source Files\src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\math\math_types.h">
-      <Filter>Source Files\src\math</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\clock\clock.h">
-      <Filter>Source Files\src\clock</Filter>
-    </ClInclude>
-    <ClInclude Include="src\decision_tree_func.h">
-      <Filter>Source Files\src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\debug_util\debug_util.h">
-      <Filter>Source Files\src\debug_util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\fastlz\fastlz.h">
-      <Filter>Source Files\src\fastlz</Filter>
-    </ClInclude>
-    <ClInclude Include="src\depth_images_io.h">
-      <Filter>Source Files\src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\string_util\string_util.h">
-      <Filter>Source Files\src\string_util</Filter>
-    </ClInclude>
-    <ClInclude Include="src\threading\thread_pool.h">
-      <Filter>Source Files\src\threading</Filter>
-    </ClInclude>
-    <ClInclude Include="src\load_settings_from_file.h">
-      <Filter>Source Files\src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\data_str\vector_managed.h">
-      <Filter>Source Files\src\data_str</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\exceptions\wruntime_error.h">
-      <Filter>Source Files\src\exceptions</Filter>
-    </ClInclude>
-    <ClInclude Include="src\file_io\csv_handle.h">
-      <Filter>Source Files\src\file_io</Filter>
-    </ClInclude>
-    <ClInclude Include="src\file_io\csv_handle_read.h">
-      <Filter>Source Files\src\file_io</Filter>
-    </ClInclude>
-    <ClInclude Include="src\file_io\csv_handle_write.h">
-      <Filter>Source Files\src\file_io</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\kinect_interface\open_ni_funcs.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include=".\TO DO.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="program_settings.csv" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\load_settings_from_file.h">
+      <Filter>Source Files\src</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

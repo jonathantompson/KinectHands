@@ -4,8 +4,8 @@
 //  Created by Jonathan Tompson on 3/1/13.
 //
 
-#ifndef KINECT_INTERFACE_LOAD_DEPTH_IMAGE_HEADER
-#define KINECT_INTERFACE_LOAD_DEPTH_IMAGE_HEADER
+#ifndef KINECT_INTERFACE_DEPTH_IMAGE_DATA_HEADER
+#define KINECT_INTERFACE_DEPTH_IMAGE_DATA_HEADER
 
 #include <string>
 #include <iostream>
@@ -13,7 +13,9 @@
 #include "jtil/math/math_types.h"
 
 namespace kinect_interface {
-
+   
+  // DepthImageData used really only when generating the decision tree
+  // for the HandDetector
   struct DepthImageData {
     int16_t* image_data;
     uint8_t* label_data;
@@ -26,4 +28,4 @@ namespace kinect_interface {
 
 };  // namespace kinect_interface
 
-#endif  // KINECT_INTERFACE_LOAD_DEPTH_IMAGE_HEADER
+#endif  // KINECT_INTERFACE_DEPTH_IMAGE_DATA_HEADER

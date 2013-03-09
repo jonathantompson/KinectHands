@@ -24,9 +24,12 @@
 #include "jtil/string_util/string_util.h"
 #include "jtil/data_str/vector_managed.h"
 #include "jtil/fastlz/fastlz.h"
+#include "jtil/exceptions/wruntime_error.h"
 
 using std::string;
-using std::runtime_error;
+using std::cout;
+using std::endl;
+using std::wruntime_error;
 using jtil::data_str::VectorManaged;
 using namespace jtil::image_util;
 
@@ -139,134 +142,128 @@ namespace kinect_interface {
     // SAFE_DELETE(im_graph);
   }
 
-  /*  // NEEDS UPDATING --> ONLY LOAD PROCESSED IMAGES NOW.
-  // LoadDepthImagesFromDirectory - Top level function
-  // This version will split the data into training data and test data, as well
+  // LoadDepthImagesFromDirectoryForDT
+  // This method will split the data into training data and test data, as well
   // as downsample the depth image as desired.
-  void LoadDepthImagesFromDirectoryForDT(std::string directory,
-    DepthImageData*& training_data,
-    DepthImageData*& test_data,
-    float frac_test_data,
-    uint32_t file_skip,
-    bool load_processed_images) {
-      if (data_size == 0) {
-        init_image_io();
+  void DepthImagesIO::LoadDepthImagesFromDirectoryForDT(const string& directory, 
+    DepthImageData*& train_data, DepthImageData*& test_data,
+    const float frac_test_data, const uint32_t file_stride) {
+    VectorManaged<char*> files_in_directory;
+    const bool load_processed_images = true;  // don't change this!
+    uint32_t num_files = GetFilesInDirectory(files_in_directory, directory, 
+      load_processed_images);
+    if (num_files == 0) {
+      throw std::runtime_error("ERROR: no files in the database!\n");
+    }
+    cout << "  --> Total number of files in the database = " << num_files << endl;
+    num_files = num_files / file_stride;
+    cout << "  --> Using " << num_files << " of these files:" << endl;
+
+    test_data = new DepthImageData;
+    train_data = new DepthImageData;
+
+    uint32_t stride_test_data = (uint32_t)(round(1.0f / frac_test_data));
+    test_data->num_images = (uint32_t)(ceil((float)(num_files) / 
+      (float)(stride_test_data)));
+    train_data->num_images = num_files - test_data->num_images;
+
+    bool load_training_data = test_data->num_images != 0;
+    if (!load_training_data) {
+      cout << "LoadDepthImagesFromDirectory - Warning, not reserving any ";
+      cout << "images for the test set!"  << endl;
+      cout << "  --> frac_test_data is too low!" << endl;
+    }
+
+    // Allocate enough space for the images:
+    uint32_t num_pix = src_dim;
+    uint32_t num_pix_downs = num_pix / (DT_DOWNSAMPLE*DT_DOWNSAMPLE);
+
+    if (src_width % DT_DOWNSAMPLE != 0 || src_height % DT_DOWNSAMPLE != 0) {
+      throw wruntime_error(string("LoadDepthImagesFromDirectory downsample") +
+        string(" factor must be an integer multiple"));
+    }
+
+    train_data->image_data = new int16_t[num_pix_downs * train_data->num_images];
+    train_data->label_data = new uint8_t[num_pix_downs * train_data->num_images];
+    train_data->im_width = src_width / DT_DOWNSAMPLE;
+    train_data->im_height = src_height / DT_DOWNSAMPLE;
+    train_data->filenames = new char*[train_data->num_images];
+    train_data->rgb_data = NULL;
+
+    if (load_training_data) {
+      test_data->image_data = new int16_t[num_pix_downs * test_data->num_images];
+      test_data->label_data = new uint8_t[num_pix_downs * test_data->num_images];
+      test_data->filenames = new char*[test_data->num_images];
+    } else {
+      test_data->image_data = NULL;
+      test_data->label_data = NULL;
+      test_data->filenames = NULL;
+    }
+    test_data->rgb_data = NULL;
+    test_data->im_width = src_width / DT_DOWNSAMPLE;
+    test_data->im_height = src_height / DT_DOWNSAMPLE;  
+
+    // Find the first file in the directory again so that we can iterate through
+    uint32_t cur_test_image = 0;
+    uint32_t cur_training_image = 0;
+    uint8_t* label_dst;
+    int16_t* image_dst;
+    for (uint32_t i = 0; i < num_files; i++) {
+      if ((i % 100) == 0 || i == num_files - 1) {
+        std::cout << "      loading image " << i + 1 << " of " << num_files << std::endl;
       }
-
-      VectorManaged<char*> files_in_directory;
-      uint32_t num_files = GetFilesInDirectory(files_in_directory, directory, load_processed_images);
-      if (num_files == 0) {
-        throw std::runtime_error("ERROR: no files in the database!\n");
-      }
-      std::cout << "  --> Total number of files in the database = " << num_files << std::endl;
-      num_files = num_files / file_skip;
-      std::cout << "  --> Using " << num_files << " of these files:" << std::endl;
-
-      test_data = new DepthImageData;
-      training_data = new DepthImageData;
-
-      uint32_t stride_test_data = static_cast<uint32_t>(round(1.0f / frac_test_data));
-      test_data->num_images = static_cast<uint32_t>(ceil(static_cast<float>(num_files) / 
-        static_cast<float>(stride_test_data)));
-      training_data->num_images = num_files - test_data->num_images;
-
-      bool load_training_data = test_data->num_images != 0;
-      if (!load_training_data) {
-        std::cout << "LoadDepthImagesFromDirectory - Warning, not reserving any images ";
-        std::cout << "for the test set!"  << std::endl << "  frac_test_data is too low!" << std::endl;
-      }
-
-      // Allocate enough space for the images:
-      uint32_t num_pixels = src_dim;
-      uint32_t num_pixels_downsampled = num_pixels / (DT_DOWNSAMPLE*DT_DOWNSAMPLE);
-
-      if (src_width % DT_DOWNSAMPLE != 0 || src_height % DT_DOWNSAMPLE != 0) {
-        throw runtime_error(string("LoadDepthImagesFromDirectory downsample") +
-          string(" factor must be an integer multiple"));
-      }
-
-      training_data->image_data = new int16_t[num_pixels_downsampled * training_data->num_images];
-      training_data->label_data = new uint8_t[num_pixels_downsampled * training_data->num_images];
-      training_data->im_width = src_width / DT_DOWNSAMPLE;
-      training_data->im_height = src_height / DT_DOWNSAMPLE;
-      training_data->filenames = new char*[training_data->num_images];
-      training_data->rgb_data = NULL;
-
-      if (load_training_data) {
-        test_data->image_data = new int16_t[num_pixels_downsampled * test_data->num_images];
-        test_data->label_data = new uint8_t[num_pixels_downsampled * test_data->num_images];
-        test_data->filenames = new char*[test_data->num_images];
-      } else {
-        test_data->image_data = NULL;
-        test_data->label_data = NULL;
-        test_data->filenames = NULL;
-      }
-      test_data->rgb_data = NULL;
-      test_data->im_width = src_width / DT_DOWNSAMPLE;
-      test_data->im_height = src_height / DT_DOWNSAMPLE;  
-
-      // Find the first file in the directory again so that we can iterate through
-      uint32_t cur_test_image = 0;
-      uint32_t cur_training_image = 0;
-      uint8_t* label_dst;
-      int16_t* image_dst;
-      for (uint32_t i = 0; i < num_files; i++) {
-        if ((i % 100) == 0 || i == num_files - 1) {
-          std::cout << "      loading image " << i + 1 << " of " << num_files << std::endl;
-        }
-        std::string cur_filename = string(*files_in_directory.at(i*file_skip));
-        if (DT_DOWNSAMPLE > 1) {
-          if (load_training_data && i % stride_test_data == 0) {
-            test_data->filenames[cur_test_image] = new char[cur_filename.length() + 1];
-            strcpy(test_data->filenames[cur_test_image], cur_filename.c_str());
-            image_dst = &test_data->image_data[cur_test_image * num_pixels_downsampled];
-            label_dst = &test_data->label_data[cur_test_image * num_pixels_downsampled];
-            cur_test_image++;
-          } else {
-            training_data->filenames[cur_training_image] = new char[cur_filename.length() + 1];
-            strcpy(training_data->filenames[cur_training_image], cur_filename.c_str());
-            image_dst = &training_data->image_data[cur_training_image * num_pixels_downsampled];
-            label_dst = &training_data->label_data[cur_training_image * num_pixels_downsampled];
-            cur_training_image++;
-          }
-
-          LoadDepthImageForDT(directory + cur_filename, cur_image_data,
-            cur_label_data, load_processed_images);
-          // Downsample but ignore 0 or background pixel values when filtering
-          DownsampleImageWithoutNonZeroPixelsAndBackground<int16_t>(image_dst, 
-            cur_image_data, src_width, src_height, DT_DOWNSAMPLE);
-          DownsampleLabelImageWithoutNonZeroPixelsAndBackground<uint8_t>(label_dst, 
-            cur_label_data, src_width, src_height, DT_DOWNSAMPLE);
-
+      std::string cur_filename = string(*files_in_directory.at(i*file_stride));
+      if (DT_DOWNSAMPLE > 1) {
+        if (load_training_data && i % stride_test_data == 0) {
+          test_data->filenames[cur_test_image] = new char[cur_filename.length() + 1];
+          strcpy(test_data->filenames[cur_test_image], cur_filename.c_str());
+          image_dst = &test_data->image_data[cur_test_image * num_pix_downs];
+          label_dst = &test_data->label_data[cur_test_image * num_pix_downs];
+          cur_test_image++;
         } else {
-          if (load_training_data && i % stride_test_data == 0) {
-            test_data->filenames[cur_test_image] = new char[cur_filename.length() + 1];
-            strcpy(test_data->filenames[cur_test_image], cur_filename.c_str());
-            image_dst = &test_data->image_data[cur_test_image * num_pixels_downsampled];       
-            label_dst = &test_data->label_data[cur_test_image * num_pixels_downsampled];
-            cur_test_image++;
-          } else {
-            training_data->filenames[cur_training_image] = new char[cur_filename.length() + 1];
-            strcpy(training_data->filenames[cur_training_image], cur_filename.c_str());
-            image_dst = &training_data->image_data[cur_training_image * num_pixels_downsampled];       
-            label_dst = &training_data->label_data[cur_training_image * num_pixels_downsampled];
-            cur_training_image++;
-          }
-          LoadDepthImageForDT(directory + cur_filename, image_dst, label_dst,
-            load_processed_images);
+          train_data->filenames[cur_training_image] = new char[cur_filename.length() + 1];
+          strcpy(train_data->filenames[cur_training_image], cur_filename.c_str());
+          image_dst = &train_data->image_data[cur_training_image * num_pix_downs];
+          label_dst = &train_data->label_data[cur_training_image * num_pix_downs];
+          cur_training_image++;
         }
-      }
 
-      // Double check that we allocated the correct number of images (and that we
-      // didn't mess up our book keeping).
-      if (static_cast<int32_t>(cur_training_image) != training_data->num_images ||
-        static_cast<int32_t>(cur_test_image) != test_data->num_images) {
-          throw runtime_error(string("LoadDepthImagesFromDirectory - something") +
-            string("went wrong.  The number of training and test images are not") + 
-            string(" what we expected!"));
+        LoadDepthImageForDT(directory + cur_filename, cur_image_data,
+          cur_label_data, load_processed_images);
+        // Downsample but ignore 0 or background pixel values when filtering
+        DownsampleImageWithoutNonZeroPixelsAndBackground<int16_t>(image_dst, 
+          cur_image_data, src_width, src_height, DT_DOWNSAMPLE);
+        DownsampleLabelImageWithoutNonZeroPixelsAndBackground<uint8_t>(label_dst, 
+          cur_label_data, src_width, src_height, DT_DOWNSAMPLE);
+
+      } else {
+        if (load_training_data && i % stride_test_data == 0) {
+          test_data->filenames[cur_test_image] = new char[cur_filename.length() + 1];
+          strcpy(test_data->filenames[cur_test_image], cur_filename.c_str());
+          image_dst = &test_data->image_data[cur_test_image * num_pix_downs];       
+          label_dst = &test_data->label_data[cur_test_image * num_pix_downs];
+          cur_test_image++;
+        } else {
+          train_data->filenames[cur_training_image] = new char[cur_filename.length() + 1];
+          strcpy(train_data->filenames[cur_training_image], cur_filename.c_str());
+          image_dst = &train_data->image_data[cur_training_image * num_pix_downs];       
+          label_dst = &train_data->label_data[cur_training_image * num_pix_downs];
+          cur_training_image++;
+        }
+        LoadDepthImageForDT(directory + cur_filename, image_dst, label_dst,
+          load_processed_images);
       }
+    }
+
+    // Double check that we allocated the correct number of images (and that we
+    // didn't mess up our book keeping).
+    if (static_cast<int32_t>(cur_training_image) != training_data->num_images ||
+      static_cast<int32_t>(cur_test_image) != test_data->num_images) {
+        throw wruntime_error(string("LoadDepthImagesFromDirectory - something") +
+          string("went wrong.  The number of training and test images are not") + 
+          string(" what we expected!"));
+    }
   }
-  */
 
   void DepthImagesIO::releaseImages(DepthImageData*& data) {
     for (int32_t i = 0; i < data->num_images; i++) {

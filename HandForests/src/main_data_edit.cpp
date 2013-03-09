@@ -21,24 +21,27 @@
 #include "jtil/data_str/vector_managed.h"
 #include "kinect_interface/depth_images_io.h"
 #include "kinect_interface/hand_detector/forest_io.h"
-#include "string_util/string_util.h"
-#include "image_util.h"
-#include "clock/clock.h"
-#include "threading/callback.h"
-#include "threading/thread.h"
-#include "debug_util/debug_util.h"  // Must come last in .cpp that includes main
+#include "kinect_interface/hand_detector/decision_tree_structs.h"  // MAX_DIST
+#include "jtil/string_util/string_util.h"
+#include "jtil/image_util/image_util.h"
+#include "jtil/clk/clk.h"
+#include "jtil/threading/callback.h"
+#include "jtil/threading/thread.h"
+#include "jtil/debug_util/debug_util.h"  // Must come last in .cpp that includes main
 
 using std::string;
 using std::runtime_error;
 using std::cout;
 using std::endl;
-using depth_images_io::IM_TYPE;
-using depth_images_io::DepthImagesIO;
+using namespace jtil;
+using namespace jtil::image_util;
+using namespace kinect_interface;
+using namespace kinect_interface::hand_detector;
 
 //#define IMAGE_DIRECTORY_BASE string("hand_data/left_only/set01/")
 //#define IMAGE_DIRECTORY_BASE string("hand_data/right_only/set03/")
 //#define IMAGE_DIRECTORY_BASE string("hand_data/both_hands/set01/")
-#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_4/")
+#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_5/")
 
 #define LOAD_LABELS_FROM_FILE  // if they exist load them from file
 
@@ -48,7 +51,7 @@ using depth_images_io::DepthImagesIO;
   #define IMAGE_DIRECTORY string("./../") + IMAGE_DIRECTORY_BASE
 #endif
 
-Clock clk;
+jtil::clk::Clk clk_;
 double t1; double t0;
 #define PLAY_SPEED (1.0/60.0)
 
@@ -199,7 +202,7 @@ uint64_t frame_counter = 0;
 double time_accumulate = 0;
 void display() {
   t0 = t1;
-  t1 = clk.getTime();
+  t1 = clk_.getTime();
 
   if (continuously_play) {
     if (cur_image == im_files.size() - 1) {
@@ -344,7 +347,7 @@ void keyboard(unsigned char key, int x, int y) {
         cout << "Error deleting file: " << cur_filename.c_str() << endl;
       } else {
         cout << "File deleted sucessfully: " << cur_filename.c_str() << endl;
-        im_files.deleteAtAndShift(static_cast<uint32_t>(cur_image));
+        im_files.deleteAtAndShift((uint32_t)cur_image);
         loadImageForRendering();
       }
       delete_confirmed = 0;
@@ -472,7 +475,7 @@ void mouse(int button, int state, int x, int y) {
   int32_t v = static_cast<float>(floorf(pos_window_y * static_cast<float>(src_height))); 
   uint32_t index = v * (src_width) + u;
 
-  if (render_image_type == depth_images_io::IM_DEPTH && state == GLUT_DOWN) {
+  if (render_image_type == IM_TYPE::IM_DEPTH && state == GLUT_DOWN) {
     if (u < src_width && v < src_height && u >= 0 && v >= 0) {
       if (button == GLUT_LEFT_BUTTON) {
         if (cur_depth_data[index] != 0 && cur_depth_data[index] < GDT_MAX_DIST) {
@@ -576,7 +579,7 @@ int main(int argc, char *argv[]) {
 
     initGL();
 
-    t1 = clk.getTime();
+    t1 = clk_.getTime();
     glutMainLoop();
 
   } catch(runtime_error e) {

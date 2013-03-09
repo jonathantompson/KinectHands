@@ -16,7 +16,7 @@ float log2(float val);
 #endif
 
 namespace kinect_interface {
-namespace decision_forest {
+namespace hand_detector {
 
   uint32_t calcTreeSize(const uint32_t height);
   float calcEntropy(const float* prob);

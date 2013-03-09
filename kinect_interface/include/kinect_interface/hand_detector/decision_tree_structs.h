@@ -50,10 +50,10 @@ namespace hand_detector {
   };
 
   struct TrainingSettings {
-    int32_t num_images_to_consider;
+    int32_t num_im_to_consider;
     uint32_t tree_height;
     float min_info_gain;
-    uint32_t max_pixels_per_image_per_label;
+    uint32_t max_pix_per_im_per_label;
     uint32_t dt_index;
     unsigned int seed;
   };

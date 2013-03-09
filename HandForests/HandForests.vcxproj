@@ -98,66 +98,17 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\exceptions\wruntime_error.cpp" />
-    <ClCompile Include="..\src\fastlz\fastlz.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsC</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\src\kinect_interface\open_ni_funcs.cpp" />
-    <ClCompile Include="..\src\string_util\string_util.cpp" />
-    <ClCompile Include=".\src\evaluate_decision_forest.cpp">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include=".\src\generate_decision_tree.cpp">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsCpp</CompileAs>
-    </ClCompile>
-    <ClCompile Include=".\src\common_tree_funcs.cpp" />
-    <ClCompile Include=".\src\forest_io.cpp" />
-    <ClCompile Include="src\debug_util\debug_util_win32.cpp" />
-    <ClCompile Include="src\depth_images_io.cpp" />
-    <ClCompile Include="src\file_io\csv_handle.cpp" />
-    <ClCompile Include="src\file_io\csv_handle_read.cpp" />
-    <ClCompile Include="src\file_io\csv_handle_write.cpp" />
     <ClCompile Include="src\load_settings_from_file.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\threading\thread.cpp" />
-    <ClCompile Include="src\threading\thread_pool.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\src\clock\clock.h" />
-    <ClInclude Include="..\..\..\src\math\math_types.h" />
-    <ClInclude Include="..\src\exceptions\wruntime_error.h" />
-    <ClInclude Include="..\src\fastlz\fastlz.h" />
-    <ClInclude Include="..\src\kinect_interface\open_ni_funcs.h" />
-    <ClInclude Include="..\src\string_util\string_util.h" />
-    <ClInclude Include="src\circular_buffer.h" />
-    <ClInclude Include=".\src\common_tree_funcs.h" />
-    <ClInclude Include=".\src\evaluate_decision_forest.h" />
-    <ClInclude Include=".\src\forest_io.h" />
-    <ClInclude Include=".\src\generate_decision_tree.h" />
-    <ClInclude Include="src\data_str\vector_managed.h" />
-    <ClInclude Include="src\debug_util\debug_util.h" />
-    <ClInclude Include="src\decision_tree_func.h" />
-    <ClInclude Include="src\depth_images_io.h" />
-    <ClInclude Include="src\file_io\csv_handle.h" />
-    <ClInclude Include="src\file_io\csv_handle_read.h" />
-    <ClInclude Include="src\file_io\csv_handle_write.h" />
-    <ClInclude Include="src\image_util.h" />
-    <ClInclude Include="src\load_settings_from_file.h" />
-    <ClInclude Include="src\threading\callback.h" />
-    <ClInclude Include="src\threading\callback_instances.h" />
-    <ClInclude Include="src\threading\callback_queue.h" />
-    <ClInclude Include="src\threading\callback_queue_item.h" />
-    <ClInclude Include="src\threading\thread.h" />
-    <ClInclude Include="src\threading\thread_pool.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include=".\TO DO.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="program_settings.csv" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\load_settings_from_file.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -8,7 +8,7 @@
 #define UNNAMED_LOAD_SETTINGS_FROM_FILE_HEADER
 
 #include <string>
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 
 struct ProgramSettings {
   bool load_forest_from_file;

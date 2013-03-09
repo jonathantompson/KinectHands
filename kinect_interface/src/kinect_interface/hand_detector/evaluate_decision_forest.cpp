@@ -22,8 +22,6 @@ namespace hand_detector {
     std::cout << "   width = " << width << std::endl;
     std::cout << "   height = " << height << std::endl;
   #endif
-    float hist[NUM_LABELS];
-
     for (int32_t v = 0; v < height; v++) {
       for (int32_t u = 0; u < width; u++) {
         int32_t index = v * width + u;

@@ -48,9 +48,9 @@ namespace kinect_interface {
     ~DepthImagesIO();
 
     // This version is for the decision tree forest project
-    void LoadDepthImagesFromDirectoryForDT(std::string directory, 
+    void LoadDepthImagesFromDirectoryForDT(const std::string& directory, 
       DepthImageData*& training_data, DepthImageData*& test_data,
-      float frac_test_data, uint32_t file_skip);
+      const float frac_test_data, const uint32_t file_stride);
 
     // Get a listing of all the files in the directory
     // - load_processed_images = true --> hands_*.bin
