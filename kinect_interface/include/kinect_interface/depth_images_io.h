@@ -72,14 +72,14 @@ namespace kinect_interface {
       uint8_t* label_data, uint8_t* rgb_data = NULL, uint8_t* red_pixels = NULL,
       uint8_t* hsv_pixels_ret = NULL);
 
-    // saveProcessedImages - Needs updating
-    void saveProcessedImage(std::string directory, char* filename, 
-      int16_t* image_data, uint8_t* label_data, int32_t width, int32_t height);
+    // saveProcessedImages
+    void saveProcessedImage(const std::string& directory, const char* filename, 
+      const int16_t* image_data, const uint8_t* label_data, const int32_t width, 
+      const int32_t height);
 
     template <typename T>
-    void saveUncompressedDepth(const std::string file, 
-      const T* depth_data, const uint32_t w = src_width, 
-      const uint32_t h = src_height);
+    void saveUncompressedDepth(const std::string file, const T* depth_data, 
+      const uint32_t w = src_width, const uint32_t h = src_height);
 
     // floodPixel - Manual editing of a label image (by flooding on the depth)
     void floodPixel(uint8_t* label_image, int16_t* depth_image, int u, int v, 
@@ -114,8 +114,6 @@ namespace kinect_interface {
       uint8_t* red_pixels, uint8_t* hsv_pixels);
 
     void getRedPixels(uint8_t* rgb, uint8_t* hsv, uint8_t* red_pixels);
-    //void cleanUpSegmentWithGraphCut(uint8_t* return_label_data,
-    //  int16_t* image_data, uint8_t* red_label_data);
     void cleanUpRedPixelsUsingDepth(int16_t* depth_data, uint8_t* red_pixels);
     void findHandPoints(uint8_t* label_data, uint8_t* red_pixels, 
       int16_t* depth_data);
@@ -133,6 +131,8 @@ namespace kinect_interface {
       int curPtIndex, uint8_t* labels);
     void zeroBlob(const uint32_t blob_index, int16_t* depth_data, 
       uint8_t* labels);
+
+    float round(const float num);
 
     // Some temporary space for processing each image
     uint16_t* compressed_data;

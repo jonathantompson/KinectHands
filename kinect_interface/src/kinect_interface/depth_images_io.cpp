@@ -203,6 +203,9 @@ namespace kinect_interface {
     test_data->im_width = src_width / DT_DOWNSAMPLE;
     test_data->im_height = src_height / DT_DOWNSAMPLE;  
 
+    /*
+    /TO DO: FIX THIS!
+
     // Find the first file in the directory again so that we can iterate through
     uint32_t cur_test_image = 0;
     uint32_t cur_training_image = 0;
@@ -257,12 +260,14 @@ namespace kinect_interface {
 
     // Double check that we allocated the correct number of images (and that we
     // didn't mess up our book keeping).
-    if (static_cast<int32_t>(cur_training_image) != training_data->num_images ||
+    if (static_cast<int32_t>(cur_training_image) != train_data->num_images ||
       static_cast<int32_t>(cur_test_image) != test_data->num_images) {
-        throw wruntime_error(string("LoadDepthImagesFromDirectory - something") +
-          string("went wrong.  The number of training and test images are not") + 
-          string(" what we expected!"));
+        throw wruntime_error("LoadDepthImagesFromDirectory - something"
+          "went wrong.  The number of training and test images are not"
+          " what we expected!");
     }
+    */
+    throw wruntime_error("Not yet implemented!");
   }
 
   void DepthImagesIO::releaseImages(DepthImageData*& data) {
@@ -285,7 +290,7 @@ namespace kinect_interface {
     data = NULL;
   }
 
-  float round(float num) {
+  float DepthImagesIO::round(const float num) {
     return (num > 0.0f) ? floor(num + 0.5f) : ceil(num - 0.5f);
   }
 
@@ -308,7 +313,7 @@ namespace kinect_interface {
       reinterpret_cast<void*>(uncompressed_data),
       data_size * 2);
     if (size_decompress != data_size) {
-      throw runtime_error(string("LoadDepthImage() - ERROR: ") +
+      throw wruntime_error(string("LoadDepthImage() - ERROR: ") +
         string("uncompressed data size is not what we expected!"));
     }
 
@@ -472,7 +477,7 @@ namespace kinect_interface {
       reinterpret_cast<void*>(uncompressed_data),
       processed_data_size * 2);
     if (size_decompress != processed_data_size) {
-      throw runtime_error(string("ERROR: uncompressed data") +
+      throw wruntime_error(string("ERROR: uncompressed data") +
         string(" size is not what we expected!"));
     }
 
@@ -520,7 +525,7 @@ namespace kinect_interface {
       reinterpret_cast<void*>(uncompressed_data),
       data_size * 2);
     if (size_decompress != data_size) {
-      throw runtime_error(string("LoadRGBImage() - ERROR: uncompressed data") +
+      throw wruntime_error(string("LoadRGBImage() - ERROR: uncompressed data") +
         string(" size is not what we expected!"));
     }
 
@@ -547,7 +552,7 @@ namespace kinect_interface {
     WIN32_FIND_DATA ffd;
     HANDLE hFind = FindFirstFile(szDir, &ffd);
     if (hFind == INVALID_HANDLE_VALUE) {
-      throw runtime_error(string("GetFilesInDirectory error ") +
+      throw wruntime_error(string("GetFilesInDirectory error ") +
         string("getting dir info. Check that directory is not empty!"));
     }
 
@@ -1056,10 +1061,10 @@ namespace kinect_interface {
     }
   }
 
-  void DepthImagesIO::saveProcessedImage(std::string directory, char* filename, 
-    int16_t* image_data, uint8_t* label_data, int32_t width,
-    int32_t height) {
-    throw runtime_error("saveProcessedImage - NEEDS UPDATING!");
+  void DepthImagesIO::saveProcessedImage(const std::string& directory, 
+    const char* filename, const int16_t* image_data, const uint8_t* label_data, 
+    const int32_t width, const int32_t height) {
+    throw wruntime_error("saveProcessedImage - NEEDS UPDATING!");
     // Get the image data ready for processing
     memcpy(uncompressed_data, image_data, width * height * sizeof(cur_image_data[0]));
     for (int32_t i = 0; i < width * height; i++) {

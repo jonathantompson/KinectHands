@@ -14,7 +14,7 @@ detect_hands,                     bool,      1
 detect_pose,                      bool,      1
 render_hand_labels,               bool,      1
 render_decision_forest_labels,    bool,      1
-use_depth_from_file,              bool,      0
+use_depth_from_file,              bool,      1
 render_convnet_points,            bool,      1
 render_kinect_fps,                bool,      1
 
@@ -67,7 +67,7 @@ vsm_soft_shadows,                 bool,      1
 render_wireframe,                 bool,      0
 render_aabboxes,                  bool,      0
 texture_filtering_on,             bool,      1
-aa_type_enum,                     int,       2
+aa_type_enum,                     int,       1
 fxaa_depth_threshold,             float,     1.0
 fxaa_angle_threshold,             float,     10.0
 fxaa_hq_subpix_quality,           float,     1.0
