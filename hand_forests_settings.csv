@@ -1,6 +1,6 @@
 //, Do not add space after the variable name
 load_forest_from_file,0
-num_trees,1
+num_trees,8
 num_workers,8
 tree_height,25
 min_info_gain,99999
@@ -8,5 +8,5 @@ max_pixels_per_image_per_label,2000
 num_wl_samples_per_node,5000
 max_num_images,200000
 num_bootstrap_passes,0
-bootstrap_tree_height,22
+bootstrap_tree_height,25
 wl_func_type,1
