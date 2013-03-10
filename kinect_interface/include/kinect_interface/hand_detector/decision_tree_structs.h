@@ -17,7 +17,7 @@
 #define NUM_LABELS 2  // The labels must be indexed (per pixel) from 0 --> NUM_LABELS - 1
 #define DT_DOWNSAMPLE 4  // 1 --> no downsample, 4 --> 16th origional size (default)
 #define NUM_WL_FUNCS 2  // My depth test and the Kinect paper's depth test
-// #define VERBOSE_GENERATION  // Print verbose messages during tree generation
+#define VERBOSE_GENERATION  // Print verbose messages during tree generation
 
 namespace kinect_interface {
 namespace hand_detector {

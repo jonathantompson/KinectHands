@@ -22,12 +22,8 @@
 #define BACKGROUND_HSV_THRESH 10
 #define BACKGROUND_DEPTH_THRESH 20  // Maximum depth distance
 #define BACKGROUND_DEPTH_THRESH_GROW 15
-#define RED_MED_FILT_RAD 4
-#define RED_SHRINK_FILT_RAD 1  // OLD Value = 3
-#define RED_DISCONT_FILT_RAD 1 // OLD_VALUE = 3
 #define RED_DISCONT_FILT_DEPTH_THRESH BACKGROUND_DEPTH_THRESH
 #define HAND_PTS_GROW_RAD 2000  // Divided by depth!
-#define HAND_PTS_GROW_RAD_ITERATIONS 6  // OLD value = 4
 #define N_PTS_FILL 8
 
 namespace kinect_interface {
@@ -55,31 +51,34 @@ namespace kinect_interface {
     // Get a listing of all the files in the directory
     // - load_processed_images = true --> hands_*.bin
     // - load_processed_images = false --> processed_hands_*.bin
-    uint32_t GetFilesInDirectory(jtil::data_str::VectorManaged<char*>& files_names, 
-      std::string directory, bool load_processed_images);
+    uint32_t GetFilesInDirectory(
+      jtil::data_str::VectorManaged<char*>& files_names, 
+      const std::string& directory, const bool load_processed_images);
 
     static void releaseImages(DepthImageData*& data);
 
     // LoadRGBImage - Load only the RGB image
-    void LoadRGBImage(std::string file, uint8_t* rgb);
+    void LoadRGBImage(const std::string& file, uint8_t* rgb);
 
     // Load a compressed depth+RGB image
-    void LoadCompressedImage(std::string file, int16_t* depth_data, 
+    void LoadCompressedImage(const std::string& file, int16_t* depth_data, 
       uint8_t* label_data, uint8_t* rgb_data = NULL);
 
-    // Load a compressed depth+RGB image with red hands and do post-processing
-    void LoadCompressedImageWithRedHands(std::string file, int16_t* depth_data,
-      uint8_t* label_data, uint8_t* rgb_data = NULL, uint8_t* red_pixels = NULL,
-      uint8_t* hsv_pixels_ret = NULL);
-
-    // saveProcessedImages
-    void saveProcessedImage(const std::string& directory, const char* filename, 
-      const int16_t* image_data, const uint8_t* label_data, const int32_t width, 
-      const int32_t height);
+    // Same as above, but do some extra processing to extract the red hands
+    // and generate label data.
+    void LoadCompressedImageWithRedHands(const std::string& file, 
+      int16_t* depth_data, uint8_t* label_data, uint8_t* rgb_data = NULL, 
+      uint8_t* red_pixels = NULL, uint8_t* hsv_pixels_ret = NULL);
 
     template <typename T>
     void saveUncompressedDepth(const std::string file, const T* depth_data, 
       const uint32_t w = src_width, const uint32_t h = src_height);
+
+    // saveProcessedDepthLabel for training the decision forest classifier
+    bool DepthImagesIO::saveProcessedDepthLabel(const std::string& file, 
+      const int16_t* depth_data, const uint8_t* label_data);
+    bool DepthImagesIO::loadProcessedDepthLabel(const std::string& file, 
+      int16_t* depth_data, uint8_t* label_data);
 
     // floodPixel - Manual editing of a label image (by flooding on the depth)
     void floodPixel(uint8_t* label_image, int16_t* depth_image, int u, int v, 
@@ -92,6 +91,9 @@ namespace kinect_interface {
     // testRedPixel - Single "red-test" of a hsv+rgb pixel (for debugging only)
     static void testRedPixel(uint32_t index, uint8_t* hsv, uint8_t* rgb);
 
+    static void extractDirFile(const std::string& full_dir_filename, 
+      std::string& dir, std::string& file);
+
     // Some tweakable parameters of the red hand processing:
     static int32_t red_hue_threshold;
     static int32_t red_sat_threshold;
@@ -102,17 +104,15 @@ namespace kinect_interface {
     static int32_t hsv_total_threshold;
     static int32_t red_red_min;
     static int32_t red_blue_max;
+    static int32_t red_green_max;
     static float adjacency_gamma;
     static float adjacency_beta;
+    static int32_t red_shrink_filter_rad;
+    static int32_t red_discon_filter_rad;
+    static int32_t red_med_filter_rad;
+    static int32_t hand_pts_grow_rad_iterations;
 
   private:
-    bool LoadProcessedCompressedImageWithRedHands(std::string file, 
-      int16_t* depth_data, uint8_t* label_data, uint8_t* rgb_data = NULL, 
-      uint8_t* red_pixels = NULL, uint8_t* hsv_pixels_ret = NULL);
-    void SaveProcessedCompressedImageWithRedHands(std::string file, 
-      int16_t* depth_data, uint8_t* label_data, uint8_t* rgb_data, 
-      uint8_t* red_pixels, uint8_t* hsv_pixels);
-
     void getRedPixels(uint8_t* rgb, uint8_t* hsv, uint8_t* red_pixels);
     void cleanUpRedPixelsUsingDepth(int16_t* depth_data, uint8_t* red_pixels);
     void findHandPoints(uint8_t* label_data, uint8_t* red_pixels, 

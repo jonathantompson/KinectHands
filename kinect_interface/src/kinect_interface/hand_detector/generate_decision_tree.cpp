@@ -70,7 +70,7 @@ namespace hand_detector {
 
   int32_t GenerateDecisionTree::populateOccupancyList(
     const DepthImageData& data, const int32_t max_pix_per_image, 
-    const unsigned int& seed) {
+    const unsigned int& seed, int32_t*& cur_occ_list, int32_t*& next_occ_list) {
     // First count the number of starting pixels, these are pixels that are NOT
     // '0' (which is NEVER a hand) and which are too far away.
     int32_t im_size = data.im_width * data.im_height;
@@ -176,7 +176,7 @@ namespace hand_detector {
 
   #ifdef VERBOSE_GENERATION
     cout << "generateDecisionTree INPUTS:" << endl;
-    cout << "   num_images = " << settings.num_images_to_consider << endl;
+    cout << "   num_images = " << settings.num_im_to_consider << endl;
     cout << "   wl_coeffs_sizes = [" << wl_set.wl_coeffs_sizes[0] <<
             ", " << wl_set.wl_coeffs_sizes[1] <<
             ", " << wl_set.wl_coeffs_sizes[2] << "]" << endl;
@@ -202,8 +202,11 @@ namespace hand_detector {
     // Create the occupancy structures.  Since we're desending the tree BFS we
     // need to store the occupancy list only for two levels of the tree.  We'll
     // then ping-pong back and forth between two occupancy buffers.
+    int32_t* cur_occ_list = NULL;
+    int32_t* next_occ_list = NULL;
     root.occupancy_length = populateOccupancyList(train_data, 
-      settings.max_pix_per_im_per_label, settings.seed);
+      settings.max_pix_per_im_per_label, settings.seed, cur_occ_list, 
+      next_occ_list);
 
     uint32_t num_wl_permutations = 1;
     uint32_t num_samples_per_node = wl_set.num_samples_per_node;

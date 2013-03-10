@@ -73,9 +73,14 @@ void loadSettingsFromFile(ProgramSettings* settings, std::string filename) {
   cout << "    num_bootstrap_passes = " << settings->num_bootstrap_passes << endl;
   cout << "    bootstrap_tree_height = " << settings->bootstrap_tree_height << endl;
   cout << "    wl_func_type = " << settings->wl_func_type << endl << endl;
+
+  if (settings->num_bootstrap_passes > 0) {
+    throw std::wruntime_error("loadSettingsFromFile() - ERROR "
+      "Bootstrap passes are no longer supported (they never helped anyway)");
+  }
 }
 
-void parseToken(ProgramSettings* settings, VectorManaged<char*>* cur_token, 
+void parseToken(ProgramSettings* settings, VectorManaged<const char*>* cur_token, 
   std::string filename) {
   std::string setting_name(*cur_token->at(0));
 

@@ -19,24 +19,22 @@ namespace hand_detector {
   struct DecisionTree;
   struct TrainingSettings;
 
-  // The main and only computational routine
   class GenerateDecisionTree {
   public:
     GenerateDecisionTree() {}
     ~GenerateDecisionTree() {}
 
-    void generateDecisionTree(
+    // The main and only computational routine:
+    static void generateDecisionTree(
       DecisionTree& dt,                     // output --> Must be pre-allocated
       const DepthImageData& train_data,     // image input
       const WLSet& wl_set,                  // WL input
       const TrainingSettings& settings);    // settings input
 
   private:
-    int32_t populateOccupancyList(const DepthImageData& data, 
-      const int32_t max_pix_per_image, const unsigned int& seed);
-
-    int32_t* cur_occ_list;  // the occupancy list
-    int32_t* next_occ_list;
+    static int32_t populateOccupancyList(const DepthImageData& data, 
+      const int32_t max_pix_per_image, const unsigned int& seed,
+      int32_t*& cur_occ_list, int32_t*& next_occ_list);
   };
 
 };  // namespace hand_detector

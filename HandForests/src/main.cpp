@@ -31,6 +31,7 @@ using std::string;
 using std::runtime_error;
 using std::cout;
 using std::endl;
+using namespace jtil::threading;
 using namespace kinect_interface;
 using namespace kinect_interface::hand_detector;
 
@@ -45,18 +46,21 @@ typedef enum {
   #define FOREST_DATA_FILENAME string("../../../../../../forest_data.bin")
   #define PROGRAM_SETTINGS_FILENAME string("../../../../../../program_settings.csv")
 #else
-  #define IMAGE_DIRECTORY string("./hand_depth_data/")
+  #define IMAGE_DIRECTORY string("./data/hand_depth_data_processed_for_DF/")
   #define FOREST_DATA_FILENAME string("./forest_data.bin")
-  #define PROGRAM_SETTINGS_FILENAME string("./program_settings.csv")
+  #define PROGRAM_SETTINGS_FILENAME string("./hand_forests_settings.csv")
 #endif
 
+#define SAFE_DELETE(x) do { if (x != NULL) { delete x; x = NULL; } } while (0); 
+#define SAFE_DELETE_ARR(x) do { if (x != NULL) { delete[] x; x = NULL; } } while (0); 
+
 // DATA VARIABLES
-DepthImagesIO* images_io;
+DepthImagesIO* images_io = NULL;
 const bool load_processed_images = true;  // Don't change this!
-const uint32_t file_stride = 4;  // 1 = every file, 4 = every 1 in 4 files, def = 4
-const float frac_test_data = 0.05;  // 5% of data files will be test data, def > 0.05
-DepthImageData* training_data;
-DepthImageData* test_data;
+const int32_t file_stride = 1;  // Better to use ALL the training data (it's already been decimated)
+const float frac_test_data = 0.05f;  // 5% of data files will be test data, def > 0.05
+DepthImageData* training_data = NULL;
+DepthImageData* test_data = NULL;
 uint8_t* label_data_evaluated = NULL;
 uint8_t* label_data_filtered = NULL;
 bool filter_results = false;
@@ -65,8 +69,8 @@ int32_t total_num_images;
 
 // DECISION TREE VARIABLES
 ProgramSettings prog_settings;
-DecisionTree* forest;
-TrainingSettings* settings;
+DecisionTree* forest = NULL;
+TrainingSettings* settings = NULL;
 WLSet wl_set;
 const uint32_t num_threshold_vals = 41;
 int16_t threshold_vals[num_threshold_vals] = 
@@ -86,30 +90,29 @@ int32_t uv_offset_vals[num_uv_offset_vals] =
 uint32_t num_trees_to_evaluate;
 uint32_t max_eval_height = 30;
 
-void shutdown();
-
 void shutdown() {
-  release_image_io();
-    delete[] label_data_evaluated;
-    delete[] label_data_filtered;
-    if (wl_set.wl_coeffs0 != NULL) {
-      delete[] wl_set.wl_coeffs0;
-      delete[] wl_set.wl_coeffs1;
-      delete[] wl_set.wl_coeffs2;
-      delete[] wl_set.wl_coeffs_sizes;
-    }
-    releaseImages(test_data);
-    releaseImages(training_data);
-    releaseForest(&forest, prog_settings.num_trees);
-    exit(0);
+  SAFE_DELETE(images_io);
+  SAFE_DELETE_ARR(label_data_evaluated);
+  SAFE_DELETE_ARR(label_data_filtered);
+  if (wl_set.wl_coeffs0 != NULL) {
+    SAFE_DELETE_ARR(wl_set.wl_coeffs0);
+    SAFE_DELETE_ARR(wl_set.wl_coeffs1);
+    SAFE_DELETE_ARR(wl_set.wl_coeffs2);
+    SAFE_DELETE_ARR(wl_set.wl_coeffs_sizes);
+  }
+  DepthImagesIO::releaseImages(test_data);
+  DepthImagesIO::releaseImages(training_data);
+  releaseForest(forest, prog_settings.num_trees);
+  exit(0);
 }
 
 int main(int argc, char *argv[]) { 
-    static_cast<void>(argc);  // Get rid of unused variable warning
-    static_cast<void>(argv);
+  std::cout << "image directory is " << IMAGE_DIRECTORY << std::endl;
+  static_cast<void>(argc);  // Get rid of unused variable warning
+  static_cast<void>(argv);
 #ifdef _DEBUG
-  debug::EnableMemoryLeakChecks();
-  // debug::SetBreakPointOnAlocation(20624);
+  jtil::debug::EnableMemoryLeakChecks();
+  // jtil::debug::SetBreakPointOnAlocation(20624);
 #endif
   try {
     if (DT_DOWNSAMPLE < 1) {
@@ -133,7 +136,8 @@ int main(int argc, char *argv[]) {
       srand(0);
       
       // Allocate space for our decision trees
-      uint32_t total_num_trees = (prog_settings.num_bootstrap_passes + 1) * prog_settings.num_trees;
+      uint32_t total_num_trees = (prog_settings.num_bootstrap_passes + 1) * 
+        prog_settings.num_trees;
       forest = new DecisionTree[total_num_trees];
       
       // Allocate space for the WLInput data struct
@@ -211,13 +215,13 @@ int main(int argc, char *argv[]) {
       settings = new TrainingSettings[total_num_trees];
       for (uint32_t i = 0; i < total_num_trees; i++) {
         if (prog_settings.max_num_images > static_cast<uint32_t>(training_data->num_images)) {
-          settings[i].num_images_to_consider = training_data->num_images;
+          settings[i].num_im_to_consider = training_data->num_images;
         } else {
-          settings[i].num_images_to_consider = prog_settings.max_num_images;
+          settings[i].num_im_to_consider = prog_settings.max_num_images;
         }
         settings[i].min_info_gain = prog_settings.min_info_gain;
         settings[i].tree_height = prog_settings.tree_height;
-        settings[i].max_pixels_per_image_per_label = prog_settings.max_pixels_per_image_per_label;
+        settings[i].max_pix_per_im_per_label = prog_settings.max_pixels_per_image_per_label;
         settings[i].seed = static_cast<unsigned int>(rand());
         settings[i].dt_index = i;
       }
@@ -227,40 +231,38 @@ int main(int argc, char *argv[]) {
      
       std::thread* threads = new std::thread[prog_settings.num_workers];
       
-      GenerateDecisionTree genTree;
+      kinect_interface::hand_detector::GenerateDecisionTree genTree;
       for (uint32_t i = 0; i < prog_settings.num_trees; i += prog_settings.num_workers) {
         for (uint32_t j = 0; j < prog_settings.num_workers && (i + j) < prog_settings.num_trees; j++) {
           uint32_t cur_tree_index = i + j;
           // Hack to fix linux version when statically linking --> it throws operation not permitted
-          threading::Callback<void>* threadBody = threading::MakeCallableOnce(
-                &GenerateDecisionTree::generateDecisionTree, &genTree, &forest[cur_tree_index],
-                training_data, &wl_set, &settings[cur_tree_index], static_cast<DecisionTree*>(NULL),
-                static_cast<uint32_t>(0));
-          threads[j] = threading::MakeThread(threadBody);
+          threads[j] = std::thread(GenerateDecisionTree::generateDecisionTree,
+            forest[cur_tree_index], *training_data, wl_set, settings[cur_tree_index]);
         }
         for (uint32_t j = 0; j < prog_settings.num_workers && (i + j) < prog_settings.num_trees; j++) {
           threads[j].join();
         }
       }
 
-      for (uint32_t pass = 0; pass < prog_settings.num_bootstrap_passes; pass++) {
-        cout << endl << "Performing bootstrap pass " << pass+1;
-        cout << " of " << prog_settings.num_bootstrap_passes << endl;
-        uint32_t num_trees_so_far = (pass + 1) * prog_settings.num_trees;
-        for (uint32_t i = 0; i < prog_settings.num_trees; i += prog_settings.num_workers) {
-          for (uint32_t j = 0; j < prog_settings.num_workers && (i + j) < prog_settings.num_trees; j++) {
-            uint32_t cur_tree_index = ((pass + 1) * prog_settings.num_trees) + i + j;
-            threading::Callback<void>* threadBody = threading::MakeCallableOnce(
-              &GenerateDecisionTree::generateDecisionTree, &genTree, &forest[cur_tree_index], 
-              training_data, &wl_set, &settings[cur_tree_index], forest, 
-              static_cast<uint32_t>(num_trees_so_far));
-            threads[j] = threading::MakeThread(threadBody);
-          }
-          for (uint32_t j = 0; j < prog_settings.num_workers && (i + j) < prog_settings.num_trees; j++) {
-            threads[j].join();
-          }
-        }
-      }
+      //// NO LONGER DOING ANY BOOTSTRAP PASSES
+      //for (uint32_t pass = 0; pass < prog_settings.num_bootstrap_passes; pass++) {
+      //  cout << endl << "Performing bootstrap pass " << pass+1;
+      //  cout << " of " << prog_settings.num_bootstrap_passes << endl;
+      //  uint32_t num_trees_so_far = (pass + 1) * prog_settings.num_trees;
+      //  for (uint32_t i = 0; i < prog_settings.num_trees; i += prog_settings.num_workers) {
+      //    for (uint32_t j = 0; j < prog_settings.num_workers && (i + j) < prog_settings.num_trees; j++) {
+      //      uint32_t cur_tree_index = ((pass + 1) * prog_settings.num_trees) + i + j;
+      //      Callback<void>* threadBody = threading::MakeCallableOnce(
+      //        &GenerateDecisionTree::generateDecisionTree, &genTree, &forest[cur_tree_index], 
+      //        training_data, &wl_set, &settings[cur_tree_index], forest, 
+      //        static_cast<uint32_t>(num_trees_so_far));
+      //      threads[j] =MakeThread(threadBody);
+      //    }
+      //    for (uint32_t j = 0; j < prog_settings.num_workers && (i + j) < prog_settings.num_trees; j++) {
+      //      threads[j].join();
+      //    }
+      //  }
+      //}
       
       cout << endl << "Saving Forest to file..." << endl << endl;
       prog_settings.num_trees = total_num_trees;  // Just pretend we have this many trees
@@ -272,7 +274,9 @@ int main(int argc, char *argv[]) {
       wl_set.wl_funcs = NULL;
       wl_set.wl_coeffs_sizes = NULL;
       cout << "Loading Forest from file..." << endl;
-      loadForest(&forest, &prog_settings.num_trees, FOREST_DATA_FILENAME);
+      int32_t ntrees;
+      loadForest(forest, ntrees, FOREST_DATA_FILENAME);
+      prog_settings.num_trees = (uint32_t)ntrees;
     }
     
     const int32_t evaluate_median_radius = 2;

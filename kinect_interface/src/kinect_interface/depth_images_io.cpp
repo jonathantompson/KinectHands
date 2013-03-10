@@ -42,18 +42,22 @@ namespace kinect_interface {
   float DepthImagesIO::adjacency_gamma = 25.0f;
   float DepthImagesIO::adjacency_beta = 0.25f;
 
-  // Values for Fits from take 4 5 6 7
-  int32_t DepthImagesIO::red_hue_threshold = 15;
-  int32_t DepthImagesIO::red_sat_threshold = 41; 
-  int32_t DepthImagesIO::red_val_threshold = 73; 
-  int32_t DepthImagesIO::red_hue_target = 1;
-  int32_t DepthImagesIO::red_sat_target = 231;  // 225
-  int32_t DepthImagesIO::red_val_target = 161;
-  int32_t DepthImagesIO::red_red_min = 70;
-  int32_t DepthImagesIO::red_blue_max = 100;
-  int32_t DepthImagesIO::hsv_total_threshold = 660;
+  //// Values for HandFit from 2013_03_04
+  //int32_t DepthImagesIO::red_hue_threshold = 15;
+  //int32_t DepthImagesIO::red_sat_threshold = 41; 
+  //int32_t DepthImagesIO::red_val_threshold = 73; 
+  //int32_t DepthImagesIO::red_hue_target = 1;
+  //int32_t DepthImagesIO::red_sat_target = 231;  // 225
+  //int32_t DepthImagesIO::red_val_target = 161;
+  //int32_t DepthImagesIO::red_red_min = 70;
+  //int32_t DepthImagesIO::red_blue_max = 100;
+  //int32_t DepthImagesIO::hsv_total_threshold = 660;
+  //int32_t DepthImagesIO::red_shrink_filter_rad = 1;
+  //int32_t DepthImagesIO::red_discon_filter_rad = 1;
+  //int32_t DepthImagesIO::red_med_filter_rad = 4;
+  //int32_t DepthImagesIO::hand_pts_grow_rad_iterations = 6;
 
-  //// Values for Fits from take 1 2 3
+  //// Values for HandFit from 2013_01_11
   //int32_t DepthImagesIO::red_hue_threshold = 27;
   //int32_t DepthImagesIO::red_sat_threshold = 48; 
   //int32_t DepthImagesIO::red_val_threshold = 79;
@@ -63,24 +67,41 @@ namespace kinect_interface {
   //int32_t DepthImagesIO::red_red_min = 95;
   //int32_t DepthImagesIO::red_blue_max = 100;
   //int32_t DepthImagesIO::hsv_total_threshold = 660;
+  //int32_t DepthImagesIO::red_shrink_filter_rad = 1;
+  //int32_t DepthImagesIO::red_discon_filter_rad = 1;
+  //int32_t DepthImagesIO::red_med_filter_rad = 4;
+  //int32_t DepthImagesIO::hand_pts_grow_rad_iterations = 6;
 
-  // Previous Values (11 Jan)
-  //int32_t DepthImagesIO::red_hue_threshold = 32;
-  //int32_t DepthImagesIO::red_sat_threshold = 35;
-  //int32_t DepthImagesIO::red_val_threshold = 60;
-  //int32_t DepthImagesIO::red_hue_target = 250;
-  //int32_t DepthImagesIO::red_sat_target = 240;
-  //int32_t DepthImagesIO::red_val_target = 128;
-  //int32_t DepthImagesIO::red_red_min = 40;
+  // Values for HandForests from 2013_01_11
+  int32_t DepthImagesIO::red_hue_threshold = 15;
+  int32_t DepthImagesIO::red_sat_threshold = 41; 
+  int32_t DepthImagesIO::red_val_threshold = 73;
+  int32_t DepthImagesIO::red_hue_target = 250;
+  int32_t DepthImagesIO::red_sat_target = 214;
+  int32_t DepthImagesIO::red_val_target = 161;
+  int32_t DepthImagesIO::red_red_min = 70;
+  int32_t DepthImagesIO::red_blue_max = 80;
+  int32_t DepthImagesIO::red_green_max = 40;
+  int32_t DepthImagesIO::hsv_total_threshold = 660;
+  int32_t DepthImagesIO::red_shrink_filter_rad = 2;
+  int32_t DepthImagesIO::red_discon_filter_rad = 3;
+  int32_t DepthImagesIO::red_med_filter_rad = 4;
+  int32_t DepthImagesIO::hand_pts_grow_rad_iterations = 6;
 
-  // Previous Values (25 Oct)
-  //int32_t DepthImagesIO::red_hue_threshold = 32;
-  //int32_t DepthImagesIO::red_sat_threshold = 16;
-  //int32_t DepthImagesIO::red_val_threshold = 60;
-  //int32_t DepthImagesIO::red_hue_target = 250;
-  //int32_t DepthImagesIO::red_sat_target = 250;
-  //int32_t DepthImagesIO::red_val_target = 128;
-  //int32_t DepthImagesIO::red_red_min = 40;
+  //// Values for HandForests from 2012_07_27
+  //int32_t DepthImagesIO::red_hue_threshold = 15;
+  //int32_t DepthImagesIO::red_sat_threshold = 41; 
+  //int32_t DepthImagesIO::red_val_threshold = 73; 
+  //int32_t DepthImagesIO::red_hue_target = 1;
+  //int32_t DepthImagesIO::red_sat_target = 231;  // 225
+  //int32_t DepthImagesIO::red_val_target = 161;
+  //int32_t DepthImagesIO::red_red_min = 70;
+  //int32_t DepthImagesIO::red_blue_max = 100;
+  //int32_t DepthImagesIO::hsv_total_threshold = 660;
+  //int32_t DepthImagesIO::red_shrink_filter_rad = 3;
+  //int32_t DepthImagesIO::red_discon_filter_rad = 3;
+  //int32_t DepthImagesIO::red_med_filter_rad = 4;
+  //int32_t DepthImagesIO::hand_pts_grow_rad_iterations = 4;
 
   const int DepthImagesIO::floodFillKernel_[N_PTS_FILL][2] = 
   {{-1, -1}, {-1, 0}, {-1, +1}, {0, +1}, {+1, +1}, {+1, 0}, {+1, -1}, {0, -1}};
@@ -150,7 +171,7 @@ namespace kinect_interface {
     const float frac_test_data, const uint32_t file_stride) {
     VectorManaged<char*> files_in_directory;
     const bool load_processed_images = true;  // don't change this!
-    uint32_t num_files = GetFilesInDirectory(files_in_directory, directory, 
+    uint32_t num_files = GetFilesInDirectory(files_in_directory, directory,
       load_processed_images);
     if (num_files == 0) {
       throw std::runtime_error("ERROR: no files in the database!\n");
@@ -203,9 +224,6 @@ namespace kinect_interface {
     test_data->im_width = src_width / DT_DOWNSAMPLE;
     test_data->im_height = src_height / DT_DOWNSAMPLE;  
 
-    /*
-    /TO DO: FIX THIS!
-
     // Find the first file in the directory again so that we can iterate through
     uint32_t cur_test_image = 0;
     uint32_t cur_training_image = 0;
@@ -231,13 +249,14 @@ namespace kinect_interface {
           cur_training_image++;
         }
 
-        LoadDepthImageForDT(directory + cur_filename, cur_image_data,
-          cur_label_data, load_processed_images);
+        loadProcessedDepthLabel(directory + cur_filename, cur_image_data,
+          cur_label_data);
         // Downsample but ignore 0 or background pixel values when filtering
-        DownsampleImageWithoutNonZeroPixelsAndBackground<int16_t>(image_dst, 
-          cur_image_data, src_width, src_height, DT_DOWNSAMPLE);
-        DownsampleLabelImageWithoutNonZeroPixelsAndBackground<uint8_t>(label_dst, 
-          cur_label_data, src_width, src_height, DT_DOWNSAMPLE);
+        DownsampleImageWithoutNonZeroPixelsAndBackground<int16_t>(
+          image_dst, cur_image_data, src_width, src_height, DT_DOWNSAMPLE,
+          GDT_MAX_DIST);
+        DownsampleBoolImageConservative<uint8_t>(label_dst, 
+          cur_label_data, src_width, src_height, DT_DOWNSAMPLE, 0, 1);
 
       } else {
         if (load_training_data && i % stride_test_data == 0) {
@@ -253,8 +272,7 @@ namespace kinect_interface {
           label_dst = &train_data->label_data[cur_training_image * num_pix_downs];
           cur_training_image++;
         }
-        LoadDepthImageForDT(directory + cur_filename, image_dst, label_dst,
-          load_processed_images);
+        loadProcessedDepthLabel(directory + cur_filename, image_dst, label_dst);
       }
     }
 
@@ -266,8 +284,6 @@ namespace kinect_interface {
           "went wrong.  The number of training and test images are not"
           " what we expected!");
     }
-    */
-    throw wruntime_error("Not yet implemented!");
   }
 
   void DepthImagesIO::releaseImages(DepthImageData*& data) {
@@ -294,8 +310,8 @@ namespace kinect_interface {
     return (num > 0.0f) ? floor(num + 0.5f) : ceil(num - 0.5f);
   }
 
-  void DepthImagesIO::LoadCompressedImage(string file, int16_t* depth_data, 
-    uint8_t* label_data, uint8_t* rgb_data) {
+  void DepthImagesIO::LoadCompressedImage(const string& file, 
+    int16_t* depth_data, uint8_t* label_data, uint8_t* rgb_data) {
     std::ifstream in_file(file.c_str(), std::ios::in | std::ios::binary | 
       std::ios::ate);
     if (!in_file.is_open()) {
@@ -336,16 +352,6 @@ namespace kinect_interface {
       memcpy(rgb_data, rgb, 3 * src_dim * sizeof(rgb_data[0]));
     }
 
-    // Now segment based on the union of the user pixels and the hand pixels
-    // Push everything else into the background
-    // EDIT: NO LONGER DOING THIS!  MAKE SURE YOU RECORD WITHOUT ANYTHING IN
-    //       THE BACKGROUND.
-    //for (uint32_t i = 0; i < src_dim; i++) {
-    //  if (user_pixels[i] == 0 && label_data[i] == 0) {
-    //    depth_data[i] = GDT_MAX_DIST + 1; // Push to background
-    //  }
-    //}  
-
     for (uint32_t i = 0; i < src_dim; i++) {
       if (depth_data[i] > GDT_MAX_DIST || depth_data[i] == 0) {
         depth_data[i] = GDT_MAX_DIST + 1; // Push to background
@@ -353,16 +359,10 @@ namespace kinect_interface {
     }
   }
 
-  void DepthImagesIO::LoadCompressedImageWithRedHands(string file, 
+  void DepthImagesIO::LoadCompressedImageWithRedHands(const string& file, 
     int16_t* depth_data, uint8_t* label_data, uint8_t* rgb_data, 
     uint8_t* red_pixels_ret, uint8_t* hsv_pixels_ret) {
     // try loading a already processed one:
-
-    bool ret = LoadProcessedCompressedImageWithRedHands(file, depth_data, 
-      label_data, rgb_data, red_pixels, hsv_pixels_ret);
-    if (ret) {
-      return;
-    }
 
     LoadCompressedImage(file, depth_data, label_data, rgb_data);
 
@@ -379,7 +379,7 @@ namespace kinect_interface {
     GrowFilter<uint8_t>(red_pixels_tmp, red_pixels, src_width,
       src_height, 1);
     MedianBoolFilter<uint8_t>(red_pixels, red_pixels_tmp, src_width,
-      src_height, RED_MED_FILT_RAD, 1);
+      src_height, red_med_filter_rad, 1);
     //memcpy(red_pixels, red_pixels_tmp, sizeof(red_pixels[0])*src_dim);
     if (red_pixels_ret != NULL) {
       memcpy(red_pixels_ret, red_pixels, src_dim * sizeof(red_pixels_ret[0]));
@@ -392,49 +392,35 @@ namespace kinect_interface {
     // Since the RGB doesn't line up with the depth we need to allow the hand
     // points to grow.  This also cleans up any bad fill behaviour from the HSV.
     growHandPoints(label_data, label_data_tmp, depth_data, HAND_PTS_GROW_RAD);
-
-    // Save the data to disk:
-    //SaveProcessedCompressedImageWithRedHands(file, depth_data, label_data,
-    //  rgb, red_pixels, hsv);
   }
 
-  void DepthImagesIO::SaveProcessedCompressedImageWithRedHands(string file, 
-    int16_t* depth_data, uint8_t* label_data, uint8_t* rgb_data, 
-    uint8_t* red_pixels, uint8_t* hsv_pixels) {
+  bool DepthImagesIO::saveProcessedDepthLabel(const std::string& file, 
+    const int16_t* depth_data, const uint8_t* label_data) {
 
     // Get the image data ready for compressing
     int16_t* depth_dst = (int16_t*)uncompressed_data;
     memcpy(depth_dst, depth_data, src_dim * sizeof(depth_dst[0]));
 
-    uint8_t* rgb_dst = (uint8_t*)&depth_dst[src_dim];
-    memcpy(rgb_dst, rgb_data, src_dim * sizeof(rgb_dst[0]) * 3);
-
-    uint8_t* hsv_dst = &rgb_dst[src_dim * 3];
-    memcpy(hsv_dst, hsv_pixels, src_dim * sizeof(hsv_dst[0]) * 3);
-
-    uint8_t* red_pixels_dst = &hsv_dst[src_dim * 3];
-    memcpy(red_pixels_dst, red_pixels, src_dim * sizeof(red_pixels_dst[0]));
-
-    uint8_t* label_data_dst = &red_pixels_dst[src_dim];
-    memcpy(label_data_dst, label_data, src_dim * sizeof(label_data_dst[0]));
+    for (uint32_t i = 0; i < src_dim; i++) {
+      if (label_data[i] == 1) {
+        depth_dst[i] *= -1;
+      }
+    }
 
     // Now compress it
     static const int compression_level = 1;  // 1 fast, 2 better compression
     int compressed_length = fastlz_compress_level(compression_level, 
       reinterpret_cast<void*>(uncompressed_data), 
-      processed_data_size,
+      src_dim * sizeof(depth_dst[0]),
       reinterpret_cast<void*>(compressed_data));
 
     // Seperate out the directory string and the filename
-    uint32_t cur_char = (uint32_t)file.length()-1;
-    while (cur_char > 0 && file.at(cur_char) != '\\' &&
-      file.at(cur_char) != '/') {
-      cur_char--;
+    string name_dir, name_file;
+    extractDirFile(file, name_dir, name_file);
+    if (name_file.substr(0, 10) != string("processed_")) {
+      name_file = string("processed_") + name_file;
     }
-    cur_char++;
-    string name_dir = file.substr(0, cur_char);
-    string name_file = file.substr(cur_char, file.length()-cur_char);
-    string full_filename = name_dir + string("processed_") + name_file;
+    string full_filename = name_dir + name_file;
 
     // Now save the array to file
     std::cout << "Saving " << full_filename << " to file" << std::endl;
@@ -445,21 +431,31 @@ namespace kinect_interface {
     ofile.write(reinterpret_cast<const char*>(compressed_data), compressed_length);
     ofile.flush();
     ofile.close();
+    return true;
   }
 
-  bool DepthImagesIO::LoadProcessedCompressedImageWithRedHands(string file, 
-    int16_t* depth_data, uint8_t* label_data, uint8_t* rgb_data, 
-    uint8_t* red_pixels_ret, uint8_t* hsv_pixels_ret) {
-    // Seperate out the directory string and the filename
-    uint32_t cur_char = (uint32_t)file.length()-1;
-    while (cur_char > 0 && file.at(cur_char) != '\\' &&
-      file.at(cur_char) != '/') {
+  void DepthImagesIO::extractDirFile(const string& full_dir_filename, 
+    string& dir, string& file) {
+    uint32_t cur_char = (uint32_t)full_dir_filename.length()-1;
+    while (cur_char > 0 && full_dir_filename.at(cur_char) != '\\' &&
+      full_dir_filename.at(cur_char) != '/') {
       cur_char--;
     }
     cur_char++;
-    string name_dir = file.substr(0, cur_char);
-    string name_file = file.substr(cur_char, file.length()-cur_char);
-    string full_filename = name_dir + string("processed_") + name_file;
+    dir = full_dir_filename.substr(0, cur_char);
+    file = full_dir_filename.substr(cur_char, full_dir_filename.length()-cur_char);
+  }
+
+  bool DepthImagesIO::loadProcessedDepthLabel(const std::string& file, 
+    int16_t* depth_data, uint8_t* label_data) {
+
+    // Seperate out the directory string and the filename
+    string name_dir, name_file;
+    extractDirFile(file, name_dir, name_file);
+    if (name_file.substr(0, 10) != string("processed_")) {
+      name_file = string("processed_") + name_file;
+    }
+    string full_filename = name_dir + name_file;
 
     std::ifstream in_file(full_filename.c_str(), 
       std::ios::in | std::ios::binary | std::ios::ate);
@@ -473,10 +469,8 @@ namespace kinect_interface {
     in_file.close();
 
     int size_decompress = fastlz_decompress(reinterpret_cast<void*>(compressed_data),
-      size_bytes,
-      reinterpret_cast<void*>(uncompressed_data),
-      processed_data_size * 2);
-    if (size_decompress != processed_data_size) {
+      size_bytes, (void*)(uncompressed_data), processed_data_size * 2);
+    if (size_decompress != (src_dim * sizeof(depth_data[0]))) {
       throw wruntime_error(string("ERROR: uncompressed data") +
         string(" size is not what we expected!"));
     }
@@ -485,29 +479,18 @@ namespace kinect_interface {
     int16_t* depth_file = (int16_t*)uncompressed_data;
     memcpy(depth_data, depth_file, src_dim * sizeof(depth_data[0]));
 
-    uint8_t* rgb_file = reinterpret_cast<uint8_t*>(&depth_file[src_dim]);
-    if (rgb_data != NULL) {
-      memcpy(rgb_data, rgb_file, src_dim * sizeof(rgb[0]) * 3);
+    memset(label_data, 0, src_dim * sizeof(label_data[0]));
+    for (uint32_t i = 0; i < src_dim; i++) {
+      if (depth_data[i] < 0) {
+        label_data[i] = 1;
+        depth_data[i] *= -1;
+      } 
     }
 
-    uint8_t* hsv_file = &rgb_file[src_dim * 3];
-    if (hsv_pixels_ret != NULL) {
-      memcpy(hsv_pixels_ret, hsv_file, src_dim * sizeof(hsv_pixels_ret[0]) * 3);
-    }
-
-    uint8_t* red_pixels_file = &hsv_file[src_dim * 3];
-    if (red_pixels_ret != NULL) {
-      memcpy(red_pixels_ret, red_pixels_file, src_dim * sizeof(red_pixels_ret[0]));
-    }
-
-    uint8_t* label_data_file = &red_pixels_file[src_dim];
-    if (label_data != NULL) {
-      memcpy(label_data, label_data_file, src_dim * sizeof(label_data[0]));
-    }
     return true;
   }
 
-  void DepthImagesIO::LoadRGBImage(string file, uint8_t* rgb) {
+  void DepthImagesIO::LoadRGBImage(const string& file, uint8_t* rgb) {
     std::ifstream in_file(file.c_str(), 
       std::ios::in | std::ios::binary | std::ios::ate);
     if (!in_file.is_open()) {
@@ -534,8 +517,8 @@ namespace kinect_interface {
   }
 
   uint32_t DepthImagesIO::GetFilesInDirectory(
-    jtil::data_str::VectorManaged<char*>& files_in_directory, string directory, 
-    bool load_processed_images) {
+    jtil::data_str::VectorManaged<char*>& files_in_directory, 
+    const string& directory, const bool load_processed_images) {
 #if defined(WIN32) || defined(_WIN32)
     // Prepare string for use with FindFile functions.  First, copy the
     // string to a buffer, then append '\*' to the directory name.
@@ -636,7 +619,7 @@ namespace kinect_interface {
       std::cout << "pixel sat out of range." << std::endl;
     }
     if (cur_delta[2] >= red_val_threshold) {
-      std::cout << "pixel val out of range." << std::endl;
+      std::cout << "pixel red val out of range." << std::endl;
     }
     if (rgb[index*3] <= red_red_min) {
       std::cout << "pixel Red bellow min level." << std::endl;
@@ -647,12 +630,8 @@ namespace kinect_interface {
     if (rgb[index*3+2] >= red_blue_max) {
       std::cout << "pixel blue above max level." << std::endl;
     }
-    if ((cur_delta[0] < red_hue_threshold && 
-         cur_delta[1] < red_sat_threshold && 
-         cur_delta[2] < red_val_threshold && 
-         rgb[index*3] > red_red_min && rgb[index*3+2] < red_blue_max) || 
-        ((hsv[index*3] + hsv[index*3+1] + hsv[index*3+2]) >= hsv_total_threshold)) {
-      std::cout << "Pixel is in HSV and RGB range" << std::endl;
+    if (rgb[index*3+1] >= red_green_max) {
+      std::cout << "pixel gren above max level." << std::endl;
     }
   }
 
@@ -683,7 +662,9 @@ namespace kinect_interface {
         if ((cur_delta[0] < red_hue_threshold && 
              cur_delta[1] < red_sat_threshold && 
              cur_delta[2] < red_val_threshold && 
-             rgb[index*3] > red_red_min && rgb[index*3+2] < red_blue_max) || 
+             rgb[index*3] > red_red_min && 
+             rgb[index*3+2] < red_blue_max &&
+             rgb[index*3+1] < red_green_max) || 
              ((hsv[index*3] + hsv[index*3+1] + hsv[index*3+2]) >= hsv_total_threshold)) {
           red_pixels[index] = 1;
         }
@@ -695,6 +676,14 @@ namespace kinect_interface {
   void DepthImagesIO::cleanUpRedPixelsUsingDepth(int16_t* depth_data, 
     uint8_t* red_pixels) {
 
+    //std::cout << "cleanUpRedPixelsUsingDepth() HACK ON" << std::endl;
+    //for (uint32_t i = 0; i < src_dim; i++) {
+    //  if (depth_data[i] >= 1500) {
+    //    red_pixels[i] = 0;
+    //    depth_data[i] = GDT_MAX_DIST + 1;
+    //  }
+    //}
+
     // Get rid of zero or large depths
     for (uint32_t i = 0; i < src_dim; i++) {
       if (depth_data[i] == 0 || depth_data[i] >= GDT_MAX_DIST) {
@@ -705,14 +694,14 @@ namespace kinect_interface {
     // Now perform a shrink operation of a N pixel radius in-case depth and RGB
     // pixels don't overlap
     memcpy(red_pixels_tmp, red_pixels, src_dim * sizeof(red_pixels_tmp[0]));
-    if (RED_SHRINK_FILT_RAD > 0) {
+    if (red_shrink_filter_rad > 0) {
       // Shrink horizontally
       int32_t index = 0;
       for (int32_t v = 0; v < src_height; v++) {
         for (int32_t u = 0; u < src_width; u++) {
           if (red_pixels_tmp[index] == 0) {
-            for (int32_t u_offset = u - RED_SHRINK_FILT_RAD; 
-              u_offset <= u + RED_SHRINK_FILT_RAD; u_offset++) {
+            for (int32_t u_offset = u - red_shrink_filter_rad; 
+              u_offset <= u + red_shrink_filter_rad; u_offset++) {
                 if (u_offset < src_width && u_offset >= 0) {
                   red_pixels[v * src_width + u_offset] = 0;
                 }
@@ -726,8 +715,8 @@ namespace kinect_interface {
       for (int32_t v = 0; v < src_height; v++) {
         for (int32_t u = 0; u < src_width; u++) {
           if (red_pixels[index] == 0) {
-            for (int32_t v_offset = v - RED_SHRINK_FILT_RAD; 
-              v_offset <= v + RED_SHRINK_FILT_RAD; v_offset++) {
+            for (int32_t v_offset = v - red_shrink_filter_rad; 
+              v_offset <= v + red_shrink_filter_rad; v_offset++) {
                 if (v_offset < src_height && v_offset >= 0) {
                   red_pixels_tmp[v_offset * src_width + u] = 0;
                 }
@@ -739,7 +728,7 @@ namespace kinect_interface {
     }
 
     // Filter out any pixels that are near a discontinuity
-    if (RED_DISCONT_FILT_RAD > 0) {
+    if (red_discon_filter_rad > 0) {
       int16_t cur_depth_min;
       int16_t cur_depth_max;
       uint32_t index = 0;
@@ -748,10 +737,10 @@ namespace kinect_interface {
           cur_depth_min = GDT_MAX_DIST;
           cur_depth_max = 0;
           if (red_pixels_tmp[index] == 1) {
-            for (int32_t v_offset = v - RED_DISCONT_FILT_RAD; 
-              v_offset <= v + RED_DISCONT_FILT_RAD; v_offset++) {
-                for (int32_t u_offset = u - RED_DISCONT_FILT_RAD; 
-                  u_offset <= u + RED_DISCONT_FILT_RAD; u_offset++) {   
+            for (int32_t v_offset = v - red_discon_filter_rad; 
+              v_offset <= v + red_discon_filter_rad; v_offset++) {
+                for (int32_t u_offset = u - red_discon_filter_rad; 
+                  u_offset <= u + red_discon_filter_rad; u_offset++) {   
                     int32_t index_offset = v_offset * src_width + u_offset;
                     if (depth_data[index_offset] > cur_depth_max) {
                       cur_depth_max = depth_data[index_offset];
@@ -961,8 +950,8 @@ namespace kinect_interface {
   // This is very expensive!
   void DepthImagesIO::growHandPoints(uint8_t* new_label_data, 
     uint8_t* label_data, int16_t* depth_data, float radius) {
-    uint32_t cur_iteration;
-    for (cur_iteration = 0; cur_iteration < HAND_PTS_GROW_RAD_ITERATIONS; cur_iteration++) {
+    int32_t cur_iteration;
+    for (cur_iteration = 0; cur_iteration < hand_pts_grow_rad_iterations; cur_iteration++) {
       if ((cur_iteration % 2) == 1) {
         uint8_t* temp = new_label_data;
         new_label_data = label_data;
@@ -1059,38 +1048,6 @@ namespace kinect_interface {
           }
         }
     }
-  }
-
-  void DepthImagesIO::saveProcessedImage(const std::string& directory, 
-    const char* filename, const int16_t* image_data, const uint8_t* label_data, 
-    const int32_t width, const int32_t height) {
-    throw wruntime_error("saveProcessedImage - NEEDS UPDATING!");
-    // Get the image data ready for processing
-    memcpy(uncompressed_data, image_data, width * height * sizeof(cur_image_data[0]));
-    for (int32_t i = 0; i < width * height; i++) {
-      if (label_data[i] == 1) {
-        uncompressed_data[i] |= 0x8000;
-      }
-    }
-    static const int compression_level = 1;  // 1 fast, 2 better compression
-    int compressed_length = fastlz_compress_level(compression_level, 
-      reinterpret_cast<void*>(uncompressed_data), 
-      width * height * sizeof(uncompressed_data[0]),
-      reinterpret_cast<void*>(compressed_data));
-    string cur_filename(filename);
-    // Now save the array to file
-    if (cur_filename.substr(0,10) != string("processed_")) {
-      cur_filename = string("processed_") + cur_filename;
-    }
-    std::cout << "Saving " << cur_filename << " to file" << std::endl;
-    string full_filename = directory + cur_filename;
-    std::ofstream file(full_filename.c_str(), std::ios::out | std::ios::binary);
-    if (!file.is_open()) {
-      throw std::runtime_error(std::string("error opening file:") + filename);
-    }
-    file.write(reinterpret_cast<const char*>(compressed_data), compressed_length);
-    file.flush();
-    file.close();
   }
 
   void DepthImagesIO::convertImageDepthToXYZ(float*& xyz, DepthImageData*& images) {

@@ -48,12 +48,7 @@
   #define snprintf _snprintf_s
 #endif
 
-//#define IM_DIR_BASE string("hand_data/left_only/set05/")
-//#define IM_DIR_BASE string("hand_data/right_only/set05/")
-// 3 -> Finished (4 partially finished)
-//#define IM_DIR_BASE string("hand_data/both_hands/set03/") 
-
-#define IM_DIR_BASE string("data/hand_depth_data_6/")  
+#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  
  
 #if defined(__APPLE__)
   #define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
