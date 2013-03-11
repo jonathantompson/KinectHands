@@ -57,7 +57,6 @@ typedef enum {
 // DATA VARIABLES
 DepthImagesIO* images_io = NULL;
 const bool load_processed_images = true;  // Don't change this!
-const int32_t file_stride = 200;  // Better to use ALL the training data (it's already been decimated)
 const float frac_test_data = 0.05f;  // 5% of data files will be test data, def > 0.05
 DepthImageData* training_data = NULL;
 DepthImageData* test_data = NULL;
@@ -79,14 +78,33 @@ int16_t threshold_vals[num_threshold_vals] =
   750,  1000,  1250,  1500,
  -1, -2, -3, -4, -5, -6, -8, -10, -12, -15, -25, -50, -75, -100, -250, -500, 
   750, -1000, -1250, -1500 };
-const int32_t num_uv_offset_vals = 35;
+//const int32_t num_uv_offset_vals = 35;
+//// offset is divided by depth!, so 1000 is 1 pixel offset at 1m
+//int32_t uv_offset_vals[num_uv_offset_vals] =
+//{ 0,
+//  398,  631,  1000,  1585,  2512,  3981,  6310,  10000,  15850,  25120,  39810,
+//  63100,  100000,  158500,  251200,  398100,  631000,
+// -398, -631, -1000, -1585, -2512, -3981, -6310, -10000, -15850, -25120, -39810,
+// -63100, -100000, -158500, -251200, -398100, -631000};
+
+const int32_t num_uv_offset_vals = 143;
 // offset is divided by depth!, so 1000 is 1 pixel offset at 1m
-int32_t uv_offset_vals[num_uv_offset_vals] = 
-{ 0, 
-  398,  631,  1000,  1585,  2512,  3981,  6310,  10000,  15850,  25120,  39810, 
-  63100,  100000,  158500,  251200,  398100,  631000, 
- -398, -631, -1000, -1585, -2512, -3981, -6310, -10000, -15850, -25120, -39810,
- -63100, -100000, -158500, -251200, -398100, -631000};
+int32_t uv_offset_vals[num_uv_offset_vals] =
+{-631000, -398100, -251200, -158500, -100000,-63100, -39810, -32000, -31500,
+ -31000, -30500, -30000, -29500, -29000, -28500, -28000, -27500,
+ -27000, -26500, -26000, -25500, -25000, -24500, -24000, -23500, -23000, -22500,
+ -22000, -21500, -21000, -20500, -20000, -19500, -19000, -18500, -18000, -17500,
+ -17000, -16500, -16000, -15500, -15000, -14500, -14000, -13500, -13000, -12500,
+ -12000, -11500, -11000, -10500, -10000, -9500, -9000, -8500, -8000, -7500,
+ -7000, -6500, -6000, -5500, -5000, -4500, -4000, -3500, -3000, -2500, -2000,
+ -1500, -1000, -500, 0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500,
+ 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000, 10500,
+ 11000, 11500, 12000, 12500, 13000, 13500, 14000, 14500, 15000, 15500, 16000,
+ 16500, 17000, 17500, 18000, 18500, 19000, 19500, 20000, 20500, 21000, 21500,
+ 22000, 22500, 23000, 23500, 24000, 24500, 25000, 25500, 26000, 26500, 27000,
+ 27500, 28000, 28500, 29000, 29500, 30000, 30500, 31000, 31500, 32000, 39810,
+ 63100,  100000,  158500,  251200,  398100,  631000};
+
 uint32_t num_trees_to_evaluate;
 uint32_t max_eval_height = 30;
 
@@ -132,15 +150,14 @@ int main(int argc, char *argv[]) {
     images_io = new DepthImagesIO();
     cout << "loading image data from file..." << endl;
     images_io->LoadDepthImagesFromDirectoryForDT(IMAGE_DIRECTORY, training_data, 
-      test_data, frac_test_data, file_stride);
+      test_data, frac_test_data, prog_settings.file_stride);
     total_num_images = test_data->num_images + training_data->num_images; 
     
     if (!prog_settings.load_forest_from_file) {
       srand(0);
       
       // Allocate space for our decision trees
-      uint32_t total_num_trees = (prog_settings.num_bootstrap_passes + 1) * 
-        prog_settings.num_trees;
+      uint32_t total_num_trees = prog_settings.num_trees;
       forest = new DecisionTree[total_num_trees];
       
       // Allocate space for the WLInput data struct
@@ -227,9 +244,6 @@ int main(int argc, char *argv[]) {
         settings[i].max_pix_per_im_per_label = prog_settings.max_pixels_per_image_per_label;
         settings[i].seed = static_cast<unsigned int>(rand());
         settings[i].dt_index = i;
-      }
-      for (uint32_t i = prog_settings.num_trees; i < total_num_trees; i++) {
-        settings[i].tree_height = prog_settings.bootstrap_tree_height;
       }
      
       std::thread* threads = new std::thread[prog_settings.num_workers];

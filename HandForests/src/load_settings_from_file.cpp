@@ -41,12 +41,11 @@ void loadSettingsFromFile(ProgramSettings* settings, std::string filename) {
   settings->num_workers = 2;
   settings->tree_height = 20;
   settings->min_info_gain = 1000.0f;
-  settings->max_pixels_per_image_per_label = 1000;
-  settings->num_wl_samples_per_node = 1000;
+  settings->max_pixels_per_image_per_label = 5000;
+  settings->num_wl_samples_per_node = 5000;
   settings->max_num_images = 20000;
-  settings->num_bootstrap_passes = 0;
-  settings->bootstrap_tree_height = 20;
   settings->wl_func_type = 0;
+  settings->file_stride = 1;
 
   VectorManaged<const char*> cur_token;  // Each element is a csv in the line
   static const bool inc_whitespace = false;
@@ -70,14 +69,8 @@ void loadSettingsFromFile(ProgramSettings* settings, std::string filename) {
   cout << "    max_pixels_per_image_per_label = " << settings->max_pixels_per_image_per_label << endl;
   cout << "    num_wl_samples_per_node = " << settings->num_wl_samples_per_node << endl;
   cout << "    max_num_images = " << settings->max_num_images << endl;
-  cout << "    num_bootstrap_passes = " << settings->num_bootstrap_passes << endl;
-  cout << "    bootstrap_tree_height = " << settings->bootstrap_tree_height << endl;
   cout << "    wl_func_type = " << settings->wl_func_type << endl << endl;
-
-  if (settings->num_bootstrap_passes > 0) {
-    throw std::wruntime_error("loadSettingsFromFile() - ERROR "
-      "Bootstrap passes are no longer supported (they never helped anyway)");
-  }
+  cout << "    file_stride = " << settings->file_stride << endl << endl;
 }
 
 void parseToken(ProgramSettings* settings, VectorManaged<const char*>* cur_token, 
@@ -112,12 +105,10 @@ void parseToken(ProgramSettings* settings, VectorManaged<const char*>* cur_token
       settings->num_wl_samples_per_node = static_cast<uint32_t>(Str2Num<int>(value));
     } else if (setting_name == "max_num_images") {
       settings->max_num_images = static_cast<uint32_t>(Str2Num<int>(value));
-    } else if (setting_name == "num_bootstrap_passes") {
-      settings->num_bootstrap_passes = static_cast<uint32_t>(Str2Num<int>(value));
-    } else if (setting_name == "bootstrap_tree_height") {
-      settings->bootstrap_tree_height = static_cast<uint32_t>(Str2Num<int>(value));
     } else if (setting_name == "wl_func_type") {
       settings->wl_func_type = static_cast<uint32_t>(Str2Num<int>(value));
+    } else if (setting_name == "file_stride") {
+      settings->file_stride = static_cast<uint32_t>(Str2Num<int>(value));
     } else {
       throw std::runtime_error(string("ERROR: Unrecognized setting name in file:" +
                                       filename));

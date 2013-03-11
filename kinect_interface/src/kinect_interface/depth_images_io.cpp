@@ -568,8 +568,6 @@ namespace kinect_interface {
       if(dfd != NULL) {
         while((dp = readdir(dfd)) != NULL) {
           std::string cur_name = string(dp->d_name);
-          std::cout << "Found directory item: " << cur_name;
-          std::cout << std::endl;
           if (dp->d_type == isFile) {
             if (cur_name.length() > 10) {
               if (cur_name.substr(0,preamble_length) == name_preamble && 
