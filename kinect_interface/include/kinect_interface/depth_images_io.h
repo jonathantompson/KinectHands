@@ -75,9 +75,9 @@ namespace kinect_interface {
       const uint32_t w = src_width, const uint32_t h = src_height);
 
     // saveProcessedDepthLabel for training the decision forest classifier
-    bool DepthImagesIO::saveProcessedDepthLabel(const std::string& file, 
+    bool saveProcessedDepthLabel(const std::string& file,
       const int16_t* depth_data, const uint8_t* label_data);
-    bool DepthImagesIO::loadProcessedDepthLabel(const std::string& file, 
+    bool loadProcessedDepthLabel(const std::string& file,
       int16_t* depth_data, uint8_t* label_data);
 
     // floodPixel - Manual editing of a label image (by flooding on the depth)

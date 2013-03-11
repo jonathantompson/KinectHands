@@ -31,11 +31,11 @@ namespace hand_detector {
       DecisionTree* dt,                     // output --> Must be pre-allocated
       const DepthImageData* train_data,     // image input
       const WLSet* wl_set,                  // WL input
-      const TrainingSettings* settings);    // settings input
+      TrainingSettings *settings);    // settings input
 
   private:
     static int32_t populateOccupancyList(const DepthImageData& data, 
-      const int32_t max_pix_per_image, const unsigned int& seed,
+      const int32_t max_pix_per_image, unsigned int& seed,
       int32_t*& cur_occ_list, int32_t*& next_occ_list);
   };
 

@@ -79,7 +79,7 @@ int16_t threshold_vals[num_threshold_vals] =
   750,  1000,  1250,  1500,
  -1, -2, -3, -4, -5, -6, -8, -10, -12, -15, -25, -50, -75, -100, -250, -500, 
   750, -1000, -1250, -1500 };
-const uint32_t num_uv_offset_vals = 35;
+const int32_t num_uv_offset_vals = 35;
 // offset is divided by depth!, so 1000 is 1 pixel offset at 1m
 int32_t uv_offset_vals[num_uv_offset_vals] = 
 { 0, 
@@ -100,8 +100,12 @@ void shutdown() {
     SAFE_DELETE_ARR(wl_set.wl_coeffs2);
     SAFE_DELETE_ARR(wl_set.wl_coeffs_sizes);
   }
-  DepthImagesIO::releaseImages(test_data);
-  DepthImagesIO::releaseImages(training_data);
+  if (test_data) {
+    DepthImagesIO::releaseImages(test_data);
+  }
+  if (training_data) {
+    DepthImagesIO::releaseImages(training_data);
+  }
   releaseForest(forest, prog_settings.num_trees);
 }
 

@@ -82,8 +82,8 @@ namespace kinect_interface {
   uint32_t OpenNIFuncs::ConvertDepthImageToProjective(const uint16_t* aDepth,
     float* aProjective) {
     int nIndex = 0;
-    for (int nY = 0; nY < nYRes; nY += 1) {
-      for (int nX = 0; nX < nXRes; nX += 1, nIndex += 1) {
+    for (uint32_t nY = 0; nY < nYRes; nY += 1) {
+      for (uint32_t nX = 0; nX < nXRes; nX += 1, nIndex += 1) {
         aProjective[nIndex*3] = static_cast<float>(nX);
         aProjective[nIndex*3+1] = static_cast<float>(nY);
         aProjective[nIndex*3+2] = aDepth[nIndex];

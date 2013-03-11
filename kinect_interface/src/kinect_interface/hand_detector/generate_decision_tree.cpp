@@ -56,7 +56,7 @@ namespace hand_detector {
     }
   };
 
-  uint32_t rand_threadsafe(const unsigned int& thread_specific_seed) {
+  uint32_t rand_threadsafe(unsigned int& thread_specific_seed) {
 #if defined(WIN32) || defined(_WIN32)
     unsigned int rand_num;
     if (rand_s(&rand_num) != 0) { 
@@ -70,7 +70,7 @@ namespace hand_detector {
 
   int32_t GenerateDecisionTree::populateOccupancyList(
     const DepthImageData& data, const int32_t max_pix_per_image, 
-    const unsigned int& seed, int32_t*& cur_occ_list, int32_t*& next_occ_list) {
+    unsigned int& seed, int32_t*& cur_occ_list, int32_t*& next_occ_list) {
     // First count the number of starting pixels, these are pixels that are NOT
     // '0' (which is NEVER a hand) and which are too far away.
     int32_t im_size = data.im_width * data.im_height;
@@ -155,7 +155,7 @@ namespace hand_detector {
   //**********************************************************
   void GenerateDecisionTree::generateDecisionTree(DecisionTree* dt,
     const DepthImageData* train_data, const WLSet* wl_set, 
-    const TrainingSettings* settings) {
+    TrainingSettings* settings) {
 
     // Check input 
     uint32_t tree_size = calcTreeSize(settings->tree_height);
@@ -408,6 +408,7 @@ namespace hand_detector {
         int32_t cur_wlv_offset = tree_cur_node->coeff1;
         int16_t cur_threshold = tree_cur_node->coeff2;
         uint8_t cur_wl_func = tree_cur_node->wl_func;
+        static_cast<void>(cur_wl_func);
         for (int32_t i = 0; i < queue_cur_node.occupancy_length; i++) {
           // We need to calculate back the u, v so that we can add the appropriate
           // offset for this weak learner

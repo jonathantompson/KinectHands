@@ -589,7 +589,7 @@ namespace kinect_interface {
         std::stringstream ss;
         ss << "GetFilesInDirectory error getting dir info for dir: ";
         ss << directory << std::endl;
-        throw runtime_error(ss.str());
+        throw std::wruntime_error(ss.str());
       }
 
 #endif
