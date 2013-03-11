@@ -29,30 +29,29 @@ namespace hand_net {
     HAND_ORIENT_X     = 3,
     HAND_ORIENT_Y     = 4,
     HAND_ORIENT_Z     = 5,
-    HAND_ORIENT_W     = 6,
-    WRIST_THETA       = 7,
-    WRIST_PHI         = 8,
-    THUMB_THETA       = 9,
-    THUMB_PHI         = 10,
-    THUMB_K1_THETA    = 11,
-    THUMB_K1_PHI      = 12,
-    THUMB_K2_PHI      = 13,
-    F0_THETA          = 14,
-    F0_PHI            = 15,
-    F0_KNUCKLE_CURL   = 16,
-    F1_THETA          = 17,
-    F1_PHI            = 18,
-    F1_KNUCKLE_CURL   = 19,
-    F2_THETA          = 20,
-    F2_PHI            = 21,
-    F2_KNUCKLE_CURL   = 22,
-    F3_THETA          = 23,
-    F3_PHI            = 24,
-    F3_KNUCKLE_CURL   = 25,
-    WRIST_LENGTH      = 26,  // Not used in optimization
-    SCALE             = 27,  // Not used in optimization
-    WRIST_TWIST       = 28,  // Not used in optimization
-    NUM_PARAMETERS    = 29,  // NOTE: Not to be confused with HAND_NUM_COEFF!!
+    WRIST_THETA       = 6,
+    WRIST_PHI         = 7,
+    THUMB_THETA       = 8,
+    THUMB_PHI         = 9,
+    THUMB_K1_THETA    = 10,
+    THUMB_K1_PHI      = 11,
+    THUMB_K2_PHI      = 12,
+    F0_THETA          = 13,
+    F0_PHI            = 14,
+    F0_KNUCKLE_CURL   = 15,
+    F1_THETA          = 16,
+    F1_PHI            = 17,
+    F1_KNUCKLE_CURL   = 18,
+    F2_THETA          = 19,
+    F2_PHI            = 20,
+    F2_KNUCKLE_CURL   = 21,
+    F3_THETA          = 22,
+    F3_PHI            = 23,
+    F3_KNUCKLE_CURL   = 24,
+    WRIST_LENGTH      = 25,  // Not used in optimization
+    SCALE             = 26,  // Not used in optimization
+    WRIST_TWIST       = 27,  // Not used in optimization
+    NUM_PARAMETERS    = 28,  // NOTE: Not to be confused with HAND_NUM_COEFF!!
   } HandCoeff;
 
   typedef enum {
@@ -96,8 +95,8 @@ namespace hand_net {
     const float getCoeff(const uint32_t index) const;
     float* coeff() { return coeff_; }
     const HandType hand_type() const { return hand_type_; }
-    void setRotation(const jtil::math::FloatQuat& quat);
-    void getRotation(jtil::math::FloatQuat& quat) const;
+    void setRotation(const jtil::math::Float3& euler);
+    void getRotation(jtil::math::Float3& euler) const;
     void printCoeff() const;
     float& local_scale() { return local_scale_; }
     void setCoeff(uint32_t index, float coeff_value);

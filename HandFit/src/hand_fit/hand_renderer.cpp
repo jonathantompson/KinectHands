@@ -1116,31 +1116,10 @@ namespace hand_fit {
     //coeff_convnet[HAND_POS_U] = pos_uv[0];
     //coeff_convnet[HAND_POS_V] = pos_uv[1];
 
-    // Convert quaternion to euler angles (might be easier to learn)
-    FloatQuat quat(coeff[HandCoeff::HAND_ORIENT_X], 
-                   coeff[HandCoeff::HAND_ORIENT_Y], 
-                   coeff[HandCoeff::HAND_ORIENT_Z],
-                   coeff[HandCoeff::HAND_ORIENT_W]);
     float euler[3];
-    quat.normalize();  // just in case
-    FloatQuat::quat2EulerAngles(euler[0], euler[1], euler[2], quat);
-
-//#if defined(DEBUG) || defined(_DEBUG)
-//    // At least make sure the inverse mapping and the conversion to matrix is
-//    // correct
-//    FloatQuat quat_tmp;
-//    FloatQuat::eulerAngles2Quat(quat_tmp, euler[0], euler[1], euler[2]);
-//    if (!FloatQuat::approxEqual(quat, quat_tmp)) {
-//      throw std::runtime_error("ERROR: Quat --> Euler is not correct!");
-//    }
-//    Float4x4 mat;
-//    Float4x4 mat2;
-//    FloatQuat::quat2Mat4x4(mat, quat);
-//    Float4x4::euler2RotMat(mat2, euler[0], euler[1], euler[2]);
-//    if (!Float4x4::approxEqual(mat, mat2)) {
-//      throw std::runtime_error("ERROR: Quat --> Euler is not correct!");
-//    }
-//#endif
+    euler[0] = coeff[HandCoeff::HAND_ORIENT_X];
+    euler[1] = coeff[HandCoeff::HAND_ORIENT_Y];
+    euler[2] = coeff[HandCoeff::HAND_ORIENT_Z];
 
     // All angle coefficients are stored as (cos(x), sin(x)) to avoid
     // the singularity

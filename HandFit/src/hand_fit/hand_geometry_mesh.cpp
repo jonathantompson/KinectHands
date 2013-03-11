@@ -250,24 +250,21 @@ namespace hand_fit {
 
     // Set the root matrix:
     mat = scene_graph_->mat();
-    cur_rot_quat.set(coeff[HAND_ORIENT_X],
-                     coeff[HAND_ORIENT_Y],
-                     coeff[HAND_ORIENT_Z],
-                     coeff[HAND_ORIENT_W]);
-    FloatQuat::quat2Mat4x4(*mat, cur_rot_quat);
+    Float4x4::euler2RotMat(*mat, coeff[HAND_ORIENT_X], coeff[HAND_ORIENT_Y],
+      coeff[HAND_ORIENT_Z]);
     mat->leftMultTranslation(coeff[HAND_POS_X],
                              coeff[HAND_POS_Y],
                              coeff[HAND_POS_Z]);
     mat->rightMultScale(HandModel::scale, HandModel::scale, HandModel::scale);
 
     // Set the palm bone (depending on wrist angle)
-    mat = bones_in_file_->bones[bone_palm_index_]->getNode()->mat();
+    mat = bones_in_file_->bones[bone_wrist_index_]->getNode()->mat();
     Float4x4::rotateMatXAxis(mat_tmp1, coeff[WRIST_PHI]);
     Float4x4::rotateMatZAxis(mat_tmp2, coeff[WRIST_THETA]);
     Float4x4::mult(mat_tmp3, mat_tmp1, mat_tmp2);
     // Float4x4::rotateMatXAxis(mat_tmp1, HandModel::wrist_twist);
     // Float4x4::mult(mat_tmp2, mat_tmp1, mat_tmp3);
-    Float4x4::mult(*mat, rest_transforms_[bone_palm_index_], mat_tmp3);
+    Float4x4::mult(*mat, rest_transforms_[bone_wrist_index_], mat_tmp3);
 
     // Set the finger bones
     for (uint32_t i = 0; i < 4; i++) {

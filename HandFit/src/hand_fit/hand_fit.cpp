@@ -91,8 +91,8 @@ namespace hand_fit {
     for (uint32_t i = HAND_POS_X; i <= HAND_POS_Z; i++) {
       pso_radius_c_(i) = PSO_RAD_POSITION;
     }
-    for (uint32_t i = HAND_ORIENT_X; i <= HAND_ORIENT_W; i++) {
-      pso_radius_c_(i) = PSO_RAD_QUATERNION;
+    for (uint32_t i = HAND_ORIENT_X; i <= HAND_ORIENT_Z; i++) {
+      pso_radius_c_(i) = PSO_RAD_EULER;
     }
     for (uint32_t i = WRIST_THETA; i <= WRIST_PHI; i++) {  // Wrist
       pso_radius_c_(i) = (coeff_max_limit[i] - coeff_min_limit[i]) * PSO_RAD_WRIST;
@@ -603,7 +603,6 @@ namespace hand_fit {
     0.01f,   // HAND_ORIENT_X
     0.01f,   // HAND_ORIENT_Y
     0.01f,   // HAND_ORIENT_Z
-    0.01f,   // HAND_ORIENT_W
     0.01f,   // WRIST_THETA
     0.01f,   // WRIST_PHI
     0.01f,   // THUMB_THETA
@@ -635,7 +634,6 @@ namespace hand_fit {
     0.01f,  // HAND_ORIENT_X
     0.01f,  // HAND_ORIENT_Y
     0.01f,  // HAND_ORIENT_Z
-    0.01f,  // HAND_ORIENT_W
     0.01f,  // WRIST_THETA
     0.01f,  // WRIST_PHI
     0.01f,  // THUMB_THETA
@@ -667,7 +665,6 @@ namespace hand_fit {
     false,  // HAND_ORIENT_X
     false,  // HAND_ORIENT_Y
     false,  // HAND_ORIENT_Z
-    false,  // HAND_ORIENT_W
     true,   // WRIST_THETA
     true,   // WRIST_PHI
     true,   // THUMB_THETA
@@ -694,7 +691,6 @@ namespace hand_fit {
     false,  // HAND_ORIENT_X
     false,  // HAND_ORIENT_Y
     false,  // HAND_ORIENT_Z
-    false,  // HAND_ORIENT_W
     true,   // WRIST_THETA
     true,   // WRIST_PHI
     true,   // THUMB_THETA
@@ -725,7 +721,6 @@ namespace hand_fit {
     -1,  // HAND_ORIENT_X
     -1,  // HAND_ORIENT_Y
     -1,  // HAND_ORIENT_Z
-    -1,  // HAND_ORIENT_W
     -0.503f,  // WRIST_THETA
     -1.180f,  // WRIST_PHI
     -0.323f,  // THUMB_THETA
@@ -756,7 +751,6 @@ namespace hand_fit {
     1,  // HAND_ORIENT_X
     1,  // HAND_ORIENT_Y
     1,  // HAND_ORIENT_Z
-    1,  // HAND_ORIENT_W
     0.705f,  // WRIST_THETA
     1.300f,  // WRIST_PHI
     0.350f,  // THUMB_THETA
@@ -785,7 +779,6 @@ namespace hand_fit {
     HAND_ORIENT_X,
     HAND_ORIENT_Y,
     HAND_ORIENT_Z,
-    HAND_ORIENT_W,
     WRIST_THETA,
     WRIST_PHI,
     THUMB_THETA,
@@ -816,7 +809,6 @@ namespace hand_fit {
     0,  // HAND_ORIENT_X
     0,  // HAND_ORIENT_Y
     0,  // HAND_ORIENT_Z
-    0,  // HAND_ORIENT_W
     100,  // WRIST_THETA
     100,  // WRIST_PHI
     100,  // THUMB_THETA
@@ -845,7 +837,6 @@ namespace hand_fit {
     0.5f,   // HAND_ORIENT_X
     0.5f,   // HAND_ORIENT_Y
     0.5f,   // HAND_ORIENT_Z
-    0.5f,   // HAND_ORIENT_W
     2.0f,    // WRIST_THETA
     2.0f,    // WRIST_PHI
     2.0f,    // THUMB_THETA
@@ -874,7 +865,6 @@ namespace hand_fit {
     0,       // HAND_ORIENT_X
     0,       // HAND_ORIENT_Y
     0,       // HAND_ORIENT_Z
-    0,       // HAND_ORIENT_W
     0,       // WRIST_THETA
     0,       // WRIST_PHI
     0,       // THUMB_THETA

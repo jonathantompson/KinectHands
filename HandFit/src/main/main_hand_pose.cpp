@@ -566,9 +566,7 @@ int main(int argc, char *argv[]) {
           (1.0f + hand_frames[HandCoeff::HAND_ORIENT_Y]->sample((float)t_animation*0.25f)); 
         euler_ang[0] =  (float)(2.0 * M_PI) * 0.5f * 
           (1.0f + hand_frames[HandCoeff::HAND_ORIENT_Z]->sample((float)t_animation*0.25f)); 
-        FloatQuat quat;
-        FloatQuat::eulerAngles2Quat(quat, euler_ang[0], euler_ang[1], euler_ang[2]);
-        lhand->setRotation(quat);
+        lhand->setRotation(euler_ang);
         for (uint32_t i = 0; i < 4; i++) {
           // Knuckle curl
           // noise = [0, 1]

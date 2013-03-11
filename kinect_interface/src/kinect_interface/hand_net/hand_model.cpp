@@ -45,10 +45,9 @@ namespace hand_net {
     coeff_[HAND_POS_Z] = 750.0f;
     FloatQuat starting_quat;
     starting_quat.identity();
-    coeff_[HAND_ORIENT_X] = -0.0511944f;
-    coeff_[HAND_ORIENT_Y] = -0.0942133f;
-    coeff_[HAND_ORIENT_Z] = -0.6893440f;
-    coeff_[HAND_ORIENT_W] = +0.7164550f;
+    coeff_[HAND_ORIENT_X] = 0;
+    coeff_[HAND_ORIENT_Y] = -1.5707963f;  // Pi / 2
+    coeff_[HAND_ORIENT_Z] = 0;
     coeff_[WRIST_THETA] = 0;
     coeff_[WRIST_PHI] = 0;
     coeff_[THUMB_THETA] = 0;
@@ -105,18 +104,16 @@ namespace hand_net {
     }
   }
 
-  void HandModel::setRotation(const FloatQuat& quat) {
-    coeff_[HandCoeff::HAND_ORIENT_X] = quat.m[0];
-    coeff_[HandCoeff::HAND_ORIENT_Y] = quat.m[1];
-    coeff_[HandCoeff::HAND_ORIENT_Z] = quat.m[2];
-    coeff_[HandCoeff::HAND_ORIENT_W] = quat.m[3];
+  void HandModel::setRotation(const Float3& euler) {
+    coeff_[HandCoeff::HAND_ORIENT_X] = euler.m[0];
+    coeff_[HandCoeff::HAND_ORIENT_Y] = euler.m[1];
+    coeff_[HandCoeff::HAND_ORIENT_Z] = euler.m[2];
   }
 
-  void HandModel::getRotation(FloatQuat& quat) const {
-    quat.m[0] = coeff_[HandCoeff::HAND_ORIENT_X];
-    quat.m[1] = coeff_[HandCoeff::HAND_ORIENT_Y];
-    quat.m[2] = coeff_[HandCoeff::HAND_ORIENT_Z];
-    quat.m[3] = coeff_[HandCoeff::HAND_ORIENT_W];
+  void HandModel::getRotation(Float3& euler) const {
+    euler.m[0] = coeff_[HandCoeff::HAND_ORIENT_X];
+    euler.m[1] = coeff_[HandCoeff::HAND_ORIENT_Y];
+    euler.m[2] = coeff_[HandCoeff::HAND_ORIENT_Z];
   }
 
   // modulu - similar to matlab's mod()
@@ -161,16 +158,10 @@ namespace hand_net {
 
   FloatQuat tmp_quat_;
   void HandModel::renormalizeCoeffs(float* coeff) {
-    // Normalize the quaternion
-    tmp_quat_.set(coeff[HAND_ORIENT_X], coeff[HAND_ORIENT_Y],
-      coeff[HAND_ORIENT_Z], coeff[HAND_ORIENT_W]);
-    tmp_quat_.normalize();
-    coeff[HAND_ORIENT_X] = tmp_quat_[0];
-    coeff[HAND_ORIENT_Y] = tmp_quat_[1];
-    coeff[HAND_ORIENT_Z] = tmp_quat_[2];
-    coeff[HAND_ORIENT_W] = tmp_quat_[3];
-    
     // Set all angles 0 --> 2pi
+    WrapTwoPI(coeff[HAND_ORIENT_X]);
+    WrapTwoPI(coeff[HAND_ORIENT_Y]);
+    WrapTwoPI(coeff[HAND_ORIENT_Z]);
     WrapTwoPI(coeff[WRIST_THETA]);
     WrapTwoPI(coeff[WRIST_PHI]);
     WrapTwoPI(coeff[THUMB_THETA]);
@@ -206,8 +197,6 @@ namespace hand_net {
         return "HAND_ORIENT_Y";
       case HAND_ORIENT_Z:
         return "HAND_ORIENT_Z";
-      case HAND_ORIENT_W:
-        return "HAND_ORIENT_W";
       case WRIST_THETA:
         return "WRIST_THETA";
       case WRIST_PHI:
