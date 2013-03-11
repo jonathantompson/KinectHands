@@ -2,8 +2,8 @@
 #include <sstream>
 #include "renderer/open_gl_common.h"
 #include "renderer/texture/texture.h"
-#include "exceptions/wruntime_error.h"
-#include "string_util/string_util.h"
+#include "jtil/exceptions/wruntime_error.h"
+#include "jtil/string_util/string_util.h"
 #include "freeimage.h"
 #include "renderer/gl_state.h"
 
@@ -13,10 +13,10 @@ using std::wruntime_error;
 namespace renderer {
 
   // Load a texture from disk
-  Texture::Texture(const std::string& filename, 
-    const TEXTURE_WRAP_MODE wrap, bool origin_ul) {
+  Texture::Texture(const std::string& filename, const TEXTURE_WRAP_MODE wrap, 
+    bool origin_ul, const TEXTURE_FILTER_MODE filter) {
     unsigned int nbits;
-
+    filter_ = filter;
     wrap_ = wrap;
     filename_ = filename;
     managed_ = false;
@@ -61,7 +61,7 @@ namespace renderer {
 	  // if still unkown, return failure
 	  if (fif == FIF_UNKNOWN) {
       throw wruntime_error(wstring(L"Texture() - ERROR: Cannot deduce ") +
-        wstring(L"format of the file: ") + string_util::ToWideString(filename));
+        wstring(L"format of the file: ") + jtil::string_util::ToWideString(filename));
     }
 
     // check that FreeImage has reading capabilities and if so load the file
@@ -71,7 +71,7 @@ namespace renderer {
     //if the image failed to load, return failure
     if (!dib) {
       throw wruntime_error(wstring(L"Texture() - ERROR: FreeImage couldn't ") +
-        wstring(L"load the file: ") + string_util::ToWideString(filename));
+        wstring(L"load the file: ") + jtil::string_util::ToWideString(filename));
     }
 
     // Convert everything to RGBA:
@@ -90,7 +90,7 @@ namespace renderer {
 	  // if this somehow one of these failed (they shouldn't), return failure
 	  if ((fi_bits == 0) || (w_ == 0) || (h_ == 0)) {
       throw wruntime_error(wstring(L"Texture() - ERROR: FreeImage couldn't ") +
-        wstring(L"load the file: ") + string_util::ToWideString(filename));
+        wstring(L"load the file: ") + jtil::string_util::ToWideString(filename));
     }
 
     // Copy it into memory and leave it there in case we need it later.
@@ -113,9 +113,9 @@ namespace renderer {
   // managed = true, transfer ownership of the bits memory
   Texture::Texture(const int format_internal, const int w, const int h, 
     const int format, const int type, const unsigned char *bits, 
-    const TEXTURE_WRAP_MODE wrap, 
-    bool managed) {
-
+    const TEXTURE_WRAP_MODE wrap, bool managed, 
+    const TEXTURE_FILTER_MODE filter) {
+    filter_ = filter;
     wrap_ = wrap;
     filename_ = std::string("");
     managed_ = managed;
@@ -178,9 +178,17 @@ namespace renderer {
   }
 
   void Texture::setTextureProperties() {
-    // Assumes the current texture is already bound
-    GLState::glsTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-    GLState::glsTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+      // Assumes the current texture is already bound
+    switch (filter_) {
+    case TEXTURE_LINEAR:
+      GLState::glsTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      GLState::glsTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      break;
+    case TEXTURE_NEAREST:
+      GLState::glsTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      GLState::glsTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      break;
+    }
 
     switch (wrap_) {
     case TEXTURE_CLAMP:

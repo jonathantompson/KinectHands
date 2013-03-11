@@ -1,26 +1,26 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include "data_str/vector.h"
-#include "data_str/pair.h"
-#include "data_str/circular_buffer.h"
+#include "jtil/data_str/vector.h"
+#include "jtil/data_str/pair.h"
+#include "jtil/data_str/circular_buffer.h"
 #include "renderer/geometry/geometry.h"
-#include "exceptions/wruntime_error.h"
+#include "jtil/exceptions/wruntime_error.h"
 #include "renderer/open_gl_common.h"
 #include "assimp/Importer.hpp"      // C++ importer interface
 #include "assimp/scene.h"           // Output data structure
 #include "assimp/postprocess.h"     // Post processing flags
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 #include "renderer/gl_state.h"
 
-using math::Float3;
-using math::Float4x4;
+using jtil::math::Float3;
+using jtil::math::Float4x4;
 using std::cout;
 using std::endl;
 using std::string;
 using std::runtime_error;
-using data_str::Vector;
-using data_str::Pair;
+using jtil::data_str::Vector;
+using jtil::data_str::Pair;
 
 namespace renderer {
 
@@ -118,7 +118,7 @@ namespace renderer {
     return ret;
   }
 
-  data_str::Pair<uint8_t*,uint32_t> Geometry::saveToArray() {
+  jtil::data_str::Pair<uint8_t*,uint32_t> Geometry::saveToArray() {
     Pair<uint8_t*,uint32_t> data;
     data.first = NULL;
     data.second = 0;

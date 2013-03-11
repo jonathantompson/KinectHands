@@ -37,7 +37,7 @@
 #include <mutex>
 #include <string>
 #include "windowing/glfw.h"
-#include "math/math_types.h"  // for Int4
+#include "jtil/math/math_types.h"  // for Int4
 #include "windowing/keys_and_buttons.h"
 #include "windowing/window_settings.h"
 
@@ -54,7 +54,7 @@ namespace windowing {
     RES_1920_1080,
     NUM_RES,
   } WINDOW_RES;
-  
+
   typedef void (*KeyboardCBFuncPtr)(int key, int action);
   typedef void (*MousePosCBFuncPtr)(int x, int y);
   typedef void (*MouseButtonCBFuncPtr)(int button, int action);
@@ -72,7 +72,7 @@ namespace windowing {
 
     // Poll the mouse and keyboard state on demand
     bool getKeyState(int key);
-    bool getMousePosition(math::Int2* pos);
+    bool getMousePosition(jtil::math::Int2* pos);
     bool getMouseButtonStateRight();
     bool getMouseButtonStateLeft();
     bool getMouseButtonStateMiddle();
@@ -104,7 +104,7 @@ namespace windowing {
     static int mouse_wheel_pos_;
     static bool key_down_[NUM_KEYS];
     static bool mouse_button_down_[NUM_MOUSE_BUTTONS];
-    static math::Int2 mouse_pos_;
+    static jtil::math::Int2 mouse_pos_;
     static bool init_glew_;
     static std::mutex window_init_lock_;
     static uint32_t num_windows_;

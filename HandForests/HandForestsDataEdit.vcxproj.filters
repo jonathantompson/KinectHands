@@ -16,150 +16,16 @@
     <Filter Include="Source Files\src">
       <UniqueIdentifier>{78741596-a4dc-4fb7-8e6c-3fdf38a0d986}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\src\math">
-      <UniqueIdentifier>{63392449-dba1-433f-87c7-b4c5c1f171d5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\src\string_util">
-      <UniqueIdentifier>{4db57272-456b-4627-af8d-e12dd08af505}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\src\clock">
-      <UniqueIdentifier>{b0b12238-ef8d-4b85-ac45-a6a6885090bf}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\src\debug_util">
-      <UniqueIdentifier>{43dbf6c0-9cd3-4595-aa91-d0e1054e0a22}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\src\fastlz">
-      <UniqueIdentifier>{03b41aef-b9ab-47b7-942c-a987ede76790}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\src\file_io">
-      <UniqueIdentifier>{4c1a1914-52d3-46d6-b3e9-1fb5b632ea08}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\src\data_str">
-      <UniqueIdentifier>{314b682b-0fdd-47bb-96d6-6d3410fee599}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\src\exceptions">
-      <UniqueIdentifier>{1bed4992-699a-4946-b130-00cfce7424ff}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\src\maxflow-v3.02">
-      <UniqueIdentifier>{244ce825-14d6-4e8d-b831-1288fe344be6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\src\marching_squares">
-      <UniqueIdentifier>{4c44a413-38a7-4168-b31e-501a79624496}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\debug_util\debug_util_win32.cpp">
-      <Filter>Source Files\src\debug_util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\fastlz\fastlz.c">
-      <Filter>Source Files\src\fastlz</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\string_util\string_util.cpp">
-      <Filter>Source Files\src\string_util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\exceptions\wruntime_error.cpp">
-      <Filter>Source Files\src\exceptions</Filter>
-    </ClCompile>
-    <ClCompile Include="src\file_io\csv_handle_read.cpp">
-      <Filter>Source Files\src\file_io</Filter>
-    </ClCompile>
-    <ClCompile Include="src\file_io\csv_handle_write.cpp">
-      <Filter>Source Files\src\file_io</Filter>
-    </ClCompile>
-    <ClCompile Include="src\file_io\csv_handle.cpp">
-      <Filter>Source Files\src\file_io</Filter>
-    </ClCompile>
-    <ClCompile Include="src\depth_images_io.cpp">
-      <Filter>Source Files\src</Filter>
-    </ClCompile>
     <ClCompile Include="src\main_data_edit.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
-    <ClCompile Include="src\maxflow-v3.02\graph.cpp">
-      <Filter>Source Files\src\maxflow-v3.02</Filter>
-    </ClCompile>
-    <ClCompile Include="src\maxflow-v3.02\maxflow.cpp">
-      <Filter>Source Files\src\maxflow-v3.02</Filter>
-    </ClCompile>
-    <ClCompile Include="src\marching_squares\min_heap_contours.cpp">
-      <Filter>Source Files\src\marching_squares</Filter>
-    </ClCompile>
-    <ClCompile Include="src\marching_squares\contour.cpp">
-      <Filter>Source Files\src\marching_squares</Filter>
-    </ClCompile>
-    <ClCompile Include="src\marching_squares\marching_squares.cpp">
-      <Filter>Source Files\src\marching_squares</Filter>
-    </ClCompile>
-    <ClCompile Include="src\open_ni_funcs.cpp">
-      <Filter>Source Files\src</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="src\image_util.h">
-      <Filter>Source Files\src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\math\math_types.h">
-      <Filter>Source Files\src\math</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\clock\clock.h">
-      <Filter>Source Files\src\clock</Filter>
-    </ClInclude>
-    <ClInclude Include="src\debug_util\debug_util.h">
-      <Filter>Source Files\src\debug_util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\fastlz\fastlz.h">
-      <Filter>Source Files\src\fastlz</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\string_util\string_util.h">
-      <Filter>Source Files\src\string_util</Filter>
-    </ClInclude>
-    <ClInclude Include="src\data_str\vector_managed.h">
-      <Filter>Source Files\src\data_str</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\exceptions\wruntime_error.h">
-      <Filter>Source Files\src\exceptions</Filter>
-    </ClInclude>
-    <ClInclude Include="src\file_io\csv_handle.h">
-      <Filter>Source Files\src\file_io</Filter>
-    </ClInclude>
-    <ClInclude Include="src\file_io\csv_handle_read.h">
-      <Filter>Source Files\src\file_io</Filter>
-    </ClInclude>
-    <ClInclude Include="src\file_io\csv_handle_write.h">
-      <Filter>Source Files\src\file_io</Filter>
-    </ClInclude>
-    <ClInclude Include="src\depth_images_io.h">
-      <Filter>Source Files\src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\block.h">
-      <Filter>Source Files\src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\maxflow-v3.02\block.h">
-      <Filter>Source Files\src\maxflow-v3.02</Filter>
-    </ClInclude>
-    <ClInclude Include="src\maxflow-v3.02\graph.h">
-      <Filter>Source Files\src\maxflow-v3.02</Filter>
-    </ClInclude>
-    <ClInclude Include="src\data_str\vector.h">
-      <Filter>Source Files\src\data_str</Filter>
-    </ClInclude>
-    <ClInclude Include="src\marching_squares\min_heap_contours.h">
-      <Filter>Source Files\src\marching_squares</Filter>
-    </ClInclude>
-    <ClInclude Include="src\marching_squares\contour.h">
-      <Filter>Source Files\src\marching_squares</Filter>
-    </ClInclude>
-    <ClInclude Include="src\marching_squares\marching_squares.h">
-      <Filter>Source Files\src\marching_squares</Filter>
-    </ClInclude>
-    <ClInclude Include="src\open_ni_funcs.h">
-      <Filter>Source Files\src</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include=".\TO DO.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="program_settings.csv" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include=".\TO DO.txt" />
   </ItemGroup>
 </Project>

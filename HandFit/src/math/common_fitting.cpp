@@ -4,12 +4,13 @@
 using std::cout;
 using std::endl;
 
+namespace jtil {
 namespace math {
 
   void PrintEigenMatrix(Eigen::MatrixXf& mat) {
-    for (uint32_t y = 0; y < mat.rows(); y++) {
+    for (int32_t y = 0; y < mat.rows(); y++) {
       std::cout << "|";
-      for (uint32_t x = 0; x < mat.cols(); x++) {
+      for (int32_t x = 0; x < mat.cols(); x++) {
         printf("%+.15e", mat(y, x));
         if (x != mat.cols() - 1) {
           cout << " ";
@@ -28,4 +29,4 @@ namespace math {
   }
 
 };  // namespace math
-
+};  // namespace jtil

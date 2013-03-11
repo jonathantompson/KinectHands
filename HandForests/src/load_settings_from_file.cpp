@@ -16,19 +16,21 @@
 #include <stdexcept>
 #include <iostream>
 #include "load_settings_from_file.h"
-#include "file_io/csv_handle_read.h"
-#include "data_str/vector_managed.h"
-#include "string_util/string_util.h"
+#include "jtil/file_io/csv_handle_read.h"
+#include "jtil/data_str/vector_managed.h"
+#include "jtil/string_util/string_util.h"
 
 using std::wstring;
 using std::string;
 using std::runtime_error;
-using file_io::CSVHandleRead;
-using data_str::VectorManaged;
+using jtil::file_io::CSVHandleRead;
+using jtil::data_str::VectorManaged;
 using std::cout;
 using std::endl;
+using jtil::string_util::Str2Num;
 
-void parseToken(ProgramSettings* settings, VectorManaged<char*>* cur_token, std::string filename);
+void parseToken(ProgramSettings* settings, 
+  VectorManaged<const char*>* cur_token, std::string filename);
 
 void loadSettingsFromFile(ProgramSettings* settings, std::string filename) {
   CSVHandleRead reader(filename);
@@ -46,12 +48,12 @@ void loadSettingsFromFile(ProgramSettings* settings, std::string filename) {
   settings->bootstrap_tree_height = 20;
   settings->wl_func_type = 0;
 
-  VectorManaged<char*> cur_token;  // Each element is a csv in the line
+  VectorManaged<const char*> cur_token;  // Each element is a csv in the line
   static const bool inc_whitespace = false;
 
   // Keep reading tokens until we're at the end
   while (!reader.checkEOF()) {
-    reader.readNextToken(& cur_token, inc_whitespace);  // Get the next elem
+    reader.readNextToken(cur_token, inc_whitespace);  // Get the next elem
     if (cur_token.size() > 0)
       parseToken(settings, &cur_token, filename);  // process object
 
@@ -71,9 +73,15 @@ void loadSettingsFromFile(ProgramSettings* settings, std::string filename) {
   cout << "    num_bootstrap_passes = " << settings->num_bootstrap_passes << endl;
   cout << "    bootstrap_tree_height = " << settings->bootstrap_tree_height << endl;
   cout << "    wl_func_type = " << settings->wl_func_type << endl << endl;
+
+  if (settings->num_bootstrap_passes > 0) {
+    throw std::wruntime_error("loadSettingsFromFile() - ERROR "
+      "Bootstrap passes are no longer supported (they never helped anyway)");
+  }
 }
 
-void parseToken(ProgramSettings* settings, VectorManaged<char*>* cur_token, std::string filename) {
+void parseToken(ProgramSettings* settings, VectorManaged<const char*>* cur_token, 
+  std::string filename) {
   std::string setting_name(*cur_token->at(0));
 
   // Switch statement here would be ideal, but using wchar_t * in switch is 
@@ -85,31 +93,31 @@ void parseToken(ProgramSettings* settings, VectorManaged<char*>* cur_token, std:
   } else {
     std::string value(*cur_token->at(1));
     if (setting_name == "load_forest_from_file") {
-      if (string_util::Str2Num<int>(value) == 1) {
+      if (Str2Num<int>(value) == 1) {
         settings->load_forest_from_file = true;
       } else {
         settings->load_forest_from_file = false;
       }
     } else if (setting_name == "num_trees") {
-      settings->num_trees = static_cast<uint32_t>(string_util::Str2Num<int>(value));
+      settings->num_trees = static_cast<uint32_t>(Str2Num<int>(value));
     } else if (setting_name == "num_workers") {
-      settings->num_workers = static_cast<uint32_t>(string_util::Str2Num<int>(value));
+      settings->num_workers = static_cast<uint32_t>(Str2Num<int>(value));
     } else if (setting_name == "tree_height") {
-      settings->tree_height = static_cast<uint32_t>(string_util::Str2Num<int>(value));
+      settings->tree_height = static_cast<uint32_t>(Str2Num<int>(value));
     } else if (setting_name == "min_info_gain") {
-      settings->min_info_gain = static_cast<float>(string_util::Str2Num<float>(value));
+      settings->min_info_gain = static_cast<float>(Str2Num<float>(value));
     } else if (setting_name == "max_pixels_per_image_per_label") {
-      settings->max_pixels_per_image_per_label = static_cast<uint32_t>(string_util::Str2Num<int>(value));
+      settings->max_pixels_per_image_per_label = static_cast<uint32_t>(Str2Num<int>(value));
     } else if (setting_name == "num_wl_samples_per_node") {
-      settings->num_wl_samples_per_node = static_cast<uint32_t>(string_util::Str2Num<int>(value));
+      settings->num_wl_samples_per_node = static_cast<uint32_t>(Str2Num<int>(value));
     } else if (setting_name == "max_num_images") {
-      settings->max_num_images = static_cast<uint32_t>(string_util::Str2Num<int>(value));
+      settings->max_num_images = static_cast<uint32_t>(Str2Num<int>(value));
     } else if (setting_name == "num_bootstrap_passes") {
-      settings->num_bootstrap_passes = static_cast<uint32_t>(string_util::Str2Num<int>(value));
+      settings->num_bootstrap_passes = static_cast<uint32_t>(Str2Num<int>(value));
     } else if (setting_name == "bootstrap_tree_height") {
-      settings->bootstrap_tree_height = static_cast<uint32_t>(string_util::Str2Num<int>(value));
+      settings->bootstrap_tree_height = static_cast<uint32_t>(Str2Num<int>(value));
     } else if (setting_name == "wl_func_type") {
-      settings->wl_func_type = static_cast<uint32_t>(string_util::Str2Num<int>(value));
+      settings->wl_func_type = static_cast<uint32_t>(Str2Num<int>(value));
     } else {
       throw std::runtime_error(string("ERROR: Unrecognized setting name in file:" +
                                       filename));

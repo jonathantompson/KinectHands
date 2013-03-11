@@ -11,12 +11,12 @@
 #define MATH_LPRPSO_FITTING_HANDS_HEADER
 
 #include <random>
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 #include "math/common_fitting.h"
 #include "Eigen"
-#include "data_str/vector.h"
-#include "data_str/vector_managed.h"
-#include "hand_model/hand_model_renderer.h"  // NTILES
+#include "jtil/data_str/vector.h"
+#include "jtil/data_str/vector_managed.h"
+#include "hand_fit/hand_renderer.h"  // NTILES
 
 #if defined(WIN32) || defined(_WIN32)
   #define constexpr 
@@ -24,8 +24,9 @@
 
 // #define LPRPSO_VERBOSE_SOLVER  // Print out per-iteration information
 
-namespace hand_model { class HandModelFit; }
+namespace hand_fit { class HandFit; }
 
+namespace jtil {
 namespace math {
 
   // LPRPSO Optimization using hand model
@@ -34,7 +35,7 @@ namespace math {
     // Set population size (num_agents) to -1 to let the optimizer choose a
     // population size for you.
     LPRPSOFittingHands(uint32_t num_coeffs, int swarm_size_,
-      hand_model::HandModelFit* hand_model_fit);
+      hand_fit::HandFit* hand_model_fit);
     ~LPRPSOFittingHands();
 
     // fitModel = Top level function:
@@ -64,7 +65,7 @@ namespace math {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   private:
-    hand_model::HandModelFit* hand_model_fit_;  // Not owned here
+    hand_fit::HandFit* hand_model_fit_;  // Not owned here
     const bool* angle_coeffs_;
     uint32_t num_coeffs_;
     uint32_t swarm_size_;
@@ -96,5 +97,6 @@ namespace math {
   };
 
 };  // namespace math
+};  // namespace jtil
 
 #endif  // MATH_LPRPSO_FITTING_HANDS_HEADER

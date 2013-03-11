@@ -18,12 +18,7 @@
 #endif
 
 using namespace std;
-using math::Float3;
-using math::Int3;
-using math::Float4;
-using math::FloatQuat;
-using math::Float4x4;
-using math::LPRPSOFitting;
+using namespace jtil::math;
 using Eigen::MatrixXf;
 
 #define NUM_COEFFS 4
@@ -96,7 +91,7 @@ int main(int argc, char *argv[]) {
     NULL);
 
   cout << endl << "Final coeff values:" << endl;
-  math::PrintEigenMatrix(ret_coeffs);
+  PrintEigenMatrix(ret_coeffs);
 
   cout << endl << "Expecting:" << endl << "|";
   for (uint32_t i = 0; i < NUM_COEFFS; i++) {

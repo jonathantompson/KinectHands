@@ -8,8 +8,8 @@
 #define RENDERER_RENDERER_HEADER
 
 #include "renderer/open_gl_common.h"
-#include "data_str/vector.h"
-#include "data_str/vector_managed.h"
+#include "jtil/data_str/vector.h"
+#include "jtil/data_str/vector_managed.h"
 #include "renderer/shader/shader_location_name_pair.h"
 
 #ifndef BUFFER_OFFSET
@@ -21,7 +21,7 @@
 #define DIR_LIGHT_DIFFUSE_INTENSITY 0.7f
 
 namespace windowing { class Window; }
-namespace hand_model { class HandModel; }
+namespace kinect_interface { namespace hand_net { class HandModel; } }
 
 namespace renderer {
 
@@ -44,13 +44,13 @@ namespace renderer {
 
   class Renderer {
   public:
-    friend hand_model::HandModel;  // TEMP CODE!
+    friend kinect_interface::hand_net::HandModel;  // TEMP CODE!
     // Constructor / Destructor
     Renderer();
     ~Renderer();
 
     // Top level functions
-    void init(math::FloatQuat& eye_rot, math::Float3& eye_pos, int screen_width, 
+    void init(jtil::math::FloatQuat& eye_rot, jtil::math::Float3& eye_pos, int screen_width, 
       int screen_height, float znear, float zfar, float field_of_view);
     void renderFrame(float dt);
     void resize(uint32_t width, uint32_t height);
@@ -63,13 +63,13 @@ namespace renderer {
 
     // These are utility functions to bind certain data values to handles in
     // shaders
-    void bindFloat4x4(const math::Float4x4* mat, const GLint h_mat); 
+    void bindFloat4x4(const jtil::math::Float4x4* mat, const GLint h_mat); 
     void bindFloat2x4(const float mat[2][4], const GLint h_mat);
     void bindFloat4x4Array(const float* mat_array, uint32_t count, const GLint h_mat); 
     void bindFloat1(const float val, const GLint h_vec);
-    void bindFloat2(const math::Float2* vec, const GLint h_vec);
-    void bindFloat3(const math::Float3* vec, const GLint h_vec);
-    void bindFloat4(const math::Float4* vec, const GLint h_vec);
+    void bindFloat2(const jtil::math::Float2* vec, const GLint h_vec);
+    void bindFloat3(const jtil::math::Float3* vec, const GLint h_vec);
+    void bindFloat4(const jtil::math::Float4* vec, const GLint h_vec);
     // This will bind a vertex attribute (in a VAO) with a specified user ID
     static void setVertexAttribPointer(const int id, int size, 
       int type, bool normalized, int stride, const void* pointer);
@@ -95,10 +95,10 @@ namespace renderer {
     void renderFullscreenQuad(Texture* tex, GLint frame_buffer_dst);
     // Just render to the current framebuffer and viewport:
     void renderFullscreenQuad(Texture* tex);
-    void renderPointCloud(GeometryPoints* points, math::Float4x4* mat_world,
-      const math::Float3* color, const float point_size_constant);
+    void renderPointCloud(GeometryPoints* points, jtil::math::Float4x4* mat_world,
+      const jtil::math::Float3* color, const float point_size_constant);
     void renderColoredPointCloud(GeometryColoredPoints* points,
-      math::Float4x4* mat_world, const float point_size_constant);
+      jtil::math::Float4x4* mat_world, const float point_size_constant);
     void downsample2Texture(TextureRenderable* dst, TextureRenderable* src);
     void downsample2IntegTexture(TextureRenderable* dst, TextureRenderable* src);
     void downsample4Texture(TextureRenderable* dst, TextureRenderable* src);
@@ -221,11 +221,11 @@ namespace renderer {
     GLint h_cpoint_size_constant_;
     
     // Temporary variables
-    math::Float4x4 Normal_mat_;
-    math::Float4x4 VW_mat_;
-    math::Float4x4 PVW_mat_;
+    jtil::math::Float4x4 Normal_mat_;
+    jtil::math::Float4x4 VW_mat_;
+    jtil::math::Float4x4 PVW_mat_;
     
-    data_str::Vector<float> matrix_data_;  // concatenated matrix data
+    jtil::data_str::Vector<float> matrix_data_;  // concatenated matrix data
 
     void updateCameraFOVScreenSize();
     void updateMatrices();

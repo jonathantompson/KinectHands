@@ -1,14 +1,3 @@
-//
-//  lm_fitting.cpp
-//
-//  Created by Jonathan Tompson on 8/23/12.
-//
-//  A black box implementation of the Levenberg-Marquardt non-linear
-//  optimization algorithm.  Requires a function pointer to Jacobian matrix
-//  calculator.  This can be estimated using the mid-point method if the
-//  function is non-differentiable.
-//
-
 #include <stdexcept>
 #include <iostream>
 #include "math/lm_fitting.h"
@@ -19,6 +8,7 @@ using std::cout;
 using std::endl;
 using std::runtime_error;
 
+namespace jtil {
 namespace math {
 
   LMFitting::LMFitting(uint32_t num_coeffs, uint32_t data_length) {
@@ -254,4 +244,5 @@ namespace math {
     return best_coeff_;
   }
 
-};  // namespace math
+}  // namespace math
+}  // namespace jtil

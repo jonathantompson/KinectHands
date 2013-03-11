@@ -8,14 +8,14 @@
 #define RENDERER_LIGHT_DIR_HEADER
 
 #include "renderer/lights/light.h"
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 
 namespace renderer {
   struct LightDirData {
-    math::Float3 color;
+    jtil::math::Float3 color;
     float ambient_intensity;
     float diffuse_intensity;
-    math::Float3 direction_view;
+    jtil::math::Float3 direction_view;
   };
 
 
@@ -28,19 +28,19 @@ namespace renderer {
 
     // Getters and setters
     inline LightDirData* light_data() { return &light_data_; }
-    inline math::Float3* direction_world() { return &direction_world_; }
-    inline math::Float3* color() { return &light_data_.color; }
+    inline jtil::math::Float3* direction_world() { return &direction_world_; }
+    inline jtil::math::Float3* color() { return &light_data_.color; }
     inline float ambient_intensity() { return light_data_.ambient_intensity; }
     inline float diffuse_intensity() { return light_data_.diffuse_intensity; }
-    inline void direction_world(const math::Float3& val) { direction_world_ = val; }
-    inline void color(const math::Float3& val) { light_data_.color = val; }
+    inline void direction_world(const jtil::math::Float3& val) { direction_world_ = val; }
+    inline void color(const jtil::math::Float3& val) { light_data_.color = val; }
     inline void ambient_intensity(const float val) { light_data_.ambient_intensity = val; }
     inline void diffuse_intensity(const float val) { light_data_.diffuse_intensity = val; }
 
-    virtual void update(math::Float4x4* camera_view);
+    virtual void update(jtil::math::Float4x4* camera_view);
 
   protected:
-    math::Float3 direction_world_;
+    jtil::math::Float3 direction_world_;
     LightDirData light_data_;
 
     // Non-copyable, non-assignable.

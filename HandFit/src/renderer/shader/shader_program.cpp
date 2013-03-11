@@ -3,9 +3,9 @@
 #include <iostream>
 #include "renderer/shader/shader_program.h"
 #include "renderer/shader/shader.h"
-#include "exceptions/wruntime_error.h"
-#include "string_util/string_util.h"
-#include "data_str/pair.h"
+#include "jtil/exceptions/wruntime_error.h"
+#include "jtil/string_util/string_util.h"
+#include "jtil/data_str/pair.h"
 #include "renderer/gl_state.h"
 
 using std::wstring;
@@ -13,8 +13,8 @@ using std::wruntime_error;
 using std::string;
 using std::cout;
 using std::endl;
-using data_str::Pair;
-using data_str::Vector;
+using jtil::data_str::Pair;
+using jtil::data_str::Vector;
 
 namespace renderer {
   GLuint ShaderProgram::cur_program_ = MAX_UINT32;
@@ -68,7 +68,7 @@ namespace renderer {
       GLState::glsGetProgramInfoLog(shader_program_, info_length, &info_length, 
         program_info_log);
       ERROR_CHECK;
-      wstring err_log = string_util::ToWideString(program_info_log);
+      wstring err_log = jtil::string_util::ToWideString(program_info_log);
       delete[] program_info_log;
 
       throw wruntime_error(wstring(L"ShaderProgram::ShaderProgram() - ERROR ") + 
@@ -147,12 +147,12 @@ namespace renderer {
       cout << "ERROR: Cannot find: " << name << " in: " << endl;
       cout << "*********************************************************";
       cout << endl << "1. Vertex Shader Code: ";
-      cout << string_util::ToNarrowString(vertex_shader_->filename()) << endl;
+      cout << jtil::string_util::ToNarrowString(vertex_shader_->filename()) << endl;
       vertex_shader_->printToStdOut();
       cout << endl;
       cout << "*********************************************************";
       cout << endl << "2. Fragment Shader Code: ";
-      cout << string_util::ToNarrowString(fragment_shader_->filename()) << endl;
+      cout << jtil::string_util::ToNarrowString(fragment_shader_->filename()) << endl;
       fragment_shader_->printToStdOut();
       cout << endl;
       cout << "*********************************************************";

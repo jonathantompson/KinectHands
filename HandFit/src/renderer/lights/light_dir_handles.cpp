@@ -2,7 +2,7 @@
 #include "renderer/lights/light_dir.h"
 #include "renderer/shader/shader_program.h"
 #include "renderer/renderer.h"
-#include "exceptions/wruntime_error.h"
+#include "jtil/exceptions/wruntime_error.h"
 
 using std::wstring;
 using std::wruntime_error;

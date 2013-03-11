@@ -1,10 +1,10 @@
 #include <limits>
 #include "renderer/objects/aabbox.h"
-#include "data_str/vector.h"
+#include "jtil/data_str/vector.h"
 
-using math::Float3;
-using math::Float4x4;
-using data_str::Vector;
+using jtil::math::Float3;
+using jtil::math::Float4x4;
+using jtil::data_str::Vector;
 
 namespace renderer {
   namespace objects {
@@ -81,8 +81,8 @@ namespace renderer {
     void AABBox::update(Float4x4* mat_world) {
       // Get bounding box in world coordinates
       for (uint32_t i = 0; i < 8; i++) {
-        Float3::affineTransformPos(&world_bounds_[i], mat_world,
-          &object_bounds_[i]);
+        Float3::affineTransformPos(world_bounds_[i], *mat_world,
+          object_bounds_[i]);
       }
 
       // Now get bounding box in axis aligned world coordinates --> Box area will 
@@ -90,17 +90,17 @@ namespace renderer {
       min_[0] = world_bounds_[0][0]; 
       min_[1] = world_bounds_[0][1]; 
       min_[2] = world_bounds_[0][2]; 
-      max_.set(&min_);
+      max_.set(min_);
 
       for (uint32_t i = 1; i < 8; i++) {
         expand(&world_bounds_[i]);
       }
 
       // Calculate the center (used by most of the collision query routines)
-      center_.add(&min_, &max_);
-      center_.scale(0.5f);
-      half_lengths_.sub(&max_, &min_);
-      half_lengths_.scale(0.5f);
+      Float3::add(center_, min_, max_);
+      Float3::scale(center_, 0.5f);
+      Float3::sub(half_lengths_, max_, min_);
+      Float3::scale(half_lengths_, 0.5f);
     }
   }  // namespace objects
 }  // namespace physics

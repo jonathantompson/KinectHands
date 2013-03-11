@@ -9,7 +9,7 @@
 
 #include <mutex>
 #include <string>
-#include "math/math_types.h"  // for uint32_t
+#include "jtil/math/math_types.h"  // for uint32_t
 
 namespace windowing {
   

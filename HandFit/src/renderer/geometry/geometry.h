@@ -16,8 +16,8 @@
 #ifndef RENDERER_GEOMETRY_HEADER
 #define RENDERER_GEOMETRY_HEADER
 
-#include "math/math_types.h"
-#include "data_str/vector_managed.h"
+#include "jtil/math/math_types.h"
+#include "jtil/data_str/vector_managed.h"
 
 struct aiScene;
 struct aiNode;
@@ -26,7 +26,9 @@ struct aiMesh;
 #define DEFAULT_GEOMETRY_COLOR white
 #define GEOMETRY_FILE_DATA_SIZE (640 / 8) // Bytes
 
+namespace jtil {
 namespace data_str { template <typename TFirst, typename TSecond> class Pair; }
+}
 
 namespace renderer {
   
@@ -83,8 +85,8 @@ namespace renderer {
 
     // getter setter methods
     inline Geometry* parent() { return parent_; }
-    inline math::Float4x4* mat() { return &mat_; }
-    inline math::Float4x4* mat_hierarchy() { return &mat_hierarchy_; }
+    inline jtil::math::Float4x4* mat() { return &mat_; }
+    inline jtil::math::Float4x4* mat_hierarchy() { return &mat_hierarchy_; }
     inline uint32_t numChildren() { return children_.size(); }
     inline Geometry* getChild(uint32_t i) { return children_[i]; }
     inline objects::AABBox* aabbox() { return aabbox_; }
@@ -96,10 +98,10 @@ namespace renderer {
 
   protected:
     std::string name_;  // nodes are sometimes named (particularly bone trans)
-    math::Float4x4 mat_;
-    math::Float4x4 mat_hierarchy_;  // Updated when rendering
+    jtil::math::Float4x4 mat_;
+    jtil::math::Float4x4 mat_hierarchy_;  // Updated when rendering
     Geometry* parent_;
-    data_str::VectorManaged<Geometry*> children_;
+    jtil::data_str::VectorManaged<Geometry*> children_;
     objects::AABBox* aabbox_;  // Bounding volume for frustrum tests
     Material mtrl_;
 
@@ -113,7 +115,7 @@ namespace renderer {
     virtual void loadFromArray(const std::string& path, 
       const std::string& filename, const uint8_t* arr);
     // Convert the node and it's geometry into a data array for saving to file
-    virtual data_str::Pair<uint8_t*,uint32_t> saveToArray();
+    virtual jtil::data_str::Pair<uint8_t*,uint32_t> saveToArray();
     
     // Non-copyable, non-assignable.
     Geometry(Geometry&);

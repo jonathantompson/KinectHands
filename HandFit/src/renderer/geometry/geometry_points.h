@@ -15,8 +15,8 @@
 
 #include "renderer/open_gl_common.h"  // For GLtypes
 #include "renderer/geometry/geometry.h"
-#include "math/math_types.h"
-#include "data_str/vector.h"
+#include "jtil/math/math_types.h"
+#include "jtil/data_str/vector.h"
 
 namespace renderer {
 
@@ -32,7 +32,7 @@ namespace renderer {
     virtual ~GeometryPoints();
     
     // getter and setter methods
-    void addPoint(const math::Float3& point);
+    void addPoint(const jtil::math::Float3& point);
     void addPoint(const float x, const float y, const float z);
     void addPoint(const float* xyz);
     void addPoints(const float* xyz, uint32_t num_points);
@@ -47,7 +47,7 @@ namespace renderer {
     virtual Geometry* copy();
 
   private:
-    data_str::Vector<math::Float3> vertices_;
+    jtil::data_str::Vector<jtil::math::Float3> vertices_;
     GLuint vao_;  // Containing 1 VBOs which itself has vertex
     GLuint vbo_;  // Vertex buffer
     bool synced_;

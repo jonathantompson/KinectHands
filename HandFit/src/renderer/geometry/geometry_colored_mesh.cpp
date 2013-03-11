@@ -1,19 +1,19 @@
 #include <fstream>
 #include <iostream>
-#include "data_str/pair.h"
+#include "jtil/data_str/pair.h"
 #include "renderer/geometry/geometry_colored_mesh.h"
 #include "renderer/objects/aabbox.h"
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 #include "renderer/colors.h"
 #include "assimp/Importer.hpp"      // C++ importer interface
 #include "assimp/scene.h"           // Output data structure
 #include "assimp/postprocess.h"     // Post processing flags
-#include "fastlz/fastlz.h"
+#include "jtil/fastlz/fastlz.h"
 #include "renderer/gl_state.h"
 
 #define max std::max
 
-using math::Float3;
+using jtil::math::Float3;
 using std::wstring;
 using std::wruntime_error;
 using std::runtime_error;
@@ -21,7 +21,7 @@ using std::string;
 using std::cout;
 using std::endl;
 using renderer::objects::AABBox;
-using data_str::Pair;
+using jtil::data_str::Pair;
 
 namespace renderer {
   const void* ColoredMeshVertex::pos_offset = 
@@ -80,7 +80,7 @@ namespace renderer {
     normals_.pushBack(Float3(xyz[0], xyz[1], xyz[2]));
   }
   
-  void GeometryColoredMesh::addColor(const math::Float3& color) {
+  void GeometryColoredMesh::addColor(const Float3& color) {
     colors_.pushBack(Float3(color[0], color[1], color[2]));
   }
 
@@ -246,13 +246,9 @@ namespace renderer {
     Float3 v1;
     Float3 v2;
     Float3 norm;
-    Float3::sub(&v1, 
-                const_cast<Float3*>(&vert[i0]), 
-                const_cast<Float3*>(&vert[i1]));
-    Float3::sub(&v2, 
-                const_cast<Float3*>(&vert[i2]), 
-                const_cast<Float3*>(&vert[i1]));
-    Float3::cross(&norm, &v1, &v2);
+    Float3::sub(v1, vert[i0], vert[i1]);
+    Float3::sub(v2, vert[i2], vert[i1]);
+    Float3::cross(norm, v1, v2);
     norm.normalize();
     mesh->addVertex(vert[i0]);
     mesh->addVertex(vert[i1]);
@@ -267,7 +263,7 @@ namespace renderer {
 
   // Geometry builder methods --> Make new geometry primatives
   GeometryColoredMesh* GeometryColoredMesh::makeCube(
-    const math::Float3& color) {
+    const Float3& color) {
     GeometryColoredMesh* ret = new GeometryColoredMesh();
     ret->mat_.identity();
 
@@ -312,7 +308,7 @@ namespace renderer {
   }
 
   GeometryColoredMesh* GeometryColoredMesh::makePyramid(
-    const math::Float3& color) {
+    const Float3& color) {
     GeometryColoredMesh* ret = new GeometryColoredMesh();
     ret->mat_.identity();
 
@@ -385,11 +381,11 @@ namespace renderer {
 
   void GetRotatedAxis(Float3* vec_out, Float3* vec_in, double angle, const Float3& axis) {
     if(angle==0.0) {
-      vec_out->set(vec_in);
+      vec_out->set(*vec_in);
       return;
     }
 
-    Float3 u(const_cast<Float3*>(&axis));
+    Float3 u(axis);
     u.normalize();
 
     Float3 rotMatrixRow0, rotMatrixRow1, rotMatrixRow2;
@@ -410,13 +406,13 @@ namespace renderer {
     rotMatrixRow2[1] = (u[1]) * (u[2])*(oneMinusCosAngle) + sinAngle*u[0];
     rotMatrixRow2[2] = (u[2]) * (u[2]) + cosAngle*(1-(u[2])*(u[2]));
 
-    (*vec_out)[0] = Float3::dot(vec_in, &rotMatrixRow0);
-    (*vec_out)[1] = Float3::dot(vec_in, &rotMatrixRow1);
-    (*vec_out)[2] = Float3::dot(vec_in, &rotMatrixRow2);
+    (*vec_out)[0] = Float3::dot(*vec_in, rotMatrixRow0);
+    (*vec_out)[1] = Float3::dot(*vec_in, rotMatrixRow1);
+    (*vec_out)[2] = Float3::dot(*vec_in, rotMatrixRow2);
   }
 
   GeometryColoredMesh* GeometryColoredMesh::makeTorusKnot(
-    const math::Float3& color, uint32_t turns, uint32_t slices, 
+    const Float3& color, uint32_t turns, uint32_t slices, 
     uint32_t stacks) {
     GeometryColoredMesh* ret = new GeometryColoredMesh();
     ret->mat_.identity();
@@ -450,26 +446,27 @@ namespace renderer {
         // Get the vector from the centre of this ring to the centre of the next
         Float3 tangent;
         if (i == (static_cast<int>(stacks) - 1)) {
-          tangent.sub(&ring_centres[0], &ring_centres[i]);
+          Float3::sub(tangent, ring_centres[0], ring_centres[i]);
         } else {
-          tangent.sub(&ring_centres[i+1], &ring_centres[i]);
+          Float3::sub(tangent, ring_centres[i+1], ring_centres[i]);
         }
 
         // Calculate the vector perpendicular to the tangent, pointing 
         // approximately in the positive Y direction
         static Float3 yaxis(0.0f, 1.0f, 0.0f);
         Float3 temp1;
-        temp1.cross(&yaxis, &tangent);
+        Float3::cross(temp1, yaxis, tangent);
         Float3 temp2;
-        temp2.cross(&tangent, &temp1);
+        Float3::cross(temp2, tangent, temp1);
         temp2.normalize();
-        temp2.scale(0.2f);
+        Float3::scale(temp2, 0.2f);
 
         // Rotate this about the tangent vector to form the ring
         Float3 temp2_rotated;
         GetRotatedAxis(&temp2_rotated, &temp2, j*360.0f/slices, tangent);
 
-        ret->vertices_[vertex_number].add(&ring_centres[i], &temp2_rotated);
+        Float3::add(ret->vertices_[vertex_number], ring_centres[i], 
+          temp2_rotated);
       }
     }
 
@@ -540,15 +537,15 @@ namespace renderer {
       uint32_t p2 = ret->indices_[i+2];
 
       // Calculate the normal for this triangle
-      vec1.sub(&ret->vertices_[p0], &ret->vertices_[p1]);
-      vec2.sub(&ret->vertices_[p2], &ret->vertices_[p1]);
-      cur_normal.cross(&vec1, &vec2);
+      Float3::sub(vec1, ret->vertices_[p0], ret->vertices_[p1]);
+      Float3::sub(vec2, ret->vertices_[p2], ret->vertices_[p1]);
+      Float3::cross(cur_normal, vec1, vec2);
       cur_normal.normalize();
 
       // Add this to each of its vertices
-      ret->normals_[p0].add(&ret->normals_[p0], &cur_normal);
-      ret->normals_[p1].add(&ret->normals_[p1], &cur_normal);
-      ret->normals_[p2].add(&ret->normals_[p2], &cur_normal);
+      Float3::add(ret->normals_[p0], ret->normals_[p0], cur_normal);
+      Float3::add(ret->normals_[p1], ret->normals_[p1], cur_normal);
+      Float3::add(ret->normals_[p2], ret->normals_[p2], cur_normal);
     }
 
     //Normalize the normals
@@ -566,7 +563,7 @@ namespace renderer {
     ret->colors_.capacity(num_vertices);
     ret->colors_.resize(num_vertices);
     for (uint32_t i = 0; i < num_vertices; ++i) {
-      ret->colors_[i].set(const_cast<Float3*>(&color));
+      ret->colors_[i].set(color);
     }
 
     ret->syncVAO();
@@ -652,8 +649,7 @@ namespace renderer {
     SphericalToCartesean(ret->vertices_.at(cur_vertex), 
       outside_radius, phi, theta); 
     // Just point the normal outwards
-    Float3::normalize(ret->normals_.at(cur_vertex), 
-      ret->vertices_.at(cur_vertex));
+    Float3::normalize(ret->normals_[cur_vertex], ret->vertices_[cur_vertex]);
     ret->vertices_.at(cur_vertex)->accum(center.m);
     cur_vertex++;
 
@@ -665,8 +661,7 @@ namespace renderer {
         SphericalToCartesean(ret->vertices_.at(cur_vertex), 
           outside_radius, phi, theta); 
         // Just point the normal outwards
-        Float3::normalize(ret->normals_.at(cur_vertex), 
-          ret->vertices_.at(cur_vertex));
+        Float3::normalize(ret->normals_[cur_vertex], ret->vertices_[cur_vertex]);
         ret->vertices_.at(cur_vertex)->accum(center.m);
         cur_vertex++;
       }
@@ -677,8 +672,7 @@ namespace renderer {
     SphericalToCartesean(ret->vertices_.at(cur_vertex), 
       outside_radius, phi, theta); 
     // Just point the normal outwards
-    Float3::normalize(ret->normals_.at(cur_vertex), 
-      ret->vertices_.at(cur_vertex));
+    Float3::normalize(ret->normals_[cur_vertex], ret->vertices_[cur_vertex]);
     ret->vertices_.at(cur_vertex)->accum(center.m);
     cur_vertex++;
 
@@ -768,7 +762,7 @@ namespace renderer {
     ret->colors_.capacity(n_vert);
     ret->colors_.resize(n_vert);
     for (uint32_t i = 0; i < n_vert; ++i) {
-      ret->colors_[i].set(const_cast<Float3*>(&color));
+      ret->colors_[i].set(color);
     }
 
     ret->syncVAO();
@@ -839,15 +833,15 @@ namespace renderer {
       cur_angle = seperation_angle * static_cast<float>(i);
       cur_base_point.set(outside_rad * cosf(cur_angle), height, 
         outside_rad * sinf(cur_angle));
-      ret->vertices_.at(cur_vertex)->set(&cur_base_point);
+      ret->vertices_.at(cur_vertex)->set(cur_base_point);
       tangent_angle = cur_angle + 
         (static_cast<float>(M_PI) / 2.0f);  // Tangent is 90deg away
       v1.set(cosf(tangent_angle), 0.0f, sinf(tangent_angle));  // length 1!
-      Float3::normalize(&v2, &cur_base_point);
-      v2.scale(-1.0f);  // vector from cur position --> Top (0,0,0)
-      Float3::cross(&cur_normal, &v1, &v2 );
+      Float3::normalize(v2, cur_base_point);
+      Float3::scale(v2, -1.0f);  // vector from cur position --> Top (0,0,0)
+      Float3::cross(cur_normal, v1, v2 );
       cur_normal.normalize();
-      ret->normals_.at(cur_vertex)->set(&cur_normal);
+      ret->normals_.at(cur_vertex)->set(cur_normal);
       cur_vertex ++;
       
       // next base (there is some re-work here, but that's OK).
@@ -856,14 +850,14 @@ namespace renderer {
         outside_rad * sinf(cur_angle));
 
       // Treat the top point as
-      ret->vertices_.at(cur_vertex)->set(&top_point);
-      v1.sub(&cur_base_point, &top_point);
-      v2.sub(&next_base_point, &top_point);
+      ret->vertices_.at(cur_vertex)->set(top_point);
+      Float3::sub(v1, cur_base_point, top_point);
+      Float3::sub(v2, next_base_point, top_point);
       v1.normalize();
       v2.normalize();
-      Float3::cross(&cur_normal, &v1, &v2 );
+      Float3::cross(cur_normal, v1, v2 );
       cur_normal.normalize();
-      ret->normals_.at(cur_vertex)->set(&cur_normal);
+      ret->normals_.at(cur_vertex)->set(cur_normal);
       cur_vertex ++;
     }
 
@@ -921,7 +915,7 @@ namespace renderer {
     ret->colors_.capacity(n_vert);
     ret->colors_.resize(n_vert);
     for (uint32_t i = 0; i < n_vert; ++i) {
-      ret->colors_[i].set(const_cast<Float3*>(&color));
+      ret->colors_[i].set(color);
     }
 
     ret->syncVAO();
@@ -997,18 +991,18 @@ namespace renderer {
                          base_outside_rad * sinf(cur_angle));
       cur_top_point.set(top_outside_rad * cosf(cur_angle), -0.5f * height,
                         top_outside_rad * sinf(cur_angle));
-      ret->vertices_.at(cur_vertex)->set(&cur_base_point);
-      ret->vertices_.at(cur_vertex+1)->set(&cur_top_point);
+      ret->vertices_.at(cur_vertex)->set(cur_base_point);
+      ret->vertices_.at(cur_vertex+1)->set(cur_top_point);
       
       // Tangent is 90deg away: use it to calculate the normal along the slope
       tangent_angle = cur_angle + (static_cast<float>(M_PI) / 2.0f);  
       v1.set(cosf(tangent_angle), 0.0f, sin(tangent_angle));  // length 1!
-      v2.sub(&cur_base_point, &cur_top_point);
+      Float3::sub(v2, cur_base_point, cur_top_point);
       v2.normalize();
-      Float3::cross(&cur_normal, &v2, &v1 );
+      Float3::cross(cur_normal, v2, v1 );
       cur_normal.normalize();
-      ret->normals_.at(cur_vertex)->set(&cur_normal);
-      ret->normals_.at(cur_vertex+1)->set(&cur_normal);
+      ret->normals_.at(cur_vertex)->set(cur_normal);
+      ret->normals_.at(cur_vertex+1)->set(cur_normal);
       cur_vertex += 2;
     }
     
@@ -1097,7 +1091,7 @@ namespace renderer {
     ret->colors_.capacity(n_vert);
     ret->colors_.resize(n_vert);
     for (uint32_t i = 0; i < n_vert; ++i) {
-      ret->colors_[i].set(const_cast<Float3*>(&color));
+      ret->colors_[i].set(color);
     }
     
     ret->syncVAO();
@@ -1141,18 +1135,18 @@ namespace renderer {
                          base_outside_rad * sinf(cur_angle));
       cur_top_point.set(top_outside_rad * cosf(cur_angle), -0.5f * height,
                         top_outside_rad * sinf(cur_angle));
-      ret->vertices_.at(cur_vertex)->set(&cur_base_point);
-      ret->vertices_.at(cur_vertex+1)->set(&cur_top_point);
+      ret->vertices_.at(cur_vertex)->set(cur_base_point);
+      ret->vertices_.at(cur_vertex+1)->set(cur_top_point);
       
       // Tangent is 90deg away: use it to calculate the normal along the slope
       tangent_angle = cur_angle + (static_cast<float>(M_PI) / 2.0f);  
       v1.set(cosf(tangent_angle), 0.0f, sin(tangent_angle));  // length 1!
-      v2.sub(&cur_base_point, &cur_top_point);
+      Float3::sub(v2, cur_base_point, cur_top_point);
       v2.normalize();
-      Float3::cross(&cur_normal, &v2, &v1 );
+      Float3::cross(cur_normal, v2, v1);
       cur_normal.normalize();
-      ret->normals_.at(cur_vertex)->set(&cur_normal);
-      ret->normals_.at(cur_vertex+1)->set(&cur_normal);
+      ret->normals_.at(cur_vertex)->set(cur_normal);
+      ret->normals_.at(cur_vertex+1)->set(cur_normal);
       cur_vertex += 2;
     }
     
@@ -1204,14 +1198,14 @@ namespace renderer {
     ret->colors_.capacity(n_vert);
     ret->colors_.resize(n_vert);
     for (uint32_t i = 0; i < n_vert; ++i) {
-      ret->colors_[i].set(const_cast<Float3*>(&color));
+      ret->colors_[i].set(color);
     }
     
     ret->syncVAO();
     return ret;
   }
 
-  data_str::Pair<uint8_t*,uint32_t> GeometryColoredMesh::saveToArray() {
+  Pair<uint8_t*,uint32_t> GeometryColoredMesh::saveToArray() {
     Pair<uint8_t*,uint32_t> data;
     data.first = NULL;
     data.second = 0;

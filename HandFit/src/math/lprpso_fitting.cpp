@@ -9,6 +9,7 @@ using std::cout;
 using std::endl;
 using std::runtime_error;
 
+namespace jtil {
 namespace math {
 
   MERSINE_TWISTER_ENG LPRPSOFitting::eng;
@@ -318,4 +319,5 @@ namespace math {
 #endif
   }
 
-};  // namespace math
+}  // namespace math
+}  // namespace jtil

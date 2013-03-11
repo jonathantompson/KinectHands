@@ -12,8 +12,8 @@
 
 #include "renderer/open_gl_common.h"  // For GLtypes
 #include "renderer/geometry/geometry.h"
-#include "math/math_types.h"
-#include "data_str/vector.h"
+#include "jtil/math/math_types.h"
+#include "jtil/data_str/vector.h"
 
 namespace renderer {
 
@@ -29,7 +29,7 @@ namespace renderer {
     virtual ~GeometryVertices();
     
     // getter and setter methods
-    void addVertex(const math::Float3& vertex);
+    void addVertex(const jtil::math::Float3& vertex);
     void addVertex(const float x, const float y, const float z);
     void addVertex(const float* xyz);
 
@@ -44,13 +44,13 @@ namespace renderer {
     virtual Geometry* copy();
 
   private:
-    data_str::Vector<math::Float3> vertices_;
+    jtil::data_str::Vector<jtil::math::Float3> vertices_;
     GLuint vao_;  // Containing 1 VBO (just the vertex array)
     GLuint vbo_;  // Vertex buffer
     bool synced_;
     uint32_t synced_num_vertices_;
 
-    static const math::Float3 vertices_quad_[6];
+    static const jtil::math::Float3 vertices_quad_[6];
     
     // Sync the buffers with OpenGL
     void syncVAO();

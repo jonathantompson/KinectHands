@@ -14,7 +14,7 @@
 #define MATH_BFGS_FITTING_HEADER
 
 #include <random>
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 #include "math/common_fitting.h"
 #include "Eigen"
 
@@ -23,7 +23,7 @@
 #endif
 
 // #define BFGS_VERBOSE_SOLVER  // Print out per-iteration information
-
+namespace jtil {
 namespace math {
 
   // BFGS with backtracking optimization
@@ -105,5 +105,6 @@ namespace math {
   };
 
 };  // namespace math
+};  // namespace jtil
 
 #endif  // MATH_BFGS_FITTING_HEADER

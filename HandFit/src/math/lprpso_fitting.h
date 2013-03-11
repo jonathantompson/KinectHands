@@ -23,7 +23,7 @@
 #define MATH_LPRPSO_FITTING_HEADER
 
 #include <random>
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 #include "math/common_fitting.h"
 #include "Eigen"
 
@@ -33,6 +33,7 @@
 
 #define LPRPSO_VERBOSE_SOLVER  // Print out per-iteration information
 
+namespace jtil {
 namespace math {
 
   // LPRPSO Optimization
@@ -103,5 +104,6 @@ namespace math {
   };
 
 };  // namespace math
+};  // namespace jtil
 
 #endif  // MATH_LPRPSO_FITTING_HEADER

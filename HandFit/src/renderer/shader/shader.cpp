@@ -2,8 +2,8 @@
 #include <iostream>
 #include <string>
 #include "renderer/shader/shader.h"
-#include "exceptions/wruntime_error.h"
-#include "string_util/string_util.h"
+#include "jtil/exceptions/wruntime_error.h"
+#include "jtil/string_util/string_util.h"
 #include "renderer/gl_state.h"
 
 using std::string;
@@ -13,7 +13,7 @@ using std::wruntime_error;
 namespace renderer {
 
   Shader::Shader(const string& filename, ShaderType type) {
-    filename_ = string_util::ToWideString(filename);
+    filename_ = jtil::string_util::ToWideString(filename);
     compiled_ = false;
 
     // Read in the raw shader source
@@ -68,14 +68,14 @@ namespace renderer {
 
       GLState::glsGetShaderInfoLog(shader_, info_length, &info_length, shader_info_log);
       ERROR_CHECK;
-      wstring err_log = string_util::ToWideString(shader_info_log);
+      wstring err_log = jtil::string_util::ToWideString(shader_info_log);
       delete[] shader_info_log;
       
       std::cout << std::endl;
       std::cout << "Cannot compile the following shader code: ";
-      std::cout << string_util::ToNarrowString(filename_).c_str() << std::endl;
+      std::cout << jtil::string_util::ToNarrowString(filename_).c_str() << std::endl;
       std::cout << "  --> Compilation error: " << std::endl;
-      std::cout << string_util::ToNarrowString(err_log).c_str();
+      std::cout << jtil::string_util::ToNarrowString(err_log).c_str();
       std::cout << "  --> For the code:" << std::endl;
       std::cout << "*********************************************************";
       std::cout << std::endl;
@@ -122,7 +122,7 @@ namespace renderer {
     fptr = fopen(filename.c_str(), "rb");  // Open file for reading
     if (!fptr) {
       wstring err = wstring(L"Renderer::readFileToBuffer() - ERROR: could not") +
-        wstring(L" open file (") + string_util::ToWideString(filename) + 
+        wstring(L" open file (") + jtil::string_util::ToWideString(filename) + 
         wstring(L") for reading");
       throw wruntime_error(err);
     }
@@ -177,7 +177,7 @@ namespace renderer {
         if (shader_source_[cur_char] == '\n') {
           std::cout << "Shader::extractIncludeFilename() - ERROR: couldn't ";
           std::cout << "extract include filename in ";
-          std::cout << string_util::ToNarrowString(filename_) << std::endl;
+          std::cout << jtil::string_util::ToNarrowString(filename_) << std::endl;
           printToStdOut();
           throw wruntime_error(wstring(L"Shader::extractIncludeFilename() -") +
             wstring(L"ERROR: couldn't extract include filename!")); 

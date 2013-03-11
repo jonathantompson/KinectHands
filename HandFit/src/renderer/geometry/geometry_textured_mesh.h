@@ -12,10 +12,12 @@
 
 #include "renderer/open_gl_common.h"  // For GLtypes
 #include "renderer/geometry/geometry.h"
-#include "math/math_types.h"
-#include "data_str/vector.h"
+#include "jtil/math/math_types.h"
+#include "jtil/data_str/vector.h"
 
+namespace jtil {
 namespace data_str { template <typename TFirst, typename TSecond> class Pair; }
+}
 
 #define TEXTURED_MESH_FILE_DATA_SIZE (736 / 8)  // Bytes
 
@@ -65,10 +67,10 @@ namespace renderer {
     virtual Geometry* copy();
 
   private:
-    data_str::Vector<math::Float3> vertices_;
-    data_str::Vector<math::Float3> normals_;
-    data_str::Vector<math::Float2> texture_coords_;
-    data_str::Vector<uint32_t> indices_;
+    jtil::data_str::Vector<jtil::math::Float3> vertices_;
+    jtil::data_str::Vector<jtil::math::Float3> normals_;
+    jtil::data_str::Vector<jtil::math::Float2> texture_coords_;
+    jtil::data_str::Vector<uint32_t> indices_;
     Texture* tex_;  // NOT OWNED HERE
     std::string texture_filename_;
     GLuint vao_;  // Containing 1 VBOs which itself has vertex, normal and col
@@ -93,7 +95,7 @@ namespace renderer {
       const aiMesh* mesh);
 
     // Convert the node and it's geometry into a data array for saving to file
-    virtual data_str::Pair<uint8_t*,uint32_t> saveToArray();
+    virtual jtil::data_str::Pair<uint8_t*,uint32_t> saveToArray();
 
     // Non-copyable, non-assignable.
     GeometryTexturedMesh(GeometryTexturedMesh&);

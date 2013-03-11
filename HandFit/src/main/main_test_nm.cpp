@@ -19,7 +19,7 @@
 #endif
 
 using namespace std;
-using namespace math;
+using namespace jtil::math;
 using Eigen::MatrixXf;
 
 int main(int argc, char *argv[]) { 
@@ -43,12 +43,12 @@ int main(int argc, char *argv[]) {
     exponentialFit, NULL);
 
   cout << endl << "Final coeff values:" << endl;
-  math::PrintEigenMatrix(ret_coeffs);
+  PrintEigenMatrix(ret_coeffs);
   cout << "  --> with func value = ";
   cout << exponentialFit(ret_coeffs) << endl;
 
   cout << endl << "Expecting:" << endl << "|";
-  math::PrintEigenMatrix(c_answer_exponential_fit);
+  PrintEigenMatrix(c_answer_exponential_fit);
   cout << "  --> with func value = ";
   cout << exponentialFit(c_answer_exponential_fit) << endl << endl;
   delete solver_exp_fit;
@@ -72,12 +72,12 @@ int main(int argc, char *argv[]) {
     coeff_step_size_rosenbrock, NULL, extendedRosenbrock, NULL);
 
   cout << endl << "Final coeff values:" << endl;
-  math::PrintEigenMatrix(ret_coeffs_rosenbrock);
+  PrintEigenMatrix(ret_coeffs_rosenbrock);
   cout << "  --> with func value = ";
   cout << extendedRosenbrock(ret_coeffs_rosenbrock) << endl;
 
   cout << endl << "Expecting:" << endl << "|";
-  math::PrintEigenMatrix(c_answer_rosenbrock);
+  PrintEigenMatrix(c_answer_rosenbrock);
   cout << "  --> with func value = ";
   cout << extendedRosenbrock(c_answer_rosenbrock) << endl << endl;
   delete solver_rosenbrock;
@@ -101,12 +101,12 @@ int main(int argc, char *argv[]) {
     coeff_step_size_rastrigin, NULL, generalizedRastrigin, NULL);
 
   cout << endl << "Final coeff values:" << endl;
-  math::PrintEigenMatrix(ret_coeffs_rastrigin);
+  PrintEigenMatrix(ret_coeffs_rastrigin);
   cout << "  --> with func value = ";
   cout << generalizedRastrigin(ret_coeffs_rastrigin) << endl;
 
   cout << endl << "Expecting:" << endl << "|";
-  math::PrintEigenMatrix(c_answer_rastrigin);
+  PrintEigenMatrix(c_answer_rastrigin);
   cout << "  --> with func value = ";
   cout << generalizedRastrigin(c_answer_rastrigin) << endl << endl;
   delete solver_rastrigin;
@@ -130,12 +130,12 @@ int main(int argc, char *argv[]) {
     coeff_step_size_rotellips, NULL, rotatedEllipsoidal, NULL);
 
   cout << endl << "Final coeff values:" << endl;
-  math::PrintEigenMatrix(ret_coeffs_rotellips);
+  PrintEigenMatrix(ret_coeffs_rotellips);
   cout << "  --> with func value = ";
   cout << rotatedEllipsoidal(ret_coeffs_rotellips) << endl;
 
   cout << endl << "Expecting:" << endl << "|";
-  math::PrintEigenMatrix(c_answer_rotellips);
+  PrintEigenMatrix(c_answer_rotellips);
   cout << "  --> with func value = ";
   cout << rotatedEllipsoidal(c_answer_rotellips) << endl << endl;
   delete solver_rotellips;

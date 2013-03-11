@@ -12,11 +12,13 @@
 
 #include <mutex>
 #include "renderer/open_gl_common.h"
-#include "math/math_types.h"
-#include "data_str/pair.h"
+#include "jtil/math/math_types.h"
+#include "jtil/data_str/pair.h"
 
+namespace jtil {
 namespace data_str { template <typename T> class VectorManaged; }
 namespace data_str { template <class TKey, class TValue> class HashMap; }
+}
 
 #define MAX_NUM_TEXTURE_UNITS 160
 #define FORCE_STATE_SETTING  // Define to force all redundant state changes
@@ -265,8 +267,8 @@ namespace renderer {
     // so use a hash table to find the lookup index into a vector.
 
     // Enum name --> data mapping
-    static data_str::HashMap<uint32_t, uint32_t>* ht_GLEnum_2_idata_;
-    static data_str::VectorManaged<GLStateElem*>* idata_2_data_;
+    static jtil::data_str::HashMap<uint32_t, uint32_t>* ht_GLEnum_2_idata_;
+    static jtil::data_str::VectorManaged<GLStateElem*>* idata_2_data_;
     static std::mutex startup_mutex_;
     static bool gl_state_initialized_;
 

@@ -1,5 +1,5 @@
 #include <string>
-#include "exceptions/wruntime_error.h"
+#include "jtil/exceptions/wruntime_error.h"
 #include "renderer/texture/texture_utils.h"
 #include "renderer/open_gl_common.h"
 

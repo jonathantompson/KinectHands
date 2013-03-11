@@ -10,7 +10,7 @@
 #ifndef GLEW_STATIC
   #define GLEW_STATIC
 #endif
-#include <GL/glew.h>
+#include "jtil/glew/glew.h"
 
 #if defined(_DEBUG) || defined(DEBUG)
   #define ERROR_CHECK renderer::CheckOpenGLError()

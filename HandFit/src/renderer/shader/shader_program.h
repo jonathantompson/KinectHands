@@ -11,9 +11,9 @@
 #include <string>
 #include <mutex>
 #include "renderer/open_gl_common.h"  // For GL Types (GLint) and ERROR_CHECK
-#include "math/math_types.h"
-#include "data_str/vector.h"
-#include "data_str/pair.h"
+#include "jtil/math/math_types.h"
+#include "jtil/data_str/vector.h"
+#include "jtil/data_str/pair.h"
 #include "renderer/shader/shader_location_name_pair.h"
 
 namespace renderer {

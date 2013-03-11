@@ -8,7 +8,7 @@
 #define RENDERER_SHADER_LOCATION_NAME_PAIR_HEADER
 
 #include <string>
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 
 namespace renderer {
 

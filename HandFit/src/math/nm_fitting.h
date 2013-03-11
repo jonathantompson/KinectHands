@@ -17,7 +17,7 @@
 #define MATH_NM_FITTING_HEADER
 
 #include <random>
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 #include "math/common_fitting.h"
 #include "Eigen"
 
@@ -28,6 +28,7 @@
 // #define NM_VERBOSE_SOLVER  // Print out per-iteration information
 #define NM_PRINT_TO_SCREEN_TIME_INTERVAL_SEC 0.5  // Otherwise if not verbose, how often to print out
 
+namespace jtil {
 namespace math {
 
   // Nelder-Mead optimization
@@ -115,5 +116,6 @@ namespace math {
   };
 
 };  // namespace math
+};  // namespace jtil
 
 #endif  // MATH_NM_FITTING_HEADER

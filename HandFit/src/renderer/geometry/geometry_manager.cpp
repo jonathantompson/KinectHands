@@ -2,11 +2,11 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
-#include "data_str/vector.h"
-#include "data_str/pair.h"
-#include "data_str/circular_buffer.h"
-#include "data_str/hash_map_managed.h"
-#include "data_str/hash_funcs.h"
+#include "jtil/data_str/vector.h"
+#include "jtil/data_str/pair.h"
+#include "jtil/data_str/circular_buffer.h"
+#include "jtil/data_str/hash_map_managed.h"
+#include "jtil/data_str/hash_funcs.h"
 #include "renderer/geometry/geometry_manager.h"
 #include "renderer/geometry/geometry.h"
 #include "renderer/geometry/geometry_colored_mesh.h"
@@ -15,24 +15,24 @@
 #include "renderer/geometry/geometry_textured_boned_mesh.h"
 #include "renderer/colors.h"
 #include "renderer/texture/texture.h"
-#include "exceptions/wruntime_error.h"
+#include "jtil/exceptions/wruntime_error.h"
 #include "renderer/open_gl_common.h"
 #include "assimp/Importer.hpp"      // C++ importer interface
 #include "assimp/scene.h"           // Output data structure
 #include "assimp/postprocess.h"     // Post processing flags
-#include "math/math_types.h"
-#include "fastlz/fastlz.h"
+#include "jtil/math/math_types.h"
+#include "jtil/fastlz/fastlz.h"
 
-using math::Float3;
-using math::Float4x4;
-using math::FloatQuat;
+using jtil::math::Float3;
+using jtil::math::Float4x4;
+using jtil::math::FloatQuat;
 using std::cout;
 using std::endl;
 using std::string;
 using std::runtime_error;
-using data_str::Vector;
-using data_str::Pair;
-using data_str::HashMapManaged;
+using jtil::data_str::Vector;
+using jtil::data_str::Pair;
+using jtil::data_str::HashMapManaged;
 
 #define SAFE_DELETE(target) \
   if (target != NULL) { \
@@ -63,7 +63,7 @@ namespace renderer {
 
   GeometryManager::GeometryManager() {
     tex_ = new HashMapManaged<std::string, Texture*>(GM_START_HM_SIZE, 
-      data_str::HashString);
+      jtil::data_str::HashString);
     scene_graph_root_ = new Geometry;
   }
 
@@ -256,11 +256,11 @@ namespace renderer {
     file.flush();
 
     // Now save the whole heirachy to file BFS and compress each node as we go
-    data_str::CircularBuffer<Geometry*> queue(n_nodes+1);
+    jtil::data_str::CircularBuffer<Geometry*> queue(n_nodes+1);
     queue.write(root);  // Push this node to the back of the empty queue
     while(!queue.empty()) {
       Geometry* cur_node;
-      queue.read(&cur_node);
+      queue.read(cur_node);
       
       // Add the node's children to the queue for processing
       for (uint32_t i = 0; i < cur_node->numChildren(); i++) {
@@ -483,12 +483,12 @@ namespace renderer {
 
     // Now read in the nodes one, by one.  The nodes are stored BFS.
     Geometry* root = readNodeData(path, filename, in_file);
-    data_str::CircularBuffer<Geometry*> queue(n_nodes+1);
+    jtil::data_str::CircularBuffer<Geometry*> queue(n_nodes+1);
     queue.write(root);  // Push this node to the back of the empty queue
 
     while(!queue.empty()) {
       Geometry* cur_node;
-      queue.read(&cur_node);
+      queue.read(cur_node);
 
       uint32_t num_children = cur_node->children_.capacity();
       for (uint32_t i = 0; i < num_children; i++) {
@@ -724,8 +724,8 @@ namespace renderer {
     FloatQuat rot;
     Float3 scale, trans;
     // Update the global transform inverse:
-    Float4x4::inverse(&global_inverse_transform, 
-      bones->model_root_node->mat_hierarchy());
+    Float4x4::inverse(global_inverse_transform, 
+      *bones->model_root_node->mat_hierarchy());
 
     // Now update all the bones at once
     for (uint32_t j = 0; j < bones->bones.size(); j++) {
@@ -734,8 +734,8 @@ namespace renderer {
       // Annoying O(16) copy, but making bone_offset float[16] is much easier
       // for saving it to disk (windows vs mac os x template size is different)
       bone_offset.set(cur_bone->bone_offset);  
-      Float4x4::mult(&tmp, cur_bone->getNode()->mat_hierarchy(), &bone_offset);
-      Float4x4::mult(cur_bone_final_trans, &global_inverse_transform, &tmp);
+      Float4x4::mult(tmp, *cur_bone->getNode()->mat_hierarchy(), bone_offset);
+      Float4x4::mult(*cur_bone_final_trans, global_inverse_transform, tmp);
 
 #ifndef LINEAR_BLEND_SKINNING
       // FloatQuat::decompose(&bones_[i].final_trans, &trans, &rot, &scale);

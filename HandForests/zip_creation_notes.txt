@@ -1,6 +1,6 @@
 first zip into one zip file
 
->> zip -1 -r hand_depth_data.zip ./hand_depth_data
+>> zip -0 -r hand_depth_data.zip ./hand_depth_data
 
 Then split
 

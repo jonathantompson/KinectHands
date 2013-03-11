@@ -16,10 +16,12 @@
 #include "renderer/geometry/geometry.h"
 #include "renderer/geometry/vertex_bone_data.h"
 #include "renderer/geometry/bone_info.h"
-#include "math/math_types.h"
-#include "data_str/vector.h"
+#include "jtil/math/math_types.h"
+#include "jtil/data_str/vector.h"
 
+namespace jtil {
 namespace data_str { template <typename TFirst, typename TSecond> class Pair; }
+}
 
 #define COLORED_BONED_MESH_FILE_DATA_SIZE (736 / 8)  // Bytes
 
@@ -74,11 +76,11 @@ namespace renderer {
     virtual Geometry* copy();
 
   private:
-    data_str::Vector<math::Float3> vertices_;
-    data_str::Vector<math::Float3> normals_;
-    data_str::Vector<math::Float3> colors_;
-    data_str::Vector<VertexBoneData> vertex_bone_data_;
-    data_str::Vector<uint32_t> indices_;
+    jtil::data_str::Vector<jtil::math::Float3> vertices_;
+    jtil::data_str::Vector<jtil::math::Float3> normals_;
+    jtil::data_str::Vector<jtil::math::Float3> colors_;
+    jtil::data_str::Vector<VertexBoneData> vertex_bone_data_;
+    jtil::data_str::Vector<uint32_t> indices_;
     BoneFileInfo* bones_;  // NOT OWNED HERE!
     std::string bones_filename_;
     GLuint vao_;  // Containing 1 VBOs which itself has vertex, normal and col
@@ -103,7 +105,7 @@ namespace renderer {
       const aiMesh* mesh);
 
     // Convert the node and it's geometry into a data array for saving to file
-    virtual data_str::Pair<uint8_t*,uint32_t> saveToArray();
+    virtual jtil::data_str::Pair<uint8_t*,uint32_t> saveToArray();
 
     // Non-copyable, non-assignable.
     GeometryColoredBonedMesh(GeometryColoredBonedMesh&);

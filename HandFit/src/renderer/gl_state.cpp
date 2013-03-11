@@ -1,23 +1,23 @@
 #include <sstream>
 #include <iostream>
 #include "renderer/gl_state.h"
-#include "exceptions/wruntime_error.h"
-#include "data_str/hash_map.h"
-#include "data_str/hash_funcs.h"
-#include "data_str/vector_managed.h"
+#include "jtil/exceptions/wruntime_error.h"
+#include "jtil/data_str/hash_map.h"
+#include "jtil/data_str/hash_funcs.h"
+#include "jtil/data_str/vector_managed.h"
 
 #ifndef GLEW_STATIC
   #define GLEW_STATIC
 #endif
-#include <GL/glew.h>
+#include "jtil/glew/glew.h"
 
-using data_str::HashMap;
-using data_str::HashInt;
-using data_str::HashUInt;
-using data_str::VectorManaged;
-using data_str::Pair;
+using jtil::data_str::HashMap;
+using jtil::data_str::HashInt;
+using jtil::data_str::HashUInt;
+using jtil::data_str::VectorManaged;
+using jtil::data_str::Pair;
 using std::wruntime_error;
-using math::Vec2;
+using jtil::math::Vec2;
 
 #define START_DATABASE_SIZE 101
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
@@ -66,8 +66,8 @@ namespace renderer {
   std::mutex GLState::startup_mutex_;
   bool GLState::gl_state_initialized_ = false;
 
-  data_str::HashMap<uint32_t, uint32_t>* GLState::ht_GLEnum_2_idata_ = NULL;
-  data_str::VectorManaged<GLStateElem*>* GLState::idata_2_data_ = NULL;
+  jtil::data_str::HashMap<uint32_t, uint32_t>* GLState::ht_GLEnum_2_idata_ = NULL;
+  jtil::data_str::VectorManaged<GLStateElem*>* GLState::idata_2_data_ = NULL;
 
   GLuint GLState::bound_textures_[MAX_NUM_TEXTURE_UNITS][NUM_TEXTURE_TARGETS];
   GLint GLState::max_texture_units_;
