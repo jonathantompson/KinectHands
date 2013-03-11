@@ -74,8 +74,9 @@ namespace hand_detector {
     // Setters
     int32_t& stage2_med_filter_radius() { return stage2_med_filter_radius_; }
     int32_t& stage1_shrink_filter_radius() { return stage1_shrink_filter_radius_; }
-    int32_t& num_trees_to_evaluate() { return num_trees_to_evaluate_; }
-    int32_t& max_height_to_evaluate() { return max_height_to_evaluate_; }
+    void num_trees_to_evaluate(const int32_t val);
+    void max_height_to_evaluate(const int32_t val);
+
 
     jtil::data_str::Vector<jtil::math::Float3>& hands_uvd() { return hands_uvd_; }
     jtil::data_str::Vector<jtil::math::Int2>& hands_uv_min() { return hands_uv_min_; }

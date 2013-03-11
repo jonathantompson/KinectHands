@@ -619,5 +619,26 @@ namespace hand_detector {
       return false;
     }
   }
+
+  void HandDetector::num_trees_to_evaluate(const int32_t val) {
+    if (val <= num_trees_) {
+      num_trees_to_evaluate_ = val;
+    } else {
+      std::cout << "HandDetector::num_trees_to_evaluate() - WARNING: val is"
+        " greater than the number of trees in this decision forest model";
+      std::cout  << std::endl;
+    }
+  }
+
+  void HandDetector::max_height_to_evaluate(const int32_t val) {
+    if (val <= max_height_) {
+      max_height_to_evaluate_ = val;
+    } else {
+      std::cout << "HandDetector::max_height_to_evaluate() - WARNING: val is"
+        " greater than the maximum tree height in this decision forest model";
+      std::cout  << std::endl;
+    }
+  }
+
 };  // namespace hand_detector
 };  // namespace kinect_interface

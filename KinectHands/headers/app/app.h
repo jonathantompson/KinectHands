@@ -34,6 +34,12 @@ namespace app {
     OUTPUT_DEPTH = 1
   } KinectOutput;
 
+  typedef enum {
+    OUTPUT_UNFILTERED_LABELS = 0,
+    OUTPUT_FILTERED_LABELS = 1,
+    OUTPUT_FLOODFILL_LABELS = 2
+  } LabelType;
+
   class App {
   public:
     App();

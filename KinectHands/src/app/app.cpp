@@ -5,6 +5,7 @@
 #include "app/app.h"
 #include "jtil/ui/ui.h"
 #include "kinect_interface/kinect_interface.h"
+#include "kinect_interface/hand_detector/hand_detector.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
 #include "jtil/glew/glew.h"
 #include "jtil/image_util/image_util.h"
@@ -127,26 +128,31 @@ namespace app {
 
       // Grab the kinect data
       kinect_->lockData();
+
       bool update_tex = false;
       if (kinect_frame_number_ != kinect_->frame_number()) {
         memcpy(rgb_, kinect_->rgb(), sizeof(rgb_[0]) * src_dim * 3);
         memcpy(depth_, kinect_->depth(), sizeof(depth_[0]) * src_dim);
 
-        bool df_labels;
-        GET_SETTING("render_decision_forest_labels", bool, df_labels);
-        if (df_labels) {
-          const uint32_t w = src_width / DT_DOWNSAMPLE;
-          const uint8_t* hdlabels = kinect_->filteredDecisionForestLabels();
-          for (uint32_t v = 0; v < src_height; v++) {
-            for (uint32_t u = 0; u < src_width; u++) {
-              uint8_t val = hdlabels[(v / DT_DOWNSAMPLE) * w + u/DT_DOWNSAMPLE];
-              uint32_t idst = v * src_width + u;
-              // Texture needs to be flipped vertically and 0 --> 255
-              labels_[idst] = val;
-            }
-          }
-        } else {
+        int label_type_enum;
+        GET_SETTING("label_type_enum", int, label_type_enum);
+        switch ((LabelType)label_type_enum) {
+        case OUTPUT_UNFILTERED_LABELS:
+          image_util::UpsampleNoFiltering<uint8_t>(labels_, 
+            kinect_->rawDecisionForestLabels(), src_width / DT_DOWNSAMPLE,
+            src_height / DT_DOWNSAMPLE, DT_DOWNSAMPLE);
+          break;
+        case OUTPUT_FILTERED_LABELS:
+          image_util::UpsampleNoFiltering<uint8_t>(labels_, 
+            kinect_->filteredDecisionForestLabels(), src_width / DT_DOWNSAMPLE,
+            src_height / DT_DOWNSAMPLE, DT_DOWNSAMPLE);
+          break;
+        case OUTPUT_FLOODFILL_LABELS:
           memcpy(labels_, kinect_->labels(), sizeof(labels_[0]) * src_dim);
+          break;
+        default:
+          throw std::wruntime_error("App::run() - ERROR - label_type_enum "
+            "invalid enumerant!");
         }
         memcpy(coeff_convnet_, kinect_->coeff_convnet(), 
           sizeof(coeff_convnet_[0]) * HandCoeffConvnet::HAND_NUM_COEFF_CONVNET);
@@ -160,6 +166,14 @@ namespace app {
         Renderer::g_renderer()->ui()->setTextWindowString("kinect_fps_wnd",
           kinect_fps_str_);
       }
+
+      // Update any of the decision forest settings for next frame
+      int max_height, num_trees;
+      GET_SETTING("max_height_to_evaluate", int, max_height);
+      GET_SETTING("num_trees_to_evaluate", int, num_trees);
+      kinect_->hand_detector()->num_trees_to_evaluate(num_trees);
+      kinect_->hand_detector()->max_height_to_evaluate(max_height);
+
       kinect_->unlockData();
 
       if (update_tex) {
@@ -188,10 +202,12 @@ namespace app {
           // Make hand points red
           for (uint32_t i = 0; i < src_dim; i++) {
             if (labels_[i] == 1) {
-              im_[i*3] = (uint8_t)std::min<uint16_t>(255, 
-                3 * (uint16_t)im_[i*3] / 2);
-              im_[i*3 + 1] = (uint8_t)(3 * (uint16_t)im_[i*3+1] / 4);
-              im_[i*3 + 2] = (uint8_t)(3 * (uint16_t)im_[i*3+2] / 4);
+              im_[i*3] = (uint8_t)std::max<int16_t>(0, 
+                (int16_t)im_[i*3] - 100);
+              im_[i*3 + 1] = (uint8_t)std::min<int16_t>(255, 
+                (int16_t)im_[i*3] + 100);
+              im_[i*3 + 2] = (uint8_t)std::max<int16_t>(0, 
+                (int16_t)im_[i*3] - 100);
             }
           }
         }
@@ -299,10 +315,35 @@ namespace app {
     ui->addCheckbox("detect_hands", "Enable Hand Detection");
     ui->addCheckbox("detect_pose", "Enable Pose Detection");
     ui->addCheckbox("render_hand_labels", "Mark Hand Pixels");
-    ui->addCheckbox("render_decision_forest_labels", 
-      "Render Decision Forest Labels");
+
+    ui->addSelectbox("label_type_enum", "Hand label type");
+    ui->addSelectboxItem("label_type_enum", 
+      ui::UIEnumVal(OUTPUT_UNFILTERED_LABELS, "Unfiltered DF"));
+    ui->addSelectboxItem("label_type_enum", 
+      ui::UIEnumVal(OUTPUT_FILTERED_LABELS, "Filtered DF"));
+    ui->addSelectboxItem("label_type_enum", 
+      ui::UIEnumVal(OUTPUT_FLOODFILL_LABELS, "Floodfill"));
+    ui->addCheckbox("use_depth_from_file", "(Debug) Use Depth From File");
+    ui->addCheckbox("render_kinect_fps", "Render Kinect FPS");
     ui->addCheckbox("render_convnet_points", 
       "Render Convnet salient points");
+
+    ui->addSelectbox("max_height_to_evaluate", "Max DF Height");
+    ui->addSelectboxItem("max_height_to_evaluate", ui::UIEnumVal(5, "5"));
+    ui->addSelectboxItem("max_height_to_evaluate", ui::UIEnumVal(10, "10"));
+    ui->addSelectboxItem("max_height_to_evaluate", ui::UIEnumVal(15, "15"));
+    ui->addSelectboxItem("max_height_to_evaluate", ui::UIEnumVal(20, "20"));
+    ui->addSelectboxItem("max_height_to_evaluate", ui::UIEnumVal(25, "25"));
+    ui->addSelectboxItem("max_height_to_evaluate", ui::UIEnumVal(30, "30"));
+
+    ui->addSelectbox("num_trees_to_evaluate", "Num DF Trees");
+    ui->addSelectboxItem("num_trees_to_evaluate", ui::UIEnumVal(1, "1"));
+    ui->addSelectboxItem("num_trees_to_evaluate", ui::UIEnumVal(2, "2"));
+    ui->addSelectboxItem("num_trees_to_evaluate", ui::UIEnumVal(4, "4"));
+    ui->addSelectboxItem("num_trees_to_evaluate", ui::UIEnumVal(6, "6"));
+    ui->addSelectboxItem("num_trees_to_evaluate", ui::UIEnumVal(8, "8"));
+
+
     ui->createTextWindow("kinect_fps_wnd", kinect_fps_str_);
     jtil::math::Int2 pos(400, 0);
     ui->setTextWindowPos("kinect_fps_wnd", pos);

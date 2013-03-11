@@ -678,6 +678,11 @@ namespace kinect_interface {
     return hand_detector_->getLabelIm();
   }
 
+  const uint8_t* KinectInterface::rawDecisionForestLabels() const {
+    return hand_detector_->getLabelImUnfiltered();
+  }
+
+
   const float* KinectInterface::coeff_convnet() const {
     return hand_net_->coeff_convnet();
   }
