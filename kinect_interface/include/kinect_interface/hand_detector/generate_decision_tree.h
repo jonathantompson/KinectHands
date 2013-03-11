@@ -25,11 +25,13 @@ namespace hand_detector {
     ~GenerateDecisionTree() {}
 
     // The main and only computational routine:
+    // Note: For some unknown reason, std::thread gets the wrong reference if
+    // inputs are not passed in as pointers.
     static void generateDecisionTree(
-      DecisionTree& dt,                     // output --> Must be pre-allocated
-      const DepthImageData& train_data,     // image input
-      const WLSet& wl_set,                  // WL input
-      const TrainingSettings& settings);    // settings input
+      DecisionTree* dt,                     // output --> Must be pre-allocated
+      const DepthImageData* train_data,     // image input
+      const WLSet* wl_set,                  // WL input
+      const TrainingSettings* settings);    // settings input
 
   private:
     static int32_t populateOccupancyList(const DepthImageData& data, 

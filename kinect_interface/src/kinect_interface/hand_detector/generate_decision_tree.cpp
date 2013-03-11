@@ -153,39 +153,39 @@ namespace hand_detector {
   //**********************************************************
   //****************** MAIN ENTRY POINT **********************
   //**********************************************************
-  void GenerateDecisionTree::generateDecisionTree(DecisionTree& dt,
-    const DepthImageData& train_data, const WLSet& wl_set, 
-    const TrainingSettings& settings) {
+  void GenerateDecisionTree::generateDecisionTree(DecisionTree* dt,
+    const DepthImageData* train_data, const WLSet* wl_set, 
+    const TrainingSettings* settings) {
 
     // Check input 
-    uint32_t tree_size = calcTreeSize(settings.tree_height);
-    uint64_t data_length = settings.num_im_to_consider * 
-      train_data.im_width * train_data.im_height;
+    uint32_t tree_size = calcTreeSize(settings->tree_height);
+    uint64_t data_length = settings->num_im_to_consider * 
+      train_data->im_width * train_data->im_height;
     if (data_length > 0x7fffffff) {  // MAX 32bit int
       throw std::wruntime_error("GenerateDecisionTree::generateDecisionTree() "
         "- ERROR: Data length is > int32_t address space!");
     }
 
-    dt.tree_height = settings.tree_height;
-    dt.num_nodes = 0;
-    dt.tree = new DecisionTreeNode[tree_size];  // Max size
+    dt->tree_height = settings->tree_height;
+    dt->num_nodes = 0;
+    dt->tree = new DecisionTreeNode[tree_size];  // Max size
     for (uint32_t i = 0; i < tree_size; i++) {
-      dt.tree[i].left_child = -1;
-      dt.tree[i].right_child = -1;
+      dt->tree[i].left_child = -1;
+      dt->tree[i].right_child = -1;
     }
 
   #ifdef VERBOSE_GENERATION
     cout << "generateDecisionTree INPUTS:" << endl;
-    cout << "   num_images = " << settings.num_im_to_consider << endl;
-    cout << "   wl_coeffs_sizes = [" << wl_set.wl_coeffs_sizes[0] <<
-            ", " << wl_set.wl_coeffs_sizes[1] <<
-            ", " << wl_set.wl_coeffs_sizes[2] << "]" << endl;
-    cout << "   num_samples_per_node = " << wl_set.num_samples_per_node << endl;
-    cout << "   tree_height = " << settings.tree_height << endl;
+    cout << "   num_images = " << settings->num_im_to_consider << endl;
+    cout << "   wl_coeffs_sizes = [" << wl_set->wl_coeffs_sizes[0] <<
+            ", " << wl_set->wl_coeffs_sizes[1] <<
+            ", " << wl_set->wl_coeffs_sizes[2] << "]" << endl;
+    cout << "   num_samples_per_node = " << wl_set->num_samples_per_node << endl;
+    cout << "   tree_height = " << settings->tree_height << endl;
     cout << "   tree_size = " << tree_size << endl;
-    cout << "   width = " << train_data.im_width << endl;
-    cout << "   height = " << train_data.im_height << endl;
-    cout << "   tree# = " << settings.dt_index << endl;
+    cout << "   width = " << train_data->im_width << endl;
+    cout << "   height = " << train_data->im_height << endl;
+    cout << "   tree# = " << settings->dt_index << endl;
   #endif
 
     // Create the queue structure --> Use for BFS of the Decision Tree
@@ -196,7 +196,7 @@ namespace hand_detector {
     root.height = 1;
     root.occupancy_start = 0;
 
-    cout << endl << "DT#" << settings.dt_index;
+    cout << endl << "DT#" << settings->dt_index;
     cout << ": initializing occupancy list..." << endl;
 
     // Create the occupancy structures.  Since we're desending the tree BFS we
@@ -204,19 +204,19 @@ namespace hand_detector {
     // then ping-pong back and forth between two occupancy buffers.
     int32_t* cur_occ_list = NULL;
     int32_t* next_occ_list = NULL;
-    root.occupancy_length = populateOccupancyList(train_data, 
-      settings.max_pix_per_im_per_label, settings.seed, cur_occ_list, 
+    root.occupancy_length = populateOccupancyList(*train_data, 
+      settings->max_pix_per_im_per_label, settings->seed, cur_occ_list, 
       next_occ_list);
 
     uint32_t num_wl_permutations = 1;
-    uint32_t num_samples_per_node = wl_set.num_samples_per_node;
+    uint32_t num_samples_per_node = wl_set->num_samples_per_node;
     for (uint32_t i = 0; i < 3; i++) {
-      num_wl_permutations *= wl_set.wl_coeffs_sizes[i];
+      num_wl_permutations *= wl_set->wl_coeffs_sizes[i];
     }
     if (num_samples_per_node > num_wl_permutations) {
       num_samples_per_node = num_wl_permutations;
     }
-    if (settings.tree_height > num_wl_permutations) {
+    if (settings->tree_height > num_wl_permutations) {
       throw runtime_error(string("generateDecisionTree:unexpectedData") + 
         string("The weak learner set is smaller than the height of the tree!"));
     }
@@ -229,16 +229,16 @@ namespace hand_detector {
     uint32_t hist_root[NUM_LABELS];
     memset(hist_root, 0, NUM_LABELS * sizeof(hist_root[0]));
     for (int32_t i = 0; i < root.occupancy_length; i++) {
-      hist_root[train_data.label_data[cur_occ_list[i]]]++;
+      hist_root[train_data->label_data[cur_occ_list[i]]]++;
     }
     float sum_hist = static_cast<float>(root.occupancy_length);
     float p_root[NUM_LABELS];
     for (uint32_t i = 0; i < NUM_LABELS; i++) {
       p_root[i] = static_cast<float>(hist_root[i]) / sum_hist;
-      dt.tree[0].prob[i] = p_root[i];
+      dt->tree[0].prob[i] = p_root[i];
     }
     root.entropy = calcEntropy(p_root);
-    dt.num_nodes++;
+    dt->num_nodes++;
 
     // Now we have fully specified the root node, push it onto the queue
     queue->write(root);
@@ -246,7 +246,7 @@ namespace hand_detector {
   #ifdef VERBOSE_GENERATION
     cout << "  hist_root = <";
     for (uint32_t i = 0; i < NUM_LABELS; i++) {
-      cout << dt.tree[0].prob[i];
+      cout << dt->tree[0].prob[i];
       if (i != (NUM_LABELS - 1)) { cout << ", "; }
     }
     cout << ">" << endl << "  root.occupancy_length = " << root.occupancy_length;
@@ -282,19 +282,19 @@ namespace hand_detector {
       int32_t* occ_sub_list = &cur_occ_list[queue_cur_node.occupancy_start];
 
       // Add 2 children to the data struct
-      tree_cur_node = &dt.tree[queue_cur_node.tree_node];
-      tree_cur_node->left_child = dt.num_nodes;
-      dt.num_nodes++;
-      tree_cur_node->right_child = dt.num_nodes;
-      dt.num_nodes++;
+      tree_cur_node = &dt->tree[queue_cur_node.tree_node];
+      tree_cur_node->left_child = dt->num_nodes;
+      dt->num_nodes++;
+      tree_cur_node->right_child = dt->num_nodes;
+      dt->num_nodes++;
 
   #ifndef VERBOSE_GENERATION
       if (cur_height == 1 || changed_height)  {
   #endif
-        cout << endl << "DT#" << settings.dt_index << ": Processing node ";
+        cout << endl << "DT#" << settings->dt_index << ": Processing node ";
         cout << num_nodes_finished+1 << " of " << tree_size << " (tree index = ";
         cout << queue_cur_node.tree_node << ", height " << queue_cur_node.height << " of ";
-        cout << settings.tree_height << ", occp. length = ";
+        cout << settings->tree_height << ", occp. length = ";
         cout << queue_cur_node.occupancy_length << ")" << endl;
   #ifdef VERBOSE_GENERATION
         cout << "   trying weak learner (of " << num_samples_per_node;
@@ -309,7 +309,7 @@ namespace hand_detector {
       max_gain = 0.0f;
       num_attempts = 0;
       while ((num_attempts < num_samples_per_node) && 
-             (max_gain < settings.min_info_gain)) {
+             (max_gain < settings->min_info_gain)) {
         num_attempts++;
   #ifdef VERBOSE_GENERATION
         if ((num_attempts % 100) == 0) { cout << num_attempts << " "; }
@@ -318,14 +318,14 @@ namespace hand_detector {
         // Note: we must use rand_r (or rand_s on Win32) with our own PRNG state
         // per thread
       
-        int32_t cur_wlu_offset = wl_set.wl_coeffs0[rand_threadsafe(settings.seed)
-          % wl_set.wl_coeffs_sizes[0]];
-        int32_t cur_wlv_offset = wl_set.wl_coeffs1[rand_threadsafe(settings.seed)
-          % wl_set.wl_coeffs_sizes[1]];
-        int16_t cur_threshold = wl_set.wl_coeffs2[rand_threadsafe(settings.seed)
-          % wl_set.wl_coeffs_sizes[2]];
-        uint8_t cur_wl_func = wl_set.wl_funcs[rand_threadsafe(settings.seed)
-          % wl_set.wl_coeffs_sizes[3]];
+        int32_t cur_wlu_offset = wl_set->wl_coeffs0[rand_threadsafe(settings->seed)
+          % wl_set->wl_coeffs_sizes[0]];
+        int32_t cur_wlv_offset = wl_set->wl_coeffs1[rand_threadsafe(settings->seed)
+          % wl_set->wl_coeffs_sizes[1]];
+        int16_t cur_threshold = wl_set->wl_coeffs2[rand_threadsafe(settings->seed)
+          % wl_set->wl_coeffs_sizes[2]];
+        uint8_t cur_wl_func = wl_set->wl_funcs[rand_threadsafe(settings->seed)
+          % wl_set->wl_coeffs_sizes[3]];
 
         // For all of the data points still alive, bin all of the data points
         // using the weak lerner
@@ -337,15 +337,15 @@ namespace hand_detector {
           int32_t index = occ_sub_list[i];
           bool result;
           WL_FUNC(index, cur_wlu_offset, cur_wlv_offset, cur_threshold, 
-            cur_wl_func, train_data.im_width, train_data.im_height, 
-            train_data.image_data, result);
+            cur_wl_func, train_data->im_width, train_data->im_height, 
+            train_data->image_data, result);
 
           if (result) {
             // Go left
-            hist_left[train_data.label_data[index]]++;
+            hist_left[train_data->label_data[index]]++;
           } else {
             // Go right
-            hist_right[train_data.label_data[index]]++;
+            hist_right[train_data->label_data[index]]++;
           }
         }  // for (int32_t i = 0; i < cur_node.occupancy_length; i++)
 
@@ -414,8 +414,8 @@ namespace hand_detector {
           int32_t index = occ_sub_list[i];
           bool result;
           WL_FUNC(index, cur_wlu_offset, cur_wlv_offset, cur_threshold, 
-            cur_wl_func, train_data.im_width, train_data.im_height, 
-            train_data.image_data, result);
+            cur_wl_func, train_data->im_width, train_data->im_height, 
+            train_data->image_data, result);
 
           if (result) {
             // Go left
@@ -455,15 +455,15 @@ namespace hand_detector {
 
         // Normalize the histograms (to calculate probability)
         for (uint32_t i = 0; i < NUM_LABELS; i++) {
-          dt.tree[queue_left_node.tree_node].prob[i] = 
+          dt->tree[queue_left_node.tree_node].prob[i] = 
             static_cast<float>(hist_left_best[i]) / static_cast<float>(queue_left_node.occupancy_length);
-          dt.tree[queue_right_node.tree_node].prob[i] = 
+          dt->tree[queue_right_node.tree_node].prob[i] = 
             static_cast<float>(hist_right_best[i]) / static_cast<float>(queue_right_node.occupancy_length);;
         }
 
         // Are we a leaf? If we're not, then put our children and the necessary data
         // on the stack
-        if (cur_height < (settings.tree_height - 1)) {
+        if (cur_height < (settings->tree_height - 1)) {
           // If any of the histograms of our children are fully split (that is,
           // if one of the labels has PR(label) == 1, then we shouldn't put it
           // on the stack for processing.
@@ -484,7 +484,7 @@ namespace hand_detector {
             queue->write(queue_left_node);
           } else {
             // Number of sub-children we will be skipping over
-            num_nodes_finished += (1<<(settings.tree_height - cur_height)) - 1;
+            num_nodes_finished += (1<<(settings->tree_height - cur_height)) - 1;
           }
 
           // Add right child to the stack for processing
@@ -492,7 +492,7 @@ namespace hand_detector {
             queue->write(queue_right_node);
           } else {
             // Number of sub-children we will be skipping over
-            num_nodes_finished += (1<<(settings.tree_height - cur_height)) - 1;
+            num_nodes_finished += (1<<(settings->tree_height - cur_height)) - 1;
           }
         } else {
           num_nodes_finished += 2;  // To count for the leaf nodes we finished
@@ -508,7 +508,7 @@ namespace hand_detector {
         }
         cout << ">" << endl;
   #endif
-        num_nodes_finished += 2*((1<<(settings.tree_height - cur_height)) - 1);
+        num_nodes_finished += 2*((1<<(settings->tree_height - cur_height)) - 1);
       }
       num_nodes_finished++;
     }  // while (cur_stack_ptr >= 0)
@@ -518,7 +518,7 @@ namespace hand_detector {
     delete[] cur_occ_list;
     delete[] next_occ_list;
 
-    cout << endl << "DT#" << settings.dt_index << ": Tree finished" << endl;
+    cout << endl << "DT#" << settings->dt_index << ": Tree finished" << endl;
   }
 
 }  // namespace hand_detector

@@ -35,6 +35,7 @@ using namespace jtil::image_util;
 
 #define SAFE_FREE(x) do { if (x != NULL) { free(x); x = NULL; } } while (0); 
 #define SAFE_DELETE(x) do { if (x != NULL) { delete x; x = NULL; } } while (0); 
+#define SAFE_DELETE_ARR(x) do { if (x != NULL) { delete[] x; x = NULL; } } while (0); 
 
 namespace kinect_interface {
 
@@ -158,8 +159,8 @@ namespace kinect_interface {
     SAFE_FREE(label_data_int);
     SAFE_FREE(label_data_int_integ);
     SAFE_FREE(label_data_int_tmp);
-    SAFE_FREE(cur_image_data);
-    SAFE_FREE(cur_label_data);
+    SAFE_DELETE_ARR(cur_image_data);
+    SAFE_DELETE_ARR(cur_label_data);
     // SAFE_DELETE(im_graph);
   }
 

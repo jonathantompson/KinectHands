@@ -26,10 +26,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Text Include=".\TO DO.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="program_settings.csv" />
+    <None Include="..\hand_forests_settings.csv" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\load_settings_from_file.h">

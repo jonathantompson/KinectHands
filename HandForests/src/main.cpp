@@ -57,7 +57,7 @@ typedef enum {
 // DATA VARIABLES
 DepthImagesIO* images_io = NULL;
 const bool load_processed_images = true;  // Don't change this!
-const int32_t file_stride = 1;  // Better to use ALL the training data (it's already been decimated)
+const int32_t file_stride = 200;  // Better to use ALL the training data (it's already been decimated)
 const float frac_test_data = 0.05f;  // 5% of data files will be test data, def > 0.05
 DepthImageData* training_data = NULL;
 DepthImageData* test_data = NULL;
@@ -103,7 +103,6 @@ void shutdown() {
   DepthImagesIO::releaseImages(test_data);
   DepthImagesIO::releaseImages(training_data);
   releaseForest(forest, prog_settings.num_trees);
-  exit(0);
 }
 
 int main(int argc, char *argv[]) { 
@@ -112,7 +111,7 @@ int main(int argc, char *argv[]) {
   static_cast<void>(argv);
 #ifdef _DEBUG
   jtil::debug::EnableMemoryLeakChecks();
-  // jtil::debug::SetBreakPointOnAlocation(20624);
+  //jtil::debug::SetBreakPointOnAlocation(587);
 #endif
   try {
     if (DT_DOWNSAMPLE < 1) {
@@ -237,32 +236,12 @@ int main(int argc, char *argv[]) {
           uint32_t cur_tree_index = i + j;
           // Hack to fix linux version when statically linking --> it throws operation not permitted
           threads[j] = std::thread(GenerateDecisionTree::generateDecisionTree,
-            forest[cur_tree_index], *training_data, wl_set, settings[cur_tree_index]);
+            &forest[cur_tree_index], training_data, &wl_set, &settings[cur_tree_index]);
         }
         for (uint32_t j = 0; j < prog_settings.num_workers && (i + j) < prog_settings.num_trees; j++) {
           threads[j].join();
         }
       }
-
-      //// NO LONGER DOING ANY BOOTSTRAP PASSES
-      //for (uint32_t pass = 0; pass < prog_settings.num_bootstrap_passes; pass++) {
-      //  cout << endl << "Performing bootstrap pass " << pass+1;
-      //  cout << " of " << prog_settings.num_bootstrap_passes << endl;
-      //  uint32_t num_trees_so_far = (pass + 1) * prog_settings.num_trees;
-      //  for (uint32_t i = 0; i < prog_settings.num_trees; i += prog_settings.num_workers) {
-      //    for (uint32_t j = 0; j < prog_settings.num_workers && (i + j) < prog_settings.num_trees; j++) {
-      //      uint32_t cur_tree_index = ((pass + 1) * prog_settings.num_trees) + i + j;
-      //      Callback<void>* threadBody = threading::MakeCallableOnce(
-      //        &GenerateDecisionTree::generateDecisionTree, &genTree, &forest[cur_tree_index], 
-      //        training_data, &wl_set, &settings[cur_tree_index], forest, 
-      //        static_cast<uint32_t>(num_trees_so_far));
-      //      threads[j] =MakeThread(threadBody);
-      //    }
-      //    for (uint32_t j = 0; j < prog_settings.num_workers && (i + j) < prog_settings.num_trees; j++) {
-      //      threads[j].join();
-      //    }
-      //  }
-      //}
       
       cout << endl << "Saving Forest to file..." << endl << endl;
       prog_settings.num_trees = total_num_trees;  // Just pretend we have this many trees
@@ -296,12 +275,17 @@ int main(int argc, char *argv[]) {
     printf("std::runtime_error caught!:\n");
     printf("  %s\n", e.what());
 #if defined(WIN32) || defined(_WIN32)
-    system("PAUSE");
+    system("pause");
 #endif
   } catch(std::bad_alloc e) {
     printf("std::bad_alloc caught! --> Likely not enough memory!:\n");
 #if defined(WIN32) || defined(_WIN32)
-    system("PAUSE");
+    system("pause");
 #endif
   }
+  shutdown();
+#if defined(WIN32) || defined(_WIN32)
+  system("pause");
+#endif
+  return 0;
 }
