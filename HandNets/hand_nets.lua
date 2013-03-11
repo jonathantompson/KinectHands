@@ -29,6 +29,7 @@ im_dir = "./hand_depth_data_processed/"
 visualize_data = 0
 pooling = 2  -- 1,2,.... or math.huge (infinity)
 use_hpf_depth = 1
+regularization_stride = 50
 
 -- ******* Some preliminary calculations *********
 w = width
@@ -401,6 +402,11 @@ if (perform_training == 1) then
 
     -- epoch tracker
     epoch = epoch or 1
+
+    if (math.mod(epoch, regularization_stride) == 0) then
+      print("performing regularization...")
+      
+    end
 
     -- local vars
     local time = sys.clock()
