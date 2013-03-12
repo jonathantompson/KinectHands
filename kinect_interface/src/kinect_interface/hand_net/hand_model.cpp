@@ -43,8 +43,6 @@ namespace hand_net {
     coeff_[HAND_POS_X] = 0.0f;
     coeff_[HAND_POS_Y] = 0.0f;
     coeff_[HAND_POS_Z] = 750.0f;
-    FloatQuat starting_quat;
-    starting_quat.identity();
     coeff_[HAND_ORIENT_X] = 0;
     coeff_[HAND_ORIENT_Y] = -1.5707963f;  // Pi / 2
     coeff_[HAND_ORIENT_Z] = 0;
@@ -67,6 +65,7 @@ namespace hand_net {
     coeff_[F3_THETA] = 0;
     coeff_[F3_PHI] = 0;
     coeff_[F3_KNUCKLE_CURL] = 0;
+    local_scale_ = HAND_MODEL_DEFAULT_SCALE;
     renormalizeCoeffs(coeff_);  // Just in case
   }
     

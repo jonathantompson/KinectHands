@@ -249,6 +249,10 @@ namespace renderer {
   }
 
   void GLState::glsPolygonMode(const GLenum face, const GLenum mode) {
+    //// EDIT: 3/2/2013
+    //// ON ATI Hardware glGetIntegerv( GL_POLYGON_MODE, previous ); throws
+    //// invalid enumerant!
+    /*
     GLenum cur_mode[2];
     getGLenum(GL_POLYGON_MODE, cur_mode, 2 * GLTYPE_ENUM_SIZE, GLTYPE_ENUM);
     if (face == GL_FRONT_AND_BACK || face == GL_FRONT) {
@@ -262,6 +266,9 @@ namespace renderer {
       glPolygonMode(face, mode);
       ERROR_CHECK;
     }
+    */
+    glPolygonMode(face, mode);
+    ERROR_CHECK;
   }
 
   void GLState::glsClearColor(const GLfloat red, const GLfloat green, 
