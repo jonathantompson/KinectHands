@@ -379,7 +379,6 @@ namespace hand_net {
     coeff_[HAND_POS_Y] += offset_world[1];
     coeff_[HAND_POS_Z] += offset_world[2];
 
-
     FloatQuat::quat2EulerAngles(coeff_[HAND_ORIENT_X], coeff_[HAND_ORIENT_Y], 
       coeff_[HAND_ORIENT_Z], cur_rot_quat);
     // All other coefficients are shifted down

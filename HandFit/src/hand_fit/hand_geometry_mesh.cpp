@@ -244,6 +244,8 @@ namespace hand_fit {
     }
   }
   
+  const float finger_twist[4] = {-0.1f, -0.5f, 0.0f, -0.1f};
+
   void HandGeometryMesh::updateMatrices(const float* coeff) {
     FloatQuat cur_rot_quat;
     Float4x4* mat;
@@ -272,8 +274,8 @@ namespace hand_fit {
       float theta = coeff[F0_THETA + i * FINGER_NUM_COEFF];
       float phi = coeff[F0_PHI + i * FINGER_NUM_COEFF];
       mat = bones_in_file_->bones[bone_finger_2_index_[i]]->getNode()->mat();
-      Float4x4::rotateMatZAxis(mat_tmp1, theta);
       Float4x4::rotateMatXAxis(mat_tmp2, phi);
+      Float4x4::rotateMatZAxis(mat_tmp1, theta);
       Float4x4::mult(mat_tmp3, mat_tmp1, mat_tmp2);
       Float4x4::mult(*mat, rest_transforms_[bone_finger_2_index_[i]], mat_tmp3);
 

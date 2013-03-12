@@ -14,3 +14,6 @@ glut64.dll
 handSamples.csv
 *.dll
 Build
+assimp.dll
+HandFit.exe
+FreeImage.dll

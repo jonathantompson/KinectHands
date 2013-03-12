@@ -64,3 +64,6 @@ build
 build_intermediate
 Debug
 Release
+assimp.dll
+HandFit.exe
+FreeImage.dll
