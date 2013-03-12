@@ -237,9 +237,9 @@ namespace hand_detector {
     }
 
     // Evaluate the decision forest
-    //evaluateDecisionForest(labels_evaluated_, forest_, max_height_to_evaluate_, 
-    // num_trees_to_evaluate_, depth_downsampled_, down_width_, down_height_);
-    evaluateForest();
+    evaluateDecisionForest(labels_evaluated_, forest_, max_height_to_evaluate_, 
+     num_trees_to_evaluate_, depth_downsampled_, down_width_, down_height_);
+    //evaluateForest();
 
     // Filter the results
     ShrinkFilter<uint8_t>(labels_temp_, labels_evaluated_,

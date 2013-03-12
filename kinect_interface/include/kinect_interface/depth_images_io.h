@@ -35,6 +35,7 @@ namespace kinect_interface {
     IM_HUE,
     IM_SAT,
     IM_VAL,
+    IM_DOWNSAMPLED_DEPTH,
     IM_NUM_TYPES,
   } IM_TYPE;
 

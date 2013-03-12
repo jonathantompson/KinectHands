@@ -68,9 +68,8 @@ namespace hand_detector {
             break;
           }
 
-          bool result;
-          WL_FUNC(index, cur_node->coeff0, cur_node->coeff1, cur_node->coeff2, 
-            cur_node->wl_func, width, height, image_data, result);
+          bool result = WL_FUNC(index, cur_node->coeff0, cur_node->coeff1, 
+            cur_node->coeff2, cur_node->wl_func, width, height, image_data);
 
           if (result) {
             // Go left

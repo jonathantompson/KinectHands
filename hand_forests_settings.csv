@@ -4,8 +4,8 @@ num_trees,10
 num_workers,5
 tree_height,25
 min_info_gain,99999
-max_pixels_per_image_per_label,5000
-num_wl_samples_per_node,5000
-max_num_images,200000
+max_pixels_per_image_per_label,10000
+num_wl_samples_per_node,10000
+max_num_images,100000000
 wl_func_type,1
 file_stride,1

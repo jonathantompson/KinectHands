@@ -7,6 +7,12 @@
 #ifndef UNNAMED_DECISION_TREE_FUNC_HEADER
 #define UNNAMED_DECISION_TREE_FUNC_HEADER
 
+#if defined(WIN32) || defined(_WIN32)
+#define FORCEINLINE __forceinline
+#else
+#define FORCEINLINE inline
+#endif
+
 // The core weak learner function:
 //   For speed use a pre-processor define to avoid inline function calls.  This
 //    way the compiler can make easy optimization decisions
@@ -45,6 +51,7 @@
 */
 
 // ************************ ONLY MY WL ************************
+/*
 #define WL_FUNC(index, coeff0, coeff1, coeff2, coeff3, width, height, image_data, result) \
   int32_t im_index = index % (width * height); \
   int32_t u = im_index % width; \
@@ -59,5 +66,24 @@
     int32_t index_offset = index + (width * cur_v_offset) + cur_u_offset; \
     result = (image_data[index_offset] - image_data[index]) >= coeff2;\
   }
+  */
+
+FORCEINLINE bool WL_FUNC(const int32_t index, const int32_t coeff0, 
+  const int32_t coeff1, const int16_t coeff2, const uint8_t coeff3, 
+  const int32_t width, const int32_t height, const int16_t* image_data) {
+  int32_t im_index = index % (width * height);
+  int32_t u = im_index % width;
+  int32_t v = im_index / width;
+  int32_t cur_u_offset = coeff0 / image_data[index];
+  int32_t cur_v_offset = coeff1 / image_data[index];
+  int32_t u_offset = u + cur_u_offset;
+  int32_t v_offset = v + cur_v_offset;
+  if (u_offset < 0 || u_offset >= width || v_offset < 0 || v_offset >= height) {
+    return false;
+  } else {
+    int32_t index_offset = index + (width * cur_v_offset) + cur_u_offset;
+    return (image_data[index_offset] - image_data[index]) >= coeff2;
+  }
+}
 
 #endif  // UNNAMED_DECISION_TREE_FUNC_HEADER

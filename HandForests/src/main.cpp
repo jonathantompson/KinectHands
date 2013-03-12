@@ -168,10 +168,8 @@ int main(int argc, char *argv[]) {
         wl_set.wl_funcs = new uint8_t[NUM_WL_FUNCS];
         break;
       case 1:
-        wl_set.wl_funcs = new uint8_t[1];
-        break;
       case 2:
-        wl_set.wl_funcs = new uint8_t[2];
+        wl_set.wl_funcs = new uint8_t[1];
         break;
       }
 

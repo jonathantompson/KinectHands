@@ -22,10 +22,4 @@
       <Filter>Source Files\src</Filter>
     </ClCompile>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="program_settings.csv" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include=".\TO DO.txt" />
-  </ItemGroup>
 </Project>

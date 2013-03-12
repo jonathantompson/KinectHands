@@ -40,6 +40,7 @@ using namespace kinect_interface::hand_detector;
 
 #define LOAD_PROCESSED_IMAGES
 //#define SAFE_FLIPPED
+#define DISABLE_ALL_SAVES
 
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2012_07_27_and_08_03_DFProcessed/")
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_01_11_1/")
@@ -76,8 +77,10 @@ DepthImagesIO* image_io = NULL;
 
 // The current image being worked on
 int16_t cur_depth_data[src_dim*3];
+int16_t cur_depth_data_tmp[src_dim*3];
 int16_t cur_depth_data_flipped[src_dim*3];
 uint8_t cur_label_data[src_dim];
+uint8_t cur_label_data_tmp[src_dim];
 uint8_t cur_label_data_flipped[src_dim];
 uint8_t cur_redlabel_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
@@ -145,10 +148,23 @@ void loadImageForRendering(bool force_reprocessing = false) {
   case IM_TYPE::IM_VAL:
     convertValueToRGB<uint8_t>(cur_display_rgb, cur_image_hsv, src_width, src_height);
     break;
+  case IM_TYPE::IM_DOWNSAMPLED_DEPTH:
+    DownsampleImageWithoutNonZeroPixelsAndBackground<int16_t>(
+      cur_depth_data_tmp, cur_depth_data, src_width, src_height, DT_DOWNSAMPLE,
+      GDT_MAX_DIST);
+    UpsampleNoFiltering<int16_t>(cur_depth_data, cur_depth_data_tmp,
+      src_width / DT_DOWNSAMPLE, src_height / DT_DOWNSAMPLE, DT_DOWNSAMPLE);
+    DownsampleBoolImageConservative<uint8_t>(
+      cur_label_data_tmp, cur_label_data, src_width, src_height, DT_DOWNSAMPLE,
+      0, 1);
+    UpsampleNoFiltering<uint8_t>(cur_label_data, cur_label_data_tmp,
+      src_width / DT_DOWNSAMPLE, src_height / DT_DOWNSAMPLE, DT_DOWNSAMPLE);
+    break;
   }
 }
 
 void saveData() {
+#ifndef DISABLE_ALL_SAVES
   string full_filename = IMAGE_DIRECTORY + string(im_files[cur_image]);
   image_io->saveProcessedDepthLabel(full_filename, cur_depth_data, 
     cur_label_data);
@@ -177,6 +193,7 @@ void saveData() {
   } else {
     std::cout << name_file << " is already a flipped file" << std::endl;
   }
+#endif
 #endif
 }
 
@@ -265,7 +282,8 @@ void display() {
 
   memset(texture_data, 0, src_dim * sizeof(texture_data[0]) * 4);
 
-  if (render_image_type == IM_TYPE::IM_DEPTH) {
+  if (render_image_type == IM_TYPE::IM_DEPTH ||
+    render_image_type == IM_TYPE::IM_DOWNSAMPLED_DEPTH) {
     // Render a texture here
     UpdateGreyscaleImageForRendering<int16_t>(cur_depth_data);
   }

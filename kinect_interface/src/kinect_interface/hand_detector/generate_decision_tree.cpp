@@ -335,10 +335,9 @@ namespace hand_detector {
           // We need to calculate back the u, v so that we can add the appropriate
           // offset for this weak learner
           int32_t index = occ_sub_list[i];
-          bool result;
-          WL_FUNC(index, cur_wlu_offset, cur_wlv_offset, cur_threshold, 
-            cur_wl_func, train_data->im_width, train_data->im_height, 
-            train_data->image_data, result);
+          bool result = WL_FUNC(index, cur_wlu_offset, cur_wlv_offset, 
+            cur_threshold, cur_wl_func, train_data->im_width, 
+            train_data->im_height, train_data->image_data);
 
           if (result) {
             // Go left
@@ -413,10 +412,9 @@ namespace hand_detector {
           // We need to calculate back the u, v so that we can add the appropriate
           // offset for this weak learner
           int32_t index = occ_sub_list[i];
-          bool result;
-          WL_FUNC(index, cur_wlu_offset, cur_wlv_offset, cur_threshold, 
-            cur_wl_func, train_data->im_width, train_data->im_height, 
-            train_data->image_data, result);
+          bool result = WL_FUNC(index, cur_wlu_offset, cur_wlv_offset, 
+            cur_threshold, cur_wl_func, train_data->im_width, 
+            train_data->im_height, train_data->image_data);
 
           if (result) {
             // Go left
