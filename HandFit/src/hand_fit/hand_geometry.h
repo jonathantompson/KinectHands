@@ -19,28 +19,28 @@
   #define HAND_MODEL_PATH string("./models/")
 #endif
 
-// #define LOAD_HAND_MESH_JFILE  // Much faster and more compact format!
+#define LOAD_HAND_MESH_JFILE  // Much faster and more compact format!
 //#define LHAND_MODEL_FILE "hand.dae"
 //#define LHAND_MODEL_JFILE "hand.jbin"
-#define LHAND_MODEL_FILE "hand_palm_parent.dae"
-#define LHAND_MODEL_JFILE "hand_palm_parent.jbin"
-//#define LHAND_MODEL_FILE "hand_short_wrist.dae"
-//#define LHAND_MODEL_JFILE "hand_short_wrist.jbin"
-//#define LHAND_MODEL_FILE "hand_medium_wrist.dae"
-//#define LHAND_MODEL_JFILE "hand_medium_wrist.jbin"
-//#define LHAND_MODEL_FILE "hand_vertex_colors.dae"
-//#define LHAND_MODEL_JFILE "hand_vertex_colors.jbin"
+//#define LHAND_MODEL_FILE "hand_palm_parent.dae"
+//#define LHAND_MODEL_JFILE "hand_palm_parent.jbin"
+//#define LHAND_MODEL_FILE "hand_palm_parent_short_wrist.dae"
+//#define LHAND_MODEL_JFILE "hand_palm_parent_short_wrist.jbin"
+#define LHAND_MODEL_FILE "hand_palm_parent_medium_wrist.dae"
+#define LHAND_MODEL_JFILE "hand_palm_parent_medium_wrist.jbin"
+//#define LHAND_MODEL_FILE "hand_palm_parent_vertex_colors.dae"
+//#define LHAND_MODEL_JFILE "hand_palm_parent_vertex_colors.jbin"
 
 //#define RHAND_MODEL_FILE "hand_right.dae"
 //#define RHAND_MODEL_JFILE "hand_right.jbin"
-#define RHAND_MODEL_FILE "hand_palm_parent_right.dae"
-#define RHAND_MODEL_JFILE "hand_palm_parent_right.jbin"
-//#define RHAND_MODEL_FILE "hand_short_wrist_right.dae"
-//#define RHAND_MODEL_JFILE "hand_short_wrist_right.jbin"
-//#define RHAND_MODEL_FILE "hand_medium_wrist_right.dae"
-//#define RHAND_MODEL_JFILE "hand_medium_wrist_right.jbin"
-//#define RHAND_MODEL_FILE "hand_vertex_colors_right.dae"
-//#define RHAND_MODEL_JFILE "hand_vertex_colors_right.jbin"
+//#define RHAND_MODEL_FILE "hand_palm_parent_right.dae"
+//#define RHAND_MODEL_JFILE "hand_palm_parent_right.jbin"
+//#define RHAND_MODEL_FILE "hand_palm_parent_short_wrist_right.dae"
+//#define RHAND_MODEL_JFILE "hand_palm_parent_short_wrist_right.jbin"
+#define RHAND_MODEL_FILE "hand_palm_parent_medium_wrist_right.dae"
+#define RHAND_MODEL_JFILE "hand_palm_parent_medium_wrist_right.jbin"
+//#define RHAND_MODEL_FILE "hand_palm_parent_vertex_colors_right.dae"
+//#define RHAND_MODEL_JFILE "hand_palm_parent_vertex_colors_right.jbin"
 
 namespace renderer { class Geometry; }
 

@@ -530,10 +530,10 @@ int main(int argc, char *argv[]) {
     wnd->registerMouseWheelCB(NULL);
     wnd->registerCharacterInputCB(NULL);
 
-    hand_renderer = new HandRenderer(render, true, false);
+    hand_renderer = new HandRenderer(render, true, true);
     rhand = new HandModel(HandType::RIGHT);
     lhand = new HandModel(HandType::LEFT);
-    lhand->setCoeff(HandCoeff::HAND_POS_X, 100);
+    lhand->setCoeff(HandCoeff::HAND_POS_X, -150);
     rhand_rest_pose = new HandModel(HandType::RIGHT);
     coeffs.resize(1, HAND_NUM_COEFF * 2);
 
@@ -557,14 +557,14 @@ int main(int argc, char *argv[]) {
         t_animation += (t1 - t0);
         for (uint32_t i = HandCoeff::HAND_POS_X; i <= HandCoeff::HAND_POS_Z; i++) {
           float noise = hand_frames[i]->sample((float)t_animation);  // [-1, 1]
-          rhand->setCoeff(i, rhand_rest_pose->getCoeff(i) + pos_amp * noise);
+          lhand->setCoeff(i, rhand_rest_pose->getCoeff(i) + pos_amp * noise);
         }
         Float3 euler_ang;
         euler_ang[0] =  (float)(2.0 * M_PI) * 0.5f * 
           (1.0f + hand_frames[HandCoeff::HAND_ORIENT_X]->sample((float)t_animation*0.25f));  
         euler_ang[1] =  (float)(2.0 * M_PI) * 0.5f * 
           (1.0f + hand_frames[HandCoeff::HAND_ORIENT_Y]->sample((float)t_animation*0.25f)); 
-        euler_ang[0] =  (float)(2.0 * M_PI) * 0.5f * 
+        euler_ang[2] =  (float)(2.0 * M_PI) * 0.5f * 
           (1.0f + hand_frames[HandCoeff::HAND_ORIENT_Z]->sample((float)t_animation*0.25f)); 
         lhand->setRotation(euler_ang);
         for (uint32_t i = 0; i < 4; i++) {
@@ -596,7 +596,7 @@ int main(int argc, char *argv[]) {
         render->camera()->moveCamera(&delta_pos);
       }
 
-      // hand_renderer->updateMatrices(rhand->coeff(), rhand->hand_type());
+      hand_renderer->updateMatrices(rhand->coeff(), rhand->hand_type());
       hand_renderer->updateMatrices(lhand->coeff(), lhand->hand_type());
       memcpy(coeffs.block<1, HAND_NUM_COEFF>(0, 0).data(), lhand->coeff(), 
         sizeof(lhand->coeff()[0]) * HAND_NUM_COEFF);

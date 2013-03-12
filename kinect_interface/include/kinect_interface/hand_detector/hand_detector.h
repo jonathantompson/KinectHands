@@ -60,12 +60,14 @@ namespace hand_detector {
     bool findHandLabels(const int16_t* depth_in, const float* xyz, 
       const HDLabelMethod method, uint8_t* label_out);
 
+    void evaluateForest(const int16_t* depth_data);  // Result is in labels_evaluated_
+
     void reset();
 
     // Getters
-    int16_t* getDepthImDownsampled() { return depth_downsampled_; }
-    const uint8_t* getLabelIm() const { return labels_filtered_; }
-    const uint8_t* getLabelImUnfiltered() const { return labels_evaluated_; }
+    int16_t* depth_downsampled() { return depth_downsampled_; }
+    const uint8_t* labels_filtered() const { return labels_filtered_; }
+    const uint8_t* labels_evaluated() const { return labels_evaluated_; }
     const uint32_t down_width() const { return down_width_; }
     const uint32_t down_height() const { return down_height_; }
     const uint32_t num_trees() const { return num_trees_; }
@@ -127,9 +129,9 @@ namespace hand_detector {
     void floodFillLabelData(bool* rhand_found, float* rhand_uvd, 
       bool* lhand_found = NULL, float* lhand_uvd = NULL);
 
-    void createLabels();
+    void createLabels(const int16_t* depth_data);
 
-    void evaluateForest();  // Sets up the pixel work queue and fire's off threads
+    void evaluateForestMultithreaded();  // Sets up the pixel work queue and fire's off threads
     void evaluateForestPixelRange(const uint32_t istart, const uint32_t iend);
     void evaluateForestPixel(const uint32_t index);
 

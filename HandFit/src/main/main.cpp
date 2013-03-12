@@ -48,7 +48,7 @@
   #define snprintf _snprintf_s
 #endif
 
-#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  
+#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")  
  
 #if defined(__APPLE__)
   #define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
@@ -61,6 +61,7 @@
 #endif
 
 #define IM_DIR (KINECT_HANDS_ROOT + IM_DIR_BASE)
+// #define LOAD_AND_SAVE_OLD_FORMAT_COEFFS
 const bool fit_left = false;
 const bool fit_right = true; 
 const uint32_t num_hands = (fit_left ? 1 : 0) + (fit_right ? 1 : 0);
@@ -131,7 +132,7 @@ float cur_xyz_data[src_dim*3];
 int16_t cur_depth_data[src_dim*3];
 uint8_t cur_label_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
-uint32_t cur_image = 1116;
+uint32_t cur_image = 0;
 GeometryColoredPoints* geometry_points= NULL;
 float temp_xyz[3 * src_dim];
 float temp_rgb[3 * src_dim];
@@ -722,9 +723,9 @@ void renderFrame(float dt) {
   case 3:
   case 4:
     if (render_output == 3) {
-      hdlabels = hand_detector->getLabelImUnfiltered();
+      hdlabels = hand_detector->labels_evaluated();
     } else {
-      hdlabels = hand_detector->getLabelIm();
+      hdlabels = hand_detector->labels_filtered();
     }
     w = hand_detector->down_width();
     for (uint32_t v = 0; v < src_height; v++) {
@@ -912,15 +913,37 @@ int main(int argc, char *argv[]) {
     coeffs.resize(1, HAND_NUM_COEFF * num_hands);
     fit = new HandFit(hand_renderer, num_hands);
     r_hands = new HandModel*[im_files.size()];
+    l_hands = new HandModel*[im_files.size()];
+#ifdef LOAD_AND_SAVE_OLD_FORMAT_COEFFS
+    for (uint32_t i = 0; i < im_files.size(); i++) {
+      r_hands[i] = new HandModel(kinect_interface::hand_net::HandType::RIGHT);
+      r_hands[i]->loadOldFormatFromFile(IM_DIR, string("coeffr_") + im_files[i]);
+      l_hands[i] = new HandModel(kinect_interface::hand_net::HandType::LEFT);
+      l_hands[i]->loadOldFormatFromFile(IM_DIR, string("coeffl_") + im_files[i]);
+    }
+    for (uint32_t i = 0; i < im_files.size(); i++) {
+      string r_hand_file = string("coeffr_") + im_files[i];
+      string l_hand_file = string("coeffl_") + im_files[i];
+      if (fit_right) {
+        r_hands[i]->saveToFile(IM_DIR, r_hand_file);
+      } else {
+        r_hands[i]->saveBlankFile(IM_DIR, r_hand_file);
+      }
+      if (fit_left) {
+        l_hands[i]->saveToFile(IM_DIR, l_hand_file);
+      } else {
+        l_hands[i]->saveBlankFile(IM_DIR, l_hand_file);
+      }
+    }
+#else
     for (uint32_t i = 0; i < im_files.size(); i++) {
       r_hands[i] = new HandModel(kinect_interface::hand_net::HandType::RIGHT);
       r_hands[i]->loadFromFile(IM_DIR, string("coeffr_") + im_files[i]);
-    }
-    l_hands = new HandModel*[im_files.size()];
-    for (uint32_t i = 0; i < im_files.size(); i++) {
       l_hands[i] = new HandModel(kinect_interface::hand_net::HandType::LEFT);
       l_hands[i]->loadFromFile(IM_DIR, string("coeffl_") + im_files[i]);
     }
+#endif
+
     hand_renderer->setRendererAttachement(render_hand);
 
     // Finally, initialize the points for rendering

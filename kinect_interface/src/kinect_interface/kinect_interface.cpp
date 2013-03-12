@@ -675,11 +675,11 @@ namespace kinect_interface {
   }
 
   const uint8_t* KinectInterface::filteredDecisionForestLabels() const {
-    return hand_detector_->getLabelIm();
+    return hand_detector_->labels_filtered();
   }
 
   const uint8_t* KinectInterface::rawDecisionForestLabels() const {
-    return hand_detector_->getLabelImUnfiltered();
+    return hand_detector_->labels_evaluated();
   }
 
 

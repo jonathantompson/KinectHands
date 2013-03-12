@@ -13,7 +13,7 @@
 #include "jtil/data_str/vector.h"
 #include "kinect_interface/kinect_interface.h"  // for src_width/height
 
-#define HAND_NUM_COEFF 26  // The number of coefficients to use when optimizing
+#define HAND_NUM_COEFF 25  // The number of coefficients to use when optimizing
 #define FINGER_NUM_COEFF 3
 #define HAND_MODEL_DEFAULT_SCALE 58.0f
 
@@ -106,6 +106,8 @@ namespace hand_net {
     void saveBlankFile(const std::string& dir, const std::string& filename) 
       const;
     bool loadFromFile(const std::string& dir, const std::string& filename);
+    bool loadOldFormatFromFile(const std::string& dir, 
+      const std::string& filename);
 
     void copyCoeffFrom(const HandModel* model);
     void copyCoeffFrom(const float* coeff);

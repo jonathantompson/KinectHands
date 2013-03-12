@@ -298,7 +298,8 @@ namespace hand_net {
     // Make sure this isn't a blank file (indicating no hands on the screen)
     file.read(reinterpret_cast<char*>(coeff_), 
       HAND_NUM_COEFF * sizeof(coeff_[0]));
-    if (coeff_[0] < EPSILON && coeff_[1] < EPSILON && coeff_[2] < EPSILON) {
+    if (coeff_[HAND_POS_X] < EPSILON && coeff_[HAND_POS_Y] < EPSILON && 
+      coeff_[HAND_POS_Z] < EPSILON) {
       resetPose();
     }
     file.read(reinterpret_cast<char*>(&wrist_length), sizeof(wrist_length));
@@ -307,6 +308,96 @@ namespace hand_net {
     if (local_scale_ != HAND_MODEL_DEFAULT_SCALE) {
       scale = local_scale_;
     }
+    return true;
+  }
+
+  std::mutex temp_data_lock;
+  const Float4x4 old_rest_transform_wrist(-4.0992e-2f, 1.4916e-2f, -9.9905e-1f,
+    0.0f, -9.9912e-1f, 8.3785e-3f, 4.1120e-2f, 0.0f, 8.9838e-3f, 9.9985e-1f,
+    1.4559e-2f, 0.0f, 2.5561e0f, 6.2613e-3f,  -1.6060e-2f, 1.0f);
+  const Float4x4 old_rest_transform_palm(9.9973e-1f, 1.9035e-2f, -1.3164e-2f,
+    0.0f, -1.9968e-2f, 9.9699e-1f, -7.4869e-2f, 0.0f, 1.1699e-2f, 7.5112e-2f, 
+    9.9711e-1f, 0.0f, -7.4506e-9f, 9.7399e-1f, 1.8626e-9f, 1.0f);
+  Float4x4 root_mat;
+  Float4x4 palm_mat;
+  Float4x4 mat_tmp1;
+  Float4x4 mat_tmp2;
+  Float4x4 mat_tmp3;
+  float tmp_coeff[HAND_NUM_COEFF+1];
+
+  bool HandModel::loadOldFormatFromFile(const std::string& dir, 
+    const std::string& filename) {
+    temp_data_lock.lock();  // Just in case
+    // 1. The palm was made the root (so the orientation needs to be multiplied
+    // by the wrist matrix)
+    // 2. An offset was applied
+    // 3. The orientation changed from a quaternion to euler angles
+    // This gets *"close"* to the correct pose, but not quite.
+    string full_filename = dir + filename;
+    std::ifstream file(full_filename.c_str(), std::ios::in | std::ios::binary);
+    if (!file.is_open()) {
+      temp_data_lock.unlock();
+      return false;
+    }
+    file.seekg(0, std::ios::beg);
+    // Make sure this isn't a blank file (indicating no hands on the screen)
+    
+    file.read(reinterpret_cast<char*>(tmp_coeff), 
+      (HAND_NUM_COEFF+1) * sizeof(tmp_coeff[0]));
+    if (tmp_coeff[HAND_POS_X] < EPSILON && tmp_coeff[HAND_POS_Y] < EPSILON && 
+      tmp_coeff[HAND_POS_Z] < EPSILON) {
+      resetPose();
+    }
+    // Copy over the position
+    for (uint32_t i = 0; i <= HAND_POS_Z; i++) {
+      coeff_[i] = tmp_coeff[i];
+    }
+    // Convert quaternion to euler
+    FloatQuat cur_rot_quat(tmp_coeff[HAND_ORIENT_X], tmp_coeff[HAND_ORIENT_Y], 
+      tmp_coeff[HAND_ORIENT_Z], tmp_coeff[HAND_ORIENT_Z+1]);
+    FloatQuat::quat2Mat4x4(root_mat, cur_rot_quat);
+
+    // Old code to set the palm matrix --> Now changed, but we need the old
+    // subsequent 
+    Float4x4::rotateMatXAxis(mat_tmp1, tmp_coeff[WRIST_PHI+1]);
+    Float4x4::rotateMatZAxis(mat_tmp2, tmp_coeff[WRIST_THETA+1]);
+    Float4x4::mult(mat_tmp3, mat_tmp1, mat_tmp2);
+    Float4x4::rotateMatXAxis(mat_tmp1, HandModel::wrist_twist);
+    Float4x4::mult(mat_tmp2, mat_tmp1, mat_tmp3);
+    Float4x4::mult(palm_mat, old_rest_transform_palm, mat_tmp2);
+
+    Float4x4::mult(mat_tmp1, root_mat, palm_mat);
+    // The orientation component of mat_tmp1 is at least what we want.
+    Float4x4::extractRotation(palm_mat, mat_tmp1);
+    FloatQuat::orthMat4x42Quat(cur_rot_quat, palm_mat);
+    // There is also an offset, which is defined in the root's coordinate frame
+    // this is roughly the world offset we want at rest (71, 54.75, 127.25); 
+    Float3 offset_model(-1.53962708f, -20.5192261f, -154.297485f);
+    Float3 offset_world;
+    Float3::affineTransformVec(offset_world, root_mat, offset_model);
+    coeff_[HAND_POS_X] += offset_world[0];
+    coeff_[HAND_POS_Y] += offset_world[1];
+    coeff_[HAND_POS_Z] += offset_world[2];
+
+
+    FloatQuat::quat2EulerAngles(coeff_[HAND_ORIENT_X], coeff_[HAND_ORIENT_Y], 
+      coeff_[HAND_ORIENT_Z], cur_rot_quat);
+    // All other coefficients are shifted down
+    for (uint32_t i = WRIST_THETA; i < HAND_NUM_COEFF; i++) {
+      coeff_[i] = tmp_coeff[i+1];
+    }
+    file.read(reinterpret_cast<char*>(&wrist_length), sizeof(wrist_length));
+    file.read(reinterpret_cast<char*>(&local_scale_), sizeof(local_scale_));
+
+    // The wrist now hinges off the palm, so we need the negative angles
+    //coeff_[WRIST_THETA] *= -1.0f;
+    //coeff_[WRIST_PHI] *= -1.0f;
+
+    file.close();
+    if (local_scale_ != HAND_MODEL_DEFAULT_SCALE) {
+      scale = local_scale_;
+    }
+    temp_data_lock.unlock();
     return true;
   }
 

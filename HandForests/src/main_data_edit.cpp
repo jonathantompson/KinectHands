@@ -21,6 +21,7 @@
 #include "jtil/data_str/vector_managed.h"
 #include "kinect_interface/depth_images_io.h"
 #include "kinect_interface/hand_detector/forest_io.h"
+#include "kinect_interface/hand_detector/hand_detector.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"  // MAX_DIST
 #include "jtil/string_util/string_util.h"
 #include "jtil/image_util/image_util.h"
@@ -42,7 +43,14 @@ using namespace kinect_interface::hand_detector;
 //#define SAFE_FLIPPED
 #define DISABLE_ALL_SAVES
 
+#if defined(__APPLE__)
+  #define KINECT_HANDS_ROOT string("./../../../../../../")
+#else
+  #define KINECT_HANDS_ROOT string("./../")
+#endif
+
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2012_07_27_and_08_03_DFProcessed/")
+#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_01_11_and_03_04_DFProcessed/")
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_01_11_1/")
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_01_11_2_1/")
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_01_11_2_2/")
@@ -50,16 +58,14 @@ using namespace kinect_interface::hand_detector;
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_03_04_4/")
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_03_04_5/")
 // NOTE: hand_depth_data_2013_03_04_6 and _7 need cleanUpRedPixelsUsingDepth Hack!
+// line 678 - depth_images_io.cpp
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_03_04_6/")
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_03_04_7/") 
+//#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_processed_for_DF/") 
+#define IMAGE_DIRECTORY KINECT_HANDS_ROOT + IMAGE_DIRECTORY_BASE
 
-#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_processed_for_DF/") 
-
-#if defined(__APPLE__)
-  #define IMAGE_DIRECTORY string("./../../../../../../") + IMAGE_DIRECTORY_BASE
-#else
-  #define IMAGE_DIRECTORY string("./../") + IMAGE_DIRECTORY_BASE
-#endif
+#define SAFE_DELETE(x) do { if (x != NULL) { delete x; x = NULL; } } while (0); 
+#define SAFE_DELETE_ARR(x) do { if (x != NULL) { delete[] x; x = NULL; } } while (0); 
 
 jtil::clk::Clk clk_;
 double t1; double t0;
@@ -77,14 +83,16 @@ DepthImagesIO* image_io = NULL;
 
 // The current image being worked on
 int16_t cur_depth_data[src_dim*3];
-int16_t cur_depth_data_tmp[src_dim*3];
 int16_t cur_depth_data_flipped[src_dim*3];
 uint8_t cur_label_data[src_dim];
-uint8_t cur_label_data_tmp[src_dim];
+uint8_t cur_label_data_temp[src_dim];
+uint8_t cur_label_data_downsampled[src_dim / (DT_DOWNSAMPLE*DT_DOWNSAMPLE)];
 uint8_t cur_label_data_flipped[src_dim];
 uint8_t cur_redlabel_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
 uint8_t cur_image_hsv[src_dim*3];
+
+HandDetector* hd = NULL;
 
 // OPEN GL VARIABLES
 int main_window;
@@ -129,6 +137,7 @@ void loadImageForRendering(bool force_reprocessing = false) {
   image_io->loadProcessedDepthLabel(full_filename, cur_depth_data, 
     cur_label_data);
 #endif
+  hd->evaluateForest(cur_depth_data);
 
   // When rendering HSV, Hue, Sat or Val, copy over the current rgb array with
   // what we want to render to screen.
@@ -149,15 +158,12 @@ void loadImageForRendering(bool force_reprocessing = false) {
     convertValueToRGB<uint8_t>(cur_display_rgb, cur_image_hsv, src_width, src_height);
     break;
   case IM_TYPE::IM_DOWNSAMPLED_DEPTH:
-    DownsampleImageWithoutNonZeroPixelsAndBackground<int16_t>(
-      cur_depth_data_tmp, cur_depth_data, src_width, src_height, DT_DOWNSAMPLE,
-      GDT_MAX_DIST);
-    UpsampleNoFiltering<int16_t>(cur_depth_data, cur_depth_data_tmp,
+    UpsampleNoFiltering<int16_t>(cur_depth_data, hd->depth_downsampled(),
       src_width / DT_DOWNSAMPLE, src_height / DT_DOWNSAMPLE, DT_DOWNSAMPLE);
     DownsampleBoolImageConservative<uint8_t>(
-      cur_label_data_tmp, cur_label_data, src_width, src_height, DT_DOWNSAMPLE,
-      0, 1);
-    UpsampleNoFiltering<uint8_t>(cur_label_data, cur_label_data_tmp,
+      cur_label_data_downsampled, cur_label_data, src_width, src_height, 
+      DT_DOWNSAMPLE, 0, 1);
+    UpsampleNoFiltering<uint8_t>(cur_label_data, cur_label_data_downsampled,
       src_width / DT_DOWNSAMPLE, src_height / DT_DOWNSAMPLE, DT_DOWNSAMPLE);
     break;
   }
@@ -295,6 +301,11 @@ void display() {
       break;
     case 1:
       PaintLabelData<uint8_t>(cur_redlabel_data);
+      break;
+    case 2:
+      UpsampleNoFiltering<uint8_t>(cur_label_data_temp, hd->labels_evaluated(),
+        src_width / DT_DOWNSAMPLE, src_height / DT_DOWNSAMPLE, DT_DOWNSAMPLE);
+      PaintLabelData<uint8_t>(cur_label_data_temp);
       break;
     }
   }
@@ -442,8 +453,18 @@ void keyboard(unsigned char key, int x, int y) {
     break;
   case 'K':
   case 'k':
-    label_type = (label_type + 1) % 2;
-    cout << "label_type = " << label_type << endl;
+    label_type = (label_type + 1) % 3;
+    switch (label_type) {
+    case 0:
+      cout << "Full resolution labels" << endl;
+      break;
+    case 1:
+      cout << "Filtered red-pixel labels" << endl;
+      break;
+    case 2:
+      cout << "Decision forest labels" << endl;
+      break;
+    }
     break;
   case 'S':
   case 's':
@@ -583,8 +604,9 @@ void reshape(const int width, const int height) {
 }
 
 void shutdown() {
-  delete image_io;
-  delete[] texture_data;
+  SAFE_DELETE(hd);
+  SAFE_DELETE(image_io);
+  SAFE_DELETE_ARR(texture_data);
   exit(0);
 }
 
@@ -616,13 +638,16 @@ int main(int argc, char *argv[]) {
 
 #ifdef _DEBUG
   debug::EnableMemoryLeakChecks();
-  // debug::SetBreakPointOnAlocation(125714);
+  // debug::SetBreakPointOnAlocation(479);
 #endif
   try {
     if (DT_DOWNSAMPLE < 1) {
       cout << "ERROR: DT_DOWNSAMPLE < 1!" << endl;
       return -1;
     }
+
+    hd = new HandDetector();
+    hd->init(src_width, src_height, KINECT_HANDS_ROOT + FOREST_DATA_FILENAME);
 
     image_io = new DepthImagesIO();
 #ifdef LOAD_PROCESSED_IMAGES

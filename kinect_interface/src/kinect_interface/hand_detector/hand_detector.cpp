@@ -129,17 +129,15 @@ namespace hand_detector {
 
   bool HandDetector::findHandLabels(const int16_t* depth_in, const float* xyz, 
     const HDLabelMethod method, uint8_t* label_out) {
-    depth_ = depth_in;
-
     switch (method) {
     case HDUpconvert:
-      createLabels();
+      createLabels(depth_in);
       // Result is now in labels_filtered_
       UpsampleNoFiltering<uint8_t>(label_out, labels_filtered_, 
         down_width_, down_height_, DT_DOWNSAMPLE);
       return true;
     case HDUpconvertFilter:
-      createLabels();
+      createLabels(depth_in);
       // Result is now in labels_filtered_
       UpsampleNoFiltering<uint8_t>(label_out, labels_filtered_, 
         down_width_, down_height_, DT_DOWNSAMPLE);
@@ -202,7 +200,7 @@ namespace hand_detector {
   void HandDetector::findHands(const int16_t* depth_data, bool& rhand_found, 
     bool& lhand_found, float* rhand_uvd, float* lhand_uvd) {
     depth_ = depth_data;
-    createLabels();
+    createLabels(depth_data);
     // Result is now in labels_filtered_
 
     // Find hands using flood fill
@@ -211,16 +209,16 @@ namespace hand_detector {
 
   void HandDetector::findHand(const int16_t* depth_data, bool& hand_found,
     float* hand_uvd) {
-    depth_ = depth_data;
-    createLabels();
+    createLabels(depth_data);
     // Result is now in labels_filtered_
 
     // Find hands using flood fill
     floodFillLabelData(&hand_found, hand_uvd, NULL, NULL);
   }
 
-  void HandDetector::createLabels() {
-     // Downsample the input image
+  void HandDetector::evaluateForest(const int16_t* depth_data) {
+    depth_ = depth_data;
+    // Downsample the input image
     if (DT_DOWNSAMPLE > 1) {
       DownsampleImageWithoutNonZeroPixelsAndBackground<int16_t>(
         depth_downsampled_, depth_, src_width_, src_height_, DT_DOWNSAMPLE,
@@ -231,15 +229,19 @@ namespace hand_detector {
       for (int32_t i = 0; i < down_width_ * down_height_; i++) {
         if (depth_downsampled_[i] > (GDT_MAX_DIST + 1) ||
           depth_downsampled_[i] == 0) {
-          depth_downsampled_[i] = GDT_MAX_DIST + 1;
+            depth_downsampled_[i] = GDT_MAX_DIST + 1;
         }
       }  
     }
 
     // Evaluate the decision forest
     evaluateDecisionForest(labels_evaluated_, forest_, max_height_to_evaluate_, 
-     num_trees_to_evaluate_, depth_downsampled_, down_width_, down_height_);
+      num_trees_to_evaluate_, depth_downsampled_, down_width_, down_height_);
     //evaluateForest();
+  }
+
+  void HandDetector::createLabels(const int16_t* depth_data) {
+    evaluateForest(depth_data);
 
     // Filter the results
     ShrinkFilter<uint8_t>(labels_temp_, labels_evaluated_,
@@ -255,7 +257,7 @@ namespace hand_detector {
     labels_filtered_ = tmp;
   }
 
-  void HandDetector::evaluateForest() {
+  void HandDetector::evaluateForestMultithreaded() {
     threads_finished_ = 0;
     for (uint32_t i = 0; i < HD_NUM_WORKER_THREADS; i++) {
       tp_->addTask(thread_cbs_[i]);
