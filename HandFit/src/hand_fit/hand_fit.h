@@ -30,10 +30,10 @@
 #define PSO_MAX_ITERATIONS 300  // Default 501
 #define PSO_DELTA_C_TERMINATION 1e-3f
 #define PSO_SWARM_SIZE 64  // Default 128 or 64
-#define PSO_RAD_FINGERS 0.30f  // Search radius in frac of min - max coeff
-#define PSO_RAD_WRIST 0.15f
-#define PSO_RAD_THUMB 0.30f 
-#define PSO_RAD_EULER 0.30f
+#define PSO_RAD_FINGERS 0.40f  // Search radius in frac of min - max coeff
+#define PSO_RAD_WRIST 0.40f
+#define PSO_RAD_THUMB 0.40f 
+#define PSO_RAD_EULER 0.40f
 #define PSO_RAD_POSITION 25  // Absolute value in mm
 #define PSO_REPEATS 2
 
