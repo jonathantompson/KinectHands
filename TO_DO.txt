@@ -1,4 +1,5 @@
-1. Fix the Hand model so that the wrist is a bone off the palm.
+1. Fix the Hand model so that the wrist is a bone off the palm --> Done
+   1. a) Re-fit all the coeffs!  Annoying but necessary.
 2. Fix the scaling of the UV coordinates
   KinectHands->app.cpp->renderCrossToImageArr
   HandFit->renderCrossToImageArr

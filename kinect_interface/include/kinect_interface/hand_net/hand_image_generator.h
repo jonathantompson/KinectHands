@@ -16,7 +16,7 @@
 
 #define HN_SRC_IM_SIZE 256  // U, V size (before downsampling)
 #define HN_IM_SIZE 96  // Size after downsampling
-#define HN_NOM_DIST 1100  // Downsample is exactly 1:4 at this depth
+#define HN_NOM_DIST 700  // Downsample is exactly 1:4 at this depth
 #define HN_HAND_SIZE 300.0f
 #define HN_DEFAULT_NUM_CONV_BANKS 3
 #define HN_HPF_GAIN 2.0f

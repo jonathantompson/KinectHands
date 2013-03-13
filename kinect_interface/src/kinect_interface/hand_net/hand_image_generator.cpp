@@ -167,8 +167,9 @@ namespace hand_net {
 
     // Now in a texture of 256x256 we have a hand image.  This needs to be
     // scaled based on the average depth value
-    cur_downsample_scale_ = (uvd_com_[2] * 
-      ((float)HN_SRC_IM_SIZE / (float)HN_IM_SIZE)) / (float)HN_NOM_DIST;
+    // The further away the less it is downsampled
+    cur_downsample_scale_ = ((float)HN_NOM_DIST * 
+      ((float)HN_SRC_IM_SIZE / (float)HN_IM_SIZE)) / uvd_com_[2];
     if (cur_downsample_scale_ > 1) {
       // Find the rectangle in the highres image that will get scaled to the
       // final downsampled image

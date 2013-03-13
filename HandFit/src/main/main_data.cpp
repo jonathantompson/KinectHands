@@ -55,7 +55,7 @@
 // 3 -> Finished (4 partially finished)
 //#define IM_DIR_BASE string("hand_data/both_hands/set03/") 
 
-#define IM_DIR_BASE string("data/hand_depth_data_6/") 
+#define IM_DIR_BASE string("data/tmp/") 
 #define DST_IM_DIR_BASE string("data/hand_depth_data_processed/") 
 
 #define FILE_STRIDE 1
@@ -118,7 +118,7 @@ float cur_xyz_data[src_dim*3];
 int16_t cur_depth_data[src_dim*3];
 uint8_t cur_label_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
-uint32_t cur_image = 900;
+uint32_t cur_image = 0;
 GeometryColoredPoints* geometry_points= NULL;
 bool render_depth = true;
 int playback_step = 1;
