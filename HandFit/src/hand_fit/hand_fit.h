@@ -59,7 +59,7 @@
 #define INTERPENETRATION_CONSTANT 0.1f
 
 namespace jtil {
-  namespace math { 
+  namespace math { wwwwwwwwwww
     class NMFitting;
     class BFGSFitting;
     class LPRPSOFittingHands; 
