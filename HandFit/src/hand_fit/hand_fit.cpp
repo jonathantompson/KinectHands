@@ -600,9 +600,9 @@ namespace hand_fit {
     1.0f,    // HAND_POS_X
     1.0f,    // HAND_POS_Y
     1.0f,    // HAND_POS_Z
-    0.01f,   // HAND_ORIENT_X
-    0.01f,   // HAND_ORIENT_Y
-    0.01f,   // HAND_ORIENT_Z
+    0.02f,   // HAND_ORIENT_X
+    0.02f,   // HAND_ORIENT_Y
+    0.02f,   // HAND_ORIENT_Z
     0.01f,   // WRIST_THETA
     0.01f,   // WRIST_PHI
     0.01f,   // THUMB_THETA
@@ -631,9 +631,9 @@ namespace hand_fit {
     1.0f,    // HAND_POS_X
     1.0f,    // HAND_POS_Y
     1.0f,    // HAND_POS_Z
-    0.01f,  // HAND_ORIENT_X
-    0.01f,  // HAND_ORIENT_Y
-    0.01f,  // HAND_ORIENT_Z
+    0.02f,  // HAND_ORIENT_X
+    0.02f,  // HAND_ORIENT_Y
+    0.02f,  // HAND_ORIENT_Z
     0.01f,  // WRIST_THETA
     0.01f,  // WRIST_PHI
     0.01f,  // THUMB_THETA
@@ -662,9 +662,9 @@ namespace hand_fit {
     false,  // HAND_POS_X
     false,  // HAND_POS_Y
     false,  // HAND_POS_Z
-    false,  // HAND_ORIENT_X
-    false,  // HAND_ORIENT_Y
-    false,  // HAND_ORIENT_Z
+    true,  // HAND_ORIENT_X
+    true,  // HAND_ORIENT_Y
+    true,  // HAND_ORIENT_Z
     true,   // WRIST_THETA
     true,   // WRIST_PHI
     true,   // THUMB_THETA
@@ -688,9 +688,9 @@ namespace hand_fit {
     false,  // HAND_POS_X
     false,  // HAND_POS_Y
     false,  // HAND_POS_Z
-    false,  // HAND_ORIENT_X
-    false,  // HAND_ORIENT_Y
-    false,  // HAND_ORIENT_Z
+    true,  // HAND_ORIENT_X
+    true,  // HAND_ORIENT_Y
+    true,  // HAND_ORIENT_Z
     true,   // WRIST_THETA
     true,   // WRIST_PHI
     true,   // THUMB_THETA
@@ -718,9 +718,9 @@ namespace hand_fit {
     -std::numeric_limits<float>::infinity(),    // HAND_POS_X
     -std::numeric_limits<float>::infinity(),    // HAND_POS_Y
     -std::numeric_limits<float>::infinity(),    // HAND_POS_Z
-    -1,  // HAND_ORIENT_X
-    -1,  // HAND_ORIENT_Y
-    -1,  // HAND_ORIENT_Z
+    -3.14159f,  // HAND_ORIENT_X
+    -3.14159f,  // HAND_ORIENT_Y
+    -3.14159f,  // HAND_ORIENT_Z
     -0.503f,  // WRIST_THETA
     -1.180f,  // WRIST_PHI
     -0.323f,  // THUMB_THETA
@@ -748,9 +748,9 @@ namespace hand_fit {
     std::numeric_limits<float>::infinity(),    // HAND_POS_X
     std::numeric_limits<float>::infinity(),    // HAND_POS_Y
     std::numeric_limits<float>::infinity(),    // HAND_POS_Z
-    1,  // HAND_ORIENT_X
-    1,  // HAND_ORIENT_Y
-    1,  // HAND_ORIENT_Z
+    3.14159f,  // HAND_ORIENT_X
+    3.14159f,  // HAND_ORIENT_Y
+    3.14159f,  // HAND_ORIENT_Z
     0.705f,  // WRIST_THETA
     1.300f,  // WRIST_PHI
     0.350f,  // THUMB_THETA

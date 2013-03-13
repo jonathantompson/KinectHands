@@ -80,6 +80,7 @@ namespace hand_net {
   typedef enum {
     LEFT = 0,
     RIGHT = 1,
+    UNDEFINED = 2,
   } HandType;
   
   std::string HandCoeffToString(const uint32_t coeff);
