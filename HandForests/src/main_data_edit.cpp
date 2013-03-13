@@ -41,7 +41,7 @@ using namespace kinect_interface::hand_detector;
 
 #define LOAD_PROCESSED_IMAGES
 //#define SAFE_FLIPPED
-#define DISABLE_ALL_SAVES
+//#define DISABLE_ALL_SAVES
 
 #if defined(__APPLE__)
   #define KINECT_HANDS_ROOT string("./../../../../../../")
@@ -49,8 +49,8 @@ using namespace kinect_interface::hand_detector;
   #define KINECT_HANDS_ROOT string("./../")
 #endif
 
-//#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2012_07_27_and_08_03_DFProcessed/")
-#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_01_11_and_03_04_DFProcessed/")
+#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2012_07_27_and_08_03_DFProcessed/")
+//#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_01_11_and_03_04_DFProcessed/")
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_01_11_1/")
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_01_11_2_1/")
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_01_11_2_2/")

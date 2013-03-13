@@ -126,6 +126,9 @@ namespace app {
       frame_time_ = clk_->getTime();
       double dt = frame_time_ - frame_time_prev_;
 
+      int kinect_output;
+      GET_SETTING("kinect_output", int, kinect_output);
+
       // Grab the kinect data
       kinect_->lockData();
 
@@ -133,14 +136,20 @@ namespace app {
       if (kinect_frame_number_ != kinect_->frame_number()) {
         memcpy(rgb_, kinect_->rgb(), sizeof(rgb_[0]) * src_dim * 3);
         memcpy(depth_, kinect_->depth(), sizeof(depth_[0]) * src_dim);
+        if (kinect_output == OUTPUT_HAND_DETECTOR_DEPTH) {
+          image_util::UpsampleNoFiltering<uint16_t>(hand_detector_depth_, 
+            (uint16_t*)kinect_->hand_detector()->depth_downsampled(), 
+            src_width / DT_DOWNSAMPLE, src_height / DT_DOWNSAMPLE, 
+            DT_DOWNSAMPLE);
+        }
 
         int label_type_enum;
         GET_SETTING("label_type_enum", int, label_type_enum);
         switch ((LabelType)label_type_enum) {
         case OUTPUT_UNFILTERED_LABELS:
-          image_util::UpsampleNoFiltering<uint8_t>(labels_, 
-            kinect_->rawDecisionForestLabels(), src_width / DT_DOWNSAMPLE,
-            src_height / DT_DOWNSAMPLE, DT_DOWNSAMPLE);
+          UpsampleNoFiltering<uint8_t>(labels_, 
+            kinect_->hand_detector()->labels_evaluated(), 
+            src_width / DT_DOWNSAMPLE, src_height / DT_DOWNSAMPLE, DT_DOWNSAMPLE);
           break;
         case OUTPUT_FILTERED_LABELS:
           image_util::UpsampleNoFiltering<uint8_t>(labels_, 
@@ -167,18 +176,9 @@ namespace app {
           kinect_fps_str_);
       }
 
-      // Update any of the decision forest settings for next frame
-      int max_height, num_trees;
-      GET_SETTING("max_height_to_evaluate", int, max_height);
-      GET_SETTING("num_trees_to_evaluate", int, num_trees);
-      kinect_->hand_detector()->num_trees_to_evaluate(num_trees);
-      kinect_->hand_detector()->max_height_to_evaluate(max_height);
-
       kinect_->unlockData();
 
       if (update_tex) {
-        int kinect_output;
-        GET_SETTING("kinect_output", int, kinect_output);
         switch (kinect_output) {
         case OUTPUT_RGB:
           memcpy(im_, rgb_, sizeof(im_[0]) * src_dim * 3);
@@ -186,6 +186,14 @@ namespace app {
         case OUTPUT_DEPTH:
           for (uint32_t i = 0; i < src_dim; i++) {
             uint8_t val = (depth_[i] * 2) % 255;
+            im_[i*3] = val;
+            im_[i*3+1] = val;
+            im_[i*3+2] = val;
+          }
+          break;
+        case OUTPUT_HAND_DETECTOR_DEPTH:
+          for (uint32_t i = 0; i < src_dim; i++) {
+            uint8_t val = (hand_detector_depth_[i] * 2) % 255;
             im_[i*3] = val;
             im_[i*3+1] = val;
             im_[i*3+2] = val;
@@ -308,6 +316,8 @@ namespace app {
     ui->addSelectboxItem("kinect_output", ui::UIEnumVal(OUTPUT_RGB, "RGB"));
     ui->addSelectboxItem("kinect_output", 
       ui::UIEnumVal(OUTPUT_DEPTH, "Depth"));
+    ui->addSelectboxItem("kinect_output", 
+      ui::UIEnumVal(OUTPUT_HAND_DETECTOR_DEPTH, "Hand Detector Depth"));
     ui->addCheckbox("use_depth_from_file", "(Debug) Use Depth From File");
     ui->addCheckbox("render_kinect_fps", "Render Kinect FPS");
 
@@ -327,22 +337,6 @@ namespace app {
     ui->addCheckbox("render_kinect_fps", "Render Kinect FPS");
     ui->addCheckbox("render_convnet_points", 
       "Render Convnet salient points");
-
-    ui->addSelectbox("max_height_to_evaluate", "Max DF Height");
-    ui->addSelectboxItem("max_height_to_evaluate", ui::UIEnumVal(5, "5"));
-    ui->addSelectboxItem("max_height_to_evaluate", ui::UIEnumVal(10, "10"));
-    ui->addSelectboxItem("max_height_to_evaluate", ui::UIEnumVal(15, "15"));
-    ui->addSelectboxItem("max_height_to_evaluate", ui::UIEnumVal(20, "20"));
-    ui->addSelectboxItem("max_height_to_evaluate", ui::UIEnumVal(25, "25"));
-    ui->addSelectboxItem("max_height_to_evaluate", ui::UIEnumVal(30, "30"));
-
-    ui->addSelectbox("num_trees_to_evaluate", "Num DF Trees");
-    ui->addSelectboxItem("num_trees_to_evaluate", ui::UIEnumVal(1, "1"));
-    ui->addSelectboxItem("num_trees_to_evaluate", ui::UIEnumVal(2, "2"));
-    ui->addSelectboxItem("num_trees_to_evaluate", ui::UIEnumVal(4, "4"));
-    ui->addSelectboxItem("num_trees_to_evaluate", ui::UIEnumVal(6, "6"));
-    ui->addSelectboxItem("num_trees_to_evaluate", ui::UIEnumVal(8, "8"));
-
 
     ui->createTextWindow("kinect_fps_wnd", kinect_fps_str_);
     jtil::math::Int2 pos(400, 0);
@@ -370,7 +364,7 @@ namespace app {
         bool pause_physics;
         GET_SETTING("pause_physics", bool, pause_physics);
         SET_SETTING("pause_physics", bool, !pause_physics);
-        Renderer::g_renderer()->ui()->setSettingsCheckboxVal("pause_physics",
+        Renderer::g_renderer()->ui()->setCheckboxVal("pause_physics",
           !pause_physics);
       }
       break;

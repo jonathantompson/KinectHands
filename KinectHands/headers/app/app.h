@@ -31,7 +31,8 @@ namespace app {
 
   typedef enum {
     OUTPUT_RGB = 0,
-    OUTPUT_DEPTH = 1
+    OUTPUT_DEPTH = 1,
+    OUTPUT_HAND_DETECTOR_DEPTH = 2
   } KinectOutput;
 
   typedef enum {
@@ -91,6 +92,7 @@ namespace app {
     uint8_t rgb_[src_dim * 3];
     uint8_t labels_[src_dim];
     uint16_t depth_[src_dim];
+    uint16_t hand_detector_depth_[src_dim];
     uint8_t im_[src_dim * 3];
     uint8_t im_flipped_[src_dim * 3];
     float coeff_convnet_[kinect_interface::hand_net::HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];

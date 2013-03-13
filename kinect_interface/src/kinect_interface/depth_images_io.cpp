@@ -404,7 +404,7 @@ namespace kinect_interface {
 
     for (uint32_t i = 0; i < src_dim; i++) {
       if (label_data[i] == 1) {
-        depth_dst[i] *= -1;
+        depth_dst[i] = depth_dst[i] | 0x8000;
       }
     }
 
@@ -481,11 +481,19 @@ namespace kinect_interface {
     memcpy(depth_data, depth_file, src_dim * sizeof(depth_data[0]));
 
     memset(label_data, 0, src_dim * sizeof(label_data[0]));
+    //for (uint32_t i = 0; i < src_dim; i++) {
+    //  if (depth_data[i] < 0) {
+    //    label_data[i] = 1;
+    //    depth_data[i] *= -1;
+    //  } 
+    //}
+
     for (uint32_t i = 0; i < src_dim; i++) {
-      if (depth_data[i] < 0) {
+      if (depth_data[i] & 0x8000) {
         label_data[i] = 1;
-        depth_data[i] *= -1;
+        depth_data[i] = depth_data[i];
       } 
+      depth_data[i] = depth_data[i] & 0x7fff;  // Set top bit to 0
     }
 
     return true;

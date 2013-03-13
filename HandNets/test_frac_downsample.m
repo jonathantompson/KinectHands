@@ -1,6 +1,6 @@
 clearvars; clc; close all;
 
-filename = 'kinect_depth_image_uncompressed.bin';
+filename = 'depth_from_file.bin';
 src_x = 1;
 src_y = 1;
 src_width = 640;

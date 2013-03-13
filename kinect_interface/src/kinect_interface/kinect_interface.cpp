@@ -137,6 +137,8 @@ namespace kinect_interface {
       depth_from_file_);
 
     //// TEMP CODE:
+    //jtil::file_io::SaveArrayToFile<int16_t>(depth_from_file_, 640*480, 
+    //  "./HandNets/depth_from_file.bin");
     //float frac = 6.4f;
     //float* d = new float[src_dim];
     //float* d_down = new float[src_dim];
@@ -456,6 +458,7 @@ namespace kinect_interface {
       bool detect_hands, detect_pose;
       GET_SETTING("detect_hands", bool, detect_hands);
       if (detect_hands) {
+        //hand_detector_->evaluateForest((int16_t*)depth_);
         bool found_hand = hand_detector_->findHandLabels((int16_t*)depth_, 
           pts_world_, HDLabelMethod::HDFloodfill, labels_);
         if (!found_hand) {

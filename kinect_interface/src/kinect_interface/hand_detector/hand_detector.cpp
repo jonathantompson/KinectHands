@@ -7,6 +7,7 @@
 #include "kinect_interface/hand_detector/evaluate_decision_forest.h"
 #include "kinect_interface/open_ni_funcs.h"
 #include "jtil/image_util/image_util.h"
+#include "jtil/file_io/file_io.h"
 #include "jtil/threading/thread_pool.h"
 
 using std::string;
@@ -235,9 +236,13 @@ namespace hand_detector {
     }
 
     // Evaluate the decision forest
+    // Single threaded
+    //jtil::file_io::SaveArrayToFile<int16_t>(depth_downsampled_, 640*480 / (4*4), 
+    //  "./HandNets/depth_from_file.bin");
     evaluateDecisionForest(labels_evaluated_, forest_, max_height_to_evaluate_, 
       num_trees_to_evaluate_, depth_downsampled_, down_width_, down_height_);
-    //evaluateForest();
+    // Multi threaded
+    // evaluateForestMultithreaded();
   }
 
   void HandDetector::createLabels(const int16_t* depth_data) {
