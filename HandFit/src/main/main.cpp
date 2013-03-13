@@ -48,7 +48,14 @@
   #define snprintf _snprintf_s
 #endif
 
-#define IM_DIR_BASE string("data/hand_depth_data_5/")  
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")
+#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/") 
  
 #if defined(__APPLE__)
   #define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
