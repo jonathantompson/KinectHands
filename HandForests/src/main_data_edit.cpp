@@ -9,8 +9,6 @@
   #include <glut.h>
 #elif defined(__APPLE__)
   #include <GLUT/GLUT.h>
-#else
-  #define FOREST_CREATION_ONLY
 #endif
 #include <signal.h>
 #include <stdexcept>

@@ -54,6 +54,7 @@ namespace kinect_interface {
     const uint8_t* rawDecisionForestLabels() const;  // NOT THREAD SAFE!  Use lockData()
     const jtil::math::Float3& uvd_com() const;
     hand_detector::HandDetector* hand_detector() { return hand_detector_; }
+    hand_net::HandNet* hand_net() { return hand_net_; }
 
     inline void lockData() { data_lock_.lock(); };
     inline void unlockData() { data_lock_.unlock(); };

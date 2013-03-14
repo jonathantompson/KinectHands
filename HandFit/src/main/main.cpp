@@ -38,6 +38,7 @@
 #include "hand_fit/hand_renderer.h"
 #include "hand_fit/hand_fit.h"
 #include "kinect_interface/hand_net/hand_net.h"
+#include "kinect_interface/hand_net/hand_image_generator.h"
 #include "kinect_interface/depth_images_io.h"
 #include "kinect_interface/open_ni_funcs.h"
 #include "renderer/gl_state.h"
@@ -48,13 +49,13 @@
   #define snprintf _snprintf_s
 #endif
 
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")
+#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")
-#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/") 
  
 #if defined(__APPLE__)
@@ -597,40 +598,6 @@ void fitFrame(bool seed_with_last_frame) {
   fit->fitModel(cur_depth_data, cur_label_data, hands);
 }
 
-
-// renderCrossToImageArr - UV is 0 to 1 in U and V
-void renderCrossToImageArr(const float* uv, uint8_t* im, int32_t w, int32_t h,
-  int32_t rad, uint8_t r, uint8_t g, uint8_t b) {
-    // TO: FIX THIS
-  int32_t v = 0;
-  int32_t u = 0;
-  //int32_t v = (int32_t)floor((uv[1] * HAND_NET_PIX) + (convnet->uvd_com()[1] - HAND_NET_PIX/2));
-  //int32_t u = (int32_t)floor((uv[0] * HAND_NET_PIX) + (convnet->uvd_com()[0] - HAND_NET_PIX/2));
-  v = h - v - 1;
-
-  // Note: We need to render upside down
-  // Render the horizontal cross
-  int32_t vcross = v;
-  for (int32_t ucross = u - rad; ucross <= u + rad; ucross++) {
-    if (ucross >= 0 && ucross < w && vcross >= 0 && vcross < h) {
-      int32_t dst_index = vcross * w + ucross;
-      im[dst_index * 3] = r;
-      im[dst_index * 3+1] = g;
-      im[dst_index * 3+2] = b;
-    }
-  }
-  // Render the vertical cross
-  int32_t ucross = u;
-  for (int32_t vcross = v - rad; vcross <= v + rad; vcross++) {
-    if (ucross >= 0 && ucross < w && vcross >= 0 && vcross < h) {
-      int32_t dst_index = vcross * w + ucross;
-      im[dst_index * 3] = r;
-      im[dst_index * 3+1] = g;
-      im[dst_index * 3+2] = b;
-    }
-  }
-}
-
 void renderFrame(float dt) {
   if (rotate_light) {
     renderer::LightDir* light = render->light_dir();
@@ -667,7 +634,7 @@ void renderFrame(float dt) {
   if (render_output == 7) {
     convnet->calcHandCoeffConvnet(cur_depth_data, label);
     hand_renderer->handCoeff2CoeffConvnet(r_hands[cur_image], 
-      coeff_convnet_pso, convnet->uvd_com());
+      coeff_convnet_pso, convnet->image_generator()->hand_pos_wh());
     if (coeff_src == 1) {
       coeff_covnet_src = convnet->coeff_convnet();
     } else {
@@ -809,15 +776,8 @@ void renderFrame(float dt) {
         }
       }
 
-      renderCrossToImageArr(&coeff_covnet_src[HandCoeffConvnet::HAND_POS_U], 
-        tex_data, src_width, src_height, 5, 255, 128, 255);
-      for (uint32_t i = HandCoeffConvnet::THUMB_K1_U; 
-        i <= HandCoeffConvnet::F3_TIP_U; i += 2) {
-        const Float3* color = &renderer::colors[(i/2) % renderer::n_colors];
-        renderCrossToImageArr(&coeff_covnet_src[i], tex_data, src_width, 
-          src_height, 2, (uint8_t)(color->m[0] * 255.0f), 
-          (uint8_t)(color->m[1] * 255.0f), (uint8_t)(color->m[2] * 255.0f));
-      }
+      convnet->image_generator()->annotateFeatsToKinectImage(tex_data,
+        coeff_covnet_src);
 
       tex->reloadData((unsigned char*)tex_data);
       render->renderFullscreenQuad(tex);

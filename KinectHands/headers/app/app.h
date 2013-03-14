@@ -96,7 +96,7 @@ namespace app {
     uint8_t im_[src_dim * 3];
     uint8_t im_flipped_[src_dim * 3];
     float coeff_convnet_[kinect_interface::hand_net::HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
-    jtil::math::Float3 uvd_com_;
+    jtil::math::Int4 hand_pos_wh_;  // From hand image generator
 
     void run();
     void init();
@@ -106,8 +106,6 @@ namespace app {
     void moveStuff(const double dt);  // Temporary: just to play with renderer
     void addStuff();
     void registerNewRenderer();
-    void renderCrossToImageArr(float* uv, uint8_t* im, int32_t w, int32_t h,
-      int32_t rad, uint8_t r, uint8_t g, uint8_t b);
 
     // Non-copyable, non-assignable.
     App(App&);

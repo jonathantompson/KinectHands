@@ -40,36 +40,36 @@ namespace hand_net {
   //         space and then do inverse kinematics to find the joint angles.
   typedef enum {
     // Base hand position
-    HAND_POS_U = 0, HAND_POS_V = 1,
+    HAND_POS_U = 0, HAND_POS_V = 1, HAND_POS_D = 2,
     // Base hand orientation --> convnet learns (sin(x), cos(x)), better than x
-    HAND_ORIENT_X_COS = 2, HAND_ORIENT_X_SIN = 3,
-    HAND_ORIENT_Y_COS = 4, HAND_ORIENT_Y_SIN = 5,
-    HAND_ORIENT_Z_COS = 6, HAND_ORIENT_Z_SIN = 7,
+    HAND_ORIENT_X_COS = 3, HAND_ORIENT_X_SIN = 4,
+    HAND_ORIENT_Y_COS = 5, HAND_ORIENT_Y_SIN = 6,
+    HAND_ORIENT_Z_COS = 7, HAND_ORIENT_Z_SIN = 8,
     // Wrist angle --> might need to be updated to a position later
-    WRIST_THETA_COS = 8, WRIST_THETA_SIN = 9,
-    WRIST_PHI_COS = 10, WRIST_PHI_SIN = 11,
+    WRIST_THETA_COS = 9, WRIST_THETA_SIN = 10,
+    WRIST_PHI_COS = 11, WRIST_PHI_SIN = 12,
     // Thumb
-    THUMB_K1_U = 12, THUMB_K1_V = 13,
-    THUMB_K2_U = 14, THUMB_K2_V = 15,
-    THUMB_TIP_U = 16, THUMB_TIP_V = 17,
+    THUMB_K1_U = 13, THUMB_K1_V = 14, THUMB_K1_D = 15,
+    THUMB_K2_U = 16, THUMB_K2_V = 17, THUMB_K2_D = 18,
+    THUMB_TIP_U = 19, THUMB_TIP_V = 20, THUMB_TIP_D = 21,
     // F0
-    F0_K1_U = 18, F0_K1_V = 19,
-    F0_K2_U = 20, F0_K2_V = 21,
-    F0_TIP_U = 22, F0_TIP_V = 23,
+    F0_K1_U = 22, F0_K1_V = 23, F0_K1_D = 24,
+    F0_K2_U = 25, F0_K2_V = 26, F0_K2_D = 27,
+    F0_TIP_U = 28, F0_TIP_V = 29, F0_TIP_D = 30,
     // F1
-    F1_K1_U = 24, F1_K1_V = 25, 
-    F1_K2_U = 26, F1_K2_V = 27,
-    F1_TIP_U = 28, F1_TIP_V = 29,
+    F1_K1_U = 31, F1_K1_V = 32,  F1_K1_D = 33, 
+    F1_K2_U = 34, F1_K2_V = 35, F1_K2_D = 36,
+    F1_TIP_U = 37, F1_TIP_V = 38, F1_TIP_D = 39,
     // F2
-    F2_K1_U = 30, F2_K1_V = 31,
-    F2_K2_U = 32, F2_K2_V = 33,
-    F2_TIP_U = 34, F2_TIP_V = 35,
+    F2_K1_U = 40, F2_K1_V = 41, F2_K1_D = 42,
+    F2_K2_U = 43, F2_K2_V = 44, F2_K2_D = 45,
+    F2_TIP_U = 46, F2_TIP_V = 47, F2_TIP_D = 48,
     // F3
-    F3_K1_U = 36, F3_K1_V = 37,
-    F3_K2_U = 38, F3_K2_V = 39,
-    F3_TIP_U = 40, F3_TIP_V = 41,
+    F3_K1_U = 49, F3_K1_V = 50, F3_K1_D = 51,
+    F3_K2_U = 52, F3_K2_V = 53, F3_K2_D = 54,
+    F3_TIP_U = 55, F3_TIP_V = 56, F3_TIP_D = 57,
 
-    HAND_NUM_COEFF_CONVNET = 42, 
+    HAND_NUM_COEFF_CONVNET = 58, 
   } HandCoeffConvnet;
 
   typedef enum {
@@ -111,6 +111,7 @@ namespace hand_net {
     // Getter methods
     const float* hpf_hand_images() const;
     const float* coeff_convnet() const { return coeff_convnet_; }
+    const HandImageGenerator* image_generator() const { return image_generator_; }
     const float* hand_image() const;
     const int32_t size_images() const;
     const jtil::math::Float3& uvd_com() const;

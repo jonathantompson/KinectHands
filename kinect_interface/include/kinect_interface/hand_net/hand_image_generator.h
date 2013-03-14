@@ -40,11 +40,17 @@ namespace hand_net {
     void calcHandImage(const int16_t* depth_in, const uint8_t* label_in,
       const bool create_hpf_image);
 
+    void HandImageGenerator::annotateFeatsToKinectImage(uint8_t* im, 
+      const float* coeff_convnet) const;  // 640 x 480
+    void HandImageGenerator::annotateFeatsToHandImage(uint8_t* im, 
+      const float* coeff_convnet) const;  // 96 x 96
+
     // Getter methods
     const float* hpf_hand_images() { return hpf_hand_images_; }
     const float* hand_image() { return hand_image_; }
     const int32_t size_images() { return size_images_; } 
     inline const jtil::math::Float3& uvd_com() const { return uvd_com_; }
+    inline const jtil::math::Int4& hand_pos_wh() const { return hand_pos_wh_; }
 
   private:
     int32_t num_banks_;
@@ -54,6 +60,7 @@ namespace hand_net {
     float* hpf_hand_images_;
     float* hpf_hand_images_coeff_;  // integral of a ones image with guass filt
     jtil::math::Float3 uvd_com_;  // UV COM of the hand image.
+    jtil::math::Int4 hand_pos_wh_;  // Lower left pos and width/height of the hand image
     float gauss_filt_[HN_HPF_KERNEL_SIZE];  // This is unnormalized!
     float* im_temp1_;
     float* im_temp2_;
@@ -63,6 +70,9 @@ namespace hand_net {
     void initHPFKernels();
     void releaseData();  // Call destructor on all dynamic data
     void initHandImageData();
+    void renderCrossToImageArr(const float* uv, uint8_t* im, const int32_t w, 
+      const int32_t h, const int32_t rad, const int32_t color_ind,
+      const int32_t pos_off_u, const int32_t pos_off_v) const;
 
     // Non-copyable, non-assignable.
     HandImageGenerator(HandImageGenerator&);

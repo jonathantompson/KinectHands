@@ -50,12 +50,12 @@
   #define snprintf _snprintf_s
 #endif
 
-#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/") 
+#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")  
 #define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN/") 
 
-#define FILE_STRIDE 1
-#define MAX_FILES MAX_UINT32
-// #define SAVE_FILES
+//#define SAVE_FILES  // Only enabled when we're not loading processed images
+//#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
+//#define SAVE_HPF_IMAGES  // Save the hpf files
 
 #if defined(__APPLE__)
 #define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
@@ -97,6 +97,9 @@ double t1, t0;
 // The main window and basic rendering system
 Window* wnd = NULL;
 Renderer* render = NULL;
+bool is_running = true;
+bool continuous_playback = false;
+bool found_hand = false;
 
 // Hand model
 HandModel* l_hand = NULL;  // Not using this yet
@@ -113,7 +116,7 @@ float cur_xyz_data[src_dim*3];
 int16_t cur_depth_data[src_dim*3];
 uint8_t cur_label_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
-uint32_t cur_image = 0;
+int32_t cur_image = 1014;
 GeometryColoredPoints* geometry_points= NULL;
 bool render_depth = true;
 int playback_step = 1;
@@ -143,54 +146,168 @@ void quit() {
   delete tex;
   delete hand_renderer;
   delete fit;
-  GLState::shutdownGLState();
   delete wnd;
   delete geometry_points;
   delete hand_detect;
   delete hand_image_generator_;
+  GLState::shutdownGLState();
   Window::killWindowSystem();
   exit(0);
 }
 
 void loadCurrentImage() {
   char* file = im_files[cur_image];
-  string full_filename = IM_DIR + string(file);
+#ifdef LOAD_PROCESSED_IMAGES
+  string DIR = DST_IM_DIR;
+#else
+  string DIR = IM_DIR;
+#endif
+  string full_filename = DIR + string(file);
   std::cout << "loading image: " << full_filename << std::endl;
 
+#ifdef LOAD_PROCESSED_IMAGES
+  // Just load the processed image directly
+  const float* im = hand_image_generator_->hand_image();
+  jtil::file_io::LoadArrayFromFile<float>(const_cast<float*>(im),
+    HN_IM_SIZE * HN_IM_SIZE, full_filename);
+  memset(cur_depth_data, 0, src_dim * sizeof(cur_depth_data[0]));
+  memset(cur_label_data, 0, src_dim * sizeof(cur_label_data[0]));
+  memset(cur_image_rgb, 0, 3 * src_dim * sizeof(cur_image_rgb[0]));
+  memset(cur_xyz_data, 0, 3 * src_dim * sizeof(cur_xyz_data[0]));
+#else
+  // Load in the image
   image_io->LoadCompressedImage(full_filename, 
     cur_depth_data, cur_label_data, cur_image_rgb);
   DepthImagesIO::convertSingleImageToXYZ(cur_xyz_data, cur_depth_data);
+  found_hand = hand_detect->findHandLabels(cur_depth_data, 
+    cur_xyz_data, HDLabelMethod::HDFloodfill, label);
+
+  // Load in the coeffs
+  string src_file = im_files[cur_image];
+#ifdef LOAD_PROCESSED_IMAGES
+  src_file = src_file.substr(10, src_file.length());
+#endif
+  r_hand->loadFromFile(DIR, string("coeffr_") + src_file);
+  l_hand->loadFromFile(DIR, string("coeffl_") + src_file);
+  HandModel::scale = r_hand->local_scale();
+  cout << "loaded image " << cur_image+1 << " of " << im_files.size() << endl;
+
+  if (!found_hand) {
+    // skip this data point
+    std::cout << "Warning couldn't find hand in " << im_files[cur_image];
+    std::cout << std::endl;
+  }
+
+  // Create the downsampled hand image, background is at 1 and hand is
+  // from 0 --> 1.  Also calculates the convnet input.
+#ifdef SAVE_HPF_IMAGES
+  const bool create_hpf_images = true;
+#else
+  const bool create_hpf_images = false;
+#endif
+  hand_image_generator_->calcHandImage(cur_depth_data, label,
+    create_hpf_images);
+
+  // Correctly modify the coeff values to those that are learnable by the
+  // convnet (for instance angles are bad --> store cos(x), sin(x) instead)
+  hand_renderer->handCoeff2CoeffConvnet(r_hand, coeff_convnet,
+    hand_image_generator_->hand_pos_wh(), hand_image_generator_->uvd_com());
+#endif
+
 }
 
-// renderCrossToImageArr - UV is 0 to 1 in U and V
-void renderCrossToImageArr(float* uv, uint8_t* im, const int32_t w, 
-  const int32_t h, const int32_t rad, const uint8_t r, const uint8_t g, 
-  const uint8_t b) {
-  int32_t v = (int32_t)floor(uv[1] * HN_IM_SIZE);
-  int32_t u = (int32_t)floor(uv[0] * HN_IM_SIZE);
-  v = h - v - 1;
+void saveFrame() {
+#if defined(SAVE_FILES) && !defined(LOAD_PROCESSED_IMAGES)
+  if (found_hand) {
+    // Save the cropped image to file:
+    jtil::file_io::SaveArrayToFile<float>(hand_image_generator_->hand_image(),
+      hand_image_generator_->size_images(), DST_IM_DIR + 
+      string("processed_") + im_files[cur_image]);
 
-  // Note: We need to render upside down
-  // Render the horizontal cross
-  int32_t vcross = v;
-  for (int32_t ucross = u - rad; ucross <= u + rad; ucross++) {
-    if (ucross >= 0 && ucross < w && vcross >= 0 && vcross < h) {
-      int32_t dst_index = vcross * w + ucross;
-      im[dst_index * 3] = r;
-      im[dst_index * 3+1] = g;
-      im[dst_index * 3+2] = b;
+    // Save the HPF images to file:
+#if defined SAVE_HPF_IMAGES
+    jtil::file_io::SaveArrayToFile<float>(hand_image_generator_->hpf_hand_images(),
+      hand_image_generator_->size_images(), DST_IM_DIR + std::string("hpf_") + 
+      im_files[cur_image]);
+#endif
+
+    string r_hand_file = DST_IM_DIR + string("coeffr_") + im_files[cur_image];
+    string l_hand_file = DST_IM_DIR + string("coeffl_") + im_files[cur_image];
+    jtil::file_io::SaveArrayToFile<float>(coeff_convnet,
+      HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, r_hand_file);
+    jtil::file_io::SaveArrayToFile<float>(blank_coeff,
+      HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, l_hand_file);
+  }
+#endif
+}
+
+void keyboardCB(int key, int action) {
+  if (action == RELEASED) {
+    switch (key) {
+    case 'P':
+    case 'p':
+      continuous_playback = !continuous_playback;
+      break;
+    case KEY_KP_ADD:
+      if (cur_image < (int32_t)im_files.size() - 1) {
+        cur_image++;
+      }
+      break;
+    case KEY_KP_SUBTRACT:
+      if (cur_image > 0) {
+        cur_image--;
+      }
+      break;
+    case '0':
+      if (cur_image < (int32_t)im_files.size() - 100) {
+        cur_image += 100;
+      } else {
+        cur_image = (int32_t)im_files.size() - 1;
+      }
+
+      break;
+    case '9':
+      if (cur_image > 99) {
+        cur_image -= 100;
+      } else {
+        cur_image = 0;
+      }
+      break;
+    case 'Q':
+    case 'q':
+    case KEY_ESC:
+      is_running = false;
     }
   }
-  // Render the vertical cross
-  int32_t ucross = u;
-  for (int32_t vcross = v - rad; vcross <= v + rad; vcross++) {
-    if (ucross >= 0 && ucross < w && vcross >= 0 && vcross < h) {
-      int32_t dst_index = vcross * w + ucross;
-      im[dst_index * 3] = r;
-      im[dst_index * 3+1] = g;
-      im[dst_index * 3+2] = b;
+  if (key == KEY_KP_ADD || key == KEY_KP_SUBTRACT || key == '0' || 
+    key == '9') {
+    loadCurrentImage();
+  }
+}
+
+void renderFrame() {
+  hand_renderer->setRendererAttachement(true);
+
+  // Render the images for debugging
+  const float* im = hand_image_generator_->hand_image();
+  for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
+    for (uint32_t u = 0; u < HN_IM_SIZE; u++) {
+      uint32_t val = (uint32_t)(im[v * HN_IM_SIZE + u] * 255.0f);
+      // Clamp the value from 0 to 255 (otherwise we'll get wrap around)
+      uint8_t val8 = (uint8_t)std::min<uint32_t>(std::max<uint32_t>(val,0),255);
+      uint32_t idst = (HN_IM_SIZE-v-1) * HN_IM_SIZE + u;
+      // Texture needs to be flipped vertically and 0 --> 255
+      tex_data[idst * 3] = val8;
+      tex_data[idst * 3 + 1] = val8;
+      tex_data[idst * 3 + 2] = val8;
     }
   }
+
+  hand_image_generator_->annotateFeatsToHandImage(tex_data, coeff_convnet);
+
+  tex->reloadData((unsigned char*)tex_data);
+  render->renderFullscreenQuad(tex);
+  wnd->swapBackBuffer();
 }
 
 using std::cout;
@@ -206,7 +323,10 @@ int main(int argc, char *argv[]) {
 #endif
 
   cout << "Usage:" << endl;
-  cout << "<none: everything is automated!" << endl;
+  cout << "p - Cycle through the frames continuously" << endl;
+  cout << "+/- - Forward and back a frame" << endl;
+  cout << "9/0 - Forward and back 100 frames" << endl;
+  cout << "q/ESC - Quit" << endl;
   
   try {
     clk = new jtil::clk::Clk();
@@ -228,7 +348,6 @@ int main(int argc, char *argv[]) {
     
     // Create the window so that we have a valid openGL context
     wnd = new Window(settings);
-    
     GLState::initGLState();    
     
     // Create an instance of the renderer
@@ -242,14 +361,14 @@ int main(int argc, char *argv[]) {
     
     // Load the Kinect data for fitting from file and process it
     image_io = new DepthImagesIO();
+#ifdef LOAD_PROCESSED_IMAGES
+    image_io->GetFilesInDirectory(im_files, DST_IM_DIR, true);
+#else
     image_io->GetFilesInDirectory(im_files, IM_DIR, false);
-    loadCurrentImage();
-    tex = new Texture(GL_RGB8, HN_IM_SIZE, HN_IM_SIZE, GL_RGB, GL_UNSIGNED_BYTE, 
-      (unsigned char*)tex_data, TEXTURE_WRAP_MODE::TEXTURE_CLAMP, false,
-      TEXTURE_FILTER_MODE::TEXTURE_NEAREST);
+#endif
     
     // Attach callback functions for event handling
-    wnd->registerKeyboardCB(NULL);
+    wnd->registerKeyboardCB(keyboardCB);
     wnd->registerMousePosCB(NULL);
     wnd->registerMouseButtonCB(NULL);
     wnd->registerMouseWheelCB(NULL);
@@ -277,97 +396,27 @@ int main(int argc, char *argv[]) {
     for (uint32_t i = 0; i < HandCoeffConvnet::HAND_NUM_COEFF_CONVNET; i++) {
       blank_coeff[i] = 0.0f;
     }
+
+    loadCurrentImage();
+    tex = new Texture(GL_RGB8, HN_IM_SIZE, HN_IM_SIZE, GL_RGB, GL_UNSIGNED_BYTE, 
+      (unsigned char*)tex_data, TEXTURE_WRAP_MODE::TEXTURE_CLAMP, false,
+      TEXTURE_FILTER_MODE::TEXTURE_NEAREST);
+
     render->renderFrame(0);
 
-    // Iterate through, saving each of the data points
-    for (uint32_t i = 0; i < std::min<uint32_t>(im_files.size(), MAX_FILES); 
-      i += FILE_STRIDE) {
-      std::cout << "processing image " << (i/FILE_STRIDE) << " of ";
-      std::cout << (im_files.size()/FILE_STRIDE) << std::endl;
+    while (is_running) {
+      renderFrame();
+      saveFrame();
 
-      // Load in the image (rgb + depth) and load in the fitted coefficients
-      cur_image = i;
-      loadCurrentImage();
-
-      r_hand->loadFromFile(IM_DIR, string("coeffr_") + im_files[cur_image]);
-      l_hand->loadFromFile(IM_DIR, string("coeffl_") + im_files[cur_image]);
-      HandModel::scale = r_hand->local_scale();
-      hand_renderer->setRendererAttachement(true);
-
-      bool found_hand = hand_detect->findHandLabels(cur_depth_data, 
-        cur_xyz_data, HDLabelMethod::HDFloodfill, label);
-
-      if (!found_hand) {
-        // skip this data point
-        std::cout << "Warning couldn't find hand in " << im_files[cur_image];
-        std::cout << std::endl;
-        continue;
-      }
-
-      // Create the downsampled hand image, background is at 1 and hand is
-      // from 0 --> 1.  Also calculates the convnet input.
-      const bool create_hpf_images = true;
-      hand_image_generator_->calcHandImage(cur_depth_data, label,
-        create_hpf_images);
-
-#ifdef SAVE_FILES
-      // Save the cropped image to file:
-      jtil::file_io::SaveArrayToFile<float>(convnet->hand_image(),
-        convnet->size_images(), DST_IM_DIR + im_files[cur_image]);
-
-      // Save the HPF images to file:
-      jtil::file_io::SaveArrayToFile<float>(convnet->hpf_hand_images(),
-        convnet->size_images(), DST_IM_DIR + std::string("hpf_") + 
-        im_files[cur_image]);
-#endif
-
-      // Correctly modify the coeff values to those that are learnable by the
-      // convnet (for instance angles are bad --> store cos(x), sin(x) instead)
-      hand_renderer->handCoeff2CoeffConvnet(r_hand, coeff_convnet,
-        hand_image_generator_->uvd_com());
-      string r_hand_file = DST_IM_DIR + string("coeffr_") + im_files[cur_image];
-      string l_hand_file = DST_IM_DIR + string("coeffl_") + im_files[cur_image];
-#ifdef SAVE_FILES
-      jtil::file_io::SaveArrayToFile<float>(coeff_convnet,
-        HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, r_hand_file);
-      jtil::file_io::SaveArrayToFile<float>(blank_coeff,
-        HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, l_hand_file);
-#endif
-
-      // Render the images for debugging
-      const float* im = hand_image_generator_->hand_image();
-      for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
-        for (uint32_t u = 0; u < HN_IM_SIZE; u++) {
-          uint32_t val = (uint32_t)(im[v * HN_IM_SIZE + u] * 255.0f);
-          // Clamp the value from 0 to 255 (otherwise we'll get wrap around)
-          uint8_t val8 = (uint8_t)std::min<uint32_t>(std::max<uint32_t>(val,0),255);
-          uint32_t idst = (HN_IM_SIZE-v-1) * HN_IM_SIZE + u;
-          // Texture needs to be flipped vertically and 0 --> 255
-          tex_data[idst * 3] = val8;
-          tex_data[idst * 3 + 1] = val8;
-          tex_data[idst * 3 + 2] = val8;
+      if (continuous_playback) {
+        if (cur_image < (int32_t)im_files.size() - 1) {
+          cur_image++;
+          loadCurrentImage();
         }
       }
-
-      renderCrossToImageArr(&coeff_convnet[HandCoeffConvnet::HAND_POS_U], 
-        tex_data, HN_IM_SIZE, HN_IM_SIZE, 5, 255, 128, 255);
-      for (uint32_t i = HandCoeffConvnet::THUMB_K1_U; 
-        i <= HandCoeffConvnet::F3_TIP_U; i += 2) {
-        const Float3* color = &renderer::colors[(i/2) % renderer::n_colors];
-        renderCrossToImageArr(&coeff_convnet[i], tex_data, HN_IM_SIZE, HN_IM_SIZE, 
-          2, (uint8_t)(color->m[0] * 255.0f), (uint8_t)(color->m[1] * 255.0f), 
-          (uint8_t)(color->m[2] * 255.0f));
-      }
-
-      tex->reloadData((unsigned char*)tex_data);
-      render->renderFullscreenQuad(tex);
-      wnd->swapBackBuffer();
     }
 
     std::cout << "All done!" << std::endl;
-#if defined(WIN32) || defined(_WIN32)
-    system("PAUSE");
-#endif
     quit();
 
   } catch (std::runtime_error e) {

@@ -15,12 +15,12 @@
 #include "jtil/threading/callback.h"
 
 #define FOREST_DATA_FILENAME std::string("./forest_data.bin")
-#define HD_MIN_PTS_PER_HAND_BLOB 50  // EDIT: 2/13 (prev 100)
-#define HD_STARTING_NUM_TREES_TO_EVALUATE 8
+#define HD_MIN_PTS_PER_HAND_BLOB 25  // EDIT: 2/13 (prev 100)
+#define HD_STARTING_NUM_TREES_TO_EVALUATE 10
 #define HD_STARTING_MAX_TREE_HEIGHT_TO_EVALUATE 25
-#define HD_STARTING_SHRINK_FILT_RAD 0
-#define HD_STARTING_MED_FILT_RAD 3  // EDIT: 2/13 (prev 1)
-#define HD_STARTING_GROW_FILT_RAD 2
+#define HD_STARTING_SHRINK_FILT_RAD 0 
+#define HD_STARTING_MED_FILT_RAD 4  // EDIT: 2/13 (prev 1)
+#define HD_STARTING_GROW_FILT_RAD 0
 #define HD_NUM_WORKER_THREADS 8
 
 // Post processing variables

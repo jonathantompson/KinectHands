@@ -154,9 +154,6 @@
     <ClCompile Include="src\renderer\gl_state.cpp">
       <Filter>Source Files\src\renderer</Filter>
     </ClCompile>
-    <ClCompile Include="src\main\main_data.cpp">
-      <Filter>Source Files\src\main</Filter>
-    </ClCompile>
     <ClCompile Include="src\hand_fit\hand_geometry_mesh.cpp">
       <Filter>Source Files\src\hand_fit</Filter>
     </ClCompile>
@@ -168,6 +165,9 @@
     </ClCompile>
     <ClCompile Include="src\hand_fit\hand_fit.cpp">
       <Filter>Source Files\src\hand_fit</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main\main_data.cpp">
+      <Filter>Source Files\src\main</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

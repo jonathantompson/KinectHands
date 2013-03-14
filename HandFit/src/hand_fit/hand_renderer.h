@@ -104,7 +104,8 @@ namespace hand_fit {
     void fixBoundingSphereMatrices(kinect_interface::hand_net::HandType hand_type);
 
     void handCoeff2CoeffConvnet(kinect_interface::hand_net::HandModel* hand,
-      float* coeff_convnet, const jtil::math::Float3& uvd_com);
+      float* coeff_convnet, const jtil::math::Int4& hand_pos_wh, 
+      const jtil::math::Float3& uvd_com);
 
   private:
     bool render_hand_;
@@ -226,7 +227,7 @@ namespace hand_fit {
       uint32_t num_hands, bool color, bool tiled);
 
     void HandRenderer::calcHandImageUVFromXYZ(jtil::math::Float3& xyz_pos, 
-      jtil::math::Float2& uv_pos, const jtil::math::Float3& uvd_com);
+      jtil::math::Float2& uv_pos, const jtil::math::Int4& hand_pos_wh);
 
     // Non-copyable, non-assignable.
     HandRenderer(HandRenderer&);

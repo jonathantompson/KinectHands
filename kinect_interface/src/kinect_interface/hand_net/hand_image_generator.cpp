@@ -6,9 +6,11 @@
 #include <cmath>
 #include <sstream>
 #include "kinect_interface/hand_net/hand_image_generator.h"
+#include "kinect_interface/hand_net/hand_net.h"  // 
 #include "kinect_interface/open_ni_funcs.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"  // for GDT_MAX_DIST
 #include "jtil/image_util/image_util.h"
+#include "jtil/renderer/colors/colors.h"
 #include "jtil/exceptions/wruntime_error.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
@@ -145,21 +147,26 @@ namespace hand_net {
     uvd_com_[0] = floor(uvd_com_[0]);
     uvd_com_[1] = floor(uvd_com_[1]);
 
-    uint32_t u_start = (uint32_t)uvd_com_[0] - (HN_SRC_IM_SIZE / 2);
-    uint32_t v_start = (uint32_t)uvd_com_[1] - (HN_SRC_IM_SIZE / 2);
+    int32_t u_start = (int32_t)uvd_com_[0] - (HN_SRC_IM_SIZE / 2);
+    int32_t v_start = (int32_t)uvd_com_[1] - (HN_SRC_IM_SIZE / 2);
 
     // Crop the image and scale between 0.0 and 1.0
     float dmin = uvd_com_[2] - (HN_HAND_SIZE * 0.5f);
     float dmax = uvd_com_[2] + (HN_HAND_SIZE * 0.5f);
     const float background = 1.0f;
-    for (uint32_t v = v_start; v < v_start + HN_SRC_IM_SIZE; v++) {
-      for (uint32_t u = u_start; u < u_start + HN_SRC_IM_SIZE; u++) {
-        uint32_t dst_index = (v-v_start)* HN_SRC_IM_SIZE + (u-u_start);
-        uint32_t src_index = v * src_width + u;
-        if (label_in[src_index] == 1) {
-            hand_image_[dst_index] = ((float)depth_in[src_index] - dmin) / 
-              HN_HAND_SIZE;
+    for (int32_t v = v_start; v < v_start + HN_SRC_IM_SIZE; v++) {
+      for (int32_t u = u_start; u < u_start + HN_SRC_IM_SIZE; u++) {
+        int32_t dst_index = (v-v_start)* HN_SRC_IM_SIZE + (u-u_start);
+        if (v >= 0 && v < src_height && u >= 0 && u < src_width) {
+          int32_t src_index = v * src_width + u;
+          if (label_in[src_index] == 1) {
+              hand_image_[dst_index] = ((float)depth_in[src_index] - dmin) / 
+                HN_HAND_SIZE;
+          } else {
+            hand_image_[dst_index] = background;
+          }
         } else {
+          // Going off the screen
           hand_image_[dst_index] = background;
         }
       }
@@ -170,24 +177,29 @@ namespace hand_net {
     // The further away the less it is downsampled
     cur_downsample_scale_ = ((float)HN_NOM_DIST * 
       ((float)HN_SRC_IM_SIZE / (float)HN_IM_SIZE)) / uvd_com_[2];
-    if (cur_downsample_scale_ > 1) {
-      // Find the rectangle in the highres image that will get scaled to the
-      // final downsampled image
-      int32_t srcw = std::min<int32_t>(HN_SRC_IM_SIZE,
-        (int32_t)floor((float)HN_IM_SIZE * cur_downsample_scale_));
-      int32_t srch = srcw;
-      int32_t srcx = (HN_SRC_IM_SIZE - srcw) / 2;
-      int32_t srcy = (HN_SRC_IM_SIZE - srch) / 2;
-      cur_downsample_scale_ = (float)srcw /  (float)HN_IM_SIZE;
-      // Note FracDownsampleImageSAT destroys the origional source image
-      FracDownsampleImageSAT<float>(im_temp1_, 0, 0, HN_IM_SIZE, HN_IM_SIZE,
-        HN_IM_SIZE, hand_image_, srcx, srcy, srcw, srch, HN_SRC_IM_SIZE, 
-        HN_SRC_IM_SIZE);
-      // Now ping-pong buffers
-      float* tmp = im_temp1_;
-      im_temp1_ = hand_image_;
-      hand_image_ = tmp;
-    }
+    cur_downsample_scale_ = std::max<float>(cur_downsample_scale_, 1.0f);
+    // Find the rectangle in the highres image that will get scaled to the
+    // final downsampled image
+    int32_t srcw = std::min<int32_t>(HN_SRC_IM_SIZE,
+      (int32_t)floor((float)HN_IM_SIZE * cur_downsample_scale_));
+    int32_t srch = srcw;
+    int32_t srcx = (HN_SRC_IM_SIZE - srcw) / 2;
+    int32_t srcy = (HN_SRC_IM_SIZE - srch) / 2;
+    cur_downsample_scale_ = (float)srcw /  (float)HN_IM_SIZE;
+    // Note FracDownsampleImageSAT destroys the origional source image
+    FracDownsampleImageSAT<float>(im_temp1_, 0, 0, HN_IM_SIZE, HN_IM_SIZE,
+      HN_IM_SIZE, hand_image_, srcx, srcy, srcw, srch, HN_SRC_IM_SIZE, 
+      HN_SRC_IM_SIZE);
+    // Now ping-pong buffers
+    float* tmp = im_temp1_;
+    im_temp1_ = hand_image_;
+    hand_image_ = tmp;
+
+    // Save the lower left corner and the width / height
+    hand_pos_wh_[0] = ((int32_t)uvd_com_[0] - (HN_SRC_IM_SIZE / 2)) + srcx;
+    hand_pos_wh_[1] = ((int32_t)uvd_com_[1] - (HN_SRC_IM_SIZE / 2)) + srcy;
+    hand_pos_wh_[2] = srcw;
+    hand_pos_wh_[3] = srch;
 
     // Now downsample as many times as there are banks
     int32_t w = HN_IM_SIZE;
@@ -235,5 +247,67 @@ namespace hand_net {
       }
     }
   }
+
+  void HandImageGenerator::annotateFeatsToKinectImage(uint8_t* im, 
+    const float* coeff_convnet) const {
+    renderCrossToImageArr(&coeff_convnet[HandCoeffConvnet::HAND_POS_U], 
+      im, src_width, src_height, 5, 0, hand_pos_wh_[0], hand_pos_wh_[1]);
+    for (uint32_t i = HandCoeffConvnet::THUMB_K1_U; 
+      i <= HandCoeffConvnet::F3_TIP_U; i += 3) {
+        renderCrossToImageArr(&coeff_convnet[i], im, src_width, 
+          src_height, 2, i+1, hand_pos_wh_[0], hand_pos_wh_[1]);
+    }
+  }
+
+  void HandImageGenerator::annotateFeatsToHandImage(uint8_t* im, 
+    const float* coeff_convnet) const {
+    renderCrossToImageArr(&coeff_convnet[HandCoeffConvnet::HAND_POS_U], 
+      im, HN_IM_SIZE, HN_IM_SIZE, 5, 0, 0, 0);
+    for (uint32_t i = HandCoeffConvnet::THUMB_K1_U; 
+      i <= HandCoeffConvnet::F3_TIP_U; i += 3) {
+        renderCrossToImageArr(&coeff_convnet[i], im, HN_IM_SIZE, 
+          HN_IM_SIZE, 2, i+1, 0, 0);
+    }
+  }
+
+  // renderCrossToImageArr - UV is 0 to 1 in U and V
+  // Render's directly to the texture array data (not using OpenGL)
+  void HandImageGenerator::renderCrossToImageArr(const float* uv, uint8_t* im, 
+    const int32_t w, const int32_t h, const int32_t rad, 
+    const int32_t color_ind, const int32_t pos_off_u,
+    const int32_t pos_off_v) const {
+    int32_t v = (int32_t)floor(uv[1] * HN_IM_SIZE) + pos_off_u;
+    int32_t u = (int32_t)floor(uv[0] * HN_IM_SIZE) + pos_off_v;
+    v = h - v - 1;
+
+    const Float3* color = 
+      &jtil::renderer::colors[(color_ind/2) % jtil::renderer::n_colors];
+    const uint8_t r = (uint8_t)(color->m[0] * 255.0f);
+    const uint8_t g = (uint8_t)(color->m[1] * 255.0f);
+    const uint8_t b = (uint8_t)(color->m[2] * 255.0f);
+
+    // Note: We need to render upside down
+    // Render the horizontal cross
+    int32_t vcross = v;
+    for (int32_t ucross = u - rad; ucross <= u + rad; ucross++) {
+      if (ucross >= 0 && ucross < w && vcross >= 0 && vcross < h) {
+        int32_t dst_index = vcross * w + ucross;
+        im[dst_index * 3] = r;
+        im[dst_index * 3+1] = g;
+        im[dst_index * 3+2] = b;
+      }
+    }
+    // Render the vertical cross
+    int32_t ucross = u;
+    for (int32_t vcross = v - rad; vcross <= v + rad; vcross++) {
+      if (ucross >= 0 && ucross < w && vcross >= 0 && vcross < h) {
+        int32_t dst_index = vcross * w + ucross;
+        im[dst_index * 3] = r;
+        im[dst_index * 3+1] = g;
+        im[dst_index * 3+2] = b;
+      }
+    }
+  }
+
 }  // namespace hand_net
 }  // namespace kinect_interface
