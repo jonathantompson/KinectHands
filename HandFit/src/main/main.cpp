@@ -49,10 +49,10 @@
   #define snprintf _snprintf_s
 #endif
 
-#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")
+#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")
@@ -634,7 +634,8 @@ void renderFrame(float dt) {
   if (render_output == 7) {
     convnet->calcHandCoeffConvnet(cur_depth_data, label);
     hand_renderer->handCoeff2CoeffConvnet(r_hands[cur_image], 
-      coeff_convnet_pso, convnet->image_generator()->hand_pos_wh());
+      coeff_convnet_pso, convnet->image_generator()->hand_pos_wh(),
+      convnet->uvd_com());
     if (coeff_src == 1) {
       coeff_covnet_src = convnet->coeff_convnet();
     } else {
