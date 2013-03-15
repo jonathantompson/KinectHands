@@ -1,7 +1,7 @@
 //, Do not add space after the variable name
 load_forest_from_file,0
-num_trees,4
-num_workers,4
+num_trees,6
+num_workers,6
 tree_height,25
 min_info_gain,99999
 max_pixels_per_image_per_label,10000
