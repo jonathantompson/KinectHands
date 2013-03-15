@@ -35,7 +35,7 @@
 #define PSO_RAD_THUMB 0.40f 
 #define PSO_RAD_EULER 0.40f
 #define PSO_RAD_POSITION 25  // Absolute value in mm
-#define PSO_REPEATS 2  // Default true
+#define PSO_REPEATS 1  // Default 2
 
 // Manual Fit
 #define MANUAL_FIT_SAMPLE_RADIUS 0.5f  // fraction of entire range
