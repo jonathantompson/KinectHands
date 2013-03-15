@@ -124,7 +124,9 @@ void shutdown() {
   if (training_data) {
     DepthImagesIO::releaseImages(training_data);
   }
-  releaseForest(forest, prog_settings.num_trees);
+  if (forest) {
+    releaseForest(forest, prog_settings.num_trees);
+  }
 }
 
 int main(int argc, char *argv[]) { 
