@@ -47,7 +47,7 @@ using namespace kinect_interface::hand_detector;
   #define KINECT_HANDS_ROOT string("./../")
 #endif
 
-#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2012_07_27_and_08_03_DFProcessed/")
+//#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2012_07_27_and_08_03_DFProcessed/")
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_01_11_and_03_04_DFProcessed/")
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_01_11_1/")
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_01_11_2_1/")
@@ -59,7 +59,7 @@ using namespace kinect_interface::hand_detector;
 // line 678 - depth_images_io.cpp
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_03_04_6/")
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_03_04_7/") 
-//#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_processed_for_DF/") 
+#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_processed_for_DF/") 
 #define IMAGE_DIRECTORY KINECT_HANDS_ROOT + IMAGE_DIRECTORY_BASE
 
 #define SAFE_DELETE(x) do { if (x != NULL) { delete x; x = NULL; } } while (0); 
@@ -95,8 +95,8 @@ HandDetector* hd = NULL;
 // OPEN GL VARIABLES
 int main_window;
 uint8_t cur_display_rgb[src_dim*3];
-uint32_t window_width = 3 * src_width;
-uint32_t window_height = 3 * src_height;
+uint32_t window_width = 2 * src_width;
+uint32_t window_height = 2 * src_height;
 const int num_textures = 2;
 GLuint textures[num_textures];
 unsigned char *texture_data;

@@ -81,7 +81,7 @@ float ChebyshevUpperBound(in vec2 moments, in float mean,
   float d     = mean - moments.x;
   float p_max = variance / (variance + d*d);
   
-  p_max = smoothstep(0.1, 1.0, p_max);  // Light bleeding reduction
+  p_max = smoothstep(0.0, 1.0, p_max);  // Light bleeding reduction
 
   return max(p, p_max);
 }

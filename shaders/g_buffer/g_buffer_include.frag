@@ -2,6 +2,7 @@
 // g_buffer_include.frag
 // *********************
 
+const int MAX_BONE_COUNT = 32;
 uniform vec2 f_inv_focal_length;
 
 // Calculate f_inv_focal_length using:
