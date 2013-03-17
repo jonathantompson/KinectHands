@@ -10,8 +10,7 @@
 #include <stdexcept>
 #include <iomanip>
 #include "kinect_interface/hand_net/hand_model.h"
-#include "jtil/math/math_types.h"
-#include "jtil/file_io/file_io.h"
+#include "jtil/jtil.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 
@@ -22,6 +21,7 @@ using std::string;
 using std::runtime_error;
 using std::cout;
 using std::endl;
+using namespace jtil::renderer;
 
 namespace kinect_interface {
 namespace hand_net {
@@ -29,6 +29,9 @@ namespace hand_net {
   float HandModel::scale = HAND_MODEL_DEFAULT_SCALE;
   float HandModel::wrist_length = 80.0f;
   float HandModel::wrist_twist = 0.0;
+
+  jtil::renderer::GeometryInstance* HandModel::lhand = NULL;
+  jtil::renderer::GeometryInstance* HandModel::rhand = NULL;
  
   HandModel::HandModel(HandType hand_type) {
     resetPose();
@@ -503,6 +506,32 @@ namespace hand_net {
       }
     }
     std::cout << "]" << std::endl;
+  }
+
+  void HandModel::loadHandModels(const bool left, const bool right) {
+#ifndef LOAD_JBIN_FILES
+    if (left) {
+      lhand = Renderer::g_renderer()->gm()->loadModelFromFile(
+        "./models/lib_hand/", "hand_palm_parent_medium_wrist.dae");
+      Renderer::g_renderer()->gm()->saveModelToJBinFile("./models/lib_hand/", 
+        "hand_palm_parent_medium_wrist.jbin", lhand);
+    }
+    if (right) {
+      rhand = Renderer::g_renderer()->gm()->loadModelFromFile(
+        "./models/lib_hand/", "hand_palm_parent_medium_wrist_right.dae");
+      Renderer::g_renderer()->gm()->saveModelToJBinFile("./models/lib_hand/", 
+        "hand_palm_parent_medium_wrist_right.jbin", rhand);
+    }
+#else
+    if (left) {
+      lhand = Renderer::g_renderer()->gm()->loadModelFromJBinFile(
+        "./models/lib_hand/", "hand_palm_parent_medium_wrist.jbin");
+    }
+    if (right) {
+      rhand = Renderer::g_renderer()->gm()->loadModelFromJBinFile(
+        "./models/lib_hand/", "hand_palm_parent_medium_wrist_right.jbin");
+    }
+#endif
   }
 
 }  // namespace hand_net

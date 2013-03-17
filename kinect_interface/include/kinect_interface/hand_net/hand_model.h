@@ -16,6 +16,20 @@
 #define HAND_NUM_COEFF 25  // The number of coefficients to use when optimizing
 #define FINGER_NUM_COEFF 3
 #define HAND_MODEL_DEFAULT_SCALE 58.0f
+#define HAND_CAMERA_VIEW_PLANE_NEAR 10.0f
+#define HAND_CAMERA_VIEW_PLANE_FAR 3000.0f
+// http://www.ros.org/wiki/kinect_calibration/technical
+#define HAND_CAMERA_FOV_HOR 57.8f  // Kinect focal length is 585pix (640pix width)
+                                   // RGB FOV is 62.7
+// #define HAND_CAMERA_FOV 43.35f  // Actual value
+#define HAND_CAMERA_FOV 45.25f  // This value works better
+#define LOAD_JBIN_FILES
+
+namespace jtil {
+namespace renderer {
+  class GeometryInstance;
+};
+};
 
 namespace kinect_interface {
 namespace hand_net {
@@ -92,6 +106,8 @@ namespace hand_net {
     HandModel(const HandType hand_type);
     ~HandModel();
 
+    static void loadHandModels(const bool left, const bool right);
+
     // Accessors
     const float getCoeff(const uint32_t index) const;
     float* coeff() { return coeff_; }
@@ -124,6 +140,9 @@ namespace hand_net {
     float coeff_[HAND_NUM_COEFF];  // The current state
     float local_scale_;
     HandType hand_type_;
+
+    static jtil::renderer::GeometryInstance* lhand;
+    static jtil::renderer::GeometryInstance* rhand;
 
     // Non-copyable, non-assignable.
     HandModel(HandModel&);

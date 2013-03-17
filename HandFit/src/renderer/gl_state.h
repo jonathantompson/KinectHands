@@ -20,7 +20,7 @@ namespace data_str { template <typename T> class VectorManaged; }
 namespace data_str { template <class TKey, class TValue> class HashMap; }
 }
 
-#define MAX_NUM_TEXTURE_UNITS 160
+#define MAX_NUM_TEXTURE_UNITS 256
 #define FORCE_STATE_SETTING  // Define to force all redundant state changes
 #define MAX_DATA_SIZE 256
 

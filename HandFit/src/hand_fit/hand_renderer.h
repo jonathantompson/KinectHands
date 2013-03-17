@@ -18,15 +18,6 @@
 #include "jtil/data_str/vector_managed.h"
 #include "Eigen"
 
-// Note, raw depth from the kinect is in mm
-#define HAND_CAMERA_VIEW_PLANE_NEAR 10.0f
-#define HAND_CAMERA_VIEW_PLANE_FAR 3000.0f
-// http://www.ros.org/wiki/kinect_calibration/technical
-#define HAND_CAMERA_FOV_HOR 57.8f  // Kinect focal length is 585pix (640pix width)
-                                   // RGB FOV is 62.7
-// #define HAND_CAMERA_FOV 43.35f  // Actual value
-#define HAND_CAMERA_FOV 45.25f  // This value works better
-
 // #define SAVE_DEBUG_TEXTURES  // --> Use 'eval_hand_debug_textures.m'
 #define NTILES_X 8  // Don't change these --> If you do you'll have to change 
 #define NTILES_Y 8  //                        the downsample chain

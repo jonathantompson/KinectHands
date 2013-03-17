@@ -7,6 +7,7 @@
 #include "kinect_interface/kinect_interface.h"
 #include "kinect_interface/hand_detector/hand_detector.h"
 #include "kinect_interface/hand_net/hand_image_generator.h"
+#include "kinect_interface/hand_net/hand_model.h"  // for camera parameters
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
 #include "jtil/glew/glew.h"
 #include "jtil/image_util/image_util.h"
@@ -32,6 +33,7 @@ using namespace jtil::math;
 using namespace jtil::settings;
 using namespace kinect_interface;
 using kinect_interface::hand_net::HandCoeffConvnet;
+using kinect_interface::hand_net::HandModel;
 using namespace jtil::renderer;
 using namespace jtil::image_util;
 
@@ -118,6 +120,15 @@ namespace app {
     Renderer::g_renderer()->registerResetScreenCB(App::resetScreenCB);
     Renderer::g_renderer()->getMousePosition(g_app_->mouse_pos_);
     Renderer::g_renderer()->registerCloseWndCB(App::closeWndCB);
+
+   // Set the camera to the kinect camera parameters
+    float fov_deg = HAND_CAMERA_FOV;
+    float view_plane_near = -HAND_CAMERA_VIEW_PLANE_NEAR;
+    float view_plane_far = -HAND_CAMERA_VIEW_PLANE_FAR;
+    SET_SETTING("fov_deg", float, fov_deg);
+    SET_SETTING("view_plane_near", float, view_plane_near);
+    SET_SETTING("view_plane_far", float, view_plane_far);
+
     g_app_->addStuff();
   }
 
@@ -299,6 +310,18 @@ namespace app {
     ui->createTextWindow("kinect_fps_wnd", kinect_fps_str_);
     jtil::math::Int2 pos(400, 0);
     ui->setTextWindowPos("kinect_fps_wnd", pos);
+
+    HandModel::loadHandModels(false, true);
+
+    LightSpotCVSM* light_spot_vsm = new LightSpotCVSM(Renderer::g_renderer());
+    light_spot_vsm->dir_world().set(0, 0, -1);
+    light_spot_vsm->pos_world().set(0, 0, 20);
+    light_spot_vsm->near_far().set(1.0f, 2000.0f);
+    light_spot_vsm->outer_fov_deg() = 35.0f;
+    light_spot_vsm->diffuse_intensity() = 1.0f;
+    light_spot_vsm->inner_fov_deg() = 30.0f;
+    light_spot_vsm->cvsm_count(1);
+    Renderer::g_renderer()->addLight(light_spot_vsm);
   }
 
   int App::closeWndCB() {

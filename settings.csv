@@ -30,7 +30,7 @@ window_depth_buffer_bits,         int,       32
 window_stencil_buffer_bits,       int,       0
 window_rgba_bits,                 int,       8
 render_ui_app,                    bool,      1
-render_ui_renderer,               bool,      0
+render_ui_renderer,               bool,      1
 render_ui_fps,                    bool,      1
 render_output_enum,               int,       0
 light_pass_stencil_opt,           bool,      0
@@ -46,7 +46,7 @@ global_ambient,                   float,     0.28
 directional_lights,               bool,      0
 spot_lights,                      bool,      1
 point_lights,                     bool,      1
-render_light_volumes,             bool,      0
+render_light_volumes,             bool,      1
 render_light_sources,             bool,      1
 dof_on,                           bool,      0
 dof_bounds,                       Float4,    0.15, 0.25, 3.0, 5.0
@@ -75,6 +75,7 @@ motion_blur_on,                   bool,      0
 motion_blur_max_samples,          int,       13
 motion_blur_depth_cutoff,         float,     5.0
 motion_blur_target_fps,           float,     60
+motion_blur_hq_boned,             bool,      0
 flashlight_on,                    bool,      0
 flashlight_dist,                  float,     40.0
 flashlight_outer_fov,             float,     20.0
@@ -94,9 +95,9 @@ visualize_normals_length,         float,     0.25
 //, CAMERA
 //, Note camera near and far view planes are just Min and Max.  
 //, Frustum will be fitted to world objects and light volumes at runtime.
-fov_deg,                          float,     60
-view_plane_near,                  float,     -1.0
-view_plane_far,                   float,     -1000.0
+fov_deg,                          float,     45
+view_plane_near,                  float,     -10.0
+view_plane_far,                   float,     -3000.0
 starting_eye_rot,                 FloatQuat, 0.0, 0.0, 0.0, -1.0
 starting_eye_pos,                 Float3,    0.0, 0.0, -20.0
 camera_speed,                     float,     10.0
