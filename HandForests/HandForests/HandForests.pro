@@ -10,7 +10,7 @@ QMAKE_CFLAGS += -std=c++0x -static -pthread -static-libgcc -static-libstdc++ -D_
 QMAKE_CFLAGS_RELEASE	= -O3 -msse -msse2
 QMAKE_CXXFLAGS_RELEASE	= -O3 -msse -msse2
 LIBS += -static
-LIBS += -Wl,--whole-archive -lpthread
+LIBS += -Wl,--whole-archive -lpthread -lrt
 LIBS += -Wl,--no-whole-archive
 
 INCLUDEPATH += ../src/
@@ -65,6 +65,7 @@ HEADERS += \
     ../../../PRenderer2/jtil/include/jtil/data_str/vector_managed.h \
     ../../../PRenderer2/jtil/include/jtil/file_io/csv_handle_read.h \
     ../../../PRenderer2/jtil/include/jtil/file_io/csv_handle.h \
+    ../../../PRenderer2/jtil/include/jtil/clk/clk.h \
     ../src/load_settings_from_file.h \
     ../../kinect_interface/include/kinect_interface/open_ni_funcs.h
 
