@@ -25,6 +25,9 @@ namespace renderer {
 
   class Texture {
   public:
+    static void initTextureSystem();
+    static void shutdownTextureSystem();
+
     // Load texture from file:
     Texture(const std::string& filename, const TEXTURE_WRAP_MODE wrap, 
       bool origin_ul = false, const TEXTURE_FILTER_MODE filter = TEXTURE_LINEAR);
@@ -62,6 +65,9 @@ namespace renderer {
     bool managed_;
     bool from_file_;
     // void* img_;  // Used to be GLFWimage, now using FreeImage library
+
+    static std::mutex freeimage_init_lock_;
+    static bool freeimage_init_;
 
     void generateTextureID();
     void loadTextureIntoOpenGL();

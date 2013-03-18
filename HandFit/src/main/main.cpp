@@ -179,6 +179,7 @@ void quit() {
   delete hand_renderer;
   delete fit;
   delete render;
+  Texture::shutdownTextureSystem();
   GLState::shutdownGLState();
   delete wnd;
   Window::killWindowSystem();
@@ -826,6 +827,7 @@ int main(int argc, char *argv[]) {
     
     // Initialize Windowing system
     Window::initWindowSystem();
+    Texture::initTextureSystem();
     
     // Fill the settings structure
     settings.width = src_width*2;

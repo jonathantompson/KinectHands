@@ -195,7 +195,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)../kinect_interface/build/$(Platform)/$(Configuration)/;$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\;$(ProjectDir)glfw\bin;$(ProjectDir)assimp_3.0.1270/lib_win7_64;$(ProjectDir)FreeImage3154/lib_win7_64</AdditionalLibraryDirectories>
-      <AdditionalDependencies>jtil_d.lib;kinect_interface_d.lib;FreeImage.lib;assimp.lib;GLFW.lib;comctl32.lib;glu32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib</AdditionalDependencies>
+      <AdditionalDependencies>jtil_d.lib;kinect_interface_d.lib;assimp.lib;GLFW.lib;comctl32.lib;glu32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>/NODEFAULTLIB:[msvcrt.lib, libcmt.lib, LIBCMT]</IgnoreSpecificDefaultLibraries>
     </Link>
     <PostBuildEvent>
@@ -222,7 +222,7 @@ COPY /Y $(ProjectDir)FreeImage3154\lib_win7_64\FreeImage.dll $(ProjectDir)Build\
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>jtil.lib;kinect_interface.lib;FreeImage.lib;assimp.lib;GLFW.lib;comctl32.lib;glu32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib</AdditionalDependencies>
+      <AdditionalDependencies>jtil.lib;kinect_interface.lib;assimp.lib;GLFW.lib;comctl32.lib;glu32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)../kinect_interface/build/$(Platform)/$(Configuration)/;$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\;$(ProjectDir)glfw\bin;$(ProjectDir)assimp_3.0.1270/lib_win7_64;$(ProjectDir)FreeImage3154/lib_win7_64</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>/NODEFAULTLIB:[msvcrt.lib, libcmt.lib, LIBCMT]</IgnoreSpecificDefaultLibraries>
     </Link>

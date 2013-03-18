@@ -150,6 +150,7 @@ void quit() {
   delete geometry_points;
   delete hand_detect;
   delete hand_image_generator_;
+  Texture::shutdownTextureSystem();
   GLState::shutdownGLState();
   Window::killWindowSystem();
   exit(0);
@@ -334,7 +335,8 @@ int main(int argc, char *argv[]) {
     
     // Initialize Windowing system
     Window::initWindowSystem();
-    
+    Texture::initTextureSystem();
+
     // Fill the settings structure
     settings.width = 1024;
     settings.height = 1024;

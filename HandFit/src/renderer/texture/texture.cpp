@@ -12,9 +12,35 @@ using std::wruntime_error;
 
 namespace renderer {
 
+  std::mutex Texture::freeimage_init_lock_;
+  bool Texture::freeimage_init_ = false;
+
+
+  void Texture::initTextureSystem() {
+    freeimage_init_lock_.lock();
+    FreeImage_Initialise();
+    freeimage_init_ = true;
+    freeimage_init_lock_.unlock();
+  }
+
+  void Texture::shutdownTextureSystem() {
+    freeimage_init_lock_.lock();
+    FreeImage_DeInitialise();
+    freeimage_init_ = false;
+    freeimage_init_lock_.unlock();
+  }
+
   // Load a texture from disk
   Texture::Texture(const std::string& filename, const TEXTURE_WRAP_MODE wrap, 
     bool origin_ul, const TEXTURE_FILTER_MODE filter) {
+    freeimage_init_lock_.lock();
+    if (!freeimage_init_) {
+      freeimage_init_lock_.unlock();
+      throw std::wruntime_error("Texture::Texture() - ERROR: Please call "
+        "initTextureSystem() before loading textures from file!");
+    }
+    freeimage_init_lock_.unlock();
+
     unsigned int nbits;
     filter_ = filter;
     wrap_ = wrap;
