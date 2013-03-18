@@ -137,6 +137,8 @@ int main(int argc, char *argv[]) {
   jtil::debug::EnableMemoryLeakChecks();
   //jtil::debug::SetBreakPointOnAlocation(587);
 #endif
+  jtil::clk::Clk _clk;
+  double t0 = _clk.getTime();
   try {
     if (DT_DOWNSAMPLE < 1) {
       cout << "ERROR: DT_DOWNSAMPLE < 1!" << endl;
@@ -302,6 +304,8 @@ int main(int argc, char *argv[]) {
 #endif
   }
   shutdown();
+  double t1 = _clk.getTime();
+  std::cout << "Execution time = " << (t1 - t0) << "sec" << std::endl;
 #if defined(WIN32) || defined(_WIN32)
   system("pause");
 #endif
