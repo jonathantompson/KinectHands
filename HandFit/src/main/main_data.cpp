@@ -50,11 +50,19 @@
   #define snprintf _snprintf_s
 #endif
 
-#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")  
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")
+#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/") 
+
 #define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN/") 
 
 //#define SAVE_FILES  // Only enabled when we're not loading processed images
-//#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
+#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
 //#define SAVE_HPF_IMAGES  // Save the hpf files
 
 #if defined(__APPLE__)
@@ -116,7 +124,7 @@ float cur_xyz_data[src_dim*3];
 int16_t cur_depth_data[src_dim*3];
 uint8_t cur_label_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
-int32_t cur_image = 1014;
+int32_t cur_image = 0;
 GeometryColoredPoints* geometry_points= NULL;
 bool render_depth = true;
 int playback_step = 1;
@@ -175,6 +183,12 @@ void loadCurrentImage() {
   memset(cur_label_data, 0, src_dim * sizeof(cur_label_data[0]));
   memset(cur_image_rgb, 0, 3 * src_dim * sizeof(cur_image_rgb[0]));
   memset(cur_xyz_data, 0, 3 * src_dim * sizeof(cur_xyz_data[0]));
+
+  string src_file = im_files[cur_image];
+  src_file = src_file.substr(10, src_file.length());
+  string r_coeff_file = DST_IM_DIR + string("coeffr_") + src_file;
+  jtil::file_io::LoadArrayFromFile<float>(coeff_convnet,
+    HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, r_coeff_file);
 #else
   // Load in the image
   image_io->LoadCompressedImage(full_filename, 
@@ -214,7 +228,6 @@ void loadCurrentImage() {
   hand_renderer->handCoeff2CoeffConvnet(r_hand, coeff_convnet,
     hand_image_generator_->hand_pos_wh(), hand_image_generator_->uvd_com());
 #endif
-
 }
 
 void saveFrame() {
@@ -242,7 +255,16 @@ void saveFrame() {
 #endif
 }
 
+int delete_confirmed = 0;
 void keyboardCB(int key, int action) {
+  string full_im_filename;
+  string r_coeff_file;
+  string l_coeff_file;
+  string src_file;
+
+  if (key != 'd' && key != 'D') {
+    delete_confirmed = 0;
+  }
   if (action == RELEASED) {
     switch (key) {
     case 'P':
@@ -278,6 +300,51 @@ void keyboardCB(int key, int action) {
     case 'q':
     case KEY_ESC:
       is_running = false;
+      break;
+#ifdef LOAD_PROCESSED_IMAGES
+  case 'D':
+  case 'd':
+#if defined(WIN32) || defined(_WIN32)
+    full_im_filename = DST_IM_DIR + string(im_files[cur_image]);
+    src_file = im_files[cur_image];
+    src_file = src_file.substr(10, src_file.length());
+    r_coeff_file = DST_IM_DIR + string("coeffr_") + src_file;
+    l_coeff_file = DST_IM_DIR + string("coeffl_") + src_file;
+
+    if (delete_confirmed == 1) {
+      if(!DeleteFile(full_im_filename.c_str()) ||
+        !DeleteFile(r_coeff_file.c_str()) ||
+        !DeleteFile(l_coeff_file.c_str())) {
+        cout << "Error deleting files: " << endl;
+        cout << "    - " << full_im_filename.c_str() << endl;
+        cout << "    - " << r_coeff_file.c_str() << endl;
+        cout << "    - " << l_coeff_file.c_str() << endl;
+        cout << endl;
+      } else {
+        cout << "Files deleted sucessfully: " << endl;
+        cout << "    - " << full_im_filename.c_str() << endl;
+        cout << "    - " << r_coeff_file.c_str() << endl;
+        cout << "    - " << l_coeff_file.c_str() << endl;
+        cout << endl;
+        im_files.deleteAtAndShift((uint32_t)cur_image);
+        loadCurrentImage();
+      }
+      delete_confirmed = 0;
+    } else {
+      delete_confirmed++;
+      cout << "About to delete files: " << endl;
+      cout << "    - " << full_im_filename.c_str() << endl;
+      cout << "    - " << r_coeff_file.c_str() << endl;
+      cout << "    - " << l_coeff_file.c_str() << endl;
+      cout << endl;
+      cout << "Press 'd' again " << 2 - delete_confirmed;
+      cout << " times to confirm" << endl;
+    }
+#else
+    cout << "Delete function not implemented for Mac OS X" << endl;
+#endif
+    break;
+#endif
     }
   }
   if (key == KEY_KP_ADD || key == KEY_KP_SUBTRACT || key == '0' || 

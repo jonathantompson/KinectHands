@@ -950,6 +950,8 @@ int main(int argc, char *argv[]) {
           if (continuous_play_timer_start >= continuous_play_frame_time) {
             cur_image += playback_step;
             loadCurrentImage();
+            std::cout << "cur_image = " << cur_image << " of ";
+            std::cout << im_files.size() << std::endl;
             continuous_play_timer_start = 0;
             InitXYZPointsForRendering();
           }
