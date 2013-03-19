@@ -8,4 +8,4 @@ max_pixels_per_image_per_label,10000
 num_wl_samples_per_node,500
 max_num_images,100000000
 wl_func_type,1
-file_stride,100
+file_stride,10
