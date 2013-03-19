@@ -728,18 +728,18 @@ namespace hand_fit {
     -0.433f,  // THUMB_K1_THETA
     -1.053f,  // THUMB_K1_PHI
     -1.533f,  // THUMB_K2_PHI
-    -0.400f,  // F0_THETA
-    -1.143f,  // F0_PHI
-    -1.263f,  // F0_KNUCKLE_CURL
-    -0.550f,  // F1_THETA
-    -1.143f,  // F1_PHI
-    -1.263f,  // F1_KNUCKLE_CURL
-    -0.500f,  // F2_THETA
-    -1.143f,  // F2_PHI
-    -1.263f,  // F2_KNUCKLE_CURL
-    -0.400f,  // F3_THETA
-    -1.143f,  // F3_PHI
-    -1.263f,  // F3_KNUCKLE_CURL
+    -0.600f,  // F0_THETA
+    -1.243f,  // F0_PHI
+    -1.363f,  // F0_KNUCKLE_CURL
+    -0.600f,  // F1_THETA
+    -1.243f,  // F1_PHI
+    -1.363f,  // F1_KNUCKLE_CURL
+    -0.600f,  // F2_THETA
+    -1.243f,  // F2_PHI
+    -1.363f,  // F2_KNUCKLE_CURL
+    -0.600f,  // F3_THETA
+    -1.243f,  // F3_PHI
+    -1.363f,  // F3_KNUCKLE_CURL
   };
   
   // coeff_max_limit is the maximum coefficient value before the penalty
@@ -755,7 +755,7 @@ namespace hand_fit {
     1.300f,  // WRIST_PHI
     0.350f,  // THUMB_THETA
     0.380f,  // THUMB_PHI
-    0.400f,  // THUMB_K1_THETA
+    0.500f,  // THUMB_K1_THETA
     0.550f,  // THUMB_K1_PHI
     0.300f,  // THUMB_K2_PHI
     0.400f,  // F0_THETA

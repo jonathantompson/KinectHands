@@ -53,8 +53,8 @@
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")
-#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")
+#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/") 
  
@@ -309,13 +309,27 @@ void fitFrame(bool seed_with_last_frame);
 double continuous_fit_timer_start;
 double continuous_play_timer_start;
 const double continuous_play_frame_time = 1.0/15.0;
+bool shift_down = false;
+int delete_confirmed = 0;
 void KeyboardCB(int key, int action) {
+  string full_im_filename;
+  string r_coeff_file;
+  string l_coeff_file;
+  string new_full_im_filename;
+  string new_r_coeff_file;
+  string new_l_coeff_file;
+  if (key != 'k' && key != 'K') {
+    delete_confirmed = 0;
+  }
+
   switch (key) {
     case KEY_LSHIFT:
       if (action == PRESSED) {
         running = true;
+        shift_down = true;
       } else {
         running = false;
+        shift_down = false;
       }
       break;
     case KEY_ESC:
@@ -396,8 +410,65 @@ void KeyboardCB(int key, int action) {
     case static_cast<int>('5'):
     case static_cast<int>('6'):
     case static_cast<int>('7'):
-      if (action == RELEASED) {
+      if (action == RELEASED && !shift_down) {
         render_output = key - static_cast<int>('1') + 1;
+      }
+      if (action == RELEASED && shift_down && cur_image > 0) {
+        switch (key) {
+          case static_cast<int>('5'):
+            std::cout << "copying thumb from previous frame..." << std::endl;
+            if (fit_left) {
+              l_hands[cur_image]->setCoeff(HandCoeff::THUMB_THETA, 
+                l_hands[cur_image-1]->getCoeff(HandCoeff::THUMB_THETA));
+              l_hands[cur_image]->setCoeff(HandCoeff::THUMB_PHI, 
+                l_hands[cur_image-1]->getCoeff(HandCoeff::THUMB_PHI));
+              l_hands[cur_image]->setCoeff(HandCoeff::THUMB_K1_PHI, 
+                l_hands[cur_image-1]->getCoeff(HandCoeff::THUMB_K1_PHI));
+              l_hands[cur_image]->setCoeff(HandCoeff::THUMB_K1_THETA, 
+                l_hands[cur_image-1]->getCoeff(HandCoeff::THUMB_K1_THETA));
+              l_hands[cur_image]->setCoeff(HandCoeff::THUMB_K2_PHI, 
+                l_hands[cur_image-1]->getCoeff(HandCoeff::THUMB_K2_PHI));
+            }
+            if (fit_right) {
+              r_hands[cur_image]->setCoeff(HandCoeff::THUMB_THETA, 
+                r_hands[cur_image-1]->getCoeff(HandCoeff::THUMB_THETA));
+              r_hands[cur_image]->setCoeff(HandCoeff::THUMB_PHI, 
+                r_hands[cur_image-1]->getCoeff(HandCoeff::THUMB_PHI));
+              r_hands[cur_image]->setCoeff(HandCoeff::THUMB_K1_PHI, 
+                r_hands[cur_image-1]->getCoeff(HandCoeff::THUMB_K1_PHI));
+              r_hands[cur_image]->setCoeff(HandCoeff::THUMB_K1_THETA, 
+                r_hands[cur_image-1]->getCoeff(HandCoeff::THUMB_K1_THETA));
+              r_hands[cur_image]->setCoeff(HandCoeff::THUMB_K2_PHI, 
+                r_hands[cur_image-1]->getCoeff(HandCoeff::THUMB_K2_PHI));
+            }
+            break;
+          case static_cast<int>('1'):
+          case static_cast<int>('2'):
+          case static_cast<int>('3'):
+          case static_cast<int>('4'):
+            uint32_t finger = (int)key - (int)'1';
+            uint32_t off = FINGER_NUM_COEFF * finger;
+            std::cout << "copying finger " << finger;
+            std::cout << " from previous frame..." << std::endl;
+            if (fit_left) {
+              l_hands[cur_image]->setCoeff(HandCoeff::F0_PHI + off, 
+                l_hands[cur_image-1]->getCoeff(HandCoeff::F0_PHI + off));
+              l_hands[cur_image]->setCoeff(HandCoeff::F0_THETA + off, 
+                l_hands[cur_image-1]->getCoeff(HandCoeff::F0_THETA + off));
+              l_hands[cur_image]->setCoeff(HandCoeff::F0_KNUCKLE_CURL + off, 
+                l_hands[cur_image-1]->getCoeff(HandCoeff::F0_KNUCKLE_CURL + off));
+            }
+            if (fit_right) {
+              r_hands[cur_image]->setCoeff(HandCoeff::F0_PHI + off, 
+                r_hands[cur_image-1]->getCoeff(HandCoeff::F0_PHI + off));
+              r_hands[cur_image]->setCoeff(HandCoeff::F0_THETA + off, 
+                r_hands[cur_image-1]->getCoeff(HandCoeff::F0_THETA + off));
+              r_hands[cur_image]->setCoeff(HandCoeff::F0_KNUCKLE_CURL + off, 
+                r_hands[cur_image-1]->getCoeff(HandCoeff::F0_KNUCKLE_CURL + off));
+            }
+            break;
+        }
+        saveCurrentHandCoeffs();
       }
       break;
     case KEY_KP_ADD:
@@ -567,8 +638,66 @@ void KeyboardCB(int key, int action) {
         }
         break;
       }
+      break;
+    case 'k':
+    case 'K':
+#if defined(WIN32) || defined(_WIN32)
+      if (action == RELEASED) {
+        full_im_filename = IM_DIR + string(im_files[cur_image]);
+        new_full_im_filename = IM_DIR + string("deleted_") + 
+          string(im_files[cur_image]);
+        r_coeff_file = IM_DIR + string("coeffr_") + im_files[cur_image];
+        new_r_coeff_file = IM_DIR + string("deleted_") + string("coeffr_") + 
+          im_files[cur_image];
+        l_coeff_file = IM_DIR + string("coeffl_") + im_files[cur_image];
+        new_l_coeff_file = IM_DIR + string("deleted_") + string("coeffl_") + 
+          im_files[cur_image];
+
+        if (delete_confirmed == 1) {
+          if(!MoveFile(full_im_filename.c_str(), new_full_im_filename.c_str()) 
+            || !MoveFile(r_coeff_file.c_str(), new_r_coeff_file.c_str()) ||
+            !MoveFile(l_coeff_file.c_str(), new_l_coeff_file.c_str())) {
+              cout << "Error moving files: " << endl;
+              cout << "    - " << full_im_filename.c_str() << endl;
+              cout << "    - " << r_coeff_file.c_str() << endl;
+              cout << "    - " << l_coeff_file.c_str() << endl;
+              cout << endl;
+          } else {
+            cout << "Files marked as deleted sucessfully: " << endl;
+            cout << "    - " << full_im_filename.c_str() << endl;
+            cout << "    - " << r_coeff_file.c_str() << endl;
+            cout << "    - " << l_coeff_file.c_str() << endl;
+            cout << endl;
+            delete r_hands[cur_image];
+            delete l_hands[cur_image];
+            for (uint32_t i = cur_image; i < im_files.size() - 1; i++) {
+              r_hands[i] = r_hands[i+1];
+              l_hands[i] = l_hands[i+1];
+            }
+            im_files.deleteAtAndShift((uint32_t)cur_image);
+            loadCurrentImage();
+            InitXYZPointsForRendering();
+            std::cout << "cur_image = " << cur_image << std::endl;
+          }
+          delete_confirmed = 0;
+        } else {
+          delete_confirmed++;
+          cout << "About to mark files as deleted: " << endl;
+          cout << "    - " << full_im_filename.c_str() << endl;
+          cout << "    - " << r_coeff_file.c_str() << endl;
+          cout << "    - " << l_coeff_file.c_str() << endl;
+          cout << endl;
+          cout << "Press 'd' again " << 2 - delete_confirmed;
+          cout << " times to confirm" << endl;
+        }
+      }
+#else
+      cout << "Move function not implemented for Mac OS X" << endl;
+#endif
+      break;
   }
 }
+
 
 using std::cout;
 using std::endl;
@@ -820,6 +949,8 @@ int main(int argc, char *argv[]) {
   cout << "o - Change playback frame skip" << endl;
   cout << "l - Go to start frame" << endl;
   cout << "c - Change coeff source (PSO/Convnet)" << endl;
+  cout << "shift+12345 - Copy finger1234/thumb from last frame" << endl;
+  cout << "k - (3 times) delete current file" << endl;
   
   try {
     clk = new jtil::clk::Clk();

@@ -983,8 +983,12 @@ namespace hand_fit {
     }
 #endif
 
+#ifdef LINEAR_INTERPENETRATION_PENALTY
+    return 1.0f + INTERPENETRATION_CONSTANT * total_penetration_distance;
+#else
     return 1.0f + INTERPENETRATION_CONSTANT * total_penetration_distance * 
       total_penetration_distance;
+#endif
   }
 
   void HandRenderer::insertionSortAxisExtents(uint32_t* arr,
