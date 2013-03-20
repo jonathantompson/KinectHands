@@ -3,7 +3,7 @@ require 'image'
 require 'torch'
 -- require 'xlua'    -- xlua provides useful tools, like progress bars
 require 'optim'   -- an optimization package, for online and batch methods
-torch.setnumthreads(4)
+torch.setnumthreads(6)
 dofile("pbar.lua")
 dofile("shuffle_files.lua")
 dofile("modules_cc.lua")
@@ -17,18 +17,17 @@ width = 96
 height = 96
 num_hpf_banks = 3
 dim = width * height
-frame_stride = 1  -- Maybe We don't need every 30fps, so just grab a few
+frame_stride = 1  -- Maybe we don't need every 30fps, so just grab a few
 test_data_rate = 5  -- this means 1 / 5 will be test data
-num_coeff = 42
-background_depth = 2000
+num_coeff = 58
 perform_training = 1
 nonlinear = 0  -- 0 = tanh, 1 = SoftShrink, 2 = ramp
 model_filename = 'handmodel.net'
-loss = 1  -- 0 = abs, 1 = mse
-im_dir = "./hand_depth_data_processed/"
+loss = 0  -- 0 = abs, 1 = mse
+im_dir = "../data/hand_depth_data_processed_for_CN/"
 visualize_data = 0
 pooling = 2  -- 1,2,.... or math.huge (infinity)
-use_hpf_depth = 1
+use_hpf_depth = 0
 regularization_stride = 50
 
 -- ******* Some preliminary calculations *********
@@ -77,7 +76,7 @@ for i=1,#files,1 do
       table.insert(coeffl_files, files[i])
     elseif string.find(files[i], "hpf_hands_") ~= nil then
       table.insert(hpf_depth_files, files[i])
-    elseif string.find(files[i], "hands_") ~= nil then
+    elseif string.find(files[i], "processed_hands_") ~= nil then
       table.insert(depth_files, files[i])
     end
   end
@@ -493,7 +492,7 @@ if (perform_training == 1) then
     print("\n==> time to learn 1 sample = " .. (time*1000) .. 'ms')
   
     ave_err = ave_err / nsamples
-    abs_ave_err = abs_ave_err / nsamples
+    ave_abs_err = ave_abs_err / nsamples
     print("current loss function value: " .. (ave_err) .. " (using criterion)")
     trainLogger:add{['average err'] = string.format('%.8e', ave_abs_err)}
     --trainLogger:plot()
