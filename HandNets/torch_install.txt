@@ -19,7 +19,7 @@ export PATH=/usr/bin/g++-4.7:$PATH
 --> To test type "g++-4.7 -v" in the console
 
 **************************************************
-Some torch prerecs:
+Some torch prerequisites:
 
 sudo apt-get install cmake
 sudo apt-get install libreadline5-dev
@@ -40,8 +40,8 @@ cd ../
 **************************************************
 Install cuda:
 
-sudo apt-get install gcc-4.4
-sudo apt-get install g++-4.4
+sudo apt-get install g++-4.6
+sudo apt-get install gcc-4.6
 
 https://developer.nvidia.com/cuda-downloads --> Download cuda for ubuntu
 cd to directory with cuda_5.0.35_linux_64_ubuntu11.10-1.run
@@ -52,7 +52,7 @@ loader, highlight the ubuntu option and press "e".  Then change "quiet splash" t
 If x-server is running, type:
 "sudo service lightdm stop" OR "sudo service gdm stop" (if you're using an old Ubuntu)
 
-sudo apt-get install freeglut3-dev build-essential libx11-dev libxmu-dev libxi-dev libgl1-mesa-glx libglu1-mesa libglu1-mesa-dev
+sudo apt-get install freeglut3-dev build-essential libx11-dev libxmu-dev libxi-dev libgl1-mesa-glx libglu1-mesa libglu1-mesa-dev libxmu-dev libxi-dev
 
 Go to directory with: cuda_5.0.35_linux_64_ubuntu11.10-1.run
 sudo sh cuda_5.0.35_linux_64_ubuntu11.10-1.run
@@ -62,7 +62,7 @@ sudo sh cuda_5.0.35_linux_64_ubuntu11.10-1.run -override compiler
 
 sudo sh cuda_5.0.35_linux_64_ubuntu11.10-1.run -silent -driver
 
-Edit your ~/.profile and add:
+Edit your ~/.profile and addls:
 export PATH=/usr/local/cuda-5.0/bin:$PATH
 export LPATH=/usr/lib/nvidia-current:/usr/lib/nvidia-304:$LPATH
 export LIBRARY_PATH=/usr/lib/nvidia-current:/usr/lib/nvidia-304:$LIBRARY_PATH
@@ -87,21 +87,34 @@ to
 
 sudo make
 
-cd /usr/local/cuda-5.0/samples/bin/linux/release
 ./deviceQuery
 
 Make sure everything is as it should be!
 
 cd /usr/local/cuda-5.0/samples/2_Graphics/marchingCubes
 
-Edit the Makefile:
-Change line 94:
-GCC             ?= g++
-to
-GCC             ?= g++-4.4
+This is naughty, but I edited the cuda source to get everything to compile:
+sudo emacs marchingCubes_kernel.cu 
+Change:
+
+#ifndef _MARCHING_CUBES_KERNEL_CU_
+#define _MARCHING_CUBES_KERNEL_CU_
+
+#include <stdio.h>
+
+to:
+
+#ifndef _MARCHING_CUBES_KERNEL_CU_
+#define _MARCHING_CUBES_KERNEL_CU_
+
+#undef _GLIBCXX_ATOMIC_BUILTINS
+#undef _GLIBCXX_USE_INT128
+
+#include <stdio.h>
 
 sudo make
 
+cd /usr/local/cuda-5.0/samples/bin/linux/release
 
 **************************************************
 Make Torch:
@@ -114,5 +127,48 @@ export CXX=g++-4.7
 
 mkdir build
 cd build
+
+export CMAKE_LIBRARY_PATH=/path/to/OpenBLAS:$CMAKE_LIBRARY_PATH
+(for me it was "export CMAKE_LIBRARY_PATH=/home/tompson/Desktop/OpenBLAS/")
+export CMAKE_LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/4.7:$CMAKE_LIBRARY_PATH
+
+If you still get:
+--   Library gfortran: BLAS_gfortran_LIBRARY-NOTFOUND
+in the cmake output then the above didn't work and you need to find the libgfortran.so for your
+system and include a path to that in the CMAKE_LIBRARY_PATH variable.
+
+
+edit: torch/pkg/dok/dokinstall/blas.dok
+
 cmake ..
+
+It wont find the intel library MKL library, but it should find everything else.
+
+make
+
+Now we need to fix the cuda tensor compile bugs, basically we need to add:
+#undef _GLIBCXX_ATOMIC_BUILTINS
+#undef _GLIBCXX_USE_INT128
+
+To the top of all the .cu files:
+torch/extra/cuda/lib/THC/THCTensorRandom.cu
+
+Also add the undef lines to the top of:
+sudo emacs /usr/local/cuda/include/cuda.h
+
+Then:
+
+sudo make install
+
+**************************************************
+Make Torch packages:
+
+sudo torch-pkg install image optim debugger parallel sys
+
+You can query more avaliable packages by:
+torch-pkg list
+
+
+
+
 
