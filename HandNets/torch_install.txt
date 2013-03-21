@@ -12,8 +12,9 @@ sudo apt-get install g++-4.7 c++-4.7
 Then update the default compiler just for the user (not the super user!):
 
 Add the following to ~/.profile or ~/.bash_profile or ~/.bashrc
-PATH=/usr/bin/gcc-4.7:$PATH
-PATH=/usr/bin/g++-4.7:$PATH
+
+export PATH=/usr/bin/gcc-4.7:$PATH
+export PATH=/usr/bin/g++-4.7:$PATH
 
 --> To test type "g++-4.7 -v" in the console
 
@@ -39,6 +40,9 @@ cd ../
 **************************************************
 Install cuda:
 
+sudo apt-get install gcc-4.4
+sudo apt-get install g++-4.4
+
 https://developer.nvidia.com/cuda-downloads --> Download cuda for ubuntu
 cd to directory with cuda_5.0.35_linux_64_ubuntu11.10-1.run
 
@@ -58,7 +62,45 @@ sudo sh cuda_5.0.35_linux_64_ubuntu11.10-1.run -override compiler
 
 sudo sh cuda_5.0.35_linux_64_ubuntu11.10-1.run -silent -driver
 
+Edit your ~/.profile and add:
+export PATH=/usr/local/cuda-5.0/bin:$PATH
+export LPATH=/usr/lib/nvidia-current:/usr/lib/nvidia-304:$LPATH
+export LIBRARY_PATH=/usr/lib/nvidia-current:/usr/lib/nvidia-304:$LIBRARY_PATH
+export LD_LIBRARY_PATH=/usr/local/cuda-5.0/lib:/usr/local/cuda-5.0/lib64:/usr/lib/nvidia-304:$LD_LIBRARY_PATH
 
+(also check that the paths above are correct, /usr/lib/nvidia* shoudl contain libcuda.so)
+
+Reboot
+
+In a terminal type:
+
+nvcc -V
+
+To make sure the compiler driver works
+
+cd /usr/local/cuda-5.0/samples/1_Utilities/deviceQuery
+Edit the Makefile:
+Change line 92 and 95:
+      LDFLAGS   := -L$(CUDA_LIB_PATH) -lcuda -lcudart
+to
+      LDFLAGS   := -L$(CUDA_LIB_PATH) -L/usr/lib/nvidia-304 -lcuda -lcudart
+
+sudo make
+
+cd /usr/local/cuda-5.0/samples/bin/linux/release
+./deviceQuery
+
+Make sure everything is as it should be!
+
+cd /usr/local/cuda-5.0/samples/2_Graphics/marchingCubes
+
+Edit the Makefile:
+Change line 94:
+GCC             ?= g++
+to
+GCC             ?= g++-4.4
+
+sudo make
 
 
 **************************************************
