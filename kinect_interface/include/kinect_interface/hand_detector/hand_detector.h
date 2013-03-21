@@ -19,21 +19,22 @@
 #define HD_STARTING_NUM_TREES_TO_EVALUATE 10
 #define HD_STARTING_MAX_TREE_HEIGHT_TO_EVALUATE 25
 #define HD_STARTING_SHRINK_FILT_RAD 0 
-#define HD_STARTING_MED_FILT_RAD 4  // EDIT: 2/13 (prev 1)
-#define HD_STARTING_GROW_FILT_RAD 0
+#define HD_STARTING_MED_FILT_RAD 2  // EDIT: 2/13 (prev 1)
+#define HD_STARTING_GROW_FILT_RAD 2
 #define HD_NUM_WORKER_THREADS 8
 
 // Post processing variables
 #define HD_SMALL_HAND_RADIUS 10.0f
 #define HD_DISCONT_FILT_RAD 3
 #define HD_DISCONT_FILT_DEPTH_THRESH 25
-#define HD_SMALL_HAND_RADIUS_MIN_UV 1
+#define HD_SMALL_HAND_RADIUS_MIN_UV 4
 #define HD_N_PTS_FILL_KERNEL 16
 #define HD_HAND_RADIUS 150.0f
 #define HD_BACKGROUND_THRESH 100.0f  // For hand flood fill
 #define HD_BACKGROUND_THRESH_SQ (HD_BACKGROUND_THRESH * HD_BACKGROUND_THRESH)
 #define HD_FILL_COARSE_RADIUS 5000  // This value is divided by depth in mm!
 #define HD_FILL_FINE_RADIUS 1 
+#define HD_BACKGROUND_THRESH_GROW 100.0f  // For hand flood fill
 
 namespace jtil { namespace threading { class ThreadPool; } }
 
@@ -42,8 +43,7 @@ namespace hand_detector {
 
   typedef enum {
     HDUpconvert,
-    HDUpconvertFilter,
-    HDFloodfill  // DEFAULT METHOD
+    HDFloodfill
   } HDLabelMethod;
 
   struct DecisionTree;
@@ -91,6 +91,7 @@ namespace hand_detector {
     uint8_t* labels_evaluated_;
     uint8_t* labels_filtered_;
     uint8_t* labels_temp_;
+    uint8_t* labels_temp2_;
     const int16_t* depth_;  // Not owned here!
     int16_t* depth_downsampled_;
     int32_t down_width_;
@@ -130,6 +131,10 @@ namespace hand_detector {
       bool* lhand_found = NULL, float* lhand_uvd = NULL);
 
     void createLabels(const int16_t* depth_data);
+    void filterLabels(uint8_t*& dst, uint8_t*& src, uint8_t*& tmp,
+    int16_t* depth, const int32_t w, const int32_t h);
+    void filterLabelsThreshold(uint8_t*& dst, uint8_t*& src, uint8_t*& tmp,
+    int16_t* depth, const int32_t w, const int32_t h);  // Newer method
 
     void evaluateForestMultithreaded();  // Sets up the pixel work queue and fire's off threads
     void evaluateForestPixelRange(const uint32_t istart, const uint32_t iend);
@@ -145,6 +150,9 @@ namespace hand_detector {
       float* pt_hand_uvd, int radius);
     void processNeighbour(const int* nieghbourPtUV, const int curPtIndex, 
       const float* ptHand, const float* xyz);
+    static void GrowFilterDepthThreshold(uint8_t* labels_dst, 
+      uint8_t* labels_src, const int16_t* depth, const int32_t w, 
+      const int32_t h, const int32_t rad);
 
     // findHand --> Just find A hand (will find the biggest of the hand blobs)
     void findHand(const int16_t* depth_data, bool& hand_found, float* hand_uvd);

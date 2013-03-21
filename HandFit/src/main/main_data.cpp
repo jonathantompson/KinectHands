@@ -53,8 +53,8 @@
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")
-#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")
+#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/") 
@@ -62,7 +62,7 @@
 #define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN/") 
 
 //#define SAVE_FILES  // Only enabled when we're not loading processed images
-#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
+//#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
 //#define SAVE_HPF_IMAGES  // Save the hpf files
 
 #if defined(__APPLE__)

@@ -45,6 +45,8 @@ namespace hand_detector {
 
     labels_evaluated_ = NULL;
     labels_filtered_ = NULL;
+    labels_temp_ = NULL;
+    labels_temp2_ = NULL;
     depth_downsampled_ = NULL;
     pixel_queue_ = NULL;
     pixel_on_queue_ = NULL;
@@ -63,6 +65,7 @@ namespace hand_detector {
     SAFE_DELETE_ARR(labels_evaluated_);
     SAFE_DELETE_ARR(labels_filtered_);
     SAFE_DELETE_ARR(labels_temp_);
+    SAFE_DELETE_ARR(labels_temp2_);
     SAFE_DELETE_ARR(depth_downsampled_);
     if (thread_cbs_) {
       for (uint32_t i = 0; i < HD_NUM_WORKER_THREADS; i++) {
@@ -85,9 +88,10 @@ namespace hand_detector {
     down_width_ = im_width / DT_DOWNSAMPLE;
     down_height_ = im_height / DT_DOWNSAMPLE;
 
-    labels_evaluated_ = new uint8_t[down_width_ * down_height_];
-    labels_filtered_ = new uint8_t[down_width_ * down_height_];
-    labels_temp_ = new uint8_t[down_width_ * down_height_];
+    labels_evaluated_ = new uint8_t[src_width_ * src_height_];
+    labels_filtered_ = new uint8_t[src_width_ * src_height_];
+    labels_temp_ = new uint8_t[src_width_ * src_height_];
+    labels_temp2_ = new uint8_t[src_width_ * src_height_];
     depth_downsampled_ = new int16_t[down_width_ * down_height_];
     pixel_queue_ = new uint32_t[src_width_ * src_height_];
     pixel_on_queue_ = new uint8_t[src_width_ * src_height_];
@@ -130,54 +134,50 @@ namespace hand_detector {
 
   bool HandDetector::findHandLabels(const int16_t* depth_in, const float* xyz, 
     const HDLabelMethod method, uint8_t* label_out) {
+    const int32_t disc_filt_rad = 2;
+    int16_t cur_depth_min;
+    int16_t cur_depth_max;
+    uint32_t index = 0;
     switch (method) {
     case HDUpconvert:
       createLabels(depth_in);
-      // Result is now in labels_filtered_
-      UpsampleNoFiltering<uint8_t>(label_out, labels_filtered_, 
+      UpsampleNoFiltering<uint8_t>(labels_temp_, labels_evaluated_, 
         down_width_, down_height_, DT_DOWNSAMPLE);
-      return true;
-    case HDUpconvertFilter:
-      createLabels(depth_in);
-      // Result is now in labels_filtered_
-      UpsampleNoFiltering<uint8_t>(label_out, labels_filtered_, 
-        down_width_, down_height_, DT_DOWNSAMPLE);
-  
-      // Filter out any pixels that are near a discontinuity
-      if (HD_DISCONT_FILT_RAD > 0) {
-        int16_t cur_depth_min;
-        int16_t cur_depth_max;
-        uint32_t index = 0;
-        for (int32_t v = 0; v < (int32_t)src_height_; v++) {
-          for (int32_t u = 0; u < (int32_t)src_width_; u++) {
-            cur_depth_min = GDT_MAX_DIST;
-            cur_depth_max = 0;
-            if (label_out[index] == 1) {
-              for (int32_t v_off = v - HD_DISCONT_FILT_RAD; 
-                v_off <= v + HD_DISCONT_FILT_RAD; v_off++) {
-                  for (int32_t u_off = u - HD_DISCONT_FILT_RAD; 
-                    u_off <= u + HD_DISCONT_FILT_RAD; u_off++) {   
-                      int32_t ioff = v_off * src_width_ + u_off;
-                      if (depth_in[ioff] <= 0 || depth_in[ioff] >= GDT_MAX_DIST) {
-                        cur_depth_max = GDT_MAX_DIST;
-                        cur_depth_min = 0;
-                      } else {
-                        cur_depth_max = std::max<int16_t>(cur_depth_max, 
-                          depth_in[ioff]);
-                        cur_depth_min = std::min<int16_t>(cur_depth_min, 
-                          depth_in[ioff]);        
-                      }
-                  }
-              }
-              if ((cur_depth_max - cur_depth_min) > HD_DISCONT_FILT_DEPTH_THRESH) {
-                label_out[index] = 0;
+      ShrinkFilter<uint8_t>(labels_filtered_, labels_temp_,
+        src_width_, src_height_, 2);
+      for (int32_t v = 0; v < (int32_t)src_height_; v++) {
+        for (int32_t u = 0; u < (int32_t)src_width_; u++) {
+          cur_depth_min = GDT_MAX_DIST;
+          cur_depth_max = 0;
+          if (labels_filtered_[index] == 1 && depth_in[index] > 0 || 
+            depth_in[index] < GDT_MAX_DIST) {
+            for (int32_t v_off = v - disc_filt_rad; v_off <= v + disc_filt_rad; v_off++) {
+              for (int32_t u_off = u - disc_filt_rad; u_off <= u + disc_filt_rad; u_off++) {   
+                int32_t ioff = v_off * src_width_ + u_off;
+                if (depth_in[ioff] <= 0 || depth_in[ioff] >= GDT_MAX_DIST) {
+                    cur_depth_max = GDT_MAX_DIST;
+                    cur_depth_min = 0;
+                } else {
+                  cur_depth_max = std::max<int16_t>(cur_depth_max, depth_in[ioff]);
+                  cur_depth_min = std::min<int16_t>(cur_depth_min, depth_in[ioff]);        
+                }
               }
             }
-            index++;
+            if ((cur_depth_max - cur_depth_min) > 2 * HD_DISCONT_FILT_DEPTH_THRESH) {
+              labels_filtered_[index] = 0;
+            }
+          } else {
+            labels_filtered_[index] = 0;
           }
+          index++;
         }
       }
+
+
+      GrowFilterDepthThreshold(label_out, labels_filtered_, depth_in,
+        src_width_, src_height_, 4);
       return true;
+
     case HDFloodfill:
       // Find the center hand point
       bool hand_found;
@@ -202,6 +202,12 @@ namespace hand_detector {
     bool& lhand_found, float* rhand_uvd, float* lhand_uvd) {
     depth_ = depth_data;
     createLabels(depth_data);
+    // Copy labels labels_evaluated_ since the filter methods may destroy
+    // the source image.
+    memcpy(labels_temp_, labels_evaluated_, down_width_*down_height_*
+      sizeof(labels_temp_[0]));
+    filterLabels(labels_filtered_, labels_temp_, labels_temp2_,
+      depth_downsampled_, down_width_, down_height_);
     // Result is now in labels_filtered_
 
     // Find hands using flood fill
@@ -211,6 +217,12 @@ namespace hand_detector {
   void HandDetector::findHand(const int16_t* depth_data, bool& hand_found,
     float* hand_uvd) {
     createLabels(depth_data);
+    // Copy labels labels_evaluated_ since the filter methods may destroy
+    // the source image.
+    memcpy(labels_temp_, labels_evaluated_, down_width_*down_height_*
+      sizeof(labels_temp_[0]));
+    filterLabels(labels_filtered_, labels_temp_, labels_temp2_,
+      depth_downsampled_, down_width_, down_height_);
     // Result is now in labels_filtered_
 
     // Find hands using flood fill
@@ -245,20 +257,76 @@ namespace hand_detector {
 
   void HandDetector::createLabels(const int16_t* depth_data) {
     evaluateForest(depth_data);
-
-    // Filter the results
-    ShrinkFilter<uint8_t>(labels_temp_, labels_evaluated_,
-      down_width_, down_height_, stage1_shrink_filter_radius_);
-    MedianLabelFilter<uint8_t, int16_t>(labels_filtered_, labels_temp_, 
-      depth_downsampled_, down_width_, down_height_, stage2_med_filter_radius_);
-    GrowFilter<uint8_t>(labels_temp_, labels_filtered_,
-      down_width_, down_height_, stage3_grow_filter_radius_);
-  
-    // Now swap the buffers
-    uint8_t* tmp = labels_temp_;
-    labels_temp_ = labels_filtered_;
-    labels_filtered_ = tmp;
   }
+
+  void HandDetector::filterLabels(uint8_t*& dst, uint8_t*& src, uint8_t*& tmp,
+    int16_t* depth, const int32_t w, const int32_t h) {
+    ShrinkFilter<uint8_t>(tmp, src, w, h, 
+      stage1_shrink_filter_radius_);
+    MedianLabelFilter<uint8_t, int16_t>(dst, tmp, depth, w, h, 
+      stage2_med_filter_radius_);
+    GrowFilter<uint8_t>(tmp, dst, w, h, stage3_grow_filter_radius_);
+    // Now swap the buffers
+    uint8_t* tmp_local = tmp;
+    tmp = dst;
+    dst = tmp_local;
+  }
+
+  void HandDetector::filterLabelsThreshold(uint8_t*& dst, uint8_t*& src, 
+    uint8_t*& tmp, int16_t* depth, const int32_t w, const int32_t h) {
+    memcpy(tmp, src, w * h * sizeof(tmp[0]));
+    GrowFilterDepthThreshold(dst, tmp, depth, w, h, 
+      stage3_grow_filter_radius_);
+  }
+
+
+  void HandDetector::GrowFilterDepthThreshold(uint8_t* labels_dst, 
+    uint8_t* labels_src, const int16_t* depth, const int32_t w, 
+    const int32_t h, const int32_t rad) {
+    memcpy(labels_dst, labels_src, w * h * sizeof(labels_dst[0]));
+    // Grow horizontally
+    int32_t index = 0;
+    for (int32_t v = 0; v < h; v++) {
+      for (int32_t u = 0; u < w; u++) {
+        if (labels_dst[index] == 1) {
+          int16_t cur_depth = depth[index];
+          for (int32_t u_offset = std::max<int32_t>(u - rad, 0); 
+            u_offset <= u + rad && u_offset < w; u_offset++) {
+            int32_t offset = v * w + u_offset;
+            int16_t delta_depth = cur_depth - depth[offset];
+            if (delta_depth < 0) {
+              delta_depth = -delta_depth; 
+            }
+            if (delta_depth < (int16_t)HD_BACKGROUND_THRESH_GROW) {
+              labels_src[offset] = 1;
+            }
+          }
+        }
+        index++;
+      }
+    }
+    // Grow vertically
+    index = 0;
+    for (int32_t v = 0; v < h; v++) {
+      for (int32_t u = 0; u < w; u++) {
+        if (labels_src[index] == 1) {
+          int16_t cur_depth = depth[index];
+          for (int32_t v_offset = std::max<int32_t>(v - rad, 0); 
+            v_offset <= v + rad && v_offset < h; v_offset++) {
+            int32_t offset = v_offset * w + u;
+            int16_t delta_depth = cur_depth - depth[offset];
+            if (delta_depth < 0) {
+              delta_depth = -delta_depth; 
+            }
+            if (delta_depth < (int16_t)HD_BACKGROUND_THRESH_GROW) {
+              labels_dst[offset] = 1;
+            }
+          }
+        }
+        index++;
+      }
+    }
+  };
 
   void HandDetector::evaluateForestMultithreaded() {
     threads_finished_ = 0;
@@ -319,6 +387,8 @@ namespace hand_detector {
           // starting from this pixel --> Potentially a new blob
 
           // Add the current pixel to the end of the queue
+          int16_t min_depth = GDT_MAX_DIST;
+          int16_t max_depth = 0;
           pixel_queue_[queue_tail_] = cur_index;
           pixel_on_queue_[cur_index] = true;
           queue_tail_++;
@@ -330,6 +400,14 @@ namespace hand_detector {
           while (queue_head_ != queue_tail_) {
             // Take the pixel off the head
             int cur_pixel = pixel_queue_[queue_head_];
+
+            if (labels_evaluated_[cur_pixel] == 1) {
+              min_depth = std::min<int16_t>(min_depth, 
+                depth_downsampled_[cur_pixel]);
+              max_depth = std::max<int16_t>(max_depth, 
+                depth_downsampled_[cur_pixel]);
+            }
+
             int cur_u = cur_pixel % down_width_;
             int cur_v = cur_pixel / down_width_;
             queue_head_++;
@@ -367,9 +445,11 @@ namespace hand_detector {
               DT_DOWNSAMPLE + DT_DOWNSAMPLE / 2;
             int center_v = ((cur_uv_max_[1] + cur_uv_min_[1]) / 2) * 
               DT_DOWNSAMPLE + DT_DOWNSAMPLE / 2;
-            uint32_t index_depth_ = center_v * (src_width_) + center_u;
+            //uint32_t index_depth_ = center_v * (src_width_) + center_u;
+            //Float3 center(static_cast<float>(center_u), static_cast<float>(center_v), 
+            //  static_cast<float>(depth_[index_depth_]));
             Float3 center(static_cast<float>(center_u), static_cast<float>(center_v), 
-              static_cast<float>(depth_[index_depth_]));
+              (float)(max_depth + min_depth) / 2.0f);
             hands_uvd_.pushBack(center);
           }
         }
