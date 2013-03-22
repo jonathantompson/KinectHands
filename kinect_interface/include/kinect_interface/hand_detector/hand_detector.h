@@ -30,7 +30,7 @@
 #define HD_SMALL_HAND_RADIUS_MIN_UV 10
 #define HD_N_PTS_FILL_KERNEL 16
 #define HD_HAND_RADIUS 150.0f
-#define HD_BACKGROUND_THRESH 50.0f  // For hand flood fill
+#define HD_BACKGROUND_THRESH 100.0f  // For hand flood fill
 #define HD_BACKGROUND_THRESH_SQ (HD_BACKGROUND_THRESH * HD_BACKGROUND_THRESH)
 #define HD_FILL_COARSE_RADIUS 5000  // This value is divided by depth in mm!
 #define HD_FILL_FINE_RADIUS 1 
@@ -81,8 +81,6 @@ namespace hand_detector {
 
 
     jtil::data_str::Vector<jtil::math::Float3>& hands_uvd() { return hands_uvd_; }
-    jtil::data_str::Vector<jtil::math::Int2>& hands_uv_min() { return hands_uv_min_; }
-    jtil::data_str::Vector<jtil::math::Int2>& hands_uv_max() { return hands_uv_max_; }
 
   private:
     DecisionTree* forest_;
@@ -104,12 +102,8 @@ namespace hand_detector {
     int32_t num_trees_to_evaluate_;
     int32_t max_height_to_evaluate_;
     uint32_t* pixel_queue_;
-    jtil::data_str::Vector<jtil::math::Int2> hands_uv_min_;  // In downsampled UV space
-    jtil::data_str::Vector<jtil::math::Int2> hands_uv_max_;
     jtil::data_str::Vector<jtil::math::Float3> hands_uvd_;  // In 640 x 480 space
     jtil::data_str::Vector<uint32_t> hands_n_pts_;
-    jtil::math::Int2 cur_uv_min_;
-    jtil::math::Int2 cur_uv_max_;
     uint32_t queue_head_;
     uint32_t queue_tail_;
     uint8_t* pixel_on_queue_;

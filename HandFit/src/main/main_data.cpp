@@ -53,17 +53,19 @@
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")
-#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")  // Added
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")  // Added
+#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/") 
 
 #define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN/") 
 
 //#define SAVE_FILES  // Only enabled when we're not loading processed images
-//#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
+#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
 //#define SAVE_HPF_IMAGES  // Save the hpf files
+#define DESIRED_PLAYBACK_FPS 30.0f
+#define FRAME_TIME (1.0f / DESIRED_PLAYBACK_FPS)
 
 #if defined(__APPLE__)
 #define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
@@ -172,7 +174,7 @@ void loadCurrentImage() {
   string DIR = IM_DIR;
 #endif
   string full_filename = DIR + string(file);
-  std::cout << "loading image: " << full_filename << std::endl;
+  //std::cout << "loading image: " << full_filename << std::endl;
 
 #ifdef LOAD_PROCESSED_IMAGES
   // Just load the processed image directly
@@ -203,7 +205,8 @@ void loadCurrentImage() {
   src_file = src_file.substr(10, src_file.length());
 #endif
   r_hand->loadFromFile(DIR, string("coeffr_") + src_file);
-  l_hand->loadFromFile(DIR, string("coeffl_") + src_file);
+  // Don't bother loading it, it eats into our disk IO anyway.
+  //l_hand->loadFromFile(DIR, string("coeffl_") + src_file);
   HandModel::scale = r_hand->local_scale();
   cout << "loaded image " << cur_image+1 << " of " << im_files.size() << endl;
 
@@ -249,8 +252,9 @@ void saveFrame() {
     string l_hand_file = DST_IM_DIR + string("coeffl_") + im_files[cur_image];
     jtil::file_io::SaveArrayToFile<float>(coeff_convnet,
       HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, r_hand_file);
-    jtil::file_io::SaveArrayToFile<float>(blank_coeff,
-      HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, l_hand_file);
+    // Don't save it...  It's just blank anyway and will eat into our disk IO
+    //jtil::file_io::SaveArrayToFile<float>(blank_coeff,
+    //  HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, l_hand_file);
   }
 #endif
 }
@@ -309,22 +313,22 @@ void keyboardCB(int key, int action) {
     src_file = im_files[cur_image];
     src_file = src_file.substr(10, src_file.length());
     r_coeff_file = DST_IM_DIR + string("coeffr_") + src_file;
-    l_coeff_file = DST_IM_DIR + string("coeffl_") + src_file;
+    //l_coeff_file = DST_IM_DIR + string("coeffl_") + src_file;
 
     if (delete_confirmed == 1) {
       if(!DeleteFile(full_im_filename.c_str()) ||
-        !DeleteFile(r_coeff_file.c_str()) ||
-        !DeleteFile(l_coeff_file.c_str())) {
+        !DeleteFile(r_coeff_file.c_str()) /*||
+        !DeleteFile(l_coeff_file.c_str())*/) {
         cout << "Error deleting files: " << endl;
         cout << "    - " << full_im_filename.c_str() << endl;
         cout << "    - " << r_coeff_file.c_str() << endl;
-        cout << "    - " << l_coeff_file.c_str() << endl;
+        //cout << "    - " << l_coeff_file.c_str() << endl;
         cout << endl;
       } else {
         cout << "Files deleted sucessfully: " << endl;
         cout << "    - " << full_im_filename.c_str() << endl;
         cout << "    - " << r_coeff_file.c_str() << endl;
-        cout << "    - " << l_coeff_file.c_str() << endl;
+        //cout << "    - " << l_coeff_file.c_str() << endl;
         cout << endl;
         im_files.deleteAtAndShift((uint32_t)cur_image);
         loadCurrentImage();
@@ -335,7 +339,7 @@ void keyboardCB(int key, int action) {
       cout << "About to delete files: " << endl;
       cout << "    - " << full_im_filename.c_str() << endl;
       cout << "    - " << r_coeff_file.c_str() << endl;
-      cout << "    - " << l_coeff_file.c_str() << endl;
+      //cout << "    - " << l_coeff_file.c_str() << endl;
       cout << endl;
       cout << "Press 'd' again " << 2 - delete_confirmed;
       cout << " times to confirm" << endl;
@@ -399,6 +403,7 @@ int main(int argc, char *argv[]) {
   try {
     clk = new jtil::clk::Clk();
     t1 = clk->getTime();
+    t0 = t1;
     
     // Initialize Windowing system
     Window::initWindowSystem();
@@ -474,10 +479,19 @@ int main(int argc, char *argv[]) {
     render->renderFrame(0);
 
     while (is_running) {
+      clk = new jtil::clk::Clk();
+
       renderFrame();
       saveFrame();
 
       if (continuous_playback) {
+        t1 = clk->getTime();
+        float dt = (float)(t1 - t0);
+        if (dt < FRAME_TIME) {
+          std::this_thread::sleep_for(
+            std::chrono::microseconds((int)(1000000.0f * (FRAME_TIME - dt))));
+        }
+        t0 = t1;
         if (cur_image < (int32_t)im_files.size() - 1) {
           cur_image++;
           loadCurrentImage();

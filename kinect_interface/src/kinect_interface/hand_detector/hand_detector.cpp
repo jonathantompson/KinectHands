@@ -361,8 +361,8 @@ namespace hand_detector {
   }
 
   void HandDetector::reset() {
-    hands_uv_min_.resize(0);
-    hands_uv_max_.resize(0);
+    //hands_uv_min_.resize(0);
+    //hands_uv_max_.resize(0);
     hands_n_pts_.resize(0);
     hands_uvd_.resize(0);
   }
@@ -370,8 +370,8 @@ namespace hand_detector {
   void HandDetector::floodFillLabelData(bool* rhand_found, float* rhand_uvd, 
     bool* lhand_found, float* lhand_uvd) {
     // re-use the labels_evaluated data instead of allocating more
-    hands_uv_min_.resize(0);
-    hands_uv_max_.resize(0);
+    //hands_uv_min_.resize(0);
+    //hands_uv_max_.resize(0);
     hands_n_pts_.resize(0);
     hands_uvd_.resize(0);
 
@@ -387,44 +387,34 @@ namespace hand_detector {
           // starting from this pixel --> Potentially a new blob
 
           // Add the current pixel to the end of the queue
-          int16_t min_depth = GDT_MAX_DIST;
-          int16_t max_depth = 0;
           pixel_queue_[queue_tail_] = cur_index;
           pixel_on_queue_[cur_index] = true;
           queue_tail_++;
           uint32_t n_blob_pts = 0;
+          uint32_t n_hand_pts = 0;
 
-          cur_uv_min_.set(down_width_, down_height_);
-          cur_uv_max_.set(-1, -1);
+          int u_ave = 0;
+          int v_ave = 0;
+          int depth_ave = 0;
+          //cur_uv_min_.set(down_width_, down_height_);
+          //cur_uv_max_.set(-1, -1);
 
           while (queue_head_ != queue_tail_) {
             // Take the pixel off the head
             int cur_pixel = pixel_queue_[queue_head_];
-
-            if (labels_evaluated_[cur_pixel] == 1) {
-              min_depth = std::min<int16_t>(min_depth, 
-                depth_downsampled_[cur_pixel]);
-              max_depth = std::max<int16_t>(max_depth, 
-                depth_downsampled_[cur_pixel]);
-            }
 
             int cur_u = cur_pixel % down_width_;
             int cur_v = cur_pixel / down_width_;
             queue_head_++;
             n_blob_pts++;
 
-            if (cur_u < cur_uv_min_[0]) {
-              cur_uv_min_[0] = cur_u;
+            if (labels_evaluated_[cur_pixel] == 1) {
+              depth_ave += (int)depth_downsampled_[cur_pixel];
+              n_hand_pts += 1;
             }
-            if (cur_u > cur_uv_max_[0]) {
-              cur_uv_max_[0] = cur_u;
-            }
-            if (cur_v < cur_uv_min_[1]) {
-              cur_uv_min_[1] = cur_v;
-            }
-            if (cur_v > cur_uv_max_[1]) {
-              cur_uv_max_[1] = cur_v;
-            }
+
+            u_ave += cur_u;
+            v_ave += cur_v;
 
             // Process the 8 surrounding neighbours
             processNeighbour(cur_u-1, cur_v-1);
@@ -438,18 +428,11 @@ namespace hand_detector {
           }
           // Finished processing the entire blob
           if (n_blob_pts >= HD_MIN_PTS_PER_HAND_BLOB) {
-            hands_uv_min_.pushBack(cur_uv_min_);
-            hands_uv_max_.pushBack(cur_uv_max_);
             hands_n_pts_.pushBack(n_blob_pts);
-            int center_u = ((cur_uv_max_[0] + cur_uv_min_[0]) / 2) * 
-              DT_DOWNSAMPLE + DT_DOWNSAMPLE / 2;
-            int center_v = ((cur_uv_max_[1] + cur_uv_min_[1]) / 2) * 
-              DT_DOWNSAMPLE + DT_DOWNSAMPLE / 2;
-            //uint32_t index_depth_ = center_v * (src_width_) + center_u;
-            //Float3 center(static_cast<float>(center_u), static_cast<float>(center_v), 
-            //  static_cast<float>(depth_[index_depth_]));
-            Float3 center(static_cast<float>(center_u), static_cast<float>(center_v), 
-              (float)(max_depth + min_depth) / 2.0f);
+
+            Float3 center(DT_DOWNSAMPLE * (float)u_ave / (float)n_blob_pts, 
+              DT_DOWNSAMPLE * (float)v_ave / (float)n_blob_pts, 
+              (float)depth_ave / (float)n_hand_pts);
             hands_uvd_.pushBack(center);
           }
         }
