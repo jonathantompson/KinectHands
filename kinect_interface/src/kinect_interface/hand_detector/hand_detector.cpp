@@ -604,8 +604,8 @@ namespace hand_detector {
     // queue of pixels
     int minPtIndex = static_cast<int>(round(min_pt_uvd[1])) * src_width_ + 
       static_cast<int>(round(min_pt_uvd[0]));
-    float min_pt_xyz[3] = {xyz[minPtIndex*3], xyz[minPtIndex*3+1], 
-      xyz[minPtIndex*3+2]};
+    //float min_pt_xyz[3] = {xyz[minPtIndex*3], xyz[minPtIndex*3+1], 
+    //  xyz[minPtIndex*3+2]};
 
     memset(pixel_on_queue_, 0, src_width_ * src_height_ * 
       sizeof(pixel_on_queue_[0]));
@@ -630,7 +630,8 @@ namespace hand_detector {
           static_cast<float>(xyz[curPtIndex*3+2])));
         neighbourPtIndexUV[0] = curPtU + cur_rad_u;
         neighbourPtIndexUV[1] = curPtV + cur_rad_v;
-        processNeighbour(neighbourPtIndexUV, curPtIndex, min_pt_xyz, xyz);
+        //processNeighbour(neighbourPtIndexUV, curPtIndex, min_pt_xyz, xyz);
+        processNeighbour(neighbourPtIndexUV, curPtIndex, pt_hand_xyz, xyz);
       }
     }
   }

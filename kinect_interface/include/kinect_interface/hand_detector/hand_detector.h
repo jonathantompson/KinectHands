@@ -24,13 +24,13 @@
 #define HD_NUM_WORKER_THREADS 8
 
 // Post processing variables
-#define HD_SMALL_HAND_RADIUS 10.0f
+#define HD_SMALL_HAND_RADIUS 20.0f
 #define HD_DISCONT_FILT_RAD 3
 #define HD_DISCONT_FILT_DEPTH_THRESH 25
-#define HD_SMALL_HAND_RADIUS_MIN_UV 4
+#define HD_SMALL_HAND_RADIUS_MIN_UV 10
 #define HD_N_PTS_FILL_KERNEL 16
 #define HD_HAND_RADIUS 150.0f
-#define HD_BACKGROUND_THRESH 100.0f  // For hand flood fill
+#define HD_BACKGROUND_THRESH 50.0f  // For hand flood fill
 #define HD_BACKGROUND_THRESH_SQ (HD_BACKGROUND_THRESH * HD_BACKGROUND_THRESH)
 #define HD_FILL_COARSE_RADIUS 5000  // This value is divided by depth in mm!
 #define HD_FILL_FINE_RADIUS 1 
