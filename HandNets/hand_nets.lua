@@ -389,6 +389,7 @@ if (perform_training == 1) then
 
   print("Final output size")
   print(noutputs)
+  model:cuda()
 
   -- ********************** Visualize model **********************
   -- print '==> visualizing ConvNet filters'
@@ -396,9 +397,8 @@ if (perform_training == 1) then
   -- image.display{image=model:get(1):get(1):get(4).weight, padding=2, zoom=4, nrow=32, legend='filters @ layer 2'}
 
   -- ********************** Print model **********************
-  print '==> here is the model:'
-  model:cuda()
-  print(model)
+  -- print '==> here is the model:'
+  -- print(model)
 
   -- ********************** Train function **********************
   print '==> defining some tools'
@@ -500,6 +500,7 @@ if (perform_training == 1) then
 
         -- estimate df/dW
         df_do = criterion:backward(output, target)
+        df_do = df_do:cuda()
         model:backward(input, df_do)
 
         -- normalize gradients and f(X)
