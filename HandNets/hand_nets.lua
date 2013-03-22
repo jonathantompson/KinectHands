@@ -20,6 +20,7 @@ print("GPU That will be used:")
 print(cutorch.getDeviceProperties(cutorch.getDevice()))
 -- To get GPU Memory usage: nvidia-smi -q -d MEMORY
 
+-- nn.SpatialConvolutionMM = nn.SpatialConvolution
 
 -- Jonathan Tompson
 -- NYU, MRL
@@ -270,8 +271,8 @@ if (perform_training == 1) then
 
   -- input dimensions
   nfeats = 1
-  nstates = {{8, 32}, {8, 32}, {8, 32}}
-  nstates_nn = 2048
+  nstates = {{8, 16}, {8, 16}, {8, 16}}
+  nstates_nn = 1024
   filtsize = {{5, 7}, {5, 5}, {5, 5}}
   poolsize = {{2, 4}, {2, 2}, {1, 2}}  -- Note: 1 = no pooling
   fanin = {{4}, {4}, {4}}
@@ -290,8 +291,9 @@ if (perform_training == 1) then
     tensor_dim = {1, bank_dim[j][1], bank_dim[j][2]}
 
     -- stage 1 : filter bank -> squashing -> LN pooling -> normalization
-    banks[j]:add(nn.SpatialConvolutionMap(nn.tables.full(nfeats, 
-      nstates[j][1]), filtsize[j][1], filtsize[j][1]))
+    -- banks[j]:add(nn.SpatialConvolutionMap(nn.tables.full(nfeats, 
+    --   nstates[j][1]), filtsize[j][1], filtsize[j][1]))
+    banks[j]:add(nn.SpatialConvolution(nfeats, nstates[j][1], filtsize[j][1], filtsize[j][1]))
 
     if (nonlinear == 1) then 
       banks[j]:add(nn.SoftShrink())
@@ -323,8 +325,9 @@ if (perform_training == 1) then
     print(tensor_dim)
 
     -- stage 2 : filter bank -> squashing -> LN pooling -> normalization
-    banks[j]:add(nn.SpatialConvolutionMap(nn.tables.random(nstates[j][1], 
-      nstates[j][2], fanin[j][1]), filtsize[j][2], filtsize[j][2]))
+    -- banks[j]:add(nn.SpatialConvolutionMap(nn.tables.random(nstates[j][1], 
+    --   nstates[j][2], fanin[j][1]), filtsize[j][2], filtsize[j][2]))
+    banks[j]:add(nn.SpatialConvolution(nstates[j][1], nstates[j][2], filtsize[j][2], filtsize[j][2]))
     if (nonlinear == 1) then 
       banks[j]:add(nn.SoftShrink())
     elseif (nonlinear == 2) then
@@ -504,8 +507,8 @@ if (perform_training == 1) then
         model:backward(input, df_do)
 
         -- normalize gradients and f(X)
-        gradParameters = gradParameters:div(#inputs)
-        cur_f = cur_f/#inputs
+        -- gradParameters = gradParameters:div(#inputs)
+        -- cur_f = cur_f/#inputs
 
         -- return f and df/dX
         return cur_f, gradParameters
@@ -756,16 +759,10 @@ if false then
   end
   target = trainData.labels[cur_i]
 
-  model = nn.Sequential()
-  model:add(nn.SpatialConvolutionMap(nn.tables.full(1, 8), 5, 5))
-  model:cuda()
-
   input = {}
   table.insert(input, torch.FloatTensor(1, 96, 96):cuda())
   table.insert(input, torch.FloatTensor(1, 96/2, 96/2):cuda())
   table.insert(input, torch.FloatTensor(1, 96/4, 96/4):cuda())
-
-
 end
 
 
