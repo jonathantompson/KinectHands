@@ -125,6 +125,13 @@ cd torch
 export CC=gcc-4.7
 export CXX=g++-4.7
 
+sudo apt-get install libreadline-dev
+
+sudo apt-get install cmake
+sudo apt-get install libreadline5-dev
+sudo apt-get install git-core
+sudo apt-get install gnuplot
+
 mkdir build
 cd build
 
@@ -155,6 +162,11 @@ torch/extra/cuda/lib/THC/THCTensorRandom.cu
 
 Also add the undef lines to the top of:
 sudo emacs /usr/local/cuda/include/cuda.h
+
+You also need to comment out the line 82:
+#error -- unsupported GNU version! gcc 4.7 and up are not supported!
+to
+// #error -- unsupported GNU version! gcc 4.7 and up are not supported!
 
 Then:
 

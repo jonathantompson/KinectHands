@@ -1,13 +1,25 @@
 require 'nn'
+require 'cunn'
 require 'image'
-require 'torch'
+-- require 'torch'
+require 'cutorch'
 -- require 'xlua'    -- xlua provides useful tools, like progress bars
 require 'optim'   -- an optimization package, for online and batch methods
-torch.setnumthreads(6)
+require 'sys'
+-- require 'debugger'
+
 dofile("pbar.lua")
 dofile("shuffle_files.lua")
 dofile("modules_cc.lua")
--- require 'debugger'
+
+torch.setnumthreads(6)
+torch.manualSeed(1)
+
+torch.setdefaulttensortype('torch.FloatTensor')
+print("GPU That will be used:")
+print(cutorch.getDeviceProperties(cutorch.getDevice()))
+-- To get GPU Memory usage: nvidia-smi -q -d MEMORY
+
 
 -- Jonathan Tompson
 -- NYU, MRL
@@ -64,7 +76,7 @@ else
     end)
 end
 -- Partition files into their respective groups
-coeffl_files = {}
+-- coeffl_files = {}
 coeffr_files = {}
 hpf_depth_files = {}
 depth_files = {}
@@ -72,8 +84,8 @@ for i=1,#files,1 do
   if files[i] ~= nil then
     if string.find(files[i], "coeffr_hands_") ~= nil then
       table.insert(coeffr_files, files[i])
-    elseif string.find(files[i], "coeffl_hands_") ~= nil then
-      table.insert(coeffl_files, files[i])
+--    elseif string.find(files[i], "coeffl_hands_") ~= nil then
+--      table.insert(coeffl_files, files[i])
     elseif string.find(files[i], "hpf_hands_") ~= nil then
       table.insert(hpf_depth_files, files[i])
     elseif string.find(files[i], "processed_hands_") ~= nil then
@@ -89,7 +101,7 @@ else
 end
 
 -- ************ Randomly permute the files ***********
-shuffle_files(coeffr_files, coeffl_files, im_files)
+shuffle_files_right(coeffr_files, im_files)
 
 -- ************ Load data from Disk ***************
 print '==> Loading hand data from directory'
@@ -103,13 +115,13 @@ end
 trainData = {
   files = {},
   data = {},  -- Multi-bank input (usually 3)
-  labels = torch.DoubleTensor(trsize, num_coeff),
+  labels = torch.FloatTensor(trsize, num_coeff),
   size = function() return trsize end
 }
 testData = {
   files = {},
   data = {},
-  labels = torch.DoubleTensor(tesize, num_coeff),
+  labels = torch.FloatTensor(tesize, num_coeff),
   size = function() return tesize end
 }
 for i=1,num_hpf_banks do
@@ -139,23 +151,23 @@ for i=1,nfiles do
   if math.mod(i, test_data_rate) ~= 0 then
     if itr <= trsize then
       -- this sample is training data
-      -- We need to split the long vector into the seperate hpf banks
+      -- We need to split the long vector
       ind = 1
       for j=1,num_hpf_banks do
         trainData.data[j][{itr, 1, {}, {}}] = torch.FloatTensor(
           hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
-          bank_dim[j][2]})
+          bank_dim[j][2]}):float()
         ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
       end
       trainData.labels[{itr, {}}] = torch.FloatTensor(coeff_data, 1,
-        torch.LongStorage{num_coeff}):double()
+        torch.LongStorage{num_coeff}):float()
       trainData.files[itr] = im_files[i*frame_stride]
       itr = itr + 1
     end
   else
     if ite <= tesize then
       -- this sample is test data
-      -- We need to split the long vector into the seperate hpf banks
+      -- We need to split the long vector
       ind = 1
       for j=1,num_hpf_banks do
         testData.data[j][{ite, 1, {}, {}}] = torch.FloatTensor(
@@ -164,7 +176,7 @@ for i=1,nfiles do
         ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
       end
       testData.labels[{ite, {}}] = torch.FloatTensor(coeff_data, 1,
-        torch.LongStorage{num_coeff}):double()
+        torch.LongStorage{num_coeff}):float()
       testData.files[ite] = im_files[i*frame_stride]
       ite = ite + 1
     end
@@ -221,6 +233,15 @@ if (visualize_data == 1) then
 end
 
 -- ********************** Define loss function **********************
+-- print '==> Converting data to cudaTensor'
+-- testData.labels = testData.labels:cuda()
+-- trainData.labels = trainData.labels:cuda()
+-- for j=1,num_hpf_banks do
+--  testData.data[j] = testData.data[j]:cuda()
+--  trainData.data[j] = trainData.data[j]:cuda()
+-- end
+
+-- ********************** Define loss function **********************
 print '==> defining loss function'
 
 abs_criterion = nn.AbsCriterion()
@@ -271,6 +292,7 @@ if (perform_training == 1) then
     -- stage 1 : filter bank -> squashing -> LN pooling -> normalization
     banks[j]:add(nn.SpatialConvolutionMap(nn.tables.full(nfeats, 
       nstates[j][1]), filtsize[j][1], filtsize[j][1]))
+
     if (nonlinear == 1) then 
       banks[j]:add(nn.SoftShrink())
     elseif (nonlinear == 0) then
@@ -278,6 +300,7 @@ if (perform_training == 1) then
     elseif (nonlinear == 2) then
       banks[j]:add(nn.ramp())
     end
+
     if (poolsize[j][1] > 1) then
       if (pooling ~= math.huge) then
         banks[j]:add(nn.SpatialLPPooling(nstates[j][1], pooling, 
@@ -287,7 +310,12 @@ if (perform_training == 1) then
           poolsize[j][1], poolsize[j][1]))
       end
     end
-    banks[j]:add(nn.SpatialSubtractiveNormalization(nstates[j][1], normkernel))
+
+    -- Cuda SpatialSubtractiveNormalization doesn't seem to work
+    -- sub_norm = nn.SpatialSubtractiveNormalization(nstates[j][1], normkernel)
+    -- sub_norm.meanestimator:cuda()
+    -- banks[j]:add(sub_norm)
+    -- banks[j]:add(nn.SpatialSubtractiveNormalization(nstates[j][1], normkernel))
 
     tensor_dim = {nstates[j][1], (tensor_dim[2] - filtsize[j][1] + 1) / 
       poolsize[j][1], (tensor_dim[3] - filtsize[j][1] + 1) / poolsize[j][1]}
@@ -313,7 +341,9 @@ if (perform_training == 1) then
           poolsize[j][2], poolsize[j][2]))
       end
     end
-    banks[j]:add(nn.SpatialSubtractiveNormalization(nstates[j][2], normkernel))
+
+    -- Cuda SpatialSubtractiveNormalization doesn't seem to work
+    -- banks[j]:add(nn.SpatialSubtractiveNormalization(nstates[j][2], normkernel))
 
     tensor_dim = {nstates[j][2], (tensor_dim[2] - filtsize[j][2] + 1) / 
       poolsize[j][2], (tensor_dim[3] - filtsize[j][2] + 1) / poolsize[j][2]}
@@ -332,6 +362,7 @@ if (perform_training == 1) then
   -- Parallel applies ith member module to the ith input, and outpus a table
   parallel = nn.ParallelTable()
   for j=1,num_hpf_banks do
+    banks[j]:cuda()
     parallel:add(banks[j])
   end
   model:add(parallel)
@@ -359,32 +390,35 @@ if (perform_training == 1) then
   print("Final output size")
   print(noutputs)
 
-  -- ********************** Print model **********************
-  print '==> here is the model:'
-  print(model)
-
   -- ********************** Visualize model **********************
   -- print '==> visualizing ConvNet filters'
   -- image.display{image=model:get(1):get(1):get(1).weight, padding=2, zoom=4, legend='filters @ layer 1'}
   -- image.display{image=model:get(1):get(1):get(4).weight, padding=2, zoom=4, nrow=32, legend='filters @ layer 2'}
+
+  -- ********************** Print model **********************
+  print '==> here is the model:'
+  model:cuda()
+  print(model)
 
   -- ********************** Train function **********************
   print '==> defining some tools'
   -- This matrix records the current confusion across classes
 
   -- Log results to files
+  print '    Creating logs'
   trainLogger = optim.Logger(model_filename .. '.train.log')
   testLogger = optim.Logger(model_filename .. '.test.log')
 
   -- Retrieve parameters and gradients:
   -- this extracts and flattens all the trainable parameters of the mode
   -- into a 1-dim vector
+  print '    Extracting model parameters (this may take a while)'
   if model then
-     parameters,gradParameters = model:getParameters()
+     parameters, gradParameters = model:getParameters()
   end
 
   -- Use SGD
-  batchSize = 1
+  print '    Defining optimizer'
   optimState = {
     -- Update: parameters = parameters - learningRate * parameters_gradient
     learningRate = 1e-3,
@@ -395,7 +429,7 @@ if (perform_training == 1) then
   }
   optimMethod = optim.sgd
  
-  print '==> defining training procedure'
+  print '    defining training procedure'
 
   function train()
 
@@ -415,30 +449,24 @@ if (perform_training == 1) then
 
     -- do one epoch
     print('==> doing epoch on training data:')
-    print("==> online epoch # " .. epoch .. ' [batchSize = ' .. batchSize .. ']')
+    print("==> online epoch # " .. epoch)
     local ave_err = 0
     local ave_abs_err = 0  -- might be same as ave_err if loss = 0
     local nsamples = 0
-    for t = 1,trainData:size(),batchSize do
+    for t = 1,trainData:size() do
       -- disp progress
       progress(t, trainData:size())
 
-      -- create mini batch
-      local inputs = {}
-      local targets = {}
-      for i = t,math.min(t + batchSize-1, trainData:size()) do
-         -- load new sample
-         local cur_i = shuffle[i]
-         local input = {}
-         for j=1,num_hpf_banks do
-           table.insert(input, trainData.data[j][cur_i])
-           input[j] = input[j]:double()
-         end
-         local target = trainData.labels[cur_i]
-         target = target:double()
-         table.insert(inputs, input)
-         table.insert(targets, target)
+      -- Collect the current image into a single array
+      cur_i = shuffle[t]
+      input = {}
+      for j=1,num_hpf_banks do
+        table.insert(input, trainData.data[j][cur_i])
       end
+      for j=1,num_hpf_banks do
+        input[j] = input[j]:cuda()
+      end
+      target = trainData.labels[cur_i]
 
       -- create closure to evaluate f(X) and df/dX
       local feval = function(x)
@@ -454,24 +482,25 @@ if (perform_training == 1) then
         -- local f = 0
         cur_f = 0
 
-        -- evaluate function for complete mini batch
-        for i = 1,#inputs do
-          -- estimate f
-          local output = model:forward(inputs[i])
-          local err = criterion:forward(output, targets[i])
-          cur_f = cur_f + err
-          ave_err = ave_err + err
-          nsamples = nsamples + 1
-          local abs_err = err
-          if (loss ~= 0) then
-            abs_err = abs_criterion:forward(output, targets[i])
-          end
-          ave_abs_err = ave_abs_err + abs_err
+        -- evaluate function
+        -- estimate f
+        output = model:forward(input)
+        cutorch.synchronize()
+        output = output:float()
 
-          -- estimate df/dW
-          local df_do = criterion:backward(output, targets[i])
-          model:backward(inputs[i], df_do)
+        err = criterion:forward(output, target)
+        cur_f = cur_f + err
+        ave_err = ave_err + err
+        nsamples = nsamples + 1
+        abs_err = err
+        if (loss ~= 0) then
+          abs_err = abs_criterion:forward(output, target)
         end
+        ave_abs_err = ave_abs_err + abs_err
+
+        -- estimate df/dW
+        df_do = criterion:backward(output, target)
+        model:backward(input, df_do)
 
         -- normalize gradients and f(X)
         gradParameters = gradParameters:div(#inputs)
@@ -507,7 +536,7 @@ if (perform_training == 1) then
   end
 
   -- ********************** Test function **********************
-  print '==> defining test procedure'
+  print '    defining test procedure'
   -- test function
   function test()
     -- local vars
@@ -532,13 +561,16 @@ if (perform_training == 1) then
       input = {}
       for j=1,num_hpf_banks do
         table.insert(input, testData.data[j][t])
-        input[j] = input[j]:double()
+      end
+      for j=1,num_hpf_banks do
+        input[j] = input[j]:cuda()
       end
       target = testData.labels[t]
-      target = target:double()
 
       -- test sample
       pred = model:forward(input)
+      cutorch.synchronize()
+      pred = pred:float()
       err = criterion:forward(pred, target)
   
       err_ave = err_ave + err
@@ -604,13 +636,13 @@ else  -- if perform_training
     }
     for j=1,num_hpf_banks do
       table.insert(data_pt.input, testData.data[j][t])
-      data_pt.input[j] = data_pt.input[j]:double()
     end
-    data_pt.target = data_pt.target:double()
 
     -- image.display(data_pt.input)
 
     pred = model:forward(data_pt.input)
+    cutorch.synchronize()
+    pred = pred:float()
 
     te_abs_crit_error[t] = math.abs(abs_criterion:forward(pred, data_pt.target))
     te_mse_crit_error[t] = math.abs(mse_criterion:forward(pred, data_pt.target))
@@ -641,13 +673,11 @@ else  -- if perform_training
     }
     for j=1,num_hpf_banks do
       table.insert(data_pt.input, trainData.data[j][t])
-      data_pt.input[j] = data_pt.input[j]:double()
     end
-    data_pt.target = data_pt.target:double()
 
     -- image.display(data_pt.input)
 
-    pred = model:forward(data_pt.input)
+    pred = model:forward(data_pt.input):float()
 
     tr_abs_crit_error[t] = math.abs(abs_criterion:forward(pred, data_pt.target))
     tr_mse_crit_error[t] = math.abs(mse_criterion:forward(pred, data_pt.target))
@@ -706,3 +736,39 @@ else  -- if perform_training
   print(string.format('%.10f, %.10f, %.10f, %.10f, %.10f', tr_mse_crit_error[{{1,math.floor(0.2*trainData:size())}}]:mean(), te_abs_crit_error[{{1,math.floor(0.2*testData:size())}}]:mean(), te_mse_crit_error[{{1,math.floor(0.2*testData:size())}}]:mean(), tr_abs_crit_error[{{1,math.floor(0.8*trainData:size())}}]:mean(), tr_mse_crit_error[{{1,math.floor(0.8*trainData:size())}}]:mean()))
   print(string.format('%.10f, %.10f', te_abs_crit_error[{{1,math.floor(0.8*testData:size())}}]:mean(), te_mse_crit_error[{{1,math.floor(0.8*testData:size())}}]:mean()))
 end
+
+
+
+
+
+if false then
+  first_stage =model:get(1)
+  shuffle = torch.randperm(trsize)
+  t = 1
+  cur_i = shuffle[t]
+  input = {}
+  for j=1,num_hpf_banks do
+    table.insert(input, trainData.data[j][cur_i])
+  end
+  for j=1,num_hpf_banks do
+    input[j] = input[j]:cuda()
+  end
+  target = trainData.labels[cur_i]
+
+  model = nn.Sequential()
+  model:add(nn.SpatialConvolutionMap(nn.tables.full(1, 8), 5, 5))
+  model:cuda()
+
+  input = {}
+  table.insert(input, torch.FloatTensor(1, 96, 96):cuda())
+  table.insert(input, torch.FloatTensor(1, 96/2, 96/2):cuda())
+  table.insert(input, torch.FloatTensor(1, 96/4, 96/4):cuda())
+
+
+end
+
+
+
+
+
+
