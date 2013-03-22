@@ -40,8 +40,20 @@ cd ../
 **************************************************
 Install cuda:
 
-sudo apt-get install g++-4.6
-sudo apt-get install gcc-4.6
+Unfortuantely, we shot ourselves in the foot installing gcc 4.7 --> Cuda is NOT
+compatible with it.
+
+**** EDIT: Don't do these anymore
+**** sudo apt-get install g++-4.6
+**** sudo apt-get install gcc-4.6
+**** ln -s /usr/bin/gcc-4.6 /usr/bin/gcc
+**** ln -s /usr/bin/g++-4.6 /usr/bin/g++
+**** and remove from ~/.profile:
+**** #export <gcc/g++ lines to path>
+
+sudo apt-get install linux-headers-$(uname -r)
+
+log out then log back in
 
 https://developer.nvidia.com/cuda-downloads --> Download cuda for ubuntu
 cd to directory with cuda_5.0.35_linux_64_ubuntu11.10-1.run
@@ -55,20 +67,12 @@ If x-server is running, type:
 sudo apt-get install freeglut3-dev build-essential libx11-dev libxmu-dev libxi-dev libgl1-mesa-glx libglu1-mesa libglu1-mesa-dev libxmu-dev libxi-dev
 
 Go to directory with: cuda_5.0.35_linux_64_ubuntu11.10-1.run
-sudo sh cuda_5.0.35_linux_64_ubuntu11.10-1.run
-Follow the prompts and DO NOT install the driver (but install everything else)
-If you get "unsupported compiler version" error then you might need:
 sudo sh cuda_5.0.35_linux_64_ubuntu11.10-1.run -override compiler
-
-sudo sh cuda_5.0.35_linux_64_ubuntu11.10-1.run -silent -driver
+Follow the install instructions and install everything in their default locations
 
 Edit your ~/.profile and addls:
 export PATH=/usr/local/cuda-5.0/bin:$PATH
-export LPATH=/usr/lib/nvidia-current:/usr/lib/nvidia-304:$LPATH
-export LIBRARY_PATH=/usr/lib/nvidia-current:/usr/lib/nvidia-304:$LIBRARY_PATH
-export LD_LIBRARY_PATH=/usr/local/cuda-5.0/lib:/usr/local/cuda-5.0/lib64:/usr/lib/nvidia-304:$LD_LIBRARY_PATH
-
-(also check that the paths above are correct, /usr/lib/nvidia* shoudl contain libcuda.so)
+export LD_LIBRARY_PATH=/usr/local/cuda-5.0/lib:/usr/local/cuda-5.0/lib64:$LD_LIBRARY_PATH
 
 Reboot
 
@@ -78,20 +82,14 @@ nvcc -V
 
 To make sure the compiler driver works
 
-cd /usr/local/cuda-5.0/samples/1_Utilities/deviceQuery
-Edit the Makefile:
-Change line 92 and 95:
-      LDFLAGS   := -L$(CUDA_LIB_PATH) -lcuda -lcudart
-to
-      LDFLAGS   := -L$(CUDA_LIB_PATH) -L/usr/lib/nvidia-304 -lcuda -lcudart
+cd ~/NVIDIA_CUDA-5.0_Samples/1_Utilities/deviceQuery
+make
 
-sudo make
-
-./deviceQuery
+../../bin/release/linux/deviceQuery
 
 Make sure everything is as it should be!
 
-cd /usr/local/cuda-5.0/samples/2_Graphics/marchingCubes
+cd ~/NVIDIA_CUDA-5.0_Samples/2_Graphics/marchingCubes
 
 This is naughty, but I edited the cuda source to get everything to compile:
 sudo emacs marchingCubes_kernel.cu 
