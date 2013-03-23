@@ -186,6 +186,11 @@ namespace hand_net {
     }
   }
 
+  void HandNet::calcHandImage(const int16_t* depth, const uint8_t* label) {
+    image_generator_->calcHandImage(depth, label, 
+      data_type_ == HPF_DEPTH_DATA);
+  }
+
   void HandNet::calcHandCoeffConvnet(const int16_t* depth, 
     const uint8_t* label) {
     if (n_conv_stages_ == 0 || image_generator_ == NULL) {
@@ -193,10 +198,9 @@ namespace hand_net {
       std::cout << " from file!" << std::endl;
     }
 
-    image_generator_->calcHandImage(depth, label, data_type_ == HPF_DEPTH_DATA);
+    calcHandImage(depth, label);
 
     // Copy over the hand images in the input data structures
-
     const float* im;
     switch (data_type_) {
     case DEPTH_DATA:

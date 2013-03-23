@@ -95,6 +95,10 @@ namespace hand_net {
     // Result is placed in coeff_convnet
     void calcHandCoeffConvnet(const int16_t* depth, const uint8_t* label);
 
+    // If you don't want the full convnet computation but you want the hand 
+    // image -> Useful when we know the correct coeff but we want to debug
+    void calcHandImage(const int16_t* depth, const uint8_t* label);
+
     // Some helper functions for debugging
     template <typename T>
     static void print3DTensorToStdCout(T* data, const int32_t n_feats,
@@ -111,6 +115,7 @@ namespace hand_net {
     // Getter methods
     const float* hpf_hand_images() const;
     const float* coeff_convnet() const { return coeff_convnet_; }
+    float* coeff_convnet() { return coeff_convnet_; }
     const HandImageGenerator* image_generator() const { return image_generator_; }
     const float* hand_image() const;
     const int32_t size_images() const;

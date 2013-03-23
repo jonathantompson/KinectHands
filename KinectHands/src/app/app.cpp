@@ -288,6 +288,8 @@ namespace app {
     ui->addSelectboxItem("kinect_output", 
       ui::UIEnumVal(OUTPUT_HAND_DETECTOR_DEPTH, "Hand Detector Depth"));
     ui->addCheckbox("use_depth_from_file", "(Debug) Use Depth From File");
+    ui->addCheckbox("use_coeff_convnet_from_file", "(Debug) Use coeffs "
+      "from file");
     ui->addCheckbox("render_kinect_fps", "Render Kinect FPS");
 
     ui->addHeadingText("Hand Detection:");
@@ -302,8 +304,6 @@ namespace app {
       ui::UIEnumVal(OUTPUT_FILTERED_LABELS, "Filtered DF"));
     ui->addSelectboxItem("label_type_enum", 
       ui::UIEnumVal(OUTPUT_FLOODFILL_LABELS, "Floodfill"));
-    ui->addCheckbox("use_depth_from_file", "(Debug) Use Depth From File");
-    ui->addCheckbox("render_kinect_fps", "Render Kinect FPS");
     ui->addCheckbox("render_convnet_points", 
       "Render Convnet salient points");
 

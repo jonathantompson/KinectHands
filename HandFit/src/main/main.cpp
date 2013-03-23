@@ -32,6 +32,7 @@
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector.h"
 #include "jtil/clk/clk.h"
+#include "jtil/file_io/file_io.h"
 #include "jtil/string_util/string_util.h"
 #include "kinect_interface/hand_net/hand_model.h"
 #include "hand_fit/hand_geometry.h"
@@ -639,8 +640,34 @@ void KeyboardCB(int key, int action) {
         break;
       }
       break;
-    case 'k':
-    case 'K':
+    case static_cast<int>('z'):
+    case static_cast<int>('Z'):
+      if (action == RELEASED) {
+#if defined(WIN32) || defined(_WIN32)
+        std::cout << "Saving compressed rgbd of the current frame to: ";
+        new_full_im_filename = "../kinect_image.bin";
+        std::cout << new_full_im_filename << std::endl;
+        full_im_filename = IM_DIR + string(im_files[cur_image]);
+        CopyFile(full_im_filename.c_str(), new_full_im_filename.c_str(), 
+          FALSE);
+
+        std::cout << "Saving correct covnnet coeffs to: ";
+        new_full_im_filename = "../kinect_image_coeff_convnet.bin";
+        std::cout << new_full_im_filename << std::endl;
+        hand_detector->findHandLabels(cur_depth_data, cur_xyz_data,
+          kinect_interface::hand_detector::HDLabelMethod::HDFloodfill, label);
+        hand_renderer->handCoeff2CoeffConvnet(r_hands[cur_image], 
+          coeff_convnet_pso, convnet->image_generator()->hand_pos_wh(),
+          convnet->uvd_com());
+        jtil::file_io::SaveArrayToFile<float>(coeff_convnet_pso,
+          HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, new_full_im_filename);
+#else
+        std::cout << "Funcitonality only supported on Windows" << std::endl;
+#endif
+        break;
+      }
+    case static_cast<int>('k'):
+    case static_cast<int>('K'):
 #if defined(WIN32) || defined(_WIN32)
       if (action == RELEASED) {
         full_im_filename = IM_DIR + string(im_files[cur_image]);
@@ -951,6 +978,7 @@ int main(int argc, char *argv[]) {
   cout << "c - Change coeff source (PSO/Convnet)" << endl;
   cout << "shift+12345 - Copy finger1234/thumb from last frame" << endl;
   cout << "k - (3 times) delete current file" << endl;
+  cout << "z - Save uncompressed depth and correct convnet coeffs" << endl;
   
   try {
     clk = new jtil::clk::Clk();

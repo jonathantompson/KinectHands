@@ -98,6 +98,7 @@ namespace kinect_interface {
     // Hand data and data collection for machine learning
     hand_detector::HandDetector* hand_detector_;
     int16_t depth_from_file_[src_dim];
+    float* coeff_convnet_from_file_;
     uint8_t labels_from_file_[src_dim];
     uint8_t rgb_from_file_[src_dim * 3];
     float pts_world_from_file_[src_dim * 3];

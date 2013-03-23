@@ -11,10 +11,11 @@
 track_openni_skeleton,            bool,      0
 kinect_output,                    int,       1
 detect_hands,                     bool,      1
-detect_pose,                      bool,      0
+detect_pose,                      bool,      1
 render_hand_labels,               bool,      1
 label_type_enum,                  int,       2
-use_depth_from_file,              bool,      0
+use_depth_from_file,              bool,      1
+use_coeff_convnet_from_file,      bool,      1
 render_convnet_points,            bool,      1
 render_kinect_fps,                bool,      1
 
