@@ -91,7 +91,8 @@ namespace app {
     jtil::renderer::Texture* background_tex_;  // not owned here
     uint8_t rgb_[src_dim * 3];
     uint8_t labels_[src_dim];
-    uint16_t depth_[src_dim];
+    uint8_t render_labels_[src_dim];
+    int16_t depth_[src_dim];
     uint16_t hand_detector_depth_[src_dim];
     uint8_t im_[src_dim * 3];
     uint8_t im_flipped_[src_dim * 3];

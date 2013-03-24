@@ -155,28 +155,28 @@ namespace app {
             DT_DOWNSAMPLE);
         }
 
+        memcpy(labels_, kinect_->labels(), sizeof(labels_[0]) * src_dim);
+
         int label_type_enum;
         GET_SETTING("label_type_enum", int, label_type_enum);
         switch ((LabelType)label_type_enum) {
         case OUTPUT_UNFILTERED_LABELS:
-          UpsampleNoFiltering<uint8_t>(labels_, 
+          UpsampleNoFiltering<uint8_t>(render_labels_, 
             kinect_->hand_detector()->labels_evaluated(), 
             src_width / DT_DOWNSAMPLE, src_height / DT_DOWNSAMPLE, DT_DOWNSAMPLE);
           break;
         case OUTPUT_FILTERED_LABELS:
-          image_util::UpsampleNoFiltering<uint8_t>(labels_, 
+          image_util::UpsampleNoFiltering<uint8_t>(render_labels_, 
             kinect_->filteredDecisionForestLabels(), src_width / DT_DOWNSAMPLE,
             src_height / DT_DOWNSAMPLE, DT_DOWNSAMPLE);
           break;
         case OUTPUT_FLOODFILL_LABELS:
-          memcpy(labels_, kinect_->labels(), sizeof(labels_[0]) * src_dim);
+          memcpy(render_labels_, labels_, sizeof(render_labels_[0]) * src_dim);
           break;
         default:
           throw std::wruntime_error("App::run() - ERROR - label_type_enum "
             "invalid enumerant!");
         }
-        memcpy(coeff_convnet_, kinect_->coeff_convnet(), 
-          sizeof(coeff_convnet_[0]) * HandCoeffConvnet::HAND_NUM_COEFF_CONVNET);
         hand_pos_wh_.set(kinect_->hand_net()->image_generator()->hand_pos_wh());
 
         kinect_frame_number_ = kinect_->frame_number();
@@ -187,8 +187,14 @@ namespace app {
         Renderer::g_renderer()->ui()->setTextWindowString("kinect_fps_wnd",
           kinect_fps_str_);
       }
-
       kinect_->unlockData();
+
+      bool detect_pose;
+      GET_SETTING("detect_pose", bool, detect_pose);
+      if (detect_pose) {
+        kinect_->detectPose(depth_, labels_);
+        update_tex = true;
+      }
 
       if (update_tex) {
         switch (kinect_output) {
@@ -221,7 +227,7 @@ namespace app {
         if (render_hand_labels) {
           // Make hand points red
           for (uint32_t i = 0; i < src_dim; i++) {
-            if (labels_[i] == 1) {
+            if (render_labels_[i] == 1) {
               im_[i*3] = (uint8_t)std::max<int16_t>(0, 
                 (int16_t)im_[i*3] - 100);
               im_[i*3 + 1] = (uint8_t)std::min<int16_t>(255, 
@@ -231,15 +237,17 @@ namespace app {
             }
           }
         }
+
+        FlipImage<uint8_t>(im_flipped_, im_, src_width, src_height, 3);
+
         bool render_convnet_points, detect_pose;
         GET_SETTING("detect_pose", bool, detect_pose);
         GET_SETTING("render_convnet_points", bool, render_convnet_points);
         if (render_convnet_points && detect_pose) {
           kinect_->hand_net()->image_generator()->annotateFeatsToKinectImage(
-            im_, coeff_convnet_);
+            im_flipped_, kinect_->hand_net()->coeff_convnet());
         }
 
-        FlipImage<uint8_t>(im_flipped_, im_, src_width, src_height, 3);
         background_tex_->flagDirty();
       }
 

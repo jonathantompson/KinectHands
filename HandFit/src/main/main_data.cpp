@@ -62,7 +62,7 @@
 #define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN/") 
 
 //#define SAVE_FILES  // Only enabled when we're not loading processed images
-#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
+//#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
 //#define SAVE_HPF_IMAGES  // Save the hpf files
 #define DESIRED_PLAYBACK_FPS 30.0f
 #define FRAME_TIME (1.0f / DESIRED_PLAYBACK_FPS)

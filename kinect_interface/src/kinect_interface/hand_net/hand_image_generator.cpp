@@ -251,22 +251,23 @@ namespace hand_net {
   void HandImageGenerator::annotateFeatsToKinectImage(uint8_t* im, 
     const float* coeff_convnet) const {
     renderCrossToImageArr(&coeff_convnet[HandCoeffConvnet::HAND_POS_U], 
-      im, src_width, src_height, 5, 0, hand_pos_wh_[0], hand_pos_wh_[1]);
+      im, src_width, src_height, 5, 0, hand_pos_wh_);
     for (uint32_t i = HandCoeffConvnet::THUMB_K1_U; 
       i <= HandCoeffConvnet::F3_TIP_U; i += 3) {
         renderCrossToImageArr(&coeff_convnet[i], im, src_width, 
-          src_height, 2, i+1, hand_pos_wh_[0], hand_pos_wh_[1]);
+          src_height, 2, i+1, hand_pos_wh_);
     }
   }
 
   void HandImageGenerator::annotateFeatsToHandImage(uint8_t* im, 
     const float* coeff_convnet) const {
+    jtil::math::Int4 hand_pos_wh(0, 0, HN_IM_SIZE, HN_IM_SIZE);
     renderCrossToImageArr(&coeff_convnet[HandCoeffConvnet::HAND_POS_U], 
-      im, HN_IM_SIZE, HN_IM_SIZE, 5, 0, 0, 0);
+      im, HN_IM_SIZE, HN_IM_SIZE, 5, 0, hand_pos_wh);
     for (uint32_t i = HandCoeffConvnet::THUMB_K1_U; 
       i <= HandCoeffConvnet::F3_TIP_U; i += 3) {
         renderCrossToImageArr(&coeff_convnet[i], im, HN_IM_SIZE, 
-          HN_IM_SIZE, 2, i+1, 0, 0);
+          HN_IM_SIZE, 2, i+1, hand_pos_wh);
     }
   }
 
@@ -274,10 +275,9 @@ namespace hand_net {
   // Render's directly to the texture array data (not using OpenGL)
   void HandImageGenerator::renderCrossToImageArr(const float* uv, uint8_t* im, 
     const int32_t w, const int32_t h, const int32_t rad, 
-    const int32_t color_ind, const int32_t pos_off_u,
-    const int32_t pos_off_v) const {
-    int32_t v = (int32_t)floor(uv[1] * HN_IM_SIZE) + pos_off_u;
-    int32_t u = (int32_t)floor(uv[0] * HN_IM_SIZE) + pos_off_v;
+    const int32_t color_ind, const jtil::math::Int4& hand_pos_wh) const {
+    int32_t u = (int32_t)floor(uv[0] * hand_pos_wh[2]) + hand_pos_wh[0];
+    int32_t v = (int32_t)floor(uv[1] * hand_pos_wh[3]) + hand_pos_wh[1];
     v = h - v - 1;
 
     const Float3* color = 

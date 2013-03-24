@@ -66,6 +66,8 @@ namespace kinect_interface {
     char* getStatusMessage();
     int getNumUsersTracked();
 
+    void detectPose(const int16_t* depth, const uint8_t* labels);
+
     const double fps() const { return fps_; }
     const uint64_t frame_number() const { return frame_number_; }
 

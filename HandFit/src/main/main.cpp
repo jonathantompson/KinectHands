@@ -656,6 +656,7 @@ void KeyboardCB(int key, int action) {
         std::cout << new_full_im_filename << std::endl;
         hand_detector->findHandLabels(cur_depth_data, cur_xyz_data,
           kinect_interface::hand_detector::HDLabelMethod::HDFloodfill, label);
+        convnet->calcHandImage(cur_depth_data, label);
         hand_renderer->handCoeff2CoeffConvnet(r_hands[cur_image], 
           coeff_convnet_pso, convnet->image_generator()->hand_pos_wh(),
           convnet->uvd_com());
@@ -922,7 +923,7 @@ void renderFrame(float dt) {
     tex->reloadData((unsigned char*)tex_data);
     render->renderFullscreenQuad(tex);
     break;
-    case 7:
+  case 7:
       for (uint32_t v = 0; v < src_height; v++) {
         for (uint32_t u = 0; u < src_width; u++) {
           uint8_t val = (uint8_t)((cur_depth_data[v * src_width + u]) * 255.0f);

@@ -27,6 +27,7 @@
 #include "XnLog.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
+#define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
 #ifdef _WIN32
 #ifndef snprintf
@@ -117,6 +118,7 @@ namespace kinect_interface {
     SAFE_DELETE(hand_detector_);
     SAFE_DELETE(image_io_);
     SAFE_DELETE(hand_net_);
+    SAFE_DELETE_ARR(coeff_convnet_from_file_);
   }
 
   // ************************************************************
@@ -136,6 +138,7 @@ namespace kinect_interface {
       depth_from_file_, labels_from_file_, rgb_from_file_, NULL);
     DepthImagesIO::convertSingleImageToXYZ(pts_world_from_file_,
       depth_from_file_);
+    coeff_convnet_from_file_ = new float[HAND_NUM_COEFF_CONVNET];
     LoadArrayFromFile<float>(coeff_convnet_from_file_, HAND_NUM_COEFF_CONVNET,
       "./kinect_image_coeff_convnet.bin");
 
@@ -374,85 +377,76 @@ namespace kinect_interface {
       // Lock the local data structure to copy over data
       data_lock_.lock();
 
-      // Retrieve the RGB image and copy into local array
-      xn::ImageMetaData image_md_;
-      xn::DepthMetaData depth_md_;
-
-      ig_->GetMetaData(image_md_);
-      const XnRGB24Pixel* pColor = image_md_.RGB24Data();
-      memcpy(rgb_, pColor, sizeof(rgb_[0]) * src_dim * 3);
-
-      // Retrieve the depth map and copy into local array
-      dg_->GetMetaData(depth_md_);
-      const XnDepthPixel* pDepth = depth_md_.Data();
-      memcpy(depth_, pDepth, sizeof(depth_[0]) * src_dim);
-
-      // Now get the point cloud data
-      for (int v = 0, i = 0; v < src_height; v++) {
-        for (int u = 0; u < src_width; u++, i++) {
-          pts_uvd_[i * 3] = (float)u;
-          pts_uvd_[i * 3 + 1] = (float)v;
-          pts_uvd_[i * 3 + 2] = (float)pDepth[i];
-        }
-      }
-
-      // Now convert kinect space to world space
-      OpenNIFuncs::xnConvertProjectiveToRealWorld(src_dim, pts_uvd_, 
-        pts_world_);
-
       bool use_depth_from_file;
       GET_SETTING("use_depth_from_file", bool, use_depth_from_file);
-      if (use_depth_from_file) {
+
+      if (!use_depth_from_file) {
+        // Retrieve the RGB image and copy into local array
+        xn::ImageMetaData image_md_;
+        xn::DepthMetaData depth_md_;
+
+        ig_->GetMetaData(image_md_);
+        const XnRGB24Pixel* pColor = image_md_.RGB24Data();
+        memcpy(rgb_, pColor, sizeof(rgb_[0]) * src_dim * 3);
+
+        // Retrieve the depth map and copy into local array
+        dg_->GetMetaData(depth_md_);
+        const XnDepthPixel* pDepth = depth_md_.Data();
+        memcpy(depth_, pDepth, sizeof(depth_[0]) * src_dim);
+
+        // Now get the point cloud data
+        for (int v = 0, i = 0; v < src_height; v++) {
+          for (int u = 0; u < src_width; u++, i++) {
+            pts_uvd_[i * 3] = (float)u;
+            pts_uvd_[i * 3 + 1] = (float)v;
+            pts_uvd_[i * 3 + 2] = (float)pDepth[i];
+          }
+        }
+
+        // Now convert kinect space to world space
+        OpenNIFuncs::xnConvertProjectiveToRealWorld(src_dim, pts_uvd_, 
+          pts_world_);
+
+        // Now Get the skeleton
+        if (tracking_skeleton_) {
+          XnUserID aUsers[8];
+          XnUInt16 nUsers = 8;
+          ug_->GetUsers(aUsers, nUsers);
+
+          if (nUsers > 0 && ug_->GetSkeletonCap().IsTracking(aUsers[0])) {
+            updateJoint(aUsers[0], XN_SKEL_HEAD);
+            updateJoint(aUsers[0], XN_SKEL_NECK);
+            updateJoint(aUsers[0], XN_SKEL_TORSO);
+            updateJoint(aUsers[0], XN_SKEL_LEFT_SHOULDER);
+            updateJoint(aUsers[0], XN_SKEL_LEFT_ELBOW);
+            updateJoint(aUsers[0], XN_SKEL_LEFT_HAND);
+            updateJoint(aUsers[0], XN_SKEL_RIGHT_SHOULDER);
+            updateJoint(aUsers[0], XN_SKEL_RIGHT_ELBOW);
+            updateJoint(aUsers[0], XN_SKEL_RIGHT_HAND);
+            updateJoint(aUsers[0], XN_SKEL_LEFT_HIP);
+            updateJoint(aUsers[0], XN_SKEL_RIGHT_HIP);
+          }
+        }
+
+      } else {  // if (!use_depth_from_file) {
         memcpy(depth_, depth_from_file_, sizeof(depth_[0]) * src_dim);
-        memcpy(labels_, labels_from_file_, sizeof(labels_[0]) * src_dim);
         memcpy(rgb_, rgb_from_file_, sizeof(rgb_[0]) * src_dim * 3);
         memcpy(pts_world_, pts_world_from_file_, 
           sizeof(pts_world_[0]) * src_dim * 3);
       }
 
-      // Now Get the skeleton
-      if (tracking_skeleton_) {
-        XnUserID aUsers[8];
-        XnUInt16 nUsers = 8;
-        ug_->GetUsers(aUsers, nUsers);
-
-        if (nUsers > 0 && ug_->GetSkeletonCap().IsTracking(aUsers[0])) {
-          updateJoint(aUsers[0], XN_SKEL_HEAD);
-          updateJoint(aUsers[0], XN_SKEL_NECK);
-          updateJoint(aUsers[0], XN_SKEL_TORSO);
-          updateJoint(aUsers[0], XN_SKEL_LEFT_SHOULDER);
-          updateJoint(aUsers[0], XN_SKEL_LEFT_ELBOW);
-          updateJoint(aUsers[0], XN_SKEL_LEFT_HAND);
-          updateJoint(aUsers[0], XN_SKEL_RIGHT_SHOULDER);
-          updateJoint(aUsers[0], XN_SKEL_RIGHT_ELBOW);
-          updateJoint(aUsers[0], XN_SKEL_RIGHT_HAND);
-          updateJoint(aUsers[0], XN_SKEL_LEFT_HIP);
-          updateJoint(aUsers[0], XN_SKEL_RIGHT_HIP);
-        }
-      }
-
-      bool detect_hands, detect_pose, coeff_from_file;
+      bool detect_hands, found_hand;
       GET_SETTING("detect_hands", bool, detect_hands);
       if (detect_hands) {
         //hand_detector_->evaluateForest((int16_t*)depth_);
-        bool found_hand = hand_detector_->findHandLabels((int16_t*)depth_, 
+        found_hand = hand_detector_->findHandLabels((int16_t*)depth_, 
           pts_world_, HDLabelMethod::HDFloodfill, labels_);
         if (!found_hand) {
           memset(labels_, 0, sizeof(labels_[0]) * src_dim);
-        } else {
-          GET_SETTING("detect_pose", bool, detect_pose);
-          if (detect_pose) {
-            GET_SETTING("use_coeff_convnet_from_file", bool, coeff_from_file);
-            if (!coeff_from_file) {
-              hand_net_->calcHandCoeffConvnet((int16_t*)depth_, labels_);
-            } else {
-              hand_net_->calcHandImage((int16_t*)depth_, labels_);
-              memcpy(hand_net_->coeff_convnet(), coeff_convnet_from_file_,
-                HAND_NUM_COEFF_CONVNET * sizeof(*hand_net_->coeff_convnet()));
-            }
-          }
         }
-      } else {
+      }
+      
+      if (!detect_hands || !found_hand) {
         memset(labels_, 0, sizeof(labels_[0]) * src_dim);
       }
 
@@ -480,6 +474,19 @@ namespace kinect_interface {
     cout << "kinectUpdateThread shutdown requested..." << endl;
     kinect_running_ = false;
     kinect_thread_.join();
+  }
+
+  void KinectInterface::detectPose(const int16_t* depth, 
+    const uint8_t* labels) {
+    bool coeff_from_file;
+    GET_SETTING("use_coeff_convnet_from_file", bool, coeff_from_file);
+    if (!coeff_from_file) {
+      hand_net_->calcHandCoeffConvnet(depth, labels);
+    } else {
+      hand_net_->calcHandImage(depth, labels);
+      memcpy(hand_net_->coeff_convnet(), coeff_convnet_from_file_,
+        HAND_NUM_COEFF_CONVNET * sizeof(*hand_net_->coeff_convnet()));
+    }
   }
 
   void KinectInterface::logErrors(xn::EnumerationErrors& rErrors) {

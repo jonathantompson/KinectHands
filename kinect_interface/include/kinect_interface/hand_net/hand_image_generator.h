@@ -72,7 +72,7 @@ namespace hand_net {
     void initHandImageData();
     void renderCrossToImageArr(const float* uv, uint8_t* im, const int32_t w, 
       const int32_t h, const int32_t rad, const int32_t color_ind,
-      const int32_t pos_off_u, const int32_t pos_off_v) const;
+      const jtil::math::Int4& hand_pos_wh) const;
 
     // Non-copyable, non-assignable.
     HandImageGenerator(HandImageGenerator&);
