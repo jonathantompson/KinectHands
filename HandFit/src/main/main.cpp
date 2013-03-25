@@ -50,14 +50,14 @@
   #define snprintf _snprintf_s
 #endif
 
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Fit
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")  // Fit
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")  // Fit
-#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Fit
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/") 
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Fit
+#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Fit
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Fit -> Training Data
  
 #if defined(__APPLE__)
   #define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
@@ -319,6 +319,7 @@ void KeyboardCB(int key, int action) {
   string new_full_im_filename;
   string new_r_coeff_file;
   string new_l_coeff_file;
+  int repeat = 1;
   if (key != 'k' && key != 'K') {
     delete_confirmed = 0;
   }
@@ -671,52 +672,63 @@ void KeyboardCB(int key, int action) {
     case static_cast<int>('K'):
 #if defined(WIN32) || defined(_WIN32)
       if (action == RELEASED) {
-        full_im_filename = IM_DIR + string(im_files[cur_image]);
-        new_full_im_filename = IM_DIR + string("deleted_") + 
-          string(im_files[cur_image]);
-        r_coeff_file = IM_DIR + string("coeffr_") + im_files[cur_image];
-        new_r_coeff_file = IM_DIR + string("deleted_") + string("coeffr_") + 
-          im_files[cur_image];
-        l_coeff_file = IM_DIR + string("coeffl_") + im_files[cur_image];
-        new_l_coeff_file = IM_DIR + string("deleted_") + string("coeffl_") + 
-          im_files[cur_image];
 
-        if (delete_confirmed == 1) {
-          if(!MoveFile(full_im_filename.c_str(), new_full_im_filename.c_str()) 
-            || !MoveFile(r_coeff_file.c_str(), new_r_coeff_file.c_str()) ||
-            !MoveFile(l_coeff_file.c_str(), new_l_coeff_file.c_str())) {
-              cout << "Error moving files: " << endl;
+        if (shift_down) {
+          repeat = 10;
+        }
+
+        for (int i = 0; i < repeat; i++) {
+          full_im_filename = IM_DIR + string(im_files[cur_image]);
+          new_full_im_filename = IM_DIR + string("deleted_") + 
+            string(im_files[cur_image]);
+          r_coeff_file = IM_DIR + string("coeffr_") + im_files[cur_image];
+          new_r_coeff_file = IM_DIR + string("deleted_") + string("coeffr_") + 
+            im_files[cur_image];
+          l_coeff_file = IM_DIR + string("coeffl_") + im_files[cur_image];
+          new_l_coeff_file = IM_DIR + string("deleted_") + string("coeffl_") + 
+            im_files[cur_image];
+
+          if (delete_confirmed == 1) {
+            if(!MoveFile(full_im_filename.c_str(), new_full_im_filename.c_str()) 
+              || !MoveFile(r_coeff_file.c_str(), new_r_coeff_file.c_str()) ||
+              !MoveFile(l_coeff_file.c_str(), new_l_coeff_file.c_str())) {
+                cout << "Error moving files: " << endl;
+                cout << "    - " << full_im_filename.c_str() << endl;
+                cout << "    - " << r_coeff_file.c_str() << endl;
+                cout << "    - " << l_coeff_file.c_str() << endl;
+                cout << endl;
+            } else {
+              cout << "Files marked as deleted sucessfully: " << endl;
               cout << "    - " << full_im_filename.c_str() << endl;
               cout << "    - " << r_coeff_file.c_str() << endl;
               cout << "    - " << l_coeff_file.c_str() << endl;
               cout << endl;
-          } else {
-            cout << "Files marked as deleted sucessfully: " << endl;
-            cout << "    - " << full_im_filename.c_str() << endl;
-            cout << "    - " << r_coeff_file.c_str() << endl;
-            cout << "    - " << l_coeff_file.c_str() << endl;
-            cout << endl;
-            delete r_hands[cur_image];
-            delete l_hands[cur_image];
-            for (uint32_t i = cur_image; i < im_files.size() - 1; i++) {
-              r_hands[i] = r_hands[i+1];
-              l_hands[i] = l_hands[i+1];
+              delete r_hands[cur_image];
+              delete l_hands[cur_image];
+              for (uint32_t i = cur_image; i < im_files.size() - 1; i++) {
+                r_hands[i] = r_hands[i+1];
+                l_hands[i] = l_hands[i+1];
+              }
+              im_files.deleteAtAndShift((uint32_t)cur_image);
+              loadCurrentImage();
+              InitXYZPointsForRendering();
+              std::cout << "cur_image = " << cur_image << std::endl;
             }
-            im_files.deleteAtAndShift((uint32_t)cur_image);
-            loadCurrentImage();
-            InitXYZPointsForRendering();
-            std::cout << "cur_image = " << cur_image << std::endl;
+            if (i == (repeat - 1)) {
+              delete_confirmed = 0;
+            }
+          } else {
+            if (i == 0) {
+              delete_confirmed++;
+              cout << "About to mark files as deleted: " << endl;
+              cout << "    - " << full_im_filename.c_str() << endl;
+              cout << "    - " << r_coeff_file.c_str() << endl;
+              cout << "    - " << l_coeff_file.c_str() << endl;
+              cout << endl;
+              cout << "Press 'd' again " << 2 - delete_confirmed;
+              cout << " times to confirm" << endl;
+            }
           }
-          delete_confirmed = 0;
-        } else {
-          delete_confirmed++;
-          cout << "About to mark files as deleted: " << endl;
-          cout << "    - " << full_im_filename.c_str() << endl;
-          cout << "    - " << r_coeff_file.c_str() << endl;
-          cout << "    - " << l_coeff_file.c_str() << endl;
-          cout << endl;
-          cout << "Press 'd' again " << 2 - delete_confirmed;
-          cout << " times to confirm" << endl;
         }
       }
 #else
