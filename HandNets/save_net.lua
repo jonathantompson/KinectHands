@@ -1,6 +1,8 @@
 require 'nn'
+require 'cunn'
 require 'image'
-require 'torch'
+-- require 'torch'
+require 'cutorch'
 require 'xlua'    -- xlua provides useful tools, like progress bars
 require 'optim'   -- an optimization package, for online and batch methods
 torch. setnumthreads(4)
@@ -13,7 +15,7 @@ dofile("saveNNStage.lua")  -- Load in helper function
 -- This script turns the serialized neural network file into a file that is
 -- readable by my c++ code.
 
-model_filename = "results/handmodel.net"
+model_filename = "handmodel.net"
 
 -- Load in the settings file
 print("--> Loading settings from file")
@@ -22,6 +24,7 @@ dofile("load_settings.lua")
 -- Load in the serialized convent
 print("--> Loading model from file")
 model = torch.load(model_filename)
+model = model:float()
 
 -- Open an output file
 convnet = torch.DiskFile(model_filename .. ".convnet", 'w')
@@ -49,9 +52,9 @@ for j=1,num_hpf_banks do
   -- ***************************************************
   -- Save the second conv stage.
   if (poolsize[j][1] == 1) then  -- no pooling in the first stage
-    stg2 = model:get(1):get(j):get(4)
+    stg2 = model:get(1):get(j):get(6)
   else
-    stg2 = model:get(1):get(j):get(5)
+    stg2 = model:get(1):get(j):get(7)
   end
   saveConvStage(stg2, norm, poolsize[j][2], pooling, nonlinear, convnet)
 end

@@ -33,7 +33,7 @@ dim = width * height
 frame_stride = 1  -- Maybe we don't need every 30fps, so just grab a few
 test_data_rate = 5  -- this means 1 / 5 will be test data
 num_coeff = 58
-perform_training = 1
+perform_training = 0
 nonlinear = 0  -- 0 = tanh, 1 = SoftShrink, 2 = ramp
 model_filename = 'handmodel.net'
 loss = 0  -- 0 = abs, 1 = mse
@@ -41,6 +41,9 @@ im_dir = "../data/hand_depth_data_processed_for_CN/"
 visualize_data = 0
 pooling = 2  -- 1,2,.... or math.huge (infinity)
 use_hpf_depth = 0
+learning_rate = 2e-3  -- Default 1e-3
+learning_rate_decay = 5e-7
+l2_reg_param = 5e-4
 regularization_stride = 50
 
 -- ******* Some preliminary calculations *********
@@ -295,8 +298,7 @@ if (perform_training == 1) then
 
     -- stage 1 : filter bank -> squashing -> LN pooling -> normalization
     -- *********** TO DO: SpatialConvolutionMap IS NOT IMPLEMENTED IN CUDA YET **************
-    -- banks[j]:add(nn.SpatialConvolutionMap(nn.tables.full(nfeats, 
-    --   nstates[j][1]), filtsize[j][1], filtsize[j][1]))
+    -- banks[j]:add(nn.SpatialConvolutionMap(nn.tables.full(nfeats, nstates[j][1]), filtsize[j][1], filtsize[j][1]))
     banks[j]:add(nn.SpatialConvolution(nfeats, nstates[j][1], filtsize[j][1], filtsize[j][1]):cuda())
 
     if (nonlinear == 1) then 
@@ -327,8 +329,7 @@ if (perform_training == 1) then
 
     -- stage 2 : filter bank -> squashing -> LN pooling -> normalization
     -- *********** TO DO: SPATIALCONVOLUTIONMAP IS NOT IMPLEMENTED IN CUDA YET **************
-    -- banks[j]:add(nn.SpatialConvolutionMap(nn.tables.random(nstates[j][1], 
-    --   nstates[j][2], fanin[j][1]), filtsize[j][2], filtsize[j][2]))
+    -- banks[j]:add(nn.SpatialConvolutionMap(nn.tables.random(nstates[j][1], nstates[j][2], fanin[j][1]), filtsize[j][2], filtsize[j][2]))
     banks[j]:add(nn.SpatialConvolution(nstates[j][1], nstates[j][2], filtsize[j][2], filtsize[j][2]):cuda())
     if (nonlinear == 1) then 
       banks[j]:add(nn.SoftShrink():cuda())
@@ -426,11 +427,11 @@ if (perform_training == 1) then
   print '    Defining optimizer'
   optimState = {
     -- Update: parameters = parameters - learningRate * parameters_gradient
-    learningRate = 1e-3,
+    learningRate = learning_rate,
     weightDecay = 0,
     momentum = 0,
     -- current_learning_rate =learningRate / (1 + iteration * learningRateDecay)
-    learningRateDecay = 5e-7
+    learningRateDecay = learning_rate_decay
   }
   optimMethod = optim.sgd
  
@@ -490,7 +491,22 @@ if (perform_training == 1) then
         end
         ave_abs_err = ave_abs_err + abs_err
 
-        -- L2 regularization
+        -- L2 Regularization
+        l2_reg_scale = 1 - l2_reg_param * learning_rate
+--        for k = 1,num_hpf_banks do
+--          -- Weight and bias of 1st stage convolution
+--          model:get(1):get(k):get(1).weight:mul(l2_reg_scale)
+--          model:get(1):get(k):get(1).bias:mul(l2_reg_scale)
+--          -- Weight and bias of 2nd stage convolution
+--          model:get(1):get(k):get(7).weight:mul(l2_reg_scale)
+--          model:get(1):get(k):get(7).bias:mul(l2_reg_scale)
+--        end
+        -- Weight and bias of 1st stage NN
+        model:get(3).weight:mul(l2_reg_scale)
+        model:get(3).bias:mul(l2_reg_scale)
+        -- Weight and bias of 2nd stage NN
+        model:get(5).weight:mul(l2_reg_scale)
+        model:get(5).bias:mul(l2_reg_scale)
 
         -- estimate df/dW
         df_do = criterion:backward(output, trainData.labels[cur_i])
@@ -703,9 +719,6 @@ else  -- if perform_training
   print(string.format('%.10f, %.10f, %.10f, %.10f, %.10f', tr_mse_crit_error[{{1,math.floor(0.2*trainData:size())}}]:mean(), te_abs_crit_error[{{1,math.floor(0.2*testData:size())}}]:mean(), te_mse_crit_error[{{1,math.floor(0.2*testData:size())}}]:mean(), tr_abs_crit_error[{{1,math.floor(0.8*trainData:size())}}]:mean(), tr_mse_crit_error[{{1,math.floor(0.8*trainData:size())}}]:mean()))
   print(string.format('%.10f, %.10f', te_abs_crit_error[{{1,math.floor(0.8*testData:size())}}]:mean(), te_mse_crit_error[{{1,math.floor(0.8*testData:size())}}]:mean()))
 end
-
-
-
 
 
 if false then

@@ -8,3 +8,4 @@ hand_depth_data_processed*.zip
 ~*xlsx
 temp.lua
 kinect_depth_image_uncompressed_down_float.bin
+handmodel.net.convnet

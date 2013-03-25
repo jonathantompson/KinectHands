@@ -17,21 +17,47 @@ function saveConvStage(conv_stage, norm, poolsize, pooltype, nonlinear, out_file
   out_file:writeInt(conv_stage.kH)
   out_file:writeInt(conv_stage.nInputPlane)
   out_file:writeInt(conv_stage.nOutputPlane)
-  local fanin = conv_stage.connTableRev:size()[2]
-  out_file:writeInt(fanin)
- 
-  for i=1,(conv_stage.nOutputPlane * fanin) do
-    for v=1,conv_stage.kH do
-      for u=1,conv_stage.kW do
-        out_file:writeFloat(conv_stage.weight[{i, v, u}])
+
+  if (conv_stage.connTableRev == nil) then
+    local fanin = conv_stage.nInputPlane
+    out_file:writeInt(fanin)
+
+    -- SpatialConvolution
+    for i=1,(conv_stage.nOutputPlane) do
+      for j=1,(conv_stage.nInputPlane) do
+        for v=1,conv_stage.kH do
+          for u=1,conv_stage.kW do
+            out_file:writeFloat(conv_stage.weight[{i, j, v, u}])
+          end
+        end
       end
     end
-  end
 
-  for i=1,conv_stage.nOutputPlane do
-    for v=1,fanin do
-      out_file:writeShort(conv_stage.connTableRev[{i, v, 1}] - 1)
-      out_file:writeShort(conv_stage.connTableRev[{i, v, 2}] - 1)
+    local cur_mat = 0;
+    for i=1,conv_stage.nOutputPlane do
+      for j=1,(conv_stage.nInputPlane) do
+        out_file:writeShort(j - 1)  -- input feature
+        out_file:writeShort(cur_mat)  -- weight matrix
+        cur_mat = cur_mat + 1
+      end
+    end
+  else
+    -- SpatialConvolutionMap
+    local fanin = conv_stage.connTableRev:size()[2]
+    out_file:writeInt(fanin)
+ 
+    for i=1,(conv_stage.nOutputPlane * fanin) do
+      for v=1,conv_stage.kH do
+        for u=1,conv_stage.kW do
+          out_file:writeFloat(conv_stage.weight[{i, v, u}])
+        end
+      end
+    end
+    for i=1,conv_stage.nOutputPlane do
+      for v=1,fanin do
+        out_file:writeShort(conv_stage.connTableRev[{i, v, 1}] - 1)  -- input feature
+        out_file:writeShort(conv_stage.connTableRev[{i, v, 2}] - 1)  -- weight matrix
+      end
     end
   end
 

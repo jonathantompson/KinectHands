@@ -82,7 +82,7 @@ else
   print("loss should be 0 or 1")
   return
 end
-set_file:writeString(string.format('%e,%e,%e,%e', optimState.learningRate, 
-  optimState.weightDecay, optimState.momentum, optimState.learningRateDecay))
+set_file:writeString(string.format('%e,%e,%e,%e', learning_rate, 
+  0, 0, learning_rate_decay))
 
 set_file:close()
