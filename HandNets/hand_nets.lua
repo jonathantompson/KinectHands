@@ -291,6 +291,7 @@ if (perform_training == 1) then
     tensor_dim = {1, bank_dim[j][1], bank_dim[j][2]}
 
     -- stage 1 : filter bank -> squashing -> LN pooling -> normalization
+    -- *********** TO DO: SpatialConvolutionMap IS NOT IMPLEMENTED IN CUDA YET **************
     -- banks[j]:add(nn.SpatialConvolutionMap(nn.tables.full(nfeats, 
     --   nstates[j][1]), filtsize[j][1], filtsize[j][1]))
     banks[j]:add(nn.SpatialConvolution(nfeats, nstates[j][1], filtsize[j][1], filtsize[j][1]))
@@ -313,10 +314,7 @@ if (perform_training == 1) then
       end
     end
 
-    -- Cuda SpatialSubtractiveNormalization doesn't seem to work
-    -- sub_norm = nn.SpatialSubtractiveNormalization(nstates[j][1], normkernel)
-    -- sub_norm.meanestimator:cuda()
-    -- banks[j]:add(sub_norm)
+    -- *********** TO DO: SpatialSubtractiveNormalization IS NOT IMPLEMENTED IN CUDA YET **************
     -- banks[j]:add(nn.SpatialSubtractiveNormalization(nstates[j][1], normkernel))
 
     tensor_dim = {nstates[j][1], (tensor_dim[2] - filtsize[j][1] + 1) / 
@@ -325,6 +323,7 @@ if (perform_training == 1) then
     print(tensor_dim)
 
     -- stage 2 : filter bank -> squashing -> LN pooling -> normalization
+    -- *********** TO DO: SPATIALCONVOLUTIONMAP IS NOT IMPLEMENTED IN CUDA YET **************
     -- banks[j]:add(nn.SpatialConvolutionMap(nn.tables.random(nstates[j][1], 
     --   nstates[j][2], fanin[j][1]), filtsize[j][2], filtsize[j][2]))
     banks[j]:add(nn.SpatialConvolution(nstates[j][1], nstates[j][2], filtsize[j][2], filtsize[j][2]))
@@ -345,7 +344,7 @@ if (perform_training == 1) then
       end
     end
 
-    -- Cuda SpatialSubtractiveNormalization doesn't seem to work
+    -- *********** TO DO: SpatialSubtractiveNormalization IS NOT IMPLEMENTED IN CUDA YET **************
     -- banks[j]:add(nn.SpatialSubtractiveNormalization(nstates[j][2], normkernel))
 
     tensor_dim = {nstates[j][2], (tensor_dim[2] - filtsize[j][2] + 1) / 
