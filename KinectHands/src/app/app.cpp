@@ -32,8 +32,7 @@ using namespace jtil::settings;
 using namespace jtil::math;
 using namespace jtil::settings;
 using namespace kinect_interface;
-using kinect_interface::hand_net::HandCoeffConvnet;
-using kinect_interface::hand_net::HandModel;
+using namespace kinect_interface::hand_net;
 using namespace jtil::renderer;
 using namespace jtil::image_util;
 
@@ -257,10 +256,17 @@ namespace app {
       }
       moveStuff(dt);
 
-      bool render_kinect_fps;
+      bool render_kinect_fps, show_hand_model;
       GET_SETTING("render_kinect_fps", bool, render_kinect_fps);
+      GET_SETTING("show_hand_model", bool, show_hand_model);
       Renderer::g_renderer()->ui()->setTextWindowVisibility("kinect_fps_wnd",
         render_kinect_fps);
+      HandModel::setHandModelVisibility(show_hand_model);
+      if (show_hand_model) {
+        HandModel::setHandModelPose(HandType::RIGHT, 
+          kinect_->hand_net()->image_generator(), 
+          kinect_->hand_net()->coeff_convnet());
+      }
 
       Renderer::g_renderer()->renderFrame();
  
@@ -314,6 +320,7 @@ namespace app {
       ui::UIEnumVal(OUTPUT_FLOODFILL_LABELS, "Floodfill"));
     ui->addCheckbox("render_convnet_points", 
       "Render Convnet salient points");
+    ui->addCheckbox("show_hand_model", "Show hand model");
 
     ui->createTextWindow("kinect_fps_wnd", kinect_fps_str_);
     jtil::math::Int2 pos(400, 0);

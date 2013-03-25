@@ -34,6 +34,8 @@ namespace renderer {
 namespace kinect_interface {
 namespace hand_net {
 
+  class HandImageGenerator;
+
   // NOTE: ALL ANGLES (STARTING AT WRIST_THETA) ARE DEFINED TO BE RESTING AT
   //       ROUGHLY 180 DEG (PI RAD).  This makes the penalty calculation easier.
   typedef enum {
@@ -90,6 +92,40 @@ namespace hand_net {
     BACKGROUND        = 18,
     NUM_HANDLABEL     = 19,
   } HandLabel;
+
+  typedef enum {
+    F1_KNU3_A = 0,
+    F1_KNU3_B = 1,
+    F1_KNU2_A = 2,
+    F1_KNU2_B = 3,
+    F1_KNU1_A = 4,
+    F1_KNU1_B = 5,
+    F2_KNU3_A = 6,
+    F2_KNU3_B = 7,
+    F2_KNU2_A = 8,
+    F2_KNU2_B = 9,
+    F2_KNU1_A = 10,
+    F2_KNU1_B = 11,
+    F3_KNU3_A = 12,
+    F3_KNU3_B = 13,
+    F3_KNU2_A = 14,
+    F3_KNU2_B = 15,
+    F3_KNU1_A = 16,
+    F3_KNU1_B = 17,
+    F4_KNU3_A = 18,
+    F4_KNU3_B = 19,
+    F4_KNU2_A = 20,
+    F4_KNU2_B = 21,
+    F4_KNU1_A = 22,
+    F4_KNU1_B = 23,
+    TH_KNU3_A = 24,
+    TH_KNU3_B = 25,
+    TH_KNU2_A = 26,
+    TH_KNU2_B = 27,
+    TH_KNU1_A = 28,
+    TH_KNU1_B = 29,
+    NUM_BOUNDING_SPHERES = 30
+  } HandSphereIndices;
   
   typedef enum {
     LEFT = 0,
@@ -107,6 +143,9 @@ namespace hand_net {
     ~HandModel();
 
     static void loadHandModels(const bool left, const bool right);
+    static void setHandModelVisibility(const bool visibility);
+    static void setHandModelPose(const HandType hand, 
+      const HandImageGenerator* im_gen, const float* convnet_coeff);
 
     // Accessors
     const float getCoeff(const uint32_t index) const;
@@ -136,6 +175,11 @@ namespace hand_net {
     static float wrist_length;
     static float wrist_twist;
 
+    // Bounding sphere positions:
+    // Bones aren't in the correct position (need offsets)
+    static const float sph_off_[NUM_BOUNDING_SPHERES * 3];  
+    static const float sph_size_[NUM_BOUNDING_SPHERES];
+
   private:
     float coeff_[HAND_NUM_COEFF];  // The current state
     float local_scale_;
@@ -143,6 +187,8 @@ namespace hand_net {
 
     static jtil::renderer::GeometryInstance* lhand;
     static jtil::renderer::GeometryInstance* rhand;
+    static void setHandModelPose(jtil::renderer::GeometryInstance* hand, 
+      const HandImageGenerator* im_gen, const float* convnet_coeff);
 
     // Non-copyable, non-assignable.
     HandModel(HandModel&);

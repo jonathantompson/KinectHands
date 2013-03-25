@@ -10,17 +10,17 @@
 #include <stdexcept>
 #include <iomanip>
 #include "kinect_interface/hand_net/hand_model.h"
+#include "kinect_interface/hand_net/hand_net.h"  // HandCoeffConvnet
+#include "kinect_interface/hand_net/hand_image_generator.h"
 #include "jtil/jtil.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 
-using jtil::math::Float4x4;
-using jtil::math::FloatQuat;
-using jtil::math::Float3;
 using std::string;
 using std::runtime_error;
 using std::cout;
 using std::endl;
+using namespace jtil::math;
 using namespace jtil::renderer;
 
 namespace kinect_interface {
@@ -508,6 +508,48 @@ namespace hand_net {
     std::cout << "]" << std::endl;
   }
 
+  void HandModel::setHandModelVisibility(const bool visibility) {
+    if (lhand) {
+      lhand->setRenderHierarchy(visibility);
+    }
+    if (rhand) {
+      rhand->setRenderHierarchy(visibility);
+    }
+  }
+
+  void HandModel::setHandModelPose(const HandType hand, 
+    const HandImageGenerator* im_gen, const float* convnet_coeff) {
+    if (hand == LEFT) {
+#if defined(DEBUG) || defined(_DEBUG)
+      if (!lhand) {
+        throw std::wruntime_error("HandModel::setHandModelPose() - ERROR: "
+          "lhand not yet initialized!");
+      }
+#endif
+      setHandModelPose(lhand, im_gen, convnet_coeff);
+    }
+    if (hand == RIGHT) {
+#if defined(DEBUG) || defined(_DEBUG)
+      if (!rhand) {
+        throw std::wruntime_error("HandModel::setHandModelPose() - ERROR: "
+          "rhand not yet initialized!");
+      }
+#endif
+      setHandModelPose(rhand, im_gen, convnet_coeff);
+    }
+  }
+
+  void HandModel::setHandModelPose(jtil::renderer::GeometryInstance* hand, 
+    const HandImageGenerator* im_gen, const float* convnet_coeff) {
+    const Float3& uvd_com = im_gen->uvd_com();
+    const Int4& hand_pos_wh = im_gen->hand_pos_wh();
+
+    Float3 pos_uvd(convnet_coeff[HAND_POS_U], convnet_coeff[HAND_POS_V],
+      convnet_coeff[HAND_POS_D]);
+    // U and V are between 0 and 1 in the hand image --> Convert back to pixels
+
+  }
+
   void HandModel::loadHandModels(const bool left, const bool right) {
 #ifndef LOAD_JBIN_FILES
     if (left) {
@@ -533,6 +575,72 @@ namespace hand_net {
     }
 #endif
   }
+
+  const float HandModel::sph_off_[NUM_BOUNDING_SPHERES*3] = { 
+    -0.1355f, -0.00849999f, -0.2875f,  // F1_KNU3_A = 0,
+    0.002f, 0.007f, -0.1205f,  // F1_KNU3_B = 1,
+    -0.13f, 0.0305f, -0.1975f,  // F1_KNU2_A = 2,
+    0.0295f, 0.00149996f, -0.0615f,  // F1_KNU2_B = 2,
+    -0.3195f, 0.0315f, -0.211f,  // F1_KNU1_A = 3,
+    0.0115f, -0.0235f, -0.1275f,  // F1_KNU1_B = 3,
+    -0.2615f, -0.1135f, -0.3965f,  // F2_KNU3_A = 4,
+    -0.126f, -0.0245f, -0.131f,  // F2_KNU3_B = 5,
+    -0.144f, -0.00450001f, -0.0855f,  // F2_KNU2_A = 6,
+    0.0705f, 0.00400001f, 0.1095f,  // F2_KNU2_B = 6,
+    -0.3505f, -0.0275f, -0.281f,  // F2_KNU1_A = 7,
+    -0.002f, -0.0635f, -0.1945f,  // F2_KNU1_B = 7,
+    -0.157f, -0.0285f, -0.279f,  // F3_KNU3_A = 8,
+    0.068f, 0.061f, 0.0865f,  // F3_KNU3_B = 9,
+    -0.1665f, 0.022f, -0.205f,  // F3_KNU2_A = 10,
+    0.068f, 0.0545f, 0.008f,  // F3_KNU2_B = 10,
+    -0.419f, 0.0565f, -0.044f,  // F3_KNU1_A = 11,
+    -0.0095f, 0.0005f, 0.0085f,  // F3_KNU1_B = 11,
+    -0.343f, 0.012f, -0.3445f,  // F4_KNU3_A = 12,
+    -0.073f, 0.035f, -0.105f,  // F4_KNU3_B = 13,
+    -0.2485f, 0.008f, -0.172f,  // F4_KNU2_A = 14,
+    0.0f, 0.0335f, -0.0125f,  // F4_KNU2_B = 14,
+    -0.5595f, -0.035f, -0.0315f,  // F4_KNU1_A = 15,
+    -0.0325f, -0.0405f, 0.0f,  // F4_KNU1_B = 15,
+    -0.432f, 0.0775f, -0.104f,  // TH_KNU3_A = 16,
+    0.01f, 0.0950001f, -0.038f,  // TH_KNU3_B = 17,
+    -0.341f, 0.017f, 0.0175f,  // TH_KNU2_A = 18,
+    -0.0335f, 0.0585f, 0.044f,  // TH_KNU2_B = 18,
+    -0.4485f, -0.343f, -0.115f,  // TH_KNU1_A = 19,
+    0.0f, 0.0f, 0.0f,  // TH_KNU1_B = 19,
+  };
+
+  const float HandModel::sph_size_[NUM_BOUNDING_SPHERES] = {
+    0.095f,  // F1_KNU3_A = 0,
+    0.12f,   // F1_KNU3_B = 1,
+    0.14f,   // F1_KNU2_A = 2,
+    0.16f,   // F1_KNU2_B = 2,
+    0.17f,   // F1_KNU1_A = 3,
+    0.20f,   // F1_KNU1_B = 3,
+    0.115f,   // F2_KNU3_A = 4,
+    0.14f,   // F2_KNU3_B = 5,
+    0.17f,   // F2_KNU2_A = 6,
+    0.18f,   // F2_KNU2_B = 6,
+    0.19f,   // F2_KNU1_A = 7,
+    0.20f,   // F2_KNU1_B = 7,
+    0.115f,   // F3_KNU3_A = 8,
+    0.17f,   // F3_KNU3_B = 9,
+    0.18f,   // F3_KNU2_A = 10,
+    0.20f,   // F3_KNU2_B = 10,
+    0.20f,   // F3_KNU1_A = 11,
+    0.21f,   // F3_KNU1_B = 11,
+    0.105f,  // F4_KNU3_A = 12,
+    0.16f,  // F4_KNU3_B = 13,
+    0.17f,  // F4_KNU2_A = 14,
+    0.18f,  // F4_KNU2_B = 14,
+    0.20f,  // F4_KNU1_A = 15,
+    0.21f,  // F4_KNU1_B = 15,
+    0.17f,  // TH_KNU3_A = 16,
+    0.19f,  // TH_KNU3_B = 17,
+    0.20f,  // TH_KNU2_A = 18,
+    0.25f,  // TH_KNU2_B = 18,
+    0.28f,  // TH_KNU1_A = 19,
+    0.28f,  // TH_KNU1_B = 19,
+  };
 
 }  // namespace hand_net
 }  // namespace kinect_interface

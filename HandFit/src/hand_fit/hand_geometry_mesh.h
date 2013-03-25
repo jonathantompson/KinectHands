@@ -68,10 +68,7 @@ namespace hand_fit {
     jtil::math::Float4x4 mat_tmp2;
     jtil::math::Float4x4 mat_tmp3;
 
-    // Bones aren't in the correct position (need offsets)
-    static const float sph_off_[NUM_BOUNDING_SPHERES * 3];  
-    static const float sph_size_[NUM_BOUNDING_SPHERES];
-    static uint32_t sph_bone_ind_[NUM_BOUNDING_SPHERES];
+    static uint32_t sph_bone_ind_[NUM_SPHERES];
 
     void createHandGeometry(renderer::Renderer* g_renderer,
       HandRenderer* g_hand_renderer, 

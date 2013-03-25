@@ -9,7 +9,7 @@
 #define HAND_MODEL_HAND_MODEL_RENDERER_HEADER
 
 #include "renderer/open_gl_common.h"  // GLfloat
-#include "hand_fit/hand_geometry.h"  // NUM_BOUNDING_SPHERES
+#include "hand_fit/hand_geometry.h"  
 #include "kinect_interface/hand_net/hand_model.h"
 #include "hand_fit/hand_fit.h"
 #include "jtil/math/math_types.h"
@@ -186,17 +186,17 @@ namespace hand_fit {
     jtil::data_str::Vector<renderer::BoundingSphere*> bsph_;  // Not owned here
     
     // Bounding sphere indices sorted along each axis to create intervals
-    uint32_t bsph_sx[2 * NUM_BOUNDING_SPHERES];  // start xaxis
-    uint32_t bsph_sy[2 * NUM_BOUNDING_SPHERES];  // start xaxis
-    uint32_t bsph_sz[2 * NUM_BOUNDING_SPHERES];  // start xaxis
-    uint32_t bsph_fx[2 * NUM_BOUNDING_SPHERES];  // finish xaxis
-    uint32_t bsph_fy[2 * NUM_BOUNDING_SPHERES];  // finish xaxis
-    uint32_t bsph_fz[2 * NUM_BOUNDING_SPHERES];  // finish xaxis
+    uint32_t bsph_sx[2 * NUM_SPHERES];  // start xaxis
+    uint32_t bsph_sy[2 * NUM_SPHERES];  // start xaxis
+    uint32_t bsph_sz[2 * NUM_SPHERES];  // start xaxis
+    uint32_t bsph_fx[2 * NUM_SPHERES];  // finish xaxis
+    uint32_t bsph_fy[2 * NUM_SPHERES];  // finish xaxis
+    uint32_t bsph_fz[2 * NUM_SPHERES];  // finish xaxis
 
     // Store O(N^2) collision pairs --> Could be more efficient, but OK for now
-    bool collision_pairs_xaxis[4*NUM_BOUNDING_SPHERES*NUM_BOUNDING_SPHERES];
-    bool collision_pairs_yaxis[4*NUM_BOUNDING_SPHERES*NUM_BOUNDING_SPHERES];
-    bool collision_pairs_zaxis[4*NUM_BOUNDING_SPHERES*NUM_BOUNDING_SPHERES];
+    bool collision_pairs_xaxis[4 * NUM_SPHERES * NUM_SPHERES];
+    bool collision_pairs_yaxis[4 * NUM_SPHERES * NUM_SPHERES];
+    bool collision_pairs_zaxis[4 * NUM_SPHERES * NUM_SPHERES];
     jtil::data_str::Vector<uint32_t> active_list_;
     jtil::data_str::Vector<jtil::data_str::Pair<uint32_t, uint32_t>> collisions_;
 

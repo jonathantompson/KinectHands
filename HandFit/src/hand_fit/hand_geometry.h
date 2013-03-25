@@ -42,43 +42,11 @@
 //#define RHAND_MODEL_FILE "hand_palm_parent_vertex_colors_right.dae"
 //#define RHAND_MODEL_JFILE "hand_palm_parent_vertex_colors_right.jbin"
 
+#define NUM_SPHERES kinect_interface::hand_net::HandSphereIndices::NUM_BOUNDING_SPHERES
+
 namespace renderer { class Geometry; }
 
 namespace hand_fit {
-
-  typedef enum {
-    F1_KNU3_A = 0,
-    F1_KNU3_B = 1,
-    F1_KNU2_A = 2,
-    F1_KNU2_B = 3,
-    F1_KNU1_A = 4,
-    F1_KNU1_B = 5,
-    F2_KNU3_A = 6,
-    F2_KNU3_B = 7,
-    F2_KNU2_A = 8,
-    F2_KNU2_B = 9,
-    F2_KNU1_A = 10,
-    F2_KNU1_B = 11,
-    F3_KNU3_A = 12,
-    F3_KNU3_B = 13,
-    F3_KNU2_A = 14,
-    F3_KNU2_B = 15,
-    F3_KNU1_A = 16,
-    F3_KNU1_B = 17,
-    F4_KNU3_A = 18,
-    F4_KNU3_B = 19,
-    F4_KNU2_A = 20,
-    F4_KNU2_B = 21,
-    F4_KNU1_A = 22,
-    F4_KNU1_B = 23,
-    TH_KNU3_A = 24,
-    TH_KNU3_B = 25,
-    TH_KNU2_A = 26,
-    TH_KNU2_B = 27,
-    TH_KNU1_A = 28,
-    TH_KNU1_B = 29,
-    NUM_BOUNDING_SPHERES = 30
-  } HandSphereIndices;
 
   class HandGeometry {
   public:
