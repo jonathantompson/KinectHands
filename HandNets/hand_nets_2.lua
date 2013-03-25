@@ -33,7 +33,7 @@ dim = width * height
 num_coeff = 58
 perform_training = 1
 nonlinear = 0  -- 0 = tanh, 1 = SoftShrink, 2 = ramp
-model_filename = 'handmodel.net'
+model_filename = 'handmodel2.net'  -- Will also change log and settings file names
 loss = 0  -- 0 = abs, 1 = mse
 im_dir = "../data/hand_depth_data_processed_for_CN/"
 test_im_dir = "../data/hand_depth_data_processed_for_CN_test/"
@@ -41,9 +41,9 @@ test_data_rate = 20  -- this means 1 / 20 FROM THE TRAINING SET will be test dat
 visualize_data = 0
 pooling = 2  -- 1,2,.... or math.huge (infinity)
 use_hpf_depth = 0
-learning_rate = 2e-3  -- Default 1e-3
+learning_rate = 1e-3  -- Default 1e-3
 learning_rate_decay = 5e-7
-l2_reg_param = 5e-4
+l2_reg_param = 0
 max_num_epochs = 100
 
 -- ******* Some preliminary calculations *********
@@ -311,17 +311,17 @@ if (visualize_data == 1) then
 end
 
 -- ********************** Converting data to cuda **********************
--- print '==> Converting data to cudaTensor'
--- for j=1,testData.size() do
---   for k=1,num_hpf_banks do
---    testData.data[j][k] = testData.data[j][k]:cuda()
---   end
--- end
--- for j=1,trainData.size() do
---   for k=1,num_hpf_banks do
---     trainData.data[j][k] = trainData.data[j][k]:cuda()
---   end
--- end
+print '==> Converting data to cudaTensor'
+for j=1,testData.size() do
+  for k=1,num_hpf_banks do
+    testData.data[j][k] = testData.data[j][k]:cuda()
+  end
+end
+for j=1,trainData.size() do
+  for k=1,num_hpf_banks do
+    trainData.data[j][k] = trainData.data[j][k]:cuda()
+  end
+end
 
 -- ********************** Define loss function **********************
 print '==> defining loss function'
