@@ -41,9 +41,9 @@ test_data_rate = 20  -- this means 1 / 20 FROM THE TRAINING SET will be test dat
 visualize_data = 0
 pooling = 2  -- 1,2,.... or math.huge (infinity)
 use_hpf_depth = 0
-learning_rate = 2e-3  -- Default 1e-3
-learning_rate_decay = 5e-7
-l2_reg_param = 5e-4
+learning_rate = 1e-3  -- Default 1e-3
+learning_rate_decay = 5e-7 
+l2_reg_param = 5e-4  -- Default 5e-4
 max_num_epochs = 100
 
 -- ******* Some preliminary calculations *********
@@ -169,6 +169,13 @@ testData = {
   size = function() return tesize end
 }
 
+for i=1,num_hpf_banks do
+  table.insert(trainData.data, torch.FloatTensor(trsize, 1, 
+    bank_dim[i][1], bank_dim[i][2]))
+  table.insert(testData.data, torch.FloatTensor(tesize, 1, 
+    bank_dim[i][1], bank_dim[i][2]))
+end
+
 -- LOAD IN TRAINING SET DIRECTORY --> SOME IMAGES GO TO TEST SET AS WELL!
 itr = 1
 ite = 1
@@ -192,14 +199,12 @@ for i=1,nfiles do
       -- this sample is training data
       -- We need to split the long vector
       ind = 1
-      cur_sample = {}
       for j=1,num_hpf_banks do
-        cur_bank = torch.FloatTensor(hpf_depth_data, ind, 
-          torch.LongStorage{1, bank_dim[j][1], bank_dim[j][2]}):float()
+        trainData.data[j][{itr, 1, {}, {}}] = torch.FloatTensor(
+          hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
+          bank_dim[j][2]}):float()
         ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
-        table.insert(cur_sample, cur_bank)
       end
-      table.insert(trainData.data, cur_sample)
       trainData.labels[{itr, {}}] = torch.FloatTensor(coeff_data, 1,
         torch.LongStorage{num_coeff}):float()
       trainData.files[itr] = im_files[i]
@@ -210,14 +215,12 @@ for i=1,nfiles do
       -- this sample is test data
       -- We need to split the long vector
       ind = 1
-      cur_sample = {}
       for j=1,num_hpf_banks do
-        cur_bank = torch.FloatTensor(hpf_depth_data, ind, 
-          torch.LongStorage{1, bank_dim[j][1], bank_dim[j][2]})
+        testData.data[j][{ite, 1, {}, {}}] = torch.FloatTensor(
+          hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
+          bank_dim[j][2]})
         ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
-        table.insert(cur_sample, cur_bank)
       end
-      table.insert(testData.data, cur_sample)
       testData.labels[{ite, {}}] = torch.FloatTensor(coeff_data, 1,
         torch.LongStorage{num_coeff}):float()
       testData.files[ite] = im_files[i]
@@ -245,14 +248,12 @@ for i=1,#test_im_files do
     -- this sample is test data
     -- We need to split the long vector
     ind = 1
-    cur_sample = {}
     for j=1,num_hpf_banks do
-      cur_bank = torch.FloatTensor(hpf_depth_data, ind, 
-        torch.LongStorage{1, bank_dim[j][1], bank_dim[j][2]})
+      testData.data[j][{ite, 1, {}, {}}] = torch.FloatTensor(
+        hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
+        bank_dim[j][2]})
       ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
-      table.insert(cur_sample, cur_bank)
     end
-    table.insert(testData.data, cur_sample)
     testData.labels[{ite, {}}] = torch.FloatTensor(coeff_data, 1,
       torch.LongStorage{num_coeff}):float()
     testData.files[ite] = im_files[i]
@@ -266,13 +267,17 @@ trsize = itr - 1
 nfiles = tesize + trsize
 for i=trsize+1,#trainData.files do
   table.remove(trainData.files, trsize+1)
-  table.remove(trainData.data, trsize+1)
+end
+for j=1,num_hpf_banks do
+  trainData.data[j] = trainData.data[j][{{1,trsize}, {}, {}, {}}]
 end
 trainData.labels = trainData.labels[{{1,trsize}, {}}]
 trainData.size = function() return trsize end
 for i=tesize+1,#testData.files do
   table.remove(testData.files, tesize+1)
-  table.remove(testData.data, tesize+1)
+end
+for j=1,num_hpf_banks do
+  testData.data[j] = testData.data[j][{{1,tesize}, {}, {}, {}}]
 end
 testData.labels = testData.labels[{{1,tesize}, {}}]
 testData.size = function() return tesize end
@@ -286,27 +291,22 @@ if (visualize_data == 1) then
   n_images = math.min(trainData.size(), 256)
   for j=1,num_hpf_banks do
     im = {
-      data = torch.FloatTensor(n_images, bank_dim[j][1], bank_dim[j][2])
+      data = trainData.data[j][{{1,n_images}, {}, {}, {}}]
     }
-    for k=1,n_images do
-      im.data[{{k},{},{}}] = trainData.data[k][j]
-    end
     im.data = im.data:double()
     image.display{image=im.data, padding=2, nrow=math.floor(math.sqrt(n_images)), zoom=(0.75*math.pow(2,j-1)), scaleeach=false}
   end
+  -- image.display(trainData.data[1][{1,1,{},{}}])
 
   n_images = math.min(testData.size(), 256)
   for j=1,num_hpf_banks do
     im = {
-      data = torch.FloatTensor(n_images, bank_dim[j][1], bank_dim[j][2])
+      data = testData.data[j][{{1,n_images}, {}, {}, {}}]
     }
-    for k=1,n_images do
-      im.data[{{k},{},{}}] = testData.data[k][j]
-    end
     im.data = im.data:double()
     image.display{image=im.data, padding=2, nrow=math.floor(math.sqrt(n_images)), zoom=(0.75*math.pow(2,j-1)), scaleeach=false}
   end
-
+  -- image.display(testData.data[{1,1,{},{}}])
   im = nil
 end
 
@@ -353,7 +353,7 @@ if (perform_training == 1) then
   -- input dimensions
   nfeats = 1
   nstates = {{8, 32}, {8, 32}, {8, 32}}
-  nstates_nn = 1024
+  nstates_nn = 4096
   filtsize = {{5, 7}, {5, 5}, {5, 5}}
   poolsize = {{2, 4}, {2, 2}, {1, 2}}  -- Note: 1 = no pooling
   fanin = {{4}, {4}, {4}}
@@ -535,6 +535,14 @@ if (perform_training == 1) then
 
       -- Collect the current image into a single array
       cur_i = shuffle[t]
+      input = {}
+      for j=1,num_hpf_banks do
+        table.insert(input, trainData.data[j][cur_i])
+      end
+      for j=1,num_hpf_banks do
+        input[j] = input[j]:cuda()
+      end
+      target = trainData.labels[cur_i]
 
       -- create closure to evaluate f(X) and df/dX
       local feval = function(x)
@@ -552,45 +560,43 @@ if (perform_training == 1) then
 
         -- evaluate function
         -- estimate f
-        output = model:forward(trainData.data[cur_i])
+        output = model:forward(input)
         cutorch.synchronize()
         output = output:float()
 
-        err = criterion:forward(output, trainData.labels[cur_i])
+        err = criterion:forward(output, target)
         cur_f = cur_f + err
         ave_err = ave_err + err
         nsamples = nsamples + 1
         abs_err = err
         if (loss ~= 0) then
-          abs_err = abs_criterion:forward(output, trainData.labels[cur_i])
+          abs_err = abs_criterion:forward(output, target)
         end
         ave_abs_err = ave_abs_err + abs_err
 
         -- L2 Regularization
-        l2_reg_scale = 1 - l2_reg_param * learning_rate
---        for k = 1,num_hpf_banks do
---          -- Weight and bias of 1st stage convolution
---          model:get(1):get(k):get(1).weight:mul(l2_reg_scale)
---          model:get(1):get(k):get(1).bias:mul(l2_reg_scale)
---          -- Weight and bias of 2nd stage convolution
---          model:get(1):get(k):get(7).weight:mul(l2_reg_scale)
---          model:get(1):get(k):get(7).bias:mul(l2_reg_scale)
---        end
-        -- Weight and bias of 1st stage NN
-        model:get(3).weight:mul(l2_reg_scale)
-        model:get(3).bias:mul(l2_reg_scale)
-        -- Weight and bias of 2nd stage NN
-        model:get(5).weight:mul(l2_reg_scale)
-        model:get(5).bias:mul(l2_reg_scale)
+        if (math.abs(l2_reg_param) > 1e-9) then
+          l2_reg_scale = 1 - l2_reg_param * learning_rate
+--          for k = 1,num_hpf_banks do
+--            -- Weight and bias of 1st stage convolution
+--            model:get(1):get(k):get(1).weight:mul(l2_reg_scale)
+--            model:get(1):get(k):get(1).bias:mul(l2_reg_scale)
+--            -- Weight and bias of 2nd stage convolution
+--            model:get(1):get(k):get(7).weight:mul(l2_reg_scale)
+--            model:get(1):get(k):get(7).bias:mul(l2_reg_scale)
+--          end
+          -- Weight and bias of 1st stage NN
+          model:get(3).weight:mul(l2_reg_scale)
+          model:get(3).bias:mul(l2_reg_scale)
+          -- Weight and bias of 2nd stage NN
+          model:get(5).weight:mul(l2_reg_scale)
+          model:get(5).bias:mul(l2_reg_scale)
+        end
 
         -- estimate df/dW
-        df_do = criterion:backward(output, trainData.labels[cur_i])
+        df_do = criterion:backward(output, target)
         df_do = df_do:cuda()
-        model:backward(trainData.data[cur_i], df_do)
-
-        -- normalize gradients and f(X)
-        -- gradParameters = gradParameters:div(#inputs)
-        -- cur_f = cur_f/#inputs
+        model:backward(input, df_do)
 
         -- return f and df/dX
         return cur_f, gradParameters
@@ -644,16 +650,26 @@ if (perform_training == 1) then
       -- disp progress
       progress(t, testData:size())
 
+      -- get new sample
+      input = {}
+      for j=1,num_hpf_banks do
+        table.insert(input, testData.data[j][t])
+      end
+      for j=1,num_hpf_banks do
+        input[j] = input[j]:cuda()
+      end
+      target = testData.labels[t]
+
       -- test sample
-      pred = model:forward(testData.data[t])
+      pred = model:forward(input)
       cutorch.synchronize()
       pred = pred:float()
-      err = criterion:forward(pred, testData.labels[t])
+      err = criterion:forward(pred, target)
   
       err_ave = err_ave + err
       abs_err = err
       if (loss ~= 0) then
-        abs_err = abs_criterion:forward(pred, testData.labels[t])
+        abs_err = abs_criterion:forward(pred, target)
       end
       abs_err_ave = abs_err_ave + abs_err
     end
@@ -706,13 +722,23 @@ else  -- if perform_training
   for t=1,testData:size(),1 do
     progress(t, testData:size())
     -- print(string.format('%d of %d', t, testData:size()))
+    -- get new sample
+    data_pt = {
+      input = {},
+      target = testData.labels[t]
+    }
+    for j=1,num_hpf_banks do
+      table.insert(data_pt.input, testData.data[j][t])
+    end
 
-    pred = model:forward(testData.data[t])
+    -- image.display(data_pt.input)
+
+    pred = model:forward(data_pt.input)
     cutorch.synchronize()
     pred = pred:float()
 
-    te_abs_crit_error[t] = math.abs(abs_criterion:forward(pred, testData.labels[t]))
-    te_mse_crit_error[t] = math.abs(mse_criterion:forward(pred, testData.labels[t]))
+    te_abs_crit_error[t] = math.abs(abs_criterion:forward(pred, data_pt.target))
+    te_mse_crit_error[t] = math.abs(mse_criterion:forward(pred, data_pt.target))
     err = te_abs_crit_error[t];
     if (err == math.huge or err ~= err) then
       print(string.format("%d, %s is nan or inf!\n", t, trainData.files[t]));
@@ -733,17 +759,26 @@ else  -- if perform_training
   for t=1,trainData:size(),1 do
     progress(t, trainData:size())
     -- print(string.format('%d of %d', t, trainData:size()))
+    -- get new sample
+    data_pt = {
+      input = {},
+      target = trainData.labels[t]
+    }
+    for j=1,num_hpf_banks do
+      table.insert(data_pt.input, trainData.data[j][t])
+    end
 
     -- image.display(data_pt.input)
 
-    pred = model:forward(trainData.data[t]):float()
+    pred = model:forward(data_pt.input):float()
 
-    tr_abs_crit_error[t] = math.abs(abs_criterion:forward(pred, trainData.labels[t]))
-    tr_mse_crit_error[t] = math.abs(mse_criterion:forward(pred, trainData.labels[t]))
+    tr_abs_crit_error[t] = math.abs(abs_criterion:forward(pred, data_pt.target))
+    tr_mse_crit_error[t] = math.abs(mse_criterion:forward(pred, data_pt.target))
     err = tr_abs_crit_error[t];
     if (err == math.huge or err ~= err) then
       print(string.format("%d, %s is nan or inf!\n", t, trainData.files[t]));
     end
+
 
     -- print 'Label parameters:'
     -- print(data_pt.target)
