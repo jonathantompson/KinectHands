@@ -20,6 +20,13 @@ print("GPU That will be used:")
 print(cutorch.getDeviceProperties(cutorch.getDevice()))
 -- To get GPU Memory usage: nvidia-smi -q -d MEMORY
 -- The cuda modules that exist github.com/andresy/torch/tree/master/extra/cuda/pkg/cunn
+-- http://code.cogbits.com/wiki/doku.php?id=tutorial_morestuff --> Drop out here
+-- http://arxiv.org/pdf/1302.4389v3.pdf --> Max Out
+-- https://code.google.com/p/cuda-convnet/
+-- http://code.cogbits.com/wiki/doku.php?id=tutorial_unsupervised
+-- https://github.com/clementfarabet/torch-tutorials/tree/master/3_unsupervised
+-- https://github.com/clementfarabet/torch-tutorials/blob/master/3_unsupervised/A_kmeans.lua <-- Check this one
+-- http://arxiv.org/abs/1207.0580
 
 -- Jonathan Tompson
 -- NYU, MRL
@@ -27,7 +34,8 @@ print(cutorch.getDeviceProperties(cutorch.getDevice()))
 
 width = 96
 height = 96
-num_hpf_banks = 3
+num_hpf_banks = 2
+skip_banks = 0  -- Number of MSB banks to skip
 dim = width * height
 num_coeff = 58
 frame_stride = 1
@@ -42,9 +50,9 @@ visualize_data = 0
 pooling = 2  -- 1,2,.... or math.huge (infinity)
 use_hpf_depth = 0
 learning_rate = 1e-3  -- Default 1e-3
-learning_rate_decay = 5e-7 
+learning_rate_decay = 1e-1   -- Learning rate = l_0 / (1 + learning_rate_decay * epoch)
 l2_reg_param = 5e-4  -- Default 5e-4
-max_num_epochs = 50
+max_num_epochs = 100
 
 -- ******* Some preliminary calculations *********
 w = width
@@ -169,11 +177,11 @@ testData = {
   size = function() return tesize end
 }
 
-for i=1,num_hpf_banks do
+for i=1,(num_hpf_banks-skip_banks) do
   table.insert(trainData.data, torch.FloatTensor(trsize, 1, 
-    bank_dim[i][1], bank_dim[i][2]))
+    bank_dim[i+skip_banks][1], bank_dim[i+skip_banks][2]))
   table.insert(testData.data, torch.FloatTensor(tesize, 1, 
-    bank_dim[i][1], bank_dim[i][2]))
+    bank_dim[i+skip_banks][1], bank_dim[i+skip_banks][2]))
 end
 
 -- LOAD IN TRAINING SET DIRECTORY --> SOME IMAGES GO TO TEST SET AS WELL!
@@ -200,9 +208,11 @@ for i=1,nfiles do
       -- We need to split the long vector
       ind = 1
       for j=1,num_hpf_banks do
-        trainData.data[j][{itr, 1, {}, {}}] = torch.FloatTensor(
-          hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
-          bank_dim[j][2]}):float()
+        if (j > skip_banks) then
+          trainData.data[j-skip_banks][{itr, 1, {}, {}}] = torch.FloatTensor(
+            hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
+            bank_dim[j][2]}):float()
+        end
         ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
       end
       trainData.labels[{itr, {}}] = torch.FloatTensor(coeff_data, 1,
@@ -216,9 +226,11 @@ for i=1,nfiles do
       -- We need to split the long vector
       ind = 1
       for j=1,num_hpf_banks do
-        testData.data[j][{ite, 1, {}, {}}] = torch.FloatTensor(
-          hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
-          bank_dim[j][2]})
+        if (j > skip_banks) then
+          testData.data[j-skip_banks][{ite, 1, {}, {}}] = torch.FloatTensor(
+            hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
+            bank_dim[j][2]})
+        end
         ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
       end
       testData.labels[{ite, {}}] = torch.FloatTensor(coeff_data, 1,
@@ -249,9 +261,11 @@ for i=1,#test_im_files do
     -- We need to split the long vector
     ind = 1
     for j=1,num_hpf_banks do
-      testData.data[j][{ite, 1, {}, {}}] = torch.FloatTensor(
-        hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
-        bank_dim[j][2]})
+      if (j > skip_banks) then
+        testData.data[j - skip_banks][{ite, 1, {}, {}}] = torch.FloatTensor(
+          hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
+          bank_dim[j][2]})
+      end
       ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
     end
     testData.labels[{ite, {}}] = torch.FloatTensor(coeff_data, 1,
@@ -268,7 +282,7 @@ nfiles = tesize + trsize
 for i=trsize+1,#trainData.files do
   table.remove(trainData.files, trsize+1)
 end
-for j=1,num_hpf_banks do
+for j=1,num_hpf_banks-skip_banks do
   trainData.data[j] = trainData.data[j][{{1,trsize}, {}, {}, {}}]
 end
 trainData.labels = trainData.labels[{{1,trsize}, {}}]
@@ -276,7 +290,7 @@ trainData.size = function() return trsize end
 for i=tesize+1,#testData.files do
   table.remove(testData.files, tesize+1)
 end
-for j=1,num_hpf_banks do
+for j=1,num_hpf_banks-skip_banks do
   testData.data[j] = testData.data[j][{{1,tesize}, {}, {}, {}}]
 end
 testData.labels = testData.labels[{{1,tesize}, {}}]
@@ -288,23 +302,23 @@ print(string.format("    Loaded %d test set images and %d training set images",
 -- ************ Visualize one of the depth data samples ***************
 print '==> Visualizing some data samples'
 if (visualize_data == 1) then
-  n_images = math.min(trainData.size(), 256)
-  for j=1,num_hpf_banks do
+  n_images = math.min(trainData.size(), 24)
+  for j=1,num_hpf_banks-skip_banks do
     im = {
       data = trainData.data[j][{{1,n_images}, {}, {}, {}}]
     }
     im.data = im.data:double()
-    image.display{image=im.data, padding=2, nrow=math.floor(math.sqrt(n_images)), zoom=(0.75*math.pow(2,j-1)), scaleeach=false}
+    image.display{image=im.data, padding=2, nrow=math.floor(math.sqrt(n_images)), zoom=(0.75*math.pow(2,j-1+skip_banks)), scaleeach=false}
   end
   -- image.display(trainData.data[1][{1,1,{},{}}])
 
   n_images = math.min(testData.size(), 256)
-  for j=1,num_hpf_banks do
+  for j=1,num_hpf_banks-skip_banks do
     im = {
       data = testData.data[j][{{1,n_images}, {}, {}, {}}]
     }
     im.data = im.data:double()
-    image.display{image=im.data, padding=2, nrow=math.floor(math.sqrt(n_images)), zoom=(0.75*math.pow(2,j-1)), scaleeach=false}
+    image.display{image=im.data, padding=2, nrow=math.floor(math.sqrt(n_images)), zoom=(0.75*math.pow(2,j-1+skip_banks)), scaleeach=false}
   end
   -- image.display(testData.data[{1,1,{},{}}])
   im = nil
@@ -357,10 +371,10 @@ if (perform_training == 1) then
 
   -- input dimensions
   nfeats = 1
-  nstates = {{16, 32}, {16, 32}, {16, 32}}
-  nstates_nn = 2048
-  filtsize = {{7, 6}, {7, 7}, {7, 7}}
-  poolsize = {{2, 2}, {2, 1}, {1, 1}}  -- Note: 1 = no pooling
+  nstates = {{32, 256}, {32, 256}, {32, 256}}
+  nstates_nn = 4096
+  filtsize = {{5, 5}, {5, 5}, {5, 5}}
+  poolsize = {{2, 2}, {2, 1}, {2, 1}}  -- Note: 1 = no pooling
   fanin = {{1}, {1}, {1}}  -- NOT USING THIS ANY MORE
   normkernel = image.gaussian1D(7)
 
@@ -373,83 +387,95 @@ if (perform_training == 1) then
   banks = {}
   banks_total_output_size = 0
   for j=1,num_hpf_banks do
-    table.insert(banks, nn.Sequential():cuda())
-    tensor_dim = {1, bank_dim[j][1], bank_dim[j][2]}
+    if (j > skip_banks) then
+      b = j - skip_banks
+      table.insert(banks, nn.Sequential():cuda())
+      tensor_dim = {1, bank_dim[j][1], bank_dim[j][2]}
 
-    -- stage 1 : filter bank -> squashing -> LN pooling -> normalization
-    -- *********** TO DO: SpatialConvolutionMap IS NOT IMPLEMENTED IN CUDA YET **************
-    -- banks[j]:add(nn.SpatialConvolutionMap(nn.tables.full(nfeats, nstates[j][1]), filtsize[j][1], filtsize[j][1]))
-    banks[j]:add(nn.SpatialConvolution(nfeats, nstates[j][1], filtsize[j][1], filtsize[j][1]):cuda())
+      -- nn.SpatialConvolutionCUDA
+      -- nn.SpatialMaxPoolingCUDA
 
-    if (nonlinear == 1) then 
-      banks[j]:add(nn.SoftShrink():cuda())
-    elseif (nonlinear == 0) then
-      banks[j]:add(nn.Tanh():cuda())
-    elseif (nonlinear == 2) then
-      banks[j]:add(nn.ramp():cuda())
-    end
+      -- stage 1 : filter bank -> squashing -> LN pooling -> normalization
+      -- *********** TO DO: SpatialConvolutionMap IS NOT IMPLEMENTED IN CUDA YET **************
+      -- banks[b]:add(nn.SpatialConvolutionMap(nn.tables.full(nfeats, nstates[j][1]), filtsize[j][1], 
+      --   filtsize[j][1]))
+      banks[b]:add(nn.SpatialConvolutionCUDA(nfeats, nstates[j][1], filtsize[j][1], filtsize[j][1]):cuda())
 
-    if (poolsize[j][1] > 1) then
-      if (pooling ~= math.huge) then
-        banks[j]:add(nn.SpatialLPPooling(nstates[j][1], pooling, poolsize[j][1], poolsize[j][1], poolsize[j][1], poolsize[j][1]):cuda())
-      else
-        banks[j]:add(nn.SpatialMaxPooling(poolsize[j][1], poolsize[j][1], poolsize[j][1], poolsize[j][1]):cuda())
+      if (nonlinear == 1) then 
+        banks[b]:add(nn.SoftShrink():cuda())
+      elseif (nonlinear == 0) then
+        banks[b]:add(nn.Tanh():cuda())
+      elseif (nonlinear == 2) then
+        banks[b]:add(nn.ramp():cuda())
       end
-    end
 
-    -- *********** TO DO: SpatialSubtractiveNormalization IS NOT IMPLEMENTED IN CUDA YET **************
-    banks[j]:add(nn.Copy('torch.CudaTensor', 'torch.FloatTensor'))
-    banks[j]:add(nn.SpatialSubtractiveNormalization(nstates[j][1], normkernel))
-    banks[j]:add(nn.Copy('torch.FloatTensor', 'torch.CudaTensor'))
-
-    tensor_dim = {nstates[j][1], (tensor_dim[2] - filtsize[j][1] + 1) / 
-      poolsize[j][1], (tensor_dim[3] - filtsize[j][1] + 1) / poolsize[j][1]}
-    print(string.format("Tensor Dimensions after stage 1 bank %d:", j))
-    print(tensor_dim)
-
-    -- stage 2 : filter bank -> squashing -> LN pooling -> normalization
-    -- *********** TO DO: SPATIALCONVOLUTIONMAP IS NOT IMPLEMENTED IN CUDA YET **************
-    -- banks[j]:add(nn.SpatialConvolutionMap(nn.tables.random(nstates[j][1], nstates[j][2], fanin[j][1]), filtsize[j][2], filtsize[j][2]))
-    banks[j]:add(nn.SpatialConvolution(nstates[j][1], nstates[j][2], filtsize[j][2], filtsize[j][2]):cuda())
-    if (nonlinear == 1) then 
-      banks[j]:add(nn.SoftShrink():cuda())
-    elseif (nonlinear == 2) then
-      banks[j]:add(nn.ramp():cuda())
-    elseif (nonlinear == 0) then
-      banks[j]:add(nn.Tanh():cuda())
-    end
-    if (poolsize[j][2] > 1) then
-      if (pooling ~= math.huge) then
-        banks[j]:add(nn.SpatialLPPooling(nstates[j][2], pooling, 
-          poolsize[j][2], poolsize[j][2], poolsize[j][2], poolsize[j][2]):cuda())
-      else
-        banks[j]:add(nn.SpatialMaxPooling(poolsize[j][2], poolsize[j][2], 
-          poolsize[j][2], poolsize[j][2]):cuda())
+      if (poolsize[j][1] > 1) then
+        if (pooling ~= math.huge) then
+          banks[b]:add(nn.SpatialLPPooling(nstates[j][1], pooling, poolsize[j][1], poolsize[j][1], poolsize[j][1], poolsize[j][1]):cuda())
+        else
+          banks[b]:add(nn.SpatialMaxPooling(poolsize[j][1], poolsize[j][1], poolsize[j][1], poolsize[j][1]):cuda())
+        end
       end
+
+      -- *********** TO DO: SpatialSubtractiveNormalization IS NOT IMPLEMENTED IN CUDA YET **************
+      banks[b]:add(nn.Copy('torch.CudaTensor', 'torch.FloatTensor'))
+      banks[b]:add(nn.SpatialSubtractiveNormalization(nstates[j][1], normkernel))
+      banks[b]:add(nn.Copy('torch.FloatTensor', 'torch.CudaTensor'))
+
+      -- nn.SpatialConvolutionCUDA
+      -- nn.Threshold(0,0)
+      -- nn.SpatialMaxPooling
+
+      tensor_dim = {nstates[j][1], (tensor_dim[2] - filtsize[j][1] + 1) / 
+        poolsize[j][1], (tensor_dim[3] - filtsize[j][1] + 1) / poolsize[j][1]}
+      print(string.format("Tensor Dimensions after stage 1 bank %d:", j))
+      print(tensor_dim)
+
+      -- stage 2 : filter bank -> squashing -> LN pooling -> normalization
+      -- *********** TO DO: SPATIALCONVOLUTIONMAP IS NOT IMPLEMENTED IN CUDA YET **************
+      -- banks[b]:add(nn.SpatialConvolutionMap(nn.tables.random(nstates[j][1], nstates[j][2], fanin[j][1]),
+      --   filtsize[j][2], filtsize[j][2]))
+      banks[b]:add(nn.SpatialConvolutionCUDA(nstates[j][1], nstates[j][2], filtsize[j][2], filtsize[j][2]):cuda())
+      if (nonlinear == 1) then 
+        banks[b]:add(nn.SoftShrink():cuda())
+      elseif (nonlinear == 2) then
+        banks[b]:add(nn.ramp():cuda())
+      elseif (nonlinear == 0) then
+        banks[b]:add(nn.Tanh():cuda())
+      end
+      if (poolsize[j][2] > 1) then
+        if (pooling ~= math.huge) then
+          banks[b]:add(nn.SpatialLPPooling(nstates[j][2], pooling, 
+            poolsize[j][2], poolsize[j][2], poolsize[j][2], poolsize[j][2]):cuda())
+        else
+          banks[b]:add(nn.SpatialMaxPooling(poolsize[j][2], poolsize[j][2], 
+            poolsize[j][2], poolsize[j][2]):cuda())
+        end
+      end
+  
+      -- *********** TO DO: SpatialSubtractiveNormalization IS NOT IMPLEMENTED IN CUDA YET **************
+      banks[b]:add(nn.Copy('torch.CudaTensor', 'torch.FloatTensor'))
+      banks[b]:add(nn.SpatialSubtractiveNormalization(nstates[j][2], normkernel))
+      banks[b]:add(nn.Copy('torch.FloatTensor', 'torch.CudaTensor'))
+
+      tensor_dim = {nstates[j][2], (tensor_dim[2] - filtsize[j][2] + 1) / 
+        poolsize[j][2], (tensor_dim[3] - filtsize[j][2] + 1) / poolsize[j][2]}
+      print(string.format("Tensor Dimensions after stage 2 bank %d:", j))
+      print(tensor_dim)
+
+      vec_length = tensor_dim[1] * tensor_dim[2] * tensor_dim[3]
+      banks[b]:add(nn.Reshape(vec_length):cuda())
+      banks_total_output_size = banks_total_output_size + vec_length
+
+      print(string.format("Bank %d output length:", j))
+      print(vec_length)
     end
-
-    -- *********** TO DO: SpatialSubtractiveNormalization IS NOT IMPLEMENTED IN CUDA YET **************
-    banks[j]:add(nn.Copy('torch.CudaTensor', 'torch.FloatTensor'))
-    banks[j]:add(nn.SpatialSubtractiveNormalization(nstates[j][2], normkernel))
-    banks[j]:add(nn.Copy('torch.FloatTensor', 'torch.CudaTensor'))
-
-    tensor_dim = {nstates[j][2], (tensor_dim[2] - filtsize[j][2] + 1) / 
-      poolsize[j][2], (tensor_dim[3] - filtsize[j][2] + 1) / poolsize[j][2]}
-    print(string.format("Tensor Dimensions after stage 2 bank %d:", j))
-    print(tensor_dim)
-
-    vec_length = tensor_dim[1] * tensor_dim[2] * tensor_dim[3]
-    banks[j]:add(nn.Reshape(vec_length):cuda())
-    banks_total_output_size = banks_total_output_size + vec_length
-
-    print(string.format("Bank %d output length:", j))
-    print(vec_length);
   end
 
   -- Now join the banks together!
   -- Parallel applies ith member module to the ith input, and outpus a table
   parallel = nn.ParallelTable():cuda()
-  for j=1,num_hpf_banks do
+  for j=1,num_hpf_banks-skip_banks do
     parallel:add(banks[j])
   end
   model:add(parallel)
@@ -458,7 +484,7 @@ if (perform_training == 1) then
   -- stage 3 : standard 2-layer neural network
 
   print("Neural net first stage input size")
-  print(banks_total_output_size);
+  print(banks_total_output_size)
 
   model:add(nn.Linear(banks_total_output_size, nstates_nn):cuda())
   if (nonlinear == 1) then 
@@ -470,7 +496,7 @@ if (perform_training == 1) then
   end
 
   print("Neural net first stage output size")
-  print(nstates_nn);
+  print(nstates_nn)
 
   model:add(nn.Linear(nstates_nn, noutputs):cuda())
 
@@ -543,10 +569,10 @@ if (perform_training == 1) then
       -- Collect the current image into a single array
       cur_i = shuffle[t]
       input = {}
-      for j=1,num_hpf_banks do
+      for j=1,num_hpf_banks-skip_banks do
         table.insert(input, trainData.data[j][cur_i])
       end
-      for j=1,num_hpf_banks do
+      for j=1,num_hpf_banks-skip_banks do
         input[j] = input[j]:cuda()
       end
       target = trainData.labels[cur_i]
@@ -577,19 +603,19 @@ if (perform_training == 1) then
       df_do = df_do:cuda()
       model:backward(input, df_do)
 
-      model:updateParameters(learning_rate)
+      model:updateParameters(learning_rate / (1 + learning_rate_decay * epoch))
 
       -- L2 Regularization
       -- Updating weights here escentially means that the learning rate is slightly lower, it will be
       -- learning_rate' = learning_rate * (1 - l2_reg_param * learning_rate) = 0.999999 * learning_rate
       if (math.abs(l2_reg_param) > 1e-9) then
         l2_reg_scale = 1 - l2_reg_param * learning_rate
-        for k = 1,num_hpf_banks do
+        for k = 1,num_hpf_banks-skip_banks do
           -- Weight and bias of 1st stage convolution
           model:get(1):get(k):get(1).weight:mul(l2_reg_scale)
           model:get(1):get(k):get(1).bias:mul(l2_reg_scale)
           -- Weight and bias of 2nd stage convolution
-          if (poolsize[k][1] == 1) then  -- no pooling in the first stage
+          if (poolsize[k+1][1] == 1) then  -- no pooling in the first stage
             model:get(1):get(k):get(6).weight:mul(l2_reg_scale)
             model:get(1):get(k):get(6).bias:mul(l2_reg_scale)
           else
@@ -652,10 +678,10 @@ if (perform_training == 1) then
 
       -- get new sample
       input = {}
-      for j=1,num_hpf_banks do
+      for j=1,num_hpf_banks-skip_banks do
         table.insert(input, testData.data[j][t])
       end
-      for j=1,num_hpf_banks do
+      for j=1,num_hpf_banks-skip_banks do
         input[j] = input[j]:cuda()
       end
       target = testData.labels[t]
@@ -730,7 +756,7 @@ else  -- if perform_training
       input = {},
       target = testData.labels[t]
     }
-    for j=1,num_hpf_banks do
+    for j=1,num_hpf_banks-skip_banks do
       table.insert(data_pt.input, testData.data[j][t])
     end
 
@@ -742,9 +768,9 @@ else  -- if perform_training
 
     te_abs_crit_error[t] = math.abs(abs_criterion:forward(pred, data_pt.target))
     te_mse_crit_error[t] = math.abs(mse_criterion:forward(pred, data_pt.target))
-    err = te_abs_crit_error[t];
+    err = te_abs_crit_error[t]
     if (err == math.huge or err ~= err) then
-      print(string.format("%d, %s is nan or inf!\n", t, trainData.files[t]));
+      print(string.format("%d, %s is nan or inf!\n", t, trainData.files[t]))
     end
 
 
@@ -767,7 +793,7 @@ else  -- if perform_training
       input = {},
       target = trainData.labels[t]
     }
-    for j=1,num_hpf_banks do
+    for j=1,num_hpf_banks-skip_banks do
       table.insert(data_pt.input, trainData.data[j][t])
     end
 
@@ -777,9 +803,9 @@ else  -- if perform_training
 
     tr_abs_crit_error[t] = math.abs(abs_criterion:forward(pred, data_pt.target))
     tr_mse_crit_error[t] = math.abs(mse_criterion:forward(pred, data_pt.target))
-    err = tr_abs_crit_error[t];
+    err = tr_abs_crit_error[t]
     if (err == math.huge or err ~= err) then
-      print(string.format("%d, %s is nan or inf!\n", t, trainData.files[t]));
+      print(string.format("%d, %s is nan or inf!\n", t, trainData.files[t]))
     end
 
 

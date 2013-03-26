@@ -135,15 +135,12 @@ cd build
 
 export CMAKE_LIBRARY_PATH=/path/to/OpenBLAS:$CMAKE_LIBRARY_PATH
 (for me it was "export CMAKE_LIBRARY_PATH=/home/tompson/Desktop/OpenBLAS/")
-export CMAKE_LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/4.7:$CMAKE_LIBRARY_PATH
+export CMAKE_LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/:$CMAKE_LIBRARY_PATH
 
 If you still get:
 --   Library gfortran: BLAS_gfortran_LIBRARY-NOTFOUND
 in the cmake output then the above didn't work and you need to find the libgfortran.so for your
 system and include a path to that in the CMAKE_LIBRARY_PATH variable.
-
-
-edit: torch/pkg/dok/dokinstall/blas.dok
 
 cmake ..
 
