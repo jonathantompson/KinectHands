@@ -353,7 +353,7 @@ if (perform_training == 1) then
   -- input dimensions
   nfeats = 1
   nstates = {{8, 32}, {8, 32}, {8, 32}}
-  nstates_nn = 4096
+  nstates_nn = 1024
   filtsize = {{5, 7}, {5, 5}, {5, 5}}
   poolsize = {{2, 4}, {2, 2}, {1, 2}}  -- Note: 1 = no pooling
   fanin = {{4}, {4}, {4}}
@@ -577,14 +577,19 @@ if (perform_training == 1) then
         -- L2 Regularization
         if (math.abs(l2_reg_param) > 1e-9) then
           l2_reg_scale = 1 - l2_reg_param * learning_rate
---          for k = 1,num_hpf_banks do
---            -- Weight and bias of 1st stage convolution
---            model:get(1):get(k):get(1).weight:mul(l2_reg_scale)
---            model:get(1):get(k):get(1).bias:mul(l2_reg_scale)
---            -- Weight and bias of 2nd stage convolution
---            model:get(1):get(k):get(7).weight:mul(l2_reg_scale)
---            model:get(1):get(k):get(7).bias:mul(l2_reg_scale)
---          end
+          for k = 1,num_hpf_banks do
+            -- Weight and bias of 1st stage convolution
+            model:get(1):get(k):get(1).weight:mul(l2_reg_scale)
+            model:get(1):get(k):get(1).bias:mul(l2_reg_scale)
+            -- Weight and bias of 2nd stage convolution
+            if (poolsize[k][1] == 1) then  -- no pooling in the first stage
+              model:get(1):get(k):get(6).weight:mul(l2_reg_scale)
+              model:get(1):get(k):get(6).bias:mul(l2_reg_scale)
+            else
+              model:get(1):get(k):get(7).weight:mul(l2_reg_scale)
+              model:get(1):get(k):get(7).bias:mul(l2_reg_scale)
+            end
+          end
           -- Weight and bias of 1st stage NN
           model:get(3).weight:mul(l2_reg_scale)
           model:get(3).bias:mul(l2_reg_scale)
