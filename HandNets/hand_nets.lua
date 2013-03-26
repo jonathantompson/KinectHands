@@ -34,7 +34,7 @@ print(cutorch.getDeviceProperties(cutorch.getDevice()))
 
 width = 96
 height = 96
-num_hpf_banks = 2
+num_hpf_banks = 1
 skip_banks = 0  -- Number of MSB banks to skip
 dim = width * height
 num_coeff = 58
@@ -50,7 +50,7 @@ visualize_data = 0
 pooling = 2  -- 1,2,.... or math.huge (infinity)
 use_hpf_depth = 0
 learning_rate = 1e-3  -- Default 1e-3
-learning_rate_decay = 1e-1   -- Learning rate = l_0 / (1 + learning_rate_decay * epoch)
+learning_rate_decay = 4e-1   -- Learning rate = l_0 / (1 + learning_rate_decay * epoch)
 l2_reg_param = 5e-4  -- Default 5e-4
 max_num_epochs = 100
 
@@ -371,10 +371,10 @@ if (perform_training == 1) then
 
   -- input dimensions
   nfeats = 1
-  nstates = {{32, 256}, {32, 256}, {32, 256}}
-  nstates_nn = 4096
+  nstates = {{32, 64}, {32, 64}, {32, 64}}
+  nstates_nn = 2048
   filtsize = {{5, 5}, {5, 5}, {5, 5}}
-  poolsize = {{2, 2}, {2, 1}, {2, 1}}  -- Note: 1 = no pooling
+  poolsize = {{2, 2}, {2, 2}, {2, 1}}  -- Note: 1 = no pooling
   fanin = {{1}, {1}, {1}}  -- NOT USING THIS ANY MORE
   normkernel = image.gaussian1D(7)
 
@@ -399,7 +399,7 @@ if (perform_training == 1) then
       -- *********** TO DO: SpatialConvolutionMap IS NOT IMPLEMENTED IN CUDA YET **************
       -- banks[b]:add(nn.SpatialConvolutionMap(nn.tables.full(nfeats, nstates[j][1]), filtsize[j][1], 
       --   filtsize[j][1]))
-      banks[b]:add(nn.SpatialConvolutionCUDA(nfeats, nstates[j][1], filtsize[j][1], filtsize[j][1]):cuda())
+      banks[b]:add(nn.SpatialConvolution(nfeats, nstates[j][1], filtsize[j][1], filtsize[j][1]):cuda())
 
       if (nonlinear == 1) then 
         banks[b]:add(nn.SoftShrink():cuda())
@@ -435,7 +435,7 @@ if (perform_training == 1) then
       -- *********** TO DO: SPATIALCONVOLUTIONMAP IS NOT IMPLEMENTED IN CUDA YET **************
       -- banks[b]:add(nn.SpatialConvolutionMap(nn.tables.random(nstates[j][1], nstates[j][2], fanin[j][1]),
       --   filtsize[j][2], filtsize[j][2]))
-      banks[b]:add(nn.SpatialConvolutionCUDA(nstates[j][1], nstates[j][2], filtsize[j][2], filtsize[j][2]):cuda())
+      banks[b]:add(nn.SpatialConvolution(nstates[j][1], nstates[j][2], filtsize[j][2], filtsize[j][2]):cuda())
       if (nonlinear == 1) then 
         banks[b]:add(nn.SoftShrink():cuda())
       elseif (nonlinear == 2) then
@@ -549,6 +549,7 @@ if (perform_training == 1) then
 
     -- epoch tracker
     epoch = epoch or 1
+    cur_learning_rate = learning_rate / (1 + learning_rate_decay * (epoch-1))
 
     -- local vars
     local time = sys.clock()
@@ -559,6 +560,7 @@ if (perform_training == 1) then
     -- do one epoch
     print('==> doing epoch on training data:')
     print("==> online epoch # " .. epoch)
+    print("==> Learning rate " .. cur_learning_rate)
     local ave_err = 0
     local ave_abs_err = 0  -- might be same as ave_err if loss = 0
     local nsamples = 0
@@ -603,7 +605,7 @@ if (perform_training == 1) then
       df_do = df_do:cuda()
       model:backward(input, df_do)
 
-      model:updateParameters(learning_rate / (1 + learning_rate_decay * epoch))
+      model:updateParameters(cur_learning_rate)
 
       -- L2 Regularization
       -- Updating weights here escentially means that the learning rate is slightly lower, it will be
