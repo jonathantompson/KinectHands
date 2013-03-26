@@ -19,8 +19,7 @@ torch.setdefaulttensortype('torch.FloatTensor')
 print("GPU That will be used:")
 print(cutorch.getDeviceProperties(cutorch.getDevice()))
 -- To get GPU Memory usage: nvidia-smi -q -d MEMORY
-
--- nn.SpatialConvolutionMM = nn.SpatialConvolution
+-- The cuda modules that exist github.com/andresy/torch/tree/master/extra/cuda/pkg/cunn
 
 -- Jonathan Tompson
 -- NYU, MRL
@@ -31,6 +30,7 @@ height = 96
 num_hpf_banks = 3
 dim = width * height
 num_coeff = 58
+frame_stride = 1
 perform_training = 1
 nonlinear = 0  -- 0 = tanh, 1 = SoftShrink, 2 = ramp
 model_filename = 'handmodel.net'
@@ -43,8 +43,8 @@ pooling = 2  -- 1,2,.... or math.huge (infinity)
 use_hpf_depth = 0
 learning_rate = 1e-3  -- Default 1e-3
 learning_rate_decay = 5e-7 
-l2_reg_param = 1e-3  -- Default 5e-4
-max_num_epochs = 100
+l2_reg_param = 5e-4  -- Default 5e-4
+max_num_epochs = 50
 
 -- ******* Some preliminary calculations *********
 w = width
@@ -148,7 +148,7 @@ shuffle_files_right(test_coeffr_files, test_im_files)
 
 -- ************ Load data from Disk ***************
 print '==> Loading hand data from directory'
-nfiles = #im_files
+nfiles = math.floor(#im_files / frame_stride)
 tesize = math.floor(nfiles / test_data_rate) + 1
 trsize = nfiles - tesize
 tesize = tesize + #test_im_files  -- Also add in the training files from the separate dir
@@ -184,12 +184,12 @@ for i=1,nfiles do
   progress(i, nfiles)
 
   -- Read in the sample
-  coeff_file = torch.DiskFile(im_dir .. coeffr_files[i], 'r')
+  coeff_file = torch.DiskFile(im_dir .. coeffr_files[i*frame_stride], 'r')
   coeff_file:binary()
   coeff_data = coeff_file:readFloat(num_coeff)
   coeff_file:close()
 
-  hpf_depth_file = torch.DiskFile(im_dir .. im_files[i],'r')
+  hpf_depth_file = torch.DiskFile(im_dir .. im_files[i*frame_stride],'r')
   hpf_depth_file:binary()
   hpf_depth_data = hpf_depth_file:readFloat(data_file_size)
   hpf_depth_file:close()
@@ -223,7 +223,7 @@ for i=1,nfiles do
       end
       testData.labels[{ite, {}}] = torch.FloatTensor(coeff_data, 1,
         torch.LongStorage{num_coeff}):float()
-      testData.files[ite] = im_files[i]
+      testData.files[ite] = im_files[i*frame_stride]
       ite = ite + 1
     end
   end
@@ -311,7 +311,7 @@ if (visualize_data == 1) then
 end
 
 -- ********************** Converting data to cuda **********************
--- print '==> Converting data to cudaTensor'
+print '==> Converting data to cudaTensor'
 -- for j=1,testData.size() do
 --   for k=1,num_hpf_banks do
 --    testData.data[j][k] = testData.data[j][k]:cuda()
@@ -322,6 +322,10 @@ end
 --     trainData.data[j][k] = trainData.data[j][k]:cuda()
 --   end
 -- end
+if (loss ~= 0) then
+  trainData.labels = trainData.labels:cuda()
+  testData.labels = testData.labels:cuda()
+end
 
 -- ********************** Define loss function **********************
 print '==> defining loss function'
@@ -337,6 +341,7 @@ if (loss == 0) then
 elseif (loss == 1) then
   print '   using MSE criterion'
   criterion = nn.MSECriterion()  
+  criterion:cuda()
 else
   print("loss should be 0 or 1")
   return
@@ -352,11 +357,11 @@ if (perform_training == 1) then
 
   -- input dimensions
   nfeats = 1
-  nstates = {{8, 32}, {8, 32}, {8, 32}}
-  nstates_nn = 1024
-  filtsize = {{5, 7}, {5, 5}, {5, 5}}
-  poolsize = {{2, 4}, {2, 2}, {1, 2}}  -- Note: 1 = no pooling
-  fanin = {{4}, {4}, {4}}
+  nstates = {{16, 32}, {16, 32}, {16, 32}}
+  nstates_nn = 2048
+  filtsize = {{7, 6}, {7, 7}, {7, 7}}
+  poolsize = {{2, 2}, {2, 1}, {1, 1}}  -- Note: 1 = no pooling
+  fanin = {{1}, {1}, {1}}  -- NOT USING THIS ANY MORE
   normkernel = image.gaussian1D(7)
 
   -- ********************** Construct model **********************
@@ -493,6 +498,7 @@ if (perform_training == 1) then
   -- Retrieve parameters and gradients:
   -- this extracts and flattens all the trainable parameters of the mode
   -- into a 1-dim vector
+  --[[
   print '    Extracting model parameters (this may take a while)'
   if model then
      parameters, gradParameters = model:getParameters()
@@ -509,6 +515,7 @@ if (perform_training == 1) then
     learningRateDecay = learning_rate_decay
   }
   optimMethod = optim.sgd
+  --]]
  
   print '    defining training procedure'
 
@@ -544,73 +551,61 @@ if (perform_training == 1) then
       end
       target = trainData.labels[cur_i]
 
-      -- create closure to evaluate f(X) and df/dX
-      local feval = function(x)
-        -- get new parameters
-        if x ~= parameters then
-          parameters:copy(x)
-        end
-
-        -- reset gradients
-        gradParameters:zero()
-
-        -- f is the average of all criterions
-        -- local f = 0
-        cur_f = 0
-
-        -- evaluate function
-        -- estimate f
-        output = model:forward(input)
-        cutorch.synchronize()
+      -- evaluate function
+      -- estimate f
+      output = model:forward(input)
+      cutorch.synchronize()
+      if (loss == 0) then
         output = output:float()
+      end
 
-        err = criterion:forward(output, target)
-        cur_f = cur_f + err
-        ave_err = ave_err + err
-        nsamples = nsamples + 1
-        abs_err = err
-        if (loss ~= 0) then
-          abs_err = abs_criterion:forward(output, target)
+      err = criterion:forward(output, target)
+      ave_err = ave_err + err
+      nsamples = nsamples + 1
+      abs_err = err
+      if (loss ~= 0) then
+        -- abs criterion not supported for cuda yet
+        abs_err = abs_criterion:forward(output:float(), target:float())
+      end
+      ave_abs_err = ave_abs_err + abs_err
+
+      -- reset gradients
+      model:zeroGradParameters()
+
+      -- estimate df/dW
+      df_do = criterion:backward(output, target)
+      df_do = df_do:cuda()
+      model:backward(input, df_do)
+
+      model:updateParameters(learning_rate)
+
+      -- L2 Regularization
+      -- Updating weights here escentially means that the learning rate is slightly lower, it will be
+      -- learning_rate' = learning_rate * (1 - l2_reg_param * learning_rate) = 0.999999 * learning_rate
+      if (math.abs(l2_reg_param) > 1e-9) then
+        l2_reg_scale = 1 - l2_reg_param * learning_rate
+        for k = 1,num_hpf_banks do
+          -- Weight and bias of 1st stage convolution
+          model:get(1):get(k):get(1).weight:mul(l2_reg_scale)
+          model:get(1):get(k):get(1).bias:mul(l2_reg_scale)
+          -- Weight and bias of 2nd stage convolution
+          if (poolsize[k][1] == 1) then  -- no pooling in the first stage
+            model:get(1):get(k):get(6).weight:mul(l2_reg_scale)
+            model:get(1):get(k):get(6).bias:mul(l2_reg_scale)
+          else
+            model:get(1):get(k):get(7).weight:mul(l2_reg_scale)
+            model:get(1):get(k):get(7).bias:mul(l2_reg_scale)
+          end
         end
-        ave_abs_err = ave_abs_err + abs_err
-
-        -- L2 Regularization
-        if (math.abs(l2_reg_param) > 1e-9) then
-          l2_reg_scale = 1 - l2_reg_param * learning_rate
- --         for k = 1,num_hpf_banks do
- --           -- Weight and bias of 1st stage convolution
- --           model:get(1):get(k):get(1).weight:mul(l2_reg_scale)
- --           model:get(1):get(k):get(1).bias:mul(l2_reg_scale)
- --           -- Weight and bias of 2nd stage convolution
- --           if (poolsize[k][1] == 1) then  -- no pooling in the first stage
- --             model:get(1):get(k):get(6).weight:mul(l2_reg_scale)
- --             model:get(1):get(k):get(6).bias:mul(l2_reg_scale)
- --           else
- --             model:get(1):get(k):get(7).weight:mul(l2_reg_scale)
- --             model:get(1):get(k):get(7).bias:mul(l2_reg_scale)
- --           end
- --         end
-          -- Weight and bias of 1st stage NN
-          model:get(3).weight:mul(l2_reg_scale)
-          model:get(3).bias:mul(l2_reg_scale)
-          -- Weight and bias of 2nd stage NN
-          model:get(5).weight:mul(l2_reg_scale)
-          model:get(5).bias:mul(l2_reg_scale)
-        end
-
-        -- estimate df/dW
-        df_do = criterion:backward(output, target)
-        df_do = df_do:cuda()
-        model:backward(input, df_do)
-
-        -- return f and df/dX
-        return cur_f, gradParameters
+        -- Weight and bias of 1st stage NN
+        model:get(3).weight:mul(l2_reg_scale)
+        model:get(3).bias:mul(l2_reg_scale)
+        -- Weight and bias of 2nd stage NN
+        model:get(5).weight:mul(l2_reg_scale)
+        model:get(5).bias:mul(l2_reg_scale)
       end
 
       -- if _DEBUG_ then pause() end
-
-      -- optimize on current mini-batch
-      optimMethod(feval, parameters, optimState)
     end
 
     -- time taken
@@ -668,13 +663,16 @@ if (perform_training == 1) then
       -- test sample
       pred = model:forward(input)
       cutorch.synchronize()
-      pred = pred:float()
+      if (loss == 0) then
+        pred = pred:float()
+      end
       err = criterion:forward(pred, target)
   
       err_ave = err_ave + err
       abs_err = err
       if (loss ~= 0) then
-        abs_err = abs_criterion:forward(pred, target)
+        -- abs criterion not supported for cuda yet
+        abs_err = abs_criterion:forward(pred:float(), target:float())
       end
       abs_err_ave = abs_err_ave + abs_err
     end
@@ -721,7 +719,7 @@ else  -- if perform_training
   print(model)
 
   print("    Measuring test dataset performance:")
-  
+
   te_abs_crit_error = torch.FloatTensor(testData:size())
   te_mse_crit_error = torch.FloatTensor(testData:size())
   for t=1,testData:size(),1 do
