@@ -39,7 +39,7 @@ skip_banks = 0  -- Number of MSB banks to skip
 dim = width * height
 num_coeff = 58
 frame_stride = 1
-perform_training = 1
+perform_training = 0
 nonlinear = 0  -- 0 = tanh, 1 = SoftShrink, 2 = ramp
 model_filename = 'handmodel.net'
 loss = 0  -- 0 = abs, 1 = mse
@@ -252,7 +252,7 @@ for i=1,#test_im_files do
   coeff_data = coeff_file:readFloat(num_coeff)
   coeff_file:close()
 
-  hpf_depth_file = torch.DiskFile(im_dir .. im_files[i],'r')
+  hpf_depth_file = torch.DiskFile(test_im_dir .. test_im_files[i],'r')
   hpf_depth_file:binary()
   hpf_depth_data = hpf_depth_file:readFloat(data_file_size)
   hpf_depth_file:close()
@@ -270,7 +270,7 @@ for i=1,#test_im_files do
     end
     testData.labels[{ite, {}}] = torch.FloatTensor(coeff_data, 1,
       torch.LongStorage{num_coeff}):float()
-    testData.files[ite] = im_files[i]
+    testData.files[ite] = test_im_files[i]
     ite = ite + 1
   end
 end
@@ -759,7 +759,7 @@ else  -- if perform_training
       target = testData.labels[t]
     }
     for j=1,num_hpf_banks-skip_banks do
-      table.insert(data_pt.input, testData.data[j][t])
+      table.insert(data_pt.input, testData.data[j][t]:cuda())
     end
 
     -- image.display(data_pt.input)
@@ -796,12 +796,14 @@ else  -- if perform_training
       target = trainData.labels[t]
     }
     for j=1,num_hpf_banks-skip_banks do
-      table.insert(data_pt.input, trainData.data[j][t])
+      table.insert(data_pt.input, trainData.data[j][t]:cuda())
     end
 
     -- image.display(data_pt.input)
 
-    pred = model:forward(data_pt.input):float()
+    pred = model:forward(data_pt.input)
+    cutorch.synchronize()
+    pred = pred:float()
 
     tr_abs_crit_error[t] = math.abs(abs_criterion:forward(pred, data_pt.target))
     tr_mse_crit_error[t] = math.abs(mse_criterion:forward(pred, data_pt.target))
@@ -809,7 +811,6 @@ else  -- if perform_training
     if (err == math.huge or err ~= err) then
       print(string.format("%d, %s is nan or inf!\n", t, trainData.files[t]))
     end
-
 
     -- print 'Label parameters:'
     -- print(data_pt.target)
