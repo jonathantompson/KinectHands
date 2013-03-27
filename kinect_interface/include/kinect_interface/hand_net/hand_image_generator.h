@@ -12,6 +12,7 @@
 
 #include "jtil/math/math_types.h"
 #include "kinect_interface/depth_images_io.h"  // for src_dim
+#include "kinect_interface/hand_net/hand_net.h"  // for src_dim
 #include "jtil/threading/callback.h"
 
 #define HN_SRC_IM_SIZE 256  // U, V size (before downsampling)
@@ -20,7 +21,6 @@
 #define HN_HAND_SIZE 300.0f
 #define HN_DEFAULT_NUM_CONV_BANKS 3
 #define HN_HPF_GAIN 2.0f
-#define HN_NUM_WORKER_THREADS 8
 #define HN_HPF_SIGMA 1.5f  // in pixels
 #define HN_HPF_KERNEL_SIZE 11  // Hopefully >= 2*(3*sigma) + 1 (MUST BE ODD!)
 
