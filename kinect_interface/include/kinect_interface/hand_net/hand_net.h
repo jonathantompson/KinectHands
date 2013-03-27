@@ -19,7 +19,7 @@
 #include "kinect_interface/depth_images_io.h"  // for src_dim
 #include "jtil/threading/callback.h"
 
-#define HN_NUM_WORKER_THREADS 8
+#define HN_NUM_WORKER_THREADS 6
 
 #if defined(__APPLE__)
   #define CONVNET_FILE string("./../../../../../../../../../data/" \

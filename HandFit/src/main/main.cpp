@@ -54,9 +54,9 @@
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")  // Fit
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")  // Fit
+#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")  // Fit
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Fit
-#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Fit
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Fit
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Fit -> Training Data
  
 #if defined(__APPLE__)
@@ -162,7 +162,7 @@ void quit() {
   delete image_io;
   delete clk; 
   if (l_hands) {
-    for (uint32_t i = 0; i < im_files.size(); i++) {
+    for (uint32_t i = 0; i < im_files.size(); i++) { 
       delete l_hands[i];
     }
     delete[] l_hands;
@@ -187,10 +187,14 @@ void quit() {
   exit(0);
 }
 
-void loadCurrentImage() {
+void loadCurrentImage(bool print_to_screen = true) {
   char* file = im_files[cur_image];
   string full_filename = IM_DIR + string(file);
-  std::cout << "loading image: " << full_filename << std::endl;
+  if (print_to_screen) {
+    std::cout << "loading image: " << full_filename << std::endl;
+    std::cout << "cur_image = " << cur_image << " of ";
+    std::cout << im_files.size() << std::endl;
+  }
   
   image_io->LoadCompressedImageWithRedHands(full_filename, 
     cur_depth_data, cur_label_data, cur_image_rgb, NULL);
@@ -479,7 +483,6 @@ void KeyboardCB(int key, int action) {
           cur_image+1 : cur_image;
         loadCurrentImage();
         InitXYZPointsForRendering();
-        std::cout << "cur_image = " << cur_image << std::endl;
       }
       break;
     case KEY_KP_SUBTRACT:
@@ -487,7 +490,6 @@ void KeyboardCB(int key, int action) {
         cur_image = cur_image > 0 ? cur_image-1 : 0;
         loadCurrentImage();
         InitXYZPointsForRendering();
-        std::cout << "cur_image = " << cur_image << std::endl;
       }
       break;
     case static_cast<int>('0'):
@@ -498,7 +500,6 @@ void KeyboardCB(int key, int action) {
         }
         loadCurrentImage();
         InitXYZPointsForRendering();
-        std::cout << "cur_image = " << cur_image << std::endl;
       }
       break;
     case static_cast<int>('9'):
@@ -506,7 +507,6 @@ void KeyboardCB(int key, int action) {
         cur_image = cur_image >= 100 ? cur_image-100 : 0;
         loadCurrentImage();
         InitXYZPointsForRendering();
-        std::cout << "cur_image = " << cur_image << std::endl;
       }
       break;
     case static_cast<int>('}'):
@@ -564,7 +564,6 @@ void KeyboardCB(int key, int action) {
         cur_image = 0;
         loadCurrentImage();
         InitXYZPointsForRendering();
-        std::cout << "cur_image = " << cur_image << std::endl;
       }
       break;
     case static_cast<int>('o'):
@@ -712,7 +711,6 @@ void KeyboardCB(int key, int action) {
               im_files.deleteAtAndShift((uint32_t)cur_image);
               loadCurrentImage();
               InitXYZPointsForRendering();
-              std::cout << "cur_image = " << cur_image << std::endl;
             }
             if (i == (repeat - 1)) {
               delete_confirmed = 0;
@@ -835,7 +833,7 @@ void renderFrame(float dt) {
     render->renderFrame(dt);
     if (render_depth) {
       render->renderColoredPointCloud(geometry_points, &identity,
-        3.0f * static_cast<float>(settings.width) / 4.0f);
+        4.0f * static_cast<float>(settings.width) / 4.0f);
         // 4.0f * static_cast<float>(settings.width) / 4.0f);
     }
     break;
@@ -1121,9 +1119,7 @@ int main(int argc, char *argv[]) {
           continuous_play_timer_start += (t1 - t0);
           if (continuous_play_timer_start >= continuous_play_frame_time) {
             cur_image += playback_step;
-            loadCurrentImage();
-            std::cout << "cur_image = " << cur_image << " of ";
-            std::cout << im_files.size() << std::endl;
+            loadCurrentImage(false);
             continuous_play_timer_start = 0;
             InitXYZPointsForRendering();
           }

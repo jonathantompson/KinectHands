@@ -55,11 +55,11 @@
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")  // Added
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Added
-#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Added
+#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Added
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Added
 
-#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN_new/") 
+#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN/") 
 
 //#define SAVE_FILES  // Only enabled when we're not loading processed images
 #define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
