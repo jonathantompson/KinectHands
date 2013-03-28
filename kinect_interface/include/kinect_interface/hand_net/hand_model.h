@@ -15,6 +15,7 @@
 
 #define HAND_NUM_COEFF 25  // The number of coefficients to use when optimizing
 #define FINGER_NUM_COEFF 3
+#define NSPH_PER_FING 6
 #define HAND_MODEL_DEFAULT_SCALE 58.0f
 #define HAND_CAMERA_VIEW_PLANE_NEAR 10.0f
 #define HAND_CAMERA_VIEW_PLANE_FAR 3000.0f
@@ -92,39 +93,45 @@ namespace hand_net {
     BACKGROUND        = 18,
     NUM_HANDLABEL     = 19,
   } HandLabel;
-
+  
   typedef enum {
-    F1_KNU3_A = 0,
+    F1_KNU3_A = 0,  // tip
     F1_KNU3_B = 1,
     F1_KNU2_A = 2,
     F1_KNU2_B = 3,
     F1_KNU1_A = 4,
-    F1_KNU1_B = 5,
-    F2_KNU3_A = 6,
+    F1_KNU1_B = 5,  // base
+    F2_KNU3_A = 6,  // tip
     F2_KNU3_B = 7,
     F2_KNU2_A = 8,
     F2_KNU2_B = 9,
     F2_KNU1_A = 10,
-    F2_KNU1_B = 11,
-    F3_KNU3_A = 12,
+    F2_KNU1_B = 11,  // base
+    F3_KNU3_A = 12,  // tip
     F3_KNU3_B = 13,
     F3_KNU2_A = 14,
     F3_KNU2_B = 15,
     F3_KNU1_A = 16,
-    F3_KNU1_B = 17,
-    F4_KNU3_A = 18,
+    F3_KNU1_B = 17,  // base
+    F4_KNU3_A = 18,  // tip
     F4_KNU3_B = 19,
     F4_KNU2_A = 20,
     F4_KNU2_B = 21,
     F4_KNU1_A = 22,
-    F4_KNU1_B = 23,
-    TH_KNU3_A = 24,
+    F4_KNU1_B = 23,  // base
+    TH_KNU3_A = 24,  // Tip
     TH_KNU3_B = 25,
     TH_KNU2_A = 26,
     TH_KNU2_B = 27,
     TH_KNU1_A = 28,
-    TH_KNU1_B = 29,
-    NUM_BOUNDING_SPHERES = 30
+    TH_KNU1_B = 29,  // Base
+    PALM_1    = 30,
+    PALM_2    = 31,
+    PALM_3    = 32,
+    PALM_4    = 33,
+    PALM_5    = 34,
+    PALM_6    = 35,  // At (0,0,0)
+    NUM_BOUNDING_SPHERES = 36  // Must be a mulitple of NSPH_PER_FING
   } HandSphereIndices;
   
   typedef enum {

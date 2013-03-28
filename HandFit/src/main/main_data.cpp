@@ -50,20 +50,20 @@
   #define snprintf _snprintf_s
 #endif
 
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Added
+#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")  // Added
-#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Added
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Added
 
 #define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN/") 
 
-//#define SAVE_FILES  // Only enabled when we're not loading processed images
-#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
-//#define SAVE_HPF_IMAGES  // Save the hpf files
+#define SAVE_FILES  // Only enabled when we're not loading processed images
+//#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
+#define SAVE_HPF_IMAGES  // Save the hpf files
 #define DESIRED_PLAYBACK_FPS 30.0f
 #define FRAME_TIME (1.0f / DESIRED_PLAYBACK_FPS)
 
@@ -262,6 +262,7 @@ void saveFrame() {
 int delete_confirmed = 0;
 void keyboardCB(int key, int action) {
   string full_im_filename;
+  string full_hpf_im_filename;
   string r_coeff_file;
   string l_coeff_file;
   string src_file;
@@ -310,6 +311,7 @@ void keyboardCB(int key, int action) {
   case 'd':
 #if defined(WIN32) || defined(_WIN32)
     full_im_filename = DST_IM_DIR + string(im_files[cur_image]);
+    full_hpf_im_filename = DST_IM_DIR + std::string("hpf_") + im_files[cur_image];
     src_file = im_files[cur_image];
     src_file = src_file.substr(10, src_file.length());
     r_coeff_file = DST_IM_DIR + string("coeffr_") + src_file;
@@ -318,17 +320,20 @@ void keyboardCB(int key, int action) {
     if (delete_confirmed == 1) {
       if(!DeleteFile(full_im_filename.c_str()) ||
         !DeleteFile(r_coeff_file.c_str()) /*||
-        !DeleteFile(l_coeff_file.c_str())*/) {
+        !DeleteFile(l_coeff_file.c_str())*/ ||
+        !DeleteFile(full_hpf_im_filename.c_str())) {
         cout << "Error deleting files: " << endl;
         cout << "    - " << full_im_filename.c_str() << endl;
         cout << "    - " << r_coeff_file.c_str() << endl;
         //cout << "    - " << l_coeff_file.c_str() << endl;
+        cout << "    - " << full_hpf_im_filename.c_str() << endl;
         cout << endl;
       } else {
         cout << "Files deleted sucessfully: " << endl;
         cout << "    - " << full_im_filename.c_str() << endl;
         cout << "    - " << r_coeff_file.c_str() << endl;
         //cout << "    - " << l_coeff_file.c_str() << endl;
+        cout << "    - " << full_hpf_im_filename.c_str() << endl;
         cout << endl;
         im_files.deleteAtAndShift((uint32_t)cur_image);
         loadCurrentImage();
@@ -340,6 +345,7 @@ void keyboardCB(int key, int action) {
       cout << "    - " << full_im_filename.c_str() << endl;
       cout << "    - " << r_coeff_file.c_str() << endl;
       //cout << "    - " << l_coeff_file.c_str() << endl;
+      cout << "    - " << full_hpf_im_filename.c_str() << endl;
       cout << endl;
       cout << "Press 'd' again " << 2 - delete_confirmed;
       cout << " times to confirm" << endl;

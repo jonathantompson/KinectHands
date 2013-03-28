@@ -220,6 +220,13 @@ namespace hand_fit {
     void HandRenderer::calcHandImageUVFromXYZ(jtil::math::Float3& xyz_pos, 
       jtil::math::Float2& uv_pos, const jtil::math::Int4& hand_pos_wh);
 
+    // Convnet positions are tied to the center of the bounding spheres
+    // For a given hand pose and bsphere index, this works out the position
+    void extractPositionForConvnet(kinect_interface::hand_net::HandModel* hand, 
+      float* coeff_convnet, const jtil::math::Int4& hand_pos_wh, 
+      const jtil::math::Float3& uvd_com, const uint32_t b_sphere_index, 
+      const uint32_t convnet_U_index);
+
     // Non-copyable, non-assignable.
     HandRenderer(HandRenderer&);
     HandRenderer& operator=(const HandRenderer&);

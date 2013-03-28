@@ -54,9 +54,9 @@ namespace hand_fit {
     jtil::data_str::Vector<renderer::BoundingSphere*> bspheres_;  // Attached to scene graph!
     uint32_t bone_wrist_index_;
     uint32_t bone_palm_index_;
-    uint32_t bone_thumb_1_index_;
+    uint32_t bone_thumb_1_index_;  // tip
     uint32_t bone_thumb_2_index_;
-    uint32_t bone_thumb_3_index_;
+    uint32_t bone_thumb_3_index_;  // base
     uint32_t bone_finger_1_index_[4];
     uint32_t bone_finger_2_index_[4];
     uint32_t bone_finger_3_index_[4];

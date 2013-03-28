@@ -830,62 +830,6 @@ namespace hand_fit {
     100,  // F3_KNUCKLE_CURL
   };
 
-  const float HandFit::save_2_disk_coeff_radius[HAND_NUM_COEFF] = {
-    30.0f,   // HAND_POS_X
-    30.0f,   // HAND_POS_Y
-    30.0f,   // HAND_POS_Z
-    0.5f,   // HAND_ORIENT_X
-    0.5f,   // HAND_ORIENT_Y
-    0.5f,   // HAND_ORIENT_Z
-    2.0f,    // WRIST_THETA
-    2.0f,    // WRIST_PHI
-    2.0f,    // THUMB_THETA
-    2.0f,    // THUMB_PHI
-    2.0f,    // THUMB_K1_THETA
-    2.0f,    // THUMB_K1_PHI
-    2.0f,    // THUMB_K2_PHI
-    2.0f,    // F0_THETA
-    2.0f,    // F0_PHI
-    2.0f,    // F0_KNUCKLE_CURL
-    2.0f,    // F1_THETA
-    2.0f,    // F1_PHI
-    2.0f,    // F1_KNUCKLE_CURL
-    2.0f,    // F2_THETA
-    2.0f,    // F2_PHI
-    2.0f,    // F2_KNUCKLE_CURL
-    2.0f,    // F3_THETA
-    2.0f,    // F3_PHI
-    2.0f,    // F3_KNUCKLE_CURL
-  };
-
-  const int HandFit::save_2_disk_sample_radius[HAND_NUM_COEFF] = {
-    0,       // HAND_POS_X
-    0,       // HAND_POS_Y
-    0,       // HAND_POS_Z
-    0,       // HAND_ORIENT_X
-    0,       // HAND_ORIENT_Y
-    0,       // HAND_ORIENT_Z
-    0,       // WRIST_THETA
-    0,       // WRIST_PHI
-    0,       // THUMB_THETA
-    0,       // THUMB_PHI
-    0,       // THUMB_K1_THETA
-    0,       // THUMB_K1_PHI
-    0,       // THUMB_K2_PHI
-    15,       // F0_THETA
-    15,       // F0_PHI
-    15,       // F0_KNUCKLE_CURL
-    0,       // F1_THETA
-    0,       // F1_PHI
-    0,       // F1_KNUCKLE_CURL
-    0,       // F2_THETA
-    0,       // F2_PHI
-    0,       // F2_KNUCKLE_CURL
-    0,       // F3_THETA
-    0,       // F3_PHI
-    0,       // F3_KNUCKLE_CURL
-  };
-
   Coeff& Coeff::operator=(const Coeff &rhs) {
     // Only do assignment if RHS is a different object from this.
     if (this != &rhs) {

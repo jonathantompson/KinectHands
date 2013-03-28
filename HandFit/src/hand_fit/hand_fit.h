@@ -132,8 +132,6 @@ namespace hand_fit {
     static const float coeff_penalty_scale_[HAND_NUM_COEFF];
     static const float finger_crossover_penalty_threshold;
     static const uint32_t manual_fit_order_[HAND_NUM_COEFF];
-    static const float save_2_disk_coeff_radius[HAND_NUM_COEFF];
-    static const int save_2_disk_sample_radius[HAND_NUM_COEFF];
     static jtil::data_str::Vector<Coeff> min_pts_;
     static bool include_min_pts_constraints_;
     static jtil::data_str::VectorManaged<Eigen::MatrixXf> tiled_coeffs_;

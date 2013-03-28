@@ -155,7 +155,7 @@ namespace math {
       y_k_tran_ = y_k_.transpose();
 
       // Update the Hessian inverse
-      // http://en.wikipedia.org/wiki/BFGS_method
+      //h ttp://en.wikipedia.org/wiki/BFGS_method
       s_k_tran_y_k_ = s_k_tran_ * y_k_;
       s_k_y_k_tran_ = s_k_ * y_k_tran_;
       s_k_s_k_tran_ = s_k_ * s_k_tran_;
