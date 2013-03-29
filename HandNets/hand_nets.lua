@@ -12,7 +12,7 @@ dofile("pbar.lua")
 dofile("shuffle_files.lua")
 dofile("modules_cc.lua")
 
-torch.setnumthreads(6)
+torch.setnumthreads(7)
 torch.manualSeed(1)
 
 torch.setdefaulttensortype('torch.FloatTensor')
