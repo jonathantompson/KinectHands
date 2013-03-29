@@ -34,11 +34,11 @@ print(cutorch.getDeviceProperties(cutorch.getDevice()))
 
 width = 96
 height = 96
-num_hpf_banks = 1
+num_hpf_banks = 3
 skip_banks = 0  -- Number of MSB banks to skip
 dim = width * height
-num_coeff = 58
-frame_stride = 1
+num_coeff = 60
+frame_stride = 1  -- Only 1 works for now
 perform_training = 0
 nonlinear = 0  -- 0 = tanh, 1 = SoftShrink, 2 = ramp
 model_filename = 'handmodel.net'
@@ -47,12 +47,12 @@ im_dir = "../data/hand_depth_data_processed_for_CN/"
 test_im_dir = "../data/hand_depth_data_processed_for_CN_test/"
 test_data_rate = 20  -- this means 1 / 20 FROM THE TRAINING SET will be test data
 visualize_data = 0
-pooling = 2  -- 1,2,.... or math.huge (infinity)
+pooling = 2  -- 2,.... or math.huge (infinity)
 use_hpf_depth = 0
 learning_rate = 1e-3  -- Default 1e-3
-learning_rate_decay = 4e-1   -- Learning rate = l_0 / (1 + learning_rate_decay * epoch)
-l2_reg_param = 5e-4  -- Default 5e-4
-max_num_epochs = 100
+learning_rate_decay = 1e-2   -- Learning rate = l_0 / (1 + learning_rate_decay * epoch)
+l2_reg_param = 0  -- Default 5e-4
+max_num_epochs = 60
 
 -- ******* Some preliminary calculations *********
 w = width
@@ -82,10 +82,10 @@ else
     i = i+1
   end
   -- The files are in random order so sort them
-  table.sort(files, 
-    function (a, b) 
-      return string.lower(a) < string.lower(b) 
-    end)
+  --table.sort(files, 
+  --  function (a, b) 
+  --    return string.lower(a) < string.lower(b) 
+  --  end)
 end
 -- Partition files into their respective groups
 -- coeffl_files = {}
@@ -98,7 +98,7 @@ for i=1,#files,1 do
       table.insert(coeffr_files, files[i])
 --    elseif string.find(files[i], "coeffl_hands_") ~= nil then
 --      table.insert(coeffl_files, files[i])
-    elseif string.find(files[i], "hpf_hands_") ~= nil then
+    elseif string.find(files[i], "hpf_processed_hands_") ~= nil then
       table.insert(hpf_depth_files, files[i])
     elseif string.find(files[i], "processed_hands_") ~= nil then
       table.insert(depth_files, files[i])
@@ -118,10 +118,10 @@ else
     i = i+1
   end
   -- The files are in random order so sort them
-  table.sort(files, 
-    function (a, b) 
-      return string.lower(a) < string.lower(b) 
-    end)
+  --table.sort(files, 
+  --  function (a, b) 
+  --    return string.lower(a) < string.lower(b) 
+  --  end)
 end
 -- Partition files into their respective groups
 -- coeffl_files = {}
@@ -134,7 +134,7 @@ for i=1,#files,1 do
       table.insert(test_coeffr_files, files[i])
 --    elseif string.find(files[i], "coeffl_hands_") ~= nil then
 --      table.insert(coeffl_files, files[i])
-    elseif string.find(files[i], "hpf_hands_") ~= nil then
+    elseif string.find(files[i], "hpf_processed_hands_") ~= nil then
       table.insert(test_hpf_depth_files, files[i])
     elseif string.find(files[i], "processed_hands_") ~= nil then
       table.insert(test_depth_files, files[i])
@@ -299,10 +299,15 @@ testData.size = function() return tesize end
 print(string.format("    Loaded %d test set images and %d training set images", 
   tesize, trsize))
 
+-- Force a return (just load data)
+-- if (true) then
+--   return
+-- end
+
 -- ************ Visualize one of the depth data samples ***************
 print '==> Visualizing some data samples'
 if (visualize_data == 1) then
-  n_images = math.min(trainData.size(), 24)
+  n_images = math.min(trainData.size(), 256)
   for j=1,num_hpf_banks-skip_banks do
     im = {
       data = trainData.data[j][{{1,n_images}, {}, {}, {}}]
@@ -371,10 +376,10 @@ if (perform_training == 1) then
 
   -- input dimensions
   nfeats = 1
-  nstates = {{32, 64}, {32, 64}, {32, 64}}
+  nstates = {{16, 32}, {16, 32}, {16, 32}}
   nstates_nn = 2048
-  filtsize = {{5, 5}, {5, 5}, {5, 5}}
-  poolsize = {{2, 2}, {2, 2}, {2, 1}}  -- Note: 1 = no pooling
+  filtsize = {{5, 6}, {5, 5}, {5, 4}}
+  poolsize = {{4, 2}, {2, 2}, {2, 1}}  -- Note: 1 = no pooling
   fanin = {{1}, {1}, {1}}  -- NOT USING THIS ANY MORE
   normkernel = image.gaussian1D(7)
 
@@ -611,13 +616,13 @@ if (perform_training == 1) then
       -- Updating weights here escentially means that the learning rate is slightly lower, it will be
       -- learning_rate' = learning_rate * (1 - l2_reg_param * learning_rate) = 0.999999 * learning_rate
       if (math.abs(l2_reg_param) > 1e-9) then
-        l2_reg_scale = 1 - l2_reg_param * learning_rate
+        l2_reg_scale = 1 - l2_reg_param * cur_learning_rate
         for k = 1,num_hpf_banks-skip_banks do
           -- Weight and bias of 1st stage convolution
           model:get(1):get(k):get(1).weight:mul(l2_reg_scale)
           model:get(1):get(k):get(1).bias:mul(l2_reg_scale)
           -- Weight and bias of 2nd stage convolution
-          if (poolsize[k+1][1] == 1) then  -- no pooling in the first stage
+          if (poolsize[k+skip_banks][1] == 1) then  -- no pooling in the first stage
             model:get(1):get(k):get(6).weight:mul(l2_reg_scale)
             model:get(1):get(k):get(6).bias:mul(l2_reg_scale)
           else
@@ -750,6 +755,7 @@ else  -- if perform_training
 
   te_abs_crit_error = torch.FloatTensor(testData:size())
   te_mse_crit_error = torch.FloatTensor(testData:size())
+  te_err_by_coeff = torch.zeros(num_coeff):float()
   for t=1,testData:size(),1 do
     progress(t, testData:size())
     -- print(string.format('%d of %d', t, testData:size()))
@@ -762,11 +768,15 @@ else  -- if perform_training
       table.insert(data_pt.input, testData.data[j][t]:cuda())
     end
 
-    -- image.display(data_pt.input)
+    -- image.display(data_pt.input[1])
 
     pred = model:forward(data_pt.input)
     cutorch.synchronize()
     pred = pred:float()
+
+    delta = (pred - data_pt.target)
+    delta:abs()
+    te_err_by_coeff:add(delta)
 
     te_abs_crit_error[t] = math.abs(abs_criterion:forward(pred, data_pt.target))
     te_mse_crit_error[t] = math.abs(mse_criterion:forward(pred, data_pt.target))
@@ -787,6 +797,7 @@ else  -- if perform_training
 
   tr_abs_crit_error = torch.FloatTensor(trainData:size())
   tr_mse_crit_error = torch.FloatTensor(trainData:size())
+  tr_err_by_coeff = torch.zeros(num_coeff):float()
   for t=1,trainData:size(),1 do
     progress(t, trainData:size())
     -- print(string.format('%d of %d', t, trainData:size()))
@@ -799,11 +810,15 @@ else  -- if perform_training
       table.insert(data_pt.input, trainData.data[j][t]:cuda())
     end
 
-    -- image.display(data_pt.input)
+    -- image.display(data_pt.input[1])
 
     pred = model:forward(data_pt.input)
     cutorch.synchronize()
     pred = pred:float()
+
+    delta = (pred - data_pt.target)
+    delta:abs()
+    tr_err_by_coeff:add(delta)
 
     tr_abs_crit_error[t] = math.abs(abs_criterion:forward(pred, data_pt.target))
     tr_mse_crit_error[t] = math.abs(mse_criterion:forward(pred, data_pt.target))
@@ -818,6 +833,13 @@ else  -- if perform_training
     -- print(pred)
     -- print(string.format('error: mse %f, abs %f', tr_mse_crit_error[t], tr_abs_crit_error[t]))
   end
+
+  tr_err_by_coeff:mul(1 / trainData:size())
+  te_err_by_coeff:mul(1 / testData:size()) 
+  print 'Average Test Set abs(Error) Value BY COEFF:'
+  print(te_err_by_coeff)
+  print 'Average Training Set abs(Error) Value BY COEFF:'
+  print(tr_err_by_coeff)
 
   print("\n Overall model results for model " .. model_filename .. ":")
 
