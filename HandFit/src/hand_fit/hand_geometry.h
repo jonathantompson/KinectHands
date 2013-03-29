@@ -11,7 +11,6 @@
 #include "kinect_interface/hand_net/hand_model.h"
 #include "Eigen"
 
-#define NSPH_PER_FING 6
 // #define USE_SIMPLE_GEOMETRY  // Otherwise use dense mesh
 #if defined(__APPLE__)
   #define HAND_MODEL_PATH string("./../../../../../../../../../models/")

@@ -19,6 +19,7 @@
 #include "renderer/colors.h"
 #include "renderer/camera/camera.h"
 #include "renderer/lights/light_dir.h"
+#include "renderer/texture/texture.h"
 #include "renderer/texture/texture_renderable.h"
 #include "windowing/window.h"
 #include "windowing/window_settings.h"
@@ -56,14 +57,7 @@ using namespace jtil::data_str;
 using namespace hand_fit;
 using namespace kinect_interface::hand_net;
 using namespace kinect_interface::hand_detector;
-using renderer::Renderer;
-using renderer::GeometryColoredMesh;
-using renderer::Geometry;
-using renderer::GeometryManager;
-using renderer::TextureRenderable;
-using renderer::BoundingSphere;
-using renderer::GLState;
-using renderer::GeometryType;
+using namespace renderer;
 using windowing::Window;
 using windowing::WindowSettings;
 using jtil::renderer::mesh_simplification::MeshSimplification;
@@ -88,7 +82,8 @@ Float3 delta_pos;
 int mouse_x, mouse_y, mouse_x_prev, mouse_y_prev;
 bool camera_rotate = false;
 bool scale_coeff = false;
-bool running = false;
+bool shift_down = false;
+uint64_t cur_frame = 0;
 
 // Hand model
 HandModel* rhand = NULL;
@@ -96,6 +91,8 @@ HandModel* lhand = NULL;
 HandModel* rhand_rest_pose = NULL;
 HandRenderer* hand_renderer = NULL;
 uint32_t cur_coeff = 0;
+uint32_t cur_sphere = 0;
+uint32_t cur_coord = 0;
 bool animate_hand = false;
 double t_animation = 0;
 static const uint32_t num_keyframes = 100;
@@ -186,42 +183,42 @@ void MousePosCB(int x, int y) {
     float theta_y = dy * mouse_speed_rotation;
 
     // CHANGE THE COEFFICIENT
-    if (cur_coeff <= 2) {
-      theta_y *= 50.0f;
-    }
-    if (cur_coeff == HandCoeff::WRIST_TWIST) {
-      float scale = 1.0f - theta_y*0.1f;
-      sphere->mat()->rightMultScale(scale, scale, scale);
+    if (!shift_down) {
+      if (cur_coeff <= 2) {
+        theta_y *= 50.0f;
+      }
+      if (cur_coeff == HandCoeff::WRIST_TWIST) {
+        float scale = 1.0f - theta_y*0.1f;
+        sphere->mat()->rightMultScale(scale, scale, scale);
+      } else {
+        float coeff_val;
+        coeff_val = lhand->getCoeff(cur_coeff);
+        lhand->setCoeff(cur_coeff, coeff_val - theta_y);
+        cout << "cur_coeff " << HandCoeffToString(cur_coeff);
+        cout << " --> " << coeff_val - theta_y << endl;
+      }
     } else {
-      float coeff_val;
-      coeff_val = lhand->getCoeff(cur_coeff);
-      lhand->setCoeff(cur_coeff, coeff_val - theta_y);
-      cout << "cur_coeff " << HandCoeffToString(cur_coeff);
-      cout << " --> " << coeff_val - theta_y << endl;
+      // CHANGE THE POSITION OF THE BOUNDING SPHERE
+      HandGeometryMesh* geom = (HandGeometryMesh*)hand_renderer->l_hand_geom();
+      theta_y *= 0.1f;
+      switch (cur_coord) {
+      case 0:
+        xoffset += theta_y;
+        break;
+      case 1:
+        yoffset += theta_y;
+        break;
+      case 2:
+        zoffset += theta_y;
+        break;
+      }
+      Float4x4* start_mat = geom->bspheres()[cur_sphere]->starting_bone_mat();
+      Float4x4* mat =  geom->bspheres()[cur_sphere]->mat();
+      trans_mat.translationMat(xoffset, yoffset, zoffset);
+      jtil::math::Float4x4::mult(new_bone_mat, *start_mat, trans_mat);
+      mat->set(new_bone_mat);
+      cout << "offset = " << xoffset << ", " << yoffset << ", " << zoffset << endl << endl;
     }
-
-    //// CHANGE THE POSITION OF THE BOUNDING SPHERE
-    //HandModelGeometryMesh* geom = (HandModelGeometryMesh*)hand_renderer->l_hand_geom();
-    //theta_y *= 0.1f;
-    //uint32_t sphere_index = HandSphereIndices::F2_KNU3_B;
-    //uint32_t coord_index = cur_coeff % 3;
-    //switch (coord_index) {
-    //case 0:
-    //  xoffset += theta_y;
-    //  break;
-    //case 1:
-    //  yoffset += theta_y;
-    //  break;
-    //case 2:
-    //  zoffset += theta_y;
-    //  break;
-    //}
-    //Float4x4* start_mat = geom->bsph(sphere_index)->starting_bone_mat();
-    //Float4x4* mat = geom->bsph(sphere_index)->mat();
-    //trans_mat.translationMat(xoffset, yoffset, zoffset);
-    //math::Float4x4::mult(&new_bone_mat, start_mat, &trans_mat);
-    //mat->set(&new_bone_mat);
-    //cout << "offset = " << xoffset << ", " << yoffset << ", " << zoffset << endl << endl;
   }
 }
 
@@ -230,9 +227,9 @@ void KeyboardCB(int key, int action) {
   switch (key) {
     case KEY_LSHIFT:
       if (action == PRESSED) {
-        running = true;
+        shift_down = true;
       } else {
-        running = false;
+        shift_down = false;
       }
       break;
     case KEY_ESC:
@@ -308,19 +305,63 @@ void KeyboardCB(int key, int action) {
     case static_cast<int>('}'):
     case static_cast<int>(']'):
       if (action == RELEASED) {
-        cur_coeff = (cur_coeff + 1) % HandCoeff::NUM_PARAMETERS;
-        cout << "cur_coeff = " << HandCoeffToString(cur_coeff); 
-        cout << " = " << rhand->getCoeff(cur_coeff);
-        cout << std::endl;
+        if (!shift_down) {
+          cur_coeff = (cur_coeff + 1) % HandCoeff::NUM_PARAMETERS;
+          cout << "cur_coeff = " << HandCoeffToString(cur_coeff); 
+          cout << " = " << rhand->getCoeff(cur_coeff);
+          cout << std::endl;
+        } else {
+          cur_sphere = (cur_sphere + 1) % HandSphereIndices::NUM_BOUNDING_SPHERES;
+          cout << "cur_sphere = " << cur_sphere << std::endl; 
+        }
       }
       break;
     case static_cast<int>('{'):
     case static_cast<int>('['):
       if (action == RELEASED) {
-        cur_coeff = cur_coeff != 0 ? (cur_coeff - 1) : HandCoeff::NUM_PARAMETERS - 1;
-        cout << "cur_coeff = " << HandCoeffToString(cur_coeff); 
-        cout << " = " << rhand->getCoeff(cur_coeff);
-        cout << std::endl;
+        if (!shift_down) {
+          cur_coeff = cur_coeff != 0 ? (cur_coeff - 1) : HandCoeff::NUM_PARAMETERS - 1;
+          cout << "cur_coeff = " << HandCoeffToString(cur_coeff); 
+          cout << " = " << rhand->getCoeff(cur_coeff);
+          cout << std::endl;
+        } else {
+          cur_sphere = cur_sphere != 0 ? (cur_sphere - 1) : HandSphereIndices::NUM_BOUNDING_SPHERES - 1;
+          cout << "cur_sphere = " << cur_sphere << std::endl; 
+        }
+      }
+      break;
+    case static_cast<int>('"'):
+    case static_cast<int>('\''):
+      if (action == RELEASED) {
+        cur_coord = (cur_coord + 1) % 3;
+        switch (cur_coord) {
+        case 0:
+           cout << "cur_coord = x-axis" << std::endl; 
+           break;
+        case 1:
+           cout << "cur_coord = y-axis" << std::endl; 
+           break;
+        case 2:
+           cout << "cur_coord = z-axis" << std::endl; 
+           break;
+        }   
+      }
+      break;
+    case static_cast<int>(':'):
+    case static_cast<int>(';'):
+      if (action == RELEASED) {
+        cur_coord = cur_coord != 0 ? (cur_coord - 1) : 2;
+        switch (cur_coord) {
+        case 0:
+           cout << "cur_coord = x-axis" << std::endl; 
+           break;
+        case 1:
+           cout << "cur_coord = y-axis" << std::endl; 
+           break;
+        case 2:
+           cout << "cur_coord = z-axis" << std::endl; 
+           break;
+        }      
       }
       break;
     case static_cast<int>('r'):
@@ -437,7 +478,10 @@ int main(int argc, char *argv[]) {
   cout << "shift - Sprint" << endl;
   cout << "mouse left click + drag - Rotate camera" << endl;
   cout << "mouse right click + drag - Adjust coefficient" << endl;
+  cout << "shift + mouse right click + drag - Adjust Sphere" << endl;
   cout << "[] - Change adjustment coeff" << endl;
+  cout << "shift + [] - Change adjustment sphere" << endl;
+  cout << ";' - Change adjustment coordinate (for bounding sphere)" << endl;
   cout << "r - rotate light" << endl;
   cout << "t - wireframe rendering" << endl;
   cout << "y - render bounding spheres" << endl;
@@ -475,6 +519,7 @@ int main(int argc, char *argv[]) {
     wnd = new Window(*wnd_settings);
 
     GLState::initGLState();
+    Texture::initTextureSystem();
 
     // Create a mesh simplifier with default settings
     mesh_simplifier = new MeshSimplification();
@@ -590,7 +635,7 @@ int main(int argc, char *argv[]) {
       if (!Float3::equal(zeros, delta_pos)) {
         delta_pos.normalize();
         Float3::scale(delta_pos, camera_speed * dt);
-        if (running) {
+        if (shift_down) {
           Float3::scale(delta_pos, camera_run_mulitiplier);
         }
         render->camera()->moveCamera(&delta_pos);
@@ -610,9 +655,11 @@ int main(int argc, char *argv[]) {
       switch (render_output) {
       case 1:
         render->renderFrame(dt);
-        interpenetration = hand_renderer->calcInterpenetrationTerm();
-        if (interpenetration > 1.0f + EPSILON) {
-          cout << "interpenetration = " << interpenetration << endl;
+        if (cur_frame % 60 == 0) {
+          interpenetration = hand_renderer->calcInterpenetrationTerm();
+          if (interpenetration > 1.0f + EPSILON) {
+            cout << "interpenetration = " << interpenetration << endl;
+          }
         }
         break;
       case 2:
@@ -643,6 +690,7 @@ int main(int argc, char *argv[]) {
 
       // let someone else do some work
       std::this_thread::yield();
+      cur_frame++;
     }
   } catch (std::runtime_error e) {
     printf("%s\n", e.what());

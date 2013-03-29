@@ -182,7 +182,8 @@ namespace hand_fit {
     }
     if (bone_wrist_index_ == MAX_UINT32 || bone_palm_index_ == MAX_UINT32 ||
        bone_thumb_1_index_ == MAX_UINT32 || bone_thumb_2_index_ == MAX_UINT32 ||
-       bone_thumb_3_index_ == MAX_UINT32 || !bones_ok) {
+       bone_thumb_3_index_ == MAX_UINT32 || bone_palm_index_ == MAX_UINT32 ||
+       !bones_ok) {
       throw runtime_error(string("HandGeometryMesh::createHandGeometry()") +
         string(" - ERROR: couldn't find one of the bones!"));
     }
@@ -202,6 +203,13 @@ namespace hand_fit {
     sph_bone_ind_[TH_KNU2_B] = bone_thumb_2_index_;
     sph_bone_ind_[TH_KNU1_A] = bone_thumb_1_index_;
     sph_bone_ind_[TH_KNU1_B] = bone_thumb_1_index_;
+
+    sph_bone_ind_[PALM_1] = bone_palm_index_;
+    sph_bone_ind_[PALM_2] = bone_palm_index_;
+    sph_bone_ind_[PALM_3] = bone_palm_index_; 
+    sph_bone_ind_[PALM_4] = bone_palm_index_;
+    sph_bone_ind_[PALM_5] = bone_palm_index_;
+    sph_bone_ind_[PALM_6] = bone_palm_index_;
 
     // For all meshes in the heirachy set the specular intensity low:
     renderStackReset(); 

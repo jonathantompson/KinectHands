@@ -19,7 +19,7 @@
 #include "kinect_interface/depth_images_io.h"  // for src_dim
 #include "jtil/threading/callback.h"
 
-#define HN_NUM_WORKER_THREADS 8
+#define HN_NUM_WORKER_THREADS 6
 
 #if defined(__APPLE__)
   #define CONVNET_FILE string("./../../../../../../../../../data/" \
@@ -39,37 +39,34 @@ namespace hand_net {
   //         mapping, so we need to have it recognize salient features in image
   //         space and then do inverse kinematics to find the joint angles.
   typedef enum {
-    // Base hand position
-    HAND_POS_U = 0, HAND_POS_V = 1, HAND_POS_D = 2,
-    // Base hand orientation --> convnet learns (sin(x), cos(x)), better than x
-    HAND_ORIENT_X_COS = 3, HAND_ORIENT_X_SIN = 4,
-    HAND_ORIENT_Y_COS = 5, HAND_ORIENT_Y_SIN = 6,
-    HAND_ORIENT_Z_COS = 7, HAND_ORIENT_Z_SIN = 8,
-    // Wrist angle --> might need to be updated to a position later
-    WRIST_THETA_COS = 9, WRIST_THETA_SIN = 10,
-    WRIST_PHI_COS = 11, WRIST_PHI_SIN = 12,
+    // HAND_POS1: Base hand position --> (0,0,0) in the palm coordinate system
+    HAND_POS1_U = 0, HAND_POS1_V = 1, HAND_POS1_D = 2,  // PALM_6 (bounding sph)
+    HAND_POS2_U = 3, HAND_POS2_V = 4, HAND_POS2_D = 5,  // PALM_1
+    HAND_POS3_U = 6, HAND_POS3_V = 7, HAND_POS3_D = 8,  // PALM_2
+    HAND_POS4_U = 9, HAND_POS4_V = 10, HAND_POS4_D = 11,  // PALM_3
     // Thumb
-    THUMB_K1_U = 13, THUMB_K1_V = 14, THUMB_K1_D = 15,
-    THUMB_K2_U = 16, THUMB_K2_V = 17, THUMB_K2_D = 18,
-    THUMB_TIP_U = 19, THUMB_TIP_V = 20, THUMB_TIP_D = 21,
+    THUMB_BASE_U = 12, THUMB_BASE_V = 13, THUMB_BASE_D = 14,  // TH_KNU1_B
+    THUMB_K2_U = 15, THUMB_K2_V = 16, THUMB_K2_D = 17,  // TH_KNU2_B
+    THUMB_K3_U = 18, THUMB_K3_V = 19, THUMB_K3_D = 20,  // TH_KNU3_B
+    THUMB_TIP_U = 21, THUMB_TIP_V = 22, THUMB_TIP_D = 23,  // TH_KNU3_A
     // F0
-    F0_K1_U = 22, F0_K1_V = 23, F0_K1_D = 24,
-    F0_K2_U = 25, F0_K2_V = 26, F0_K2_D = 27,
-    F0_TIP_U = 28, F0_TIP_V = 29, F0_TIP_D = 30,
+    F0_BASE_U = 24, F0_BASE_V = 25, F0_BASE_D = 26,  // F1_KNU1_B
+    F0_K2_U = 27, F0_K2_V = 28, F0_K2_D = 29,  // F1_KNU2_B
+    F0_TIP_U = 30, F0_TIP_V = 31, F0_TIP_D = 32,  // F1_KNU3_A
     // F1
-    F1_K1_U = 31, F1_K1_V = 32,  F1_K1_D = 33, 
-    F1_K2_U = 34, F1_K2_V = 35, F1_K2_D = 36,
-    F1_TIP_U = 37, F1_TIP_V = 38, F1_TIP_D = 39,
+    F1_BASE_U = 33, F1_BASE_V = 34,  F1_BASE_D = 35,  // F2_KNU1_B
+    F1_K2_U = 36, F1_K2_V = 37, F1_K2_D = 38,  // F2_KNU2_B
+    F1_TIP_U = 39, F1_TIP_V = 40, F1_TIP_D = 41,  // F2_KNU3_A
     // F2
-    F2_K1_U = 40, F2_K1_V = 41, F2_K1_D = 42,
-    F2_K2_U = 43, F2_K2_V = 44, F2_K2_D = 45,
-    F2_TIP_U = 46, F2_TIP_V = 47, F2_TIP_D = 48,
+    F2_BASE_U = 42, F2_BASE_V = 43, F2_BASE_D = 44,  // F3_KNU1_B
+    F2_K2_U = 45, F2_K2_V = 46, F2_K2_D = 47,  // F3_KNU2_B
+    F2_TIP_U = 48, F2_TIP_V = 49, F2_TIP_D = 50,  // F3_KNU3_A
     // F3
-    F3_K1_U = 49, F3_K1_V = 50, F3_K1_D = 51,
-    F3_K2_U = 52, F3_K2_V = 53, F3_K2_D = 54,
-    F3_TIP_U = 55, F3_TIP_V = 56, F3_TIP_D = 57,
+    F3_BASE_U = 51, F3_BASE_V = 52, F3_BASE_D = 53,  // F4_KNU1_B
+    F3_K2_U = 54, F3_K2_V = 55, F3_K2_D = 56,  // F4_KNU2_B
+    F3_TIP_U = 57, F3_TIP_V = 58, F3_TIP_D = 59,  // F4_KNU3_A
 
-    HAND_NUM_COEFF_CONVNET = 58, 
+    HAND_NUM_COEFF_CONVNET = 60, 
   } HandCoeffConvnet;
 
   typedef enum {

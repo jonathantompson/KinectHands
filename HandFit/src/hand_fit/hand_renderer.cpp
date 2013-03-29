@@ -1094,13 +1094,7 @@ namespace hand_fit {
 
   void HandRenderer::handCoeff2CoeffConvnet(HandModel* hand,
     float* coeff_convnet, const Int4& hand_pos_wh, const Float3& uvd_com) {
-    HandGeometryMesh* geom = 
-      (HandGeometryMesh*)this->geom(hand->hand_type());
-    const float* coeff = hand->coeff();
-    Float2 pos_uv;
-    float dmin = uvd_com[2] - (HN_HAND_SIZE * 0.5f);
-
-   // Thumb and finger angles are actually learned as salient points -->
+    // Thumb and finger angles are actually learned as salient points -->
     // Luckily we have a good way to get these.  Use the positions of some of
     // the key bounding sphere positions --> Then project these into UV.
     updateMatrices(hand->coeff(), hand->hand_type());
@@ -1108,96 +1102,52 @@ namespace hand_fit {
     fixBoundingSphereMatrices(hand->hand_type());
 
     // Project the XYZ position into UV space
-    // Use the base of the thumb (which is constant in the hand's coord system)
-    // since the model origin is usually off the 192x192 pixels.
-    BoundingSphere* sphere = geom->bspheres()[HandSphereIndices::TH_KNU1_B];
-    sphere->transform();
-    calcHandImageUVFromXYZ(*sphere->transformed_center(), pos_uv, hand_pos_wh);
-    coeff_convnet[HAND_POS_U] = pos_uv[0];
-    coeff_convnet[HAND_POS_V] = pos_uv[1];
-    coeff_convnet[HAND_POS_D] = ((*sphere->transformed_center())[2] - dmin) /
-      HN_HAND_SIZE;
-
-    // Model origin as hand position
-    //Float3 hand_pos(coeff[HandCoeff::HAND_POS_X], 
-    //  coeff[HandCoeff::HAND_POS_Y], coeff[HandCoeff::HAND_POS_Z]);
-    //calcHandImageUVFromXYZ(renderer, hand_pos, pos_uv);
-    //coeff_convnet[HAND_POS_U] = pos_uv[0];
-    //coeff_convnet[HAND_POS_V] = pos_uv[1];
-
-    float euler[3];
-    euler[0] = coeff[HandCoeff::HAND_ORIENT_X];
-    euler[1] = coeff[HandCoeff::HAND_ORIENT_Y];
-    euler[2] = coeff[HandCoeff::HAND_ORIENT_Z];
-
-    // All angle coefficients are stored as (cos(x), sin(x)) to avoid
-    // the singularity
-    coeff_convnet[HAND_ORIENT_X_COS] = cosf(euler[0]);
-    coeff_convnet[HAND_ORIENT_X_SIN] = sinf(euler[0]);
-    coeff_convnet[HAND_ORIENT_Y_COS] = cosf(euler[1]);
-    coeff_convnet[HAND_ORIENT_Y_SIN] = sinf(euler[1]);
-    coeff_convnet[HAND_ORIENT_Z_COS] = cosf(euler[2]);
-    coeff_convnet[HAND_ORIENT_Z_SIN] = sinf(euler[2]);
-
-    coeff_convnet[WRIST_THETA_COS] = cosf(coeff[HandCoeff::WRIST_THETA]);
-    coeff_convnet[WRIST_THETA_SIN] = sinf(coeff[HandCoeff::WRIST_THETA]);
-    coeff_convnet[WRIST_PHI_COS] = cosf(coeff[HandCoeff::WRIST_PHI]);
-    coeff_convnet[WRIST_PHI_SIN] = sinf(coeff[HandCoeff::WRIST_PHI]);
+    // Use the bounding sphere centers since they are already in good positions
+    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
+      HandSphereIndices::PALM_6, HAND_POS1_U);
+    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
+      HandSphereIndices::PALM_1, HAND_POS2_U);
+    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
+      HandSphereIndices::PALM_2, HAND_POS3_U);
+    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
+      HandSphereIndices::PALM_3, HAND_POS4_U);
 
     // Thumb
-    sphere = geom->bspheres()[HandSphereIndices::TH_KNU3_A];
-    sphere->transform();
-    calcHandImageUVFromXYZ(*sphere->transformed_center(), pos_uv, hand_pos_wh);
-    coeff_convnet[THUMB_TIP_U] = pos_uv[0];
-    coeff_convnet[THUMB_TIP_V] = pos_uv[1];
-    coeff_convnet[THUMB_TIP_D] = ((*sphere->transformed_center())[2] - dmin) /
-      HN_HAND_SIZE;
-
-    sphere = geom->bspheres()[HandSphereIndices::TH_KNU3_B];
-    sphere->transform();
-    calcHandImageUVFromXYZ(*sphere->transformed_center(), pos_uv, hand_pos_wh);
-    coeff_convnet[THUMB_K2_U] = pos_uv[0];
-    coeff_convnet[THUMB_K2_V] = pos_uv[1];
-    coeff_convnet[THUMB_K2_D] = ((*sphere->transformed_center())[2] - dmin) /
-      HN_HAND_SIZE;
-
-    sphere = geom->bspheres()[HandSphereIndices::TH_KNU2_B];
-    sphere->transform();
-    calcHandImageUVFromXYZ(*sphere->transformed_center(), pos_uv, hand_pos_wh);
-    coeff_convnet[THUMB_K1_U] = pos_uv[0];
-    coeff_convnet[THUMB_K1_V] = pos_uv[1];
-    coeff_convnet[THUMB_K1_D] = ((*sphere->transformed_center())[2] - dmin) /
-      HN_HAND_SIZE;
+    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
+      HandSphereIndices::TH_KNU3_A, THUMB_TIP_U);
+    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
+      HandSphereIndices::TH_KNU3_B, THUMB_K3_U);
+    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
+      HandSphereIndices::TH_KNU2_B, THUMB_K2_U);
+    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
+      HandSphereIndices::TH_KNU1_B, THUMB_BASE_U);
 
     // Fingers
     for (uint32_t i = 0; i < 4; i++) {
-      sphere = geom->bspheres()[HandSphereIndices::F1_KNU3_A + 6 * i];
-      sphere->transform();
-      calcHandImageUVFromXYZ(*sphere->transformed_center(), pos_uv, 
-        hand_pos_wh);
-      coeff_convnet[F0_TIP_U + 9 * i] = pos_uv[0];
-      coeff_convnet[F0_TIP_V + 9 * i] = pos_uv[1];
-      coeff_convnet[F0_TIP_D + 9 * i] = ((*sphere->transformed_center())[2] - 
-        dmin) / HN_HAND_SIZE;
-
-      sphere = geom->bspheres()[HandSphereIndices::F1_KNU3_B + 6 * i];
-      sphere->transform();
-      calcHandImageUVFromXYZ(*sphere->transformed_center(), pos_uv, 
-        hand_pos_wh);
-      coeff_convnet[F0_K2_U + 9 * i] = pos_uv[0];
-      coeff_convnet[F0_K2_V + 9 * i] = pos_uv[1];
-      coeff_convnet[F0_K2_D + 9 * i] = ((*sphere->transformed_center())[2] - 
-        dmin) / HN_HAND_SIZE;
-
-      sphere = geom->bspheres()[HandSphereIndices::F1_KNU2_B + 6 * i];
-      sphere->transform();
-      calcHandImageUVFromXYZ(*sphere->transformed_center(), pos_uv, 
-        hand_pos_wh);
-      coeff_convnet[F0_K1_U + 9 * i] = pos_uv[0];
-      coeff_convnet[F0_K1_V + 9 * i] = pos_uv[1];
-      coeff_convnet[F0_K1_D + 9 * i] = ((*sphere->transformed_center())[2] - 
-        dmin) / HN_HAND_SIZE;
+    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
+      HandSphereIndices::F1_KNU3_A + 6 * i, F0_TIP_U + 9 * i);
+    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
+      HandSphereIndices::F1_KNU2_B + 6 * i, F0_K2_U + 9 * i);
+    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
+      HandSphereIndices::F1_KNU1_B + 6 * i, F0_BASE_U + 9 * i);
     }
+  }
+
+  void HandRenderer::extractPositionForConvnet(HandModel* hand, 
+    float* coeff_convnet, const Int4& hand_pos_wh, const Float3& uvd_com,
+    const uint32_t b_sphere_index, const uint32_t convnet_U_index) {
+    const float* coeff = hand->coeff();
+    float dmin = uvd_com[2] - (HN_HAND_SIZE * 0.5f);
+    HandGeometryMesh* geom = 
+      (HandGeometryMesh*)this->geom(hand->hand_type());
+    BoundingSphere* sphere = geom->bspheres()[b_sphere_index];
+    sphere->transform();
+    Float2 pos_uv;
+    calcHandImageUVFromXYZ(*sphere->transformed_center(), pos_uv, hand_pos_wh);
+    coeff_convnet[convnet_U_index] = pos_uv[0];
+    coeff_convnet[convnet_U_index+1] = pos_uv[1];
+    coeff_convnet[convnet_U_index+2] = ((*sphere->transformed_center())[2] - 
+      dmin) / HN_HAND_SIZE;
   }
 
   void HandRenderer::calcHandImageUVFromXYZ(Float3& xyz_pos, 

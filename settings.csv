@@ -21,7 +21,7 @@ render_kinect_fps,                bool,      1
 show_hand_model,                  bool,      0
 
 //, RENDERER
-screen_resolution_enum,           int,       7
+screen_resolution_enum,           int,       8
 fullscreen,                       bool,      0
 double_buffering,                 bool,      0  
 clear_color,                      Float3,    0.529, 0.808, 0.980

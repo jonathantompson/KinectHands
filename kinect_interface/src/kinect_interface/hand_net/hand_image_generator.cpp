@@ -250,24 +250,18 @@ namespace hand_net {
 
   void HandImageGenerator::annotateFeatsToKinectImage(uint8_t* im, 
     const float* coeff_convnet) const {
-    renderCrossToImageArr(&coeff_convnet[HandCoeffConvnet::HAND_POS_U], 
-      im, src_width, src_height, 5, 0, hand_pos_wh_);
-    for (uint32_t i = HandCoeffConvnet::THUMB_K1_U; 
-      i <= HandCoeffConvnet::F3_TIP_U; i += 3) {
+    for (uint32_t i = 0; i < HAND_NUM_COEFF_CONVNET; i += 3) {
         renderCrossToImageArr(&coeff_convnet[i], im, src_width, 
-          src_height, 2, i+1, hand_pos_wh_);
+          src_height, 4, i, hand_pos_wh_);
     }
   }
 
   void HandImageGenerator::annotateFeatsToHandImage(uint8_t* im, 
     const float* coeff_convnet) const {
     jtil::math::Int4 hand_pos_wh(0, 0, HN_IM_SIZE, HN_IM_SIZE);
-    renderCrossToImageArr(&coeff_convnet[HandCoeffConvnet::HAND_POS_U], 
-      im, HN_IM_SIZE, HN_IM_SIZE, 5, 0, hand_pos_wh);
-    for (uint32_t i = HandCoeffConvnet::THUMB_K1_U; 
-      i <= HandCoeffConvnet::F3_TIP_U; i += 3) {
+    for (uint32_t i = 0; i < HAND_NUM_COEFF_CONVNET; i += 3) {
         renderCrossToImageArr(&coeff_convnet[i], im, HN_IM_SIZE, 
-          HN_IM_SIZE, 2, i+1, hand_pos_wh);
+          HN_IM_SIZE, 2, i, hand_pos_wh);
     }
   }
 
