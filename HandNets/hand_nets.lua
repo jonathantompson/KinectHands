@@ -81,11 +81,7 @@ else
     files[i] = f
     i = i+1
   end
-  -- The files are in random order so sort them
-  --table.sort(files, 
-  --  function (a, b) 
-  --    return string.lower(a) < string.lower(b) 
-  --  end)
+  -- Note: the files are in random order
 end
 -- Partition files into their respective groups
 -- coeffl_files = {}
@@ -117,11 +113,7 @@ else
     files[i] = f
     i = i+1
   end
-  -- The files are in random order so sort them
-  --table.sort(files, 
-  --  function (a, b) 
-  --    return string.lower(a) < string.lower(b) 
-  --  end)
+  -- Note: The files are in random order
 end
 -- Partition files into their respective groups
 -- coeffl_files = {}
@@ -150,9 +142,33 @@ else
   test_im_files = test_depth_files
 end
 
+print("Sorting files...")
+function stringComp (a, b) 
+  return string.lower(a) < string.lower(b) 
+end
+table.sort(im_files, stringComp)
+table.sort(test_im_files, stringComp)
+table.sort(coeffr_files, stringComp)
+table.sort(test_coeffr_files, stringComp)
+
 -- ************ Randomly permute the files ***********
+print("Permuting the files...")
 shuffle_files_right(coeffr_files, im_files)
 shuffle_files_right(test_coeffr_files, test_im_files)
+
+-- ************ Check the file order ***********
+for i=1,#im_files do
+  if (string.sub(im_files[i],17,-5) ~= string.sub(coeffr_files[i],14,-5)) then
+    print("Image file number doesn't match coeff file number!")
+    return
+  end
+end
+for i=1,#test_im_files do
+  if (string.sub(test_im_files[i],17,-5) ~= string.sub(test_coeffr_files[i],14,-5)) then
+    print("Image file number doesn't match coeff file number!")
+    return
+  end
+end
 
 -- ************ Load data from Disk ***************
 print '==> Loading hand data from directory'
