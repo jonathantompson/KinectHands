@@ -120,15 +120,16 @@ namespace hand_net {
   // Create the downsampled hand image, background is at 1 and hand is
   // in front of it.
   void HandImageGenerator::calcHandImage(const int16_t* depth_in, 
-    const uint8_t* label_in, const bool create_hpf_image) {
-    calcCroppedHand(depth_in, label_in);
+    const uint8_t* label_in, const bool create_hpf_image, 
+    const float* synthetic_depth) {
+    calcCroppedHand(depth_in, label_in, synthetic_depth);
     if (create_hpf_image) {
       calcHPFHandBanks();
     }
   }
 
   void HandImageGenerator::calcCroppedHand(const int16_t* depth_in, 
-    const uint8_t* label_in) {
+    const uint8_t* label_in, const float* synthetic_depth) {
     // Find the COM in pixel space so we can crop the image around it
     uint32_t cnt = 0; 
     uvd_com_.zeros();
@@ -154,16 +155,26 @@ namespace hand_net {
     float dmin = uvd_com_[2] - (HN_HAND_SIZE * 0.5f);
     float dmax = uvd_com_[2] + (HN_HAND_SIZE * 0.5f);
     const float background = 1.0f;
+    const bool use_synthetic = synthetic_depth != NULL;
     for (int32_t v = v_start; v < v_start + HN_SRC_IM_SIZE; v++) {
       for (int32_t u = u_start; u < u_start + HN_SRC_IM_SIZE; u++) {
         int32_t dst_index = (v-v_start)* HN_SRC_IM_SIZE + (u-u_start);
         if (v >= 0 && v < src_height && u >= 0 && u < src_width) {
           int32_t src_index = v * src_width + u;
-          if (label_in[src_index] == 1) {
+          if (!use_synthetic) {
+            if (label_in[src_index] == 1) {
               hand_image_[dst_index] = ((float)depth_in[src_index] - dmin) / 
                 HN_HAND_SIZE;
+            } else {
+              hand_image_[dst_index] = background;
+            }
           } else {
-            hand_image_[dst_index] = background;
+            if (synthetic_depth[src_index] > EPSILON) {
+              hand_image_[dst_index] = (synthetic_depth[src_index] - dmin) / 
+                HN_HAND_SIZE;
+            } else {
+              hand_image_[dst_index] = background;
+            }
           }
         } else {
           // Going off the screen

@@ -37,8 +37,10 @@ namespace hand_net {
     void createLabelFromSyntheticDepth(const float* depth, uint8_t* label);
 
     // calcHandImage - creates cropped image, then creates a bank of HPF imgs
+    // if synthetic_depth != NULL, then the crop window will be chosen using
+    // the real depth, but the synthetic depth will be stored
     void calcHandImage(const int16_t* depth_in, const uint8_t* label_in,
-      const bool create_hpf_image);
+      const bool create_hpf_image, const float* synthetic_depth = NULL);
 
     void HandImageGenerator::annotateFeatsToKinectImage(uint8_t* im, 
       const float* coeff_convnet) const;  // 640 x 480
@@ -65,7 +67,8 @@ namespace hand_net {
     float* im_temp1_;
     float* im_temp2_;
 
-    void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in);
+    void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in, 
+      const float* synthetic_depth = NULL);
     void calcHPFHandBanks();
     void initHPFKernels();
     void releaseData();  // Call destructor on all dynamic data

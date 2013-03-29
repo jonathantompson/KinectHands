@@ -50,21 +50,28 @@
   #define snprintf _snprintf_s
 #endif
 
-#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Added
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Added
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Added
+#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Added
 
-#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN/") 
+#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN_synthetic/") 
 
+#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
 #define SAVE_FILES  // Only enabled when we're not loading processed images
-//#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
-#define SAVE_HPF_IMAGES  // Save the hpf files
-#define DESIRED_PLAYBACK_FPS 30.0f
+#define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
+                              // HandForests, but save synthetic data (only 
+                              // takes effect when not loading processed images
+#define SAVE_HPF_IMAGES  // Save the hpf files --> Only when SAVE_FILES defined
+#if !defined(LOAD_PROCESSED_IMAGES) && defined(SAVE_FILES)
+  #define DESIRED_PLAYBACK_FPS 100000.0f
+#else
+  #define DESIRED_PLAYBACK_FPS 30.0f  // fps
+#endif
 #define FRAME_TIME (1.0f / DESIRED_PLAYBACK_FPS)
 
 #if defined(__APPLE__)
@@ -124,6 +131,7 @@ DepthImagesIO* image_io = NULL;
 VectorManaged<char*> im_files;
 float cur_xyz_data[src_dim*3];
 int16_t cur_depth_data[src_dim*3];
+float cur_synthetic_depth_data[src_dim*4];
 uint8_t cur_label_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
 int32_t cur_image = 0;
@@ -191,6 +199,9 @@ void loadCurrentImage() {
   string r_coeff_file = DST_IM_DIR + string("coeffr_") + src_file;
   jtil::file_io::LoadArrayFromFile<float>(coeff_convnet,
     HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, r_coeff_file);
+  if (cur_image % 100 == 0) {
+    cout << "loaded image " << cur_image+1 << " of " << im_files.size() << endl;
+  }
 #else
   // Load in the image
   image_io->LoadCompressedImage(full_filename, 
@@ -208,7 +219,9 @@ void loadCurrentImage() {
   // Don't bother loading it, it eats into our disk IO anyway.
   //l_hand->loadFromFile(DIR, string("coeffl_") + src_file);
   HandModel::scale = r_hand->local_scale();
-  cout << "loaded image " << cur_image+1 << " of " << im_files.size() << endl;
+  if (cur_image % 100 == 0) {
+    cout << "loaded image " << cur_image+1 << " of " << im_files.size() << endl;
+  }
 
   if (!found_hand) {
     // skip this data point
@@ -223,8 +236,22 @@ void loadCurrentImage() {
 #else
   const bool create_hpf_images = false;
 #endif
+
+#ifdef SAVE_SYNTHETIC_IMAGE
+  HandModel* hands[2];
+  memcpy(coeffs.data(), r_hand->coeff(), 
+    HAND_NUM_COEFF * sizeof(coeffs.data()[0]));
+  hands[0] = r_hand;
+  hands[1] = NULL;
+  hand_renderer->drawDepthMap(coeffs, hands, num_hands);
+  hand_renderer->extractDepthMap(cur_synthetic_depth_data);
+  hand_image_generator_->calcHandImage(cur_depth_data, label,
+    create_hpf_images, cur_synthetic_depth_data);
+  GLState::glsViewport(0, 0, wnd->width(), wnd->height());
+#else
   hand_image_generator_->calcHandImage(cur_depth_data, label,
     create_hpf_images);
+#endif
 
   // Correctly modify the coeff values to those that are learnable by the
   // convnet (for instance angles are bad --> store cos(x), sin(x) instead)
@@ -235,6 +262,20 @@ void loadCurrentImage() {
 
 void saveFrame() {
 #if defined(SAVE_FILES) && !defined(LOAD_PROCESSED_IMAGES)
+  // Check that the current coeff doesn't have features points that are off 
+  // screen --> Usually an indicator that the HandDetector messed up
+  for (uint32_t i = 0; i < HandCoeffConvnet::HAND_NUM_COEFF_CONVNET && 
+    found_hand; i+= 3) {
+    if (coeff_convnet[i] < 0 && coeff_convnet[i] > 1) {
+      std::cout << " Coeff is off screen.  Not saving files." << std::endl;
+      found_hand = false;
+    }
+    if (coeff_convnet[i+1] < 0 && coeff_convnet[i+1] > 1) {
+      std::cout << " Coeff is off screen.  Not saving files." << std::endl;
+      found_hand = false;
+    }
+  }
+
   if (found_hand) {
     // Save the cropped image to file:
     jtil::file_io::SaveArrayToFile<float>(hand_image_generator_->hand_image(),
@@ -244,7 +285,7 @@ void saveFrame() {
     // Save the HPF images to file:
 #if defined SAVE_HPF_IMAGES
     jtil::file_io::SaveArrayToFile<float>(hand_image_generator_->hpf_hand_images(),
-      hand_image_generator_->size_images(), DST_IM_DIR + std::string("hpf_") + 
+      hand_image_generator_->size_images(), DST_IM_DIR + std::string("hpf_processed_") + 
       im_files[cur_image]);
 #endif
 
@@ -356,10 +397,10 @@ void keyboardCB(int key, int action) {
     break;
 #endif
     }
-  }
-  if (key == KEY_KP_ADD || key == KEY_KP_SUBTRACT || key == '0' || 
-    key == '9') {
-    loadCurrentImage();
+    if (key == KEY_KP_ADD || key == KEY_KP_SUBTRACT || key == '0' || 
+      key == '9') {
+      loadCurrentImage();
+    }
   }
 }
 
@@ -416,8 +457,8 @@ int main(int argc, char *argv[]) {
     Texture::initTextureSystem();
 
     // Fill the settings structure
-    settings.width = 1024;
-    settings.height = 1024;
+    settings.width = 640;
+    settings.height = 640;
     settings.fullscreen = false;
     settings.title = string("Hand Fit Project");
     settings.gl_major_version = 3;
@@ -485,8 +526,6 @@ int main(int argc, char *argv[]) {
     render->renderFrame(0);
 
     while (is_running) {
-      clk = new jtil::clk::Clk();
-
       renderFrame();
       saveFrame();
 
@@ -501,6 +540,8 @@ int main(int argc, char *argv[]) {
         if (cur_image < (int32_t)im_files.size() - 1) {
           cur_image++;
           loadCurrentImage();
+        } else {
+          continuous_playback = false;
         }
       }
     }
