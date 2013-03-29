@@ -39,7 +39,7 @@ skip_banks = 0  -- Number of MSB banks to skip
 dim = width * height
 num_coeff = 60
 frame_stride = 1  -- Only 1 works for now
-perform_training = 0
+perform_training = 1
 nonlinear = 0  -- 0 = tanh, 1 = SoftShrink, 2 = ramp
 model_filename = 'handmodel.net'
 loss = 0  -- 0 = abs, 1 = mse
@@ -51,7 +51,7 @@ pooling = 2  -- 2,.... or math.huge (infinity)
 use_hpf_depth = 0
 learning_rate = 1e-3  -- Default 1e-3
 learning_rate_decay = 1e-2   -- Learning rate = l_0 / (1 + learning_rate_decay * epoch)
-l2_reg_param = 0  -- Default 5e-4
+l2_reg_param = 5e-4  -- Default 5e-4
 max_num_epochs = 60
 
 -- ******* Some preliminary calculations *********
@@ -69,7 +69,7 @@ w = nil  -- To avoid confusion
 h = nil
 
 -- ************ Get Data locations ***************
-print '==> Scanning directory for hand data'
+print '==> Scanning directory for hand data...'
 if paths.dirp(im_dir) == false then
   print("Couldn't find image directory")
   return
@@ -142,7 +142,7 @@ else
   test_im_files = test_depth_files
 end
 
-print("Sorting files...")
+print("==> Sorting files so indicies match...")
 function stringComp (a, b) 
   return string.lower(a) < string.lower(b) 
 end
@@ -152,11 +152,12 @@ table.sort(coeffr_files, stringComp)
 table.sort(test_coeffr_files, stringComp)
 
 -- ************ Randomly permute the files ***********
-print("Permuting the files...")
+print("==> Permuting the files...")
 shuffle_files_right(coeffr_files, im_files)
 shuffle_files_right(test_coeffr_files, test_im_files)
 
 -- ************ Check the file order ***********
+print("==> Verifying the file order...")
 for i=1,#im_files do
   if (string.sub(im_files[i],17,-5) ~= string.sub(coeffr_files[i],14,-5)) then
     print("Image file number doesn't match coeff file number!")
@@ -171,7 +172,7 @@ for i=1,#test_im_files do
 end
 
 -- ************ Load data from Disk ***************
-print '==> Loading hand data from directory'
+print '==> Loading hand data from directory...'
 nfiles = math.floor(#im_files / frame_stride)
 tesize = math.floor(nfiles / test_data_rate) + 1
 trsize = nfiles - tesize
@@ -571,6 +572,7 @@ if (perform_training == 1) then
     -- epoch tracker
     epoch = epoch or 1
     cur_learning_rate = learning_rate / (1 + learning_rate_decay * (epoch-1))
+    l2_reg_scale = 1 - l2_reg_param * cur_learning_rate
 
     -- local vars
     local time = sys.clock()
@@ -582,6 +584,7 @@ if (perform_training == 1) then
     print('==> doing epoch on training data:')
     print("==> online epoch # " .. epoch)
     print("==> Learning rate " .. cur_learning_rate)
+    print("==> l2_reg_scale " .. l2_reg_scale)
     local ave_err = 0
     local ave_abs_err = 0  -- might be same as ave_err if loss = 0
     local nsamples = 0
@@ -631,8 +634,9 @@ if (perform_training == 1) then
       -- L2 Regularization
       -- Updating weights here escentially means that the learning rate is slightly lower, it will be
       -- learning_rate' = learning_rate * (1 - l2_reg_param * learning_rate) = 0.999999 * learning_rate
-      if (math.abs(l2_reg_param) > 1e-9) then
-        l2_reg_scale = 1 - l2_reg_param * cur_learning_rate
+      if (math.abs(l2_reg_param) > 1e-9 and epoch > 1) then
+        
+        
         for k = 1,num_hpf_banks-skip_banks do
           -- Weight and bias of 1st stage convolution
           model:get(1):get(k):get(1).weight:mul(l2_reg_scale)
