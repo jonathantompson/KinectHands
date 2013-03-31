@@ -37,7 +37,8 @@ namespace hand_net {
     hand_image_ = NULL;
     im_temp1_ = NULL;
     im_temp2_ = NULL;
-    hpf_hand_images_coeff_ = NULL;
+    hpf_hand_images_gauss_norm_coeff_ = NULL;
+    hpf_hand_images_rect_norm_coeff_ = NULL;
     num_banks_ = num_banks;
     initHandImageData();
     initHPFKernels();
@@ -52,7 +53,8 @@ namespace hand_net {
     SAFE_DELETE_ARR(hand_image_);
     SAFE_DELETE_ARR(im_temp1_);
     SAFE_DELETE_ARR(im_temp2_);
-    SAFE_DELETE_ARR(hpf_hand_images_coeff_);
+    SAFE_DELETE_ARR(hpf_hand_images_gauss_norm_coeff_);
+    SAFE_DELETE_ARR(hpf_hand_images_rect_norm_coeff_);
   }
 
   void HandImageGenerator::initHandImageData() {
@@ -73,7 +75,8 @@ namespace hand_net {
     im_temp1_ = new float[datasize];
     im_temp2_ = new float[datasize];
     hpf_hand_images_ = new float[datasize];
-    hpf_hand_images_coeff_ = new float[datasize];
+    hpf_hand_images_gauss_norm_coeff_ = new float[datasize];
+    hpf_hand_images_rect_norm_coeff_ = new float[datasize];
   }
 
   void HandImageGenerator::initHPFKernels() {
@@ -90,21 +93,38 @@ namespace hand_net {
       gauss_filt_[i] = exp(-pow((float)(i - center) / HN_HPF_SIGMA, 2) * 0.5f);
     }
 
+    // Calculate the rectangular coeff
+    for (uint32_t i = 0; i < HN_RECT_KERNEL_SIZE; i++) {
+      rect_filt_[i] = 1;
+    }
+
     // Now at each resolution that we care about, filter an image of ones 
     // (where we crop to zero for pixels outside image) to create normalization
     // coefficients per pixel.
     int32_t w = HN_IM_SIZE;
     int32_t h = HN_IM_SIZE;
-    // Create ones image
-    for (int32_t j = 0; j < w * h; j++) {
-      im_temp1_[j] = 1.0f;
-    }
-    float* coeff = hpf_hand_images_coeff_;
+    float* gauss_coeff = hpf_hand_images_gauss_norm_coeff_;
+    float* rect_coeff = hpf_hand_images_rect_norm_coeff_;
     for (int32_t i = 0; i < num_banks_; i++) {
+      // Create ones image
+      for (int32_t j = 0; j < w * h; j++) {
+        im_temp1_[j] = 1.0f;
+      }
       // Filter ones image
-      ConvolveImageZeroCrop<float>(coeff, im_temp1_, im_temp2_, w, h, 
+      ConvolveImageZeroCrop<float>(gauss_coeff, im_temp1_, im_temp2_, w, h, 
         gauss_filt_, HN_HPF_KERNEL_SIZE);
-      coeff = &coeff[w * h];
+
+      // Create ones image
+      for (int32_t j = 0; j < w * h; j++) {
+        im_temp1_[j] = 1.0f;
+      }
+      // Filter ones image
+      ConvolveImageZeroCrop<float>(rect_coeff, im_temp1_, im_temp2_, w, h, 
+        rect_filt_, HN_RECT_KERNEL_SIZE);
+
+      // Step to the next image size
+      gauss_coeff = &gauss_coeff[w * h];
+      rect_coeff = &rect_coeff[w * h];
       w = w / 2;
       h = h / 2;
     }
@@ -261,7 +281,7 @@ namespace hand_net {
 
   void HandImageGenerator::annotateFeatsToKinectImage(uint8_t* im, 
     const float* coeff_convnet) const {
-    for (uint32_t i = 0; i < HAND_NUM_COEFF_CONVNET; i += 3) {
+    for (uint32_t i = 0; i < HAND_NUM_COEFF_CONVNET; i += FEATURE_SIZE) {
         renderCrossToImageArr(&coeff_convnet[i], im, src_width, 
           src_height, 4, i, hand_pos_wh_);
     }
@@ -270,7 +290,7 @@ namespace hand_net {
   void HandImageGenerator::annotateFeatsToHandImage(uint8_t* im, 
     const float* coeff_convnet) const {
     jtil::math::Int4 hand_pos_wh(0, 0, HN_IM_SIZE, HN_IM_SIZE);
-    for (uint32_t i = 0; i < HAND_NUM_COEFF_CONVNET; i += 3) {
+    for (uint32_t i = 0; i < HAND_NUM_COEFF_CONVNET; i += FEATURE_SIZE) {
         renderCrossToImageArr(&coeff_convnet[i], im, HN_IM_SIZE, 
           HN_IM_SIZE, 2, i, hand_pos_wh);
     }

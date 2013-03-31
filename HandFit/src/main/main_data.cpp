@@ -59,7 +59,7 @@
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Added
 #define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Added
 
-#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN_synthetic/") 
+#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN/") 
 
 #define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
 #define SAVE_FILES  // Only enabled when we're not loading processed images
@@ -487,7 +487,7 @@ int main(int argc, char *argv[]) {
 #else
     image_io->GetFilesInDirectory(im_files, IM_DIR, false);
 #endif
-    
+
     // Attach callback functions for event handling
     wnd->registerKeyboardCB(keyboardCB);
     wnd->registerMousePosCB(NULL);

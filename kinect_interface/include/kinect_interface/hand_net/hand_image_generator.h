@@ -23,6 +23,9 @@
 #define HN_HPF_GAIN 2.0f
 #define HN_HPF_SIGMA 1.5f  // in pixels
 #define HN_HPF_KERNEL_SIZE 11  // Hopefully >= 2*(3*sigma) + 1 (MUST BE ODD!)
+#define HN_RECT_KERNEL_SIZE 5  // Clemont recommends 5x5 (aggressive)
+
+#define HN_USE_RECT_LPF_KERNEL  // Otherwise use gaussian --> Clemont recommends rect.
 
 namespace kinect_interface {
 
@@ -60,10 +63,12 @@ namespace hand_net {
     float cur_downsample_scale_;
     int32_t size_images_;  // Default: HAND_NET_IM_SIZE^2 *(1 + 1/(2*2) + 1/(4*4))
     float* hpf_hand_images_;
-    float* hpf_hand_images_coeff_;  // integral of a ones image with guass filt
+    float* hpf_hand_images_gauss_norm_coeff_;  // integral of a ones image with guass filt
+    float* hpf_hand_images_rect_norm_coeff_;  // integral of a ones image with norm filt
     jtil::math::Float3 uvd_com_;  // UV COM of the hand image.
     jtil::math::Int4 hand_pos_wh_;  // Lower left pos and width/height of the hand image
     float gauss_filt_[HN_HPF_KERNEL_SIZE];  // This is unnormalized!
+    float rect_filt_[HN_RECT_KERNEL_SIZE];  // This is unnormalized!
     float* im_temp1_;
     float* im_temp2_;
 

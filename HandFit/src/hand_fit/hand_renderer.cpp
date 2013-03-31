@@ -1146,8 +1146,10 @@ namespace hand_fit {
     calcHandImageUVFromXYZ(*sphere->transformed_center(), pos_uv, hand_pos_wh);
     coeff_convnet[convnet_U_index] = pos_uv[0];
     coeff_convnet[convnet_U_index+1] = pos_uv[1];
-    coeff_convnet[convnet_U_index+2] = ((*sphere->transformed_center())[2] - 
-      dmin) / HN_HAND_SIZE;
+    if (FEATURE_SIZE >= 3) {
+      coeff_convnet[convnet_U_index+2] = ((*sphere->transformed_center())[2] - 
+        dmin) / HN_HAND_SIZE;
+    }
   }
 
   void HandRenderer::calcHandImageUVFromXYZ(Float3& xyz_pos, 
