@@ -85,16 +85,53 @@ res = model:forward(data_in)
 print('Spatial Convolution Map result')
 print(res)
 
--- Test Linear
--- TO DO:
-
 -- Test SpatialLPPooling
-pool_order = 2
-nstates = num_feats_in
+pnorm = 2.0
+nstates = num_feats_out
 poolsize_u = 2
 poolsize_v = 2
-model:add(nn.SpatialLPPooling(nstates, pooling, poolsize_u, poolsize_v, poolsize_u, poolsize_v))
+pool_stage = nn.SpatialLPPooling(nstates, poolsize_u, poolsize_v, poolsize_u, poolsize_v)
+model:add(pool_stage)
+res = model:forward(data_in)
+print('SpatialLPPooling result')
+print(res)
 
+-- Test SpatialMaxPooling
+model3 = nn.Sequential()
+max_pool_stage = nn.SpatialMaxPooling(poolsize_u, poolsize_v, poolsize_u, poolsize_v)
+model3:add(max_pool_stage)
+res = model3:forward(data_in)
+print('SpatialLPPooling result')
+print(res)
 
+-- Test Linear
+model2 = nn.Sequential()
+lin_size = num_feats_in * width * height
+lin_size_out = 20
+model2:add(nn.Reshape(lin_size))
+lin_stage = nn.Linear(lin_size, lin_size_out)
+for i=1,lin_size_out do
+  for j=1,lin_size do
+    k = (i-1) * lin_size + j
+    lin_stage.weight[{i,j}] = k / (lin_size * lin_size_out)
+  end
+end
+for i=1,lin_size_out do
+  lin_stage.bias[{i}] = i / lin_size_out
+end
+model2:add(lin_stage)
+res = model2:forward(data_in)
+print('Linear result')
+print(res)
 
+-- Test SpatialSubtractiveNormalization
+model4 = nn.Sequential()
+normkernel = image.gaussian1D(7)
+print('Normalization Kernel1D')
+print(normkernel)
+spatial_sub_norm = nn.SpatialSubtractiveNormalization(num_feats_in, normkernel)
+model4:add(spatial_sub_norm)
+res = model4:forward(data_in)
+print('SpatialLPPooling result')
+print(res)
 
