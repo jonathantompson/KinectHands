@@ -247,7 +247,7 @@ namespace hand_net {
   void HandImageGenerator::calcHPFHandBanks() {
     int32_t w = HN_IM_SIZE;
     int32_t h = HN_IM_SIZE;
-    float* coeff = hpf_hand_images_coeff_;
+    float* coeff = hpf_hand_images_gauss_norm_coeff_;
     float* dst = hpf_hand_images_;
     float* src = hand_image_;
     for (int32_t i = 0; i < num_banks_; i++) {

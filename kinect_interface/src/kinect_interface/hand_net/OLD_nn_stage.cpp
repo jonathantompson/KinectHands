@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <iomanip>
 #include <fstream>
-#include "kinect_interface/hand_net/nn_stage.h"
+#include "kinect_interface/hand_net/OLD_nn_stage.h"
 #include "kinect_interface/hand_net/hand_net.h"  // for HN_NUM_WORKER_THREADS
 #include "jtil/exceptions/wruntime_error.h"
 #include "jtil/threading/thread_pool.h"

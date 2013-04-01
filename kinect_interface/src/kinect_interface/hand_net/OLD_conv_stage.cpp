@@ -4,8 +4,9 @@
 #include <stdexcept>
 #include <iomanip>
 #include <fstream>
-#include "kinect_interface/hand_net/conv_stage.h"
+#include "kinect_interface/hand_net/OLD_conv_stage.h"
 #include "kinect_interface/hand_net/hand_net.h"  // for print3DTensorToStdCout
+#include "kinect_interface/hand_net/torch_stage.h"
 #include "jtil/exceptions/wruntime_error.h"
 #include "jtil/threading/thread_pool.h"
 
@@ -444,12 +445,12 @@ namespace hand_net {
     std::cout << std::fixed;
 
     std::cout << "  weights_:" << std::endl;
-    HandNet::print3DTensorToStdCout<float>(weights_, 
+    TorchStage::print3DTensorToStdCout<float>(weights_, 
       std::min<int32_t>(n_output_features_ * filt_fan_in_, MAX_PRINT_LENGTH), 
       filt_height_, filt_width_);
 
     std::cout << "  conn_:" << std::endl;
-    HandNet::print3DTensorToStdCout<int16_t>(conn_table_,  
+    TorchStage::print3DTensorToStdCout<int16_t>(conn_table_,  
       std::min<int32_t>(n_output_features_, MAX_PRINT_LENGTH), filt_fan_in_, 
       2);
 

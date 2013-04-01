@@ -7,8 +7,7 @@
 #include <sstream>
 #include "kinect_interface/hand_net/hand_net.h"
 #include "kinect_interface/hand_net/hand_image_generator.h"
-#include "kinect_interface/hand_net/conv_stage.h"
-#include "kinect_interface/hand_net/nn_stage.h"
+#include "kinect_interface/hand_net/torch_stage.h"
 #include "kinect_interface/hand_net/hand_model.h"  // for HandCoeff
 #include "kinect_interface/open_ni_funcs.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"  // for GDT_MAX_DIST
@@ -38,16 +37,10 @@ namespace kinect_interface {
 namespace hand_net {
  
   HandNet::HandNet() {
-    n_conv_stages_ = 0;
     num_conv_banks_ = 0;
     conv_stages_ = NULL;
-    n_nn_stages_ = 0;
-    nn_stages_ = NULL;
-    nn_datcur_ = NULL;
-    nn_datnext_ = NULL;
-    conv_datcur_ = NULL;
-    conv_datnext_ = NULL;
     image_generator_ = NULL;
+    nn_stages_ = NULL;
     tp_ = NULL;
   }
 
@@ -60,32 +53,8 @@ namespace hand_net {
       tp_->stop();
     }
     SAFE_DELETE(tp_);
-    if (conv_stages_) {
-      for (int32_t i = 0; i < n_conv_stages_ * num_conv_banks_; i++) {
-        SAFE_DELETE(conv_stages_[i]);
-      }
-    }
     SAFE_DELETE_ARR(conv_stages_);
-    if (nn_stages_) {
-      for (int32_t i = 0; i < n_nn_stages_; i++) {
-        SAFE_DELETE(nn_stages_[i]);
-      }
-    }
-    SAFE_DELETE_ARR(nn_stages_);
-    SAFE_DELETE_ARR(nn_datcur_);
-    SAFE_DELETE_ARR(nn_datnext_);
-    if (conv_datcur_) {
-      for (int32_t i = 0; i < num_conv_banks_; i++) {
-        SAFE_DELETE_ARR(conv_datcur_[i]);
-      }
-    }
-    SAFE_DELETE_ARR(conv_datcur_);
-    if (conv_datnext_) {
-      for (int32_t i = 0; i < num_conv_banks_; i++) {
-        SAFE_DELETE_ARR(conv_datnext_[i]);
-      }
-    }
-    SAFE_DELETE_ARR(conv_datnext_);
+    SAFE_DELETE(nn_stages_);
     SAFE_DELETE(image_generator_);
   }
 
@@ -94,6 +63,8 @@ namespace hand_net {
 
     std::cout << "loading HandNet from " << filename << std::endl;
 
+    /*
+    // TO DO: UPDATE THIS
     std::ifstream file(filename.c_str(), std::ios::in|std::ios::binary);
     if (file.is_open()) {
 
@@ -184,6 +155,7 @@ namespace hand_net {
       ss << " file " << filename << std::endl;
       throw std::wruntime_error(ss.str());
     }
+    */
   }
 
   void HandNet::calcHandImage(const int16_t* depth, const uint8_t* label) {
@@ -193,7 +165,7 @@ namespace hand_net {
 
   void HandNet::calcHandCoeffConvnet(const int16_t* depth, 
     const uint8_t* label) {
-    if (n_conv_stages_ == 0 || image_generator_ == NULL) {
+    if (num_conv_banks_ == 0 || image_generator_ == NULL) {
       std::cout << "HandNet::calcHandCoeff() - ERROR: Convnet not loaded";
       std::cout << " from file!" << std::endl;
     }
@@ -213,6 +185,9 @@ namespace hand_net {
       throw std::wruntime_error("HandNet::calcHandCoeffConvnet() - ERROR: "
         "data_type value is not supported!");
     }
+
+    /*
+    // TO DO: UPDATE THIS
     for (int32_t j = 0; j < num_conv_banks_; j++) {
       int32_t w = HN_IM_SIZE / (1 << j);
       int32_t h = HN_IM_SIZE / (1 << j);
@@ -261,6 +236,7 @@ namespace hand_net {
       sizeof(coeff_convnet_[0]));
 
     // print3DTensorToStdCout<float>(nn_datcur_, 1, HAND_NUM_COEFF_CONVNET, 1);
+    */
   }
 
   const float* HandNet::hpf_hand_images() const {
