@@ -5,8 +5,8 @@ require 'optim'
 require 'sys'
 torch.setdefaulttensortype('torch.FloatTensor')
 
-num_feats_in = 4
-num_feats_out = 6
+num_feats_in = 5
+num_feats_out = 10
 width = 10
 height = 10
 
@@ -132,6 +132,40 @@ print(normkernel)
 spatial_sub_norm = nn.SpatialSubtractiveNormalization(num_feats_in, normkernel)
 model4:add(spatial_sub_norm)
 res = model4:forward(data_in)
-print('SpatialLPPooling result')
+print('SpatialSubtractiveNormalization result')
 print(res)
+
+-- Test SpatialDivisiveNormalization
+model5 = nn.Sequential()
+normkernel = image.gaussian1D(7)
+print('Normalization Kernel1D')
+print(normkernel)
+spatial_div_norm = nn.SpatialDivisiveNormalization(num_feats_in, normkernel)
+model5:add(spatial_div_norm)
+res = model5:forward(data_in)
+print('SpatialDivisiveNormalization result')
+print(res)
+-- return spatial_div_norm.localstds
+
+-- Test SpatialContrastiveNormalization
+model6 = nn.Sequential()
+lena = image.rgb2y(image.lena()):float()
+file = torch.DiskFile("lena_image.bin", 'w')
+file:binary()
+for i=1,lena:size()[2] do
+  for v=1,lena:size()[3] do
+    file:writeFloat(lena[{1, i, v}])
+  end
+end
+file:close()
+normkernel = torch.Tensor(6):fill(1)
+spatial_contrast_norm = nn.SpatialContrastiveNormalization(1, normkernel)
+model6:add(spatial_contrast_norm)
+res = model6:forward(lena)
+image.display(lena)
+image.display(res)
+
+print('SpatialContrastiveNormalization result')
+print(res)
+
 
