@@ -45,23 +45,23 @@
 #include "kinect_interface/hand_net/hand_image_generator.h"
 #include "kinect_interface/hand_detector/hand_detector.h"
 #include "jtil/file_io/file_io.h"
+#include "jtil/threading/thread_pool.h"
+#include "jtil/debug_util/debug_util.h"
 
-#if defined(WIN32) || defined(_WIN32)
-  #define snprintf _snprintf_s
-#endif
-
+// *************************************************************
+// ******************* CHANGEABLE PARAMETERS *******************
+// *************************************************************
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Added
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Added
-#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Added
+#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Added
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Added *
+#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN_synthetic/") 
 
-#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN/") 
-
-#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
+// #define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
 #define SAVE_FILES  // Only enabled when we're not loading processed images
 #define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
                               // HandForests, but save synthetic data (only 
@@ -73,15 +73,24 @@
   #define DESIRED_PLAYBACK_FPS 30.0f  // fps
 #endif
 #define FRAME_TIME (1.0f / DESIRED_PLAYBACK_FPS)
+#define NUM_WORKER_THREADS 6
+#define DISPLAY_HPF_IMAGE
+// *************************************************************
+// *************** END OF CHANGEABLE PARAMETERS ****************
+// *************************************************************
 
+// Some image defines, you shouldn't have to change these
 #if defined(__APPLE__)
 #define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
 #else
 #define KINECT_HANDS_ROOT string("./../")
 #endif
-
 #define IM_DIR (KINECT_HANDS_ROOT + IM_DIR_BASE)
 #define DST_IM_DIR (KINECT_HANDS_ROOT + DST_IM_DIR_BASE)
+
+#if defined(WIN32) || defined(_WIN32)
+  #define snprintf _snprintf_s
+#endif
 
 const bool fit_left = false;
 const bool fit_right = true; 
@@ -90,6 +99,7 @@ const uint32_t num_hands = (fit_left ? 1 : 0) + (fit_right ? 1 : 0);
 using namespace std;
 using namespace jtil::math;
 using namespace jtil::data_str;
+using namespace jtil::threading;
 using namespace kinect_interface::hand_net;
 using namespace kinect_interface::hand_detector;
 using namespace kinect_interface;
@@ -141,7 +151,9 @@ int playback_step = 1;
 float r_modified_coeff[HAND_NUM_COEFF];
 float l_modified_coeff[HAND_NUM_COEFF];
 Texture* tex = NULL;
-uint8_t tex_data[HN_IM_SIZE * HN_IM_SIZE * 3];
+uint8_t tex_data_hpf[HN_IM_SIZE * HN_IM_SIZE * 3];
+uint8_t tex_data_depth[HN_IM_SIZE * HN_IM_SIZE * 3];
+uint8_t tex_data[HN_IM_SIZE * HN_IM_SIZE * 3 * 2];
 
 // Decision forests
 HandDetector* hand_detect = NULL;
@@ -151,7 +163,12 @@ HandImageGenerator* hand_image_generator_ = NULL;
 float blank_coeff[HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
 float coeff_convnet[HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
 
+// Multithreading
+ThreadPool* tp;
+
 void quit() {
+  tp->stop();
+  delete tp;
   delete image_io;
   delete clk;
   delete render;
@@ -246,11 +263,11 @@ void loadCurrentImage() {
   hand_renderer->drawDepthMap(coeffs, hands, num_hands);
   hand_renderer->extractDepthMap(cur_synthetic_depth_data);
   hand_image_generator_->calcHandImage(cur_depth_data, label,
-    create_hpf_images, cur_synthetic_depth_data);
+    create_hpf_images, tp, cur_synthetic_depth_data);
   GLState::glsViewport(0, 0, wnd->width(), wnd->height());
 #else
   hand_image_generator_->calcHandImage(cur_depth_data, label,
-    create_hpf_images);
+    create_hpf_images, tp);
 #endif
 
   // Correctly modify the coeff values to those that are learnable by the
@@ -265,12 +282,12 @@ void saveFrame() {
   // Check that the current coeff doesn't have features points that are off 
   // screen --> Usually an indicator that the HandDetector messed up
   for (uint32_t i = 0; i < HandCoeffConvnet::HAND_NUM_COEFF_CONVNET && 
-    found_hand; i+= 3) {
-    if (coeff_convnet[i] < 0 && coeff_convnet[i] > 1) {
+    found_hand; i+= FEATURE_SIZE) {
+    if (coeff_convnet[i] < 0 || coeff_convnet[i] > 1) {
       std::cout << " Coeff is off screen.  Not saving files." << std::endl;
       found_hand = false;
     }
-    if (coeff_convnet[i+1] < 0 && coeff_convnet[i+1] > 1) {
+    if (coeff_convnet[i+1] < 0 || coeff_convnet[i+1] > 1) {
       std::cout << " Coeff is off screen.  Not saving files." << std::endl;
       found_hand = false;
     }
@@ -284,7 +301,7 @@ void saveFrame() {
 
     // Save the HPF images to file:
 #if defined SAVE_HPF_IMAGES
-    jtil::file_io::SaveArrayToFile<float>(hand_image_generator_->hpf_hand_images(),
+    jtil::file_io::SaveArrayToFile<float>(hand_image_generator_->hpf_hand_image(),
       hand_image_generator_->size_images(), DST_IM_DIR + std::string("hpf_processed_") + 
       im_files[cur_image]);
 #endif
@@ -408,7 +425,30 @@ void renderFrame() {
   hand_renderer->setRendererAttachement(true);
 
   // Render the images for debugging
-  const float* im = hand_image_generator_->hand_image();
+  const float* im = hand_image_generator_->hpf_hand_image();
+  float min = im[0];
+  float max = im[0];
+  for (uint32_t i = 1; i < HN_IM_SIZE * HN_IM_SIZE; i++) {
+    min = std::min<float>(min, im[i]);
+    max = std::max<float>(max, im[i]); 
+  }
+  float range = max - min;
+  for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
+    for (uint32_t u = 0; u < HN_IM_SIZE; u++) {
+      uint32_t val = (uint32_t)((im[v * HN_IM_SIZE + u] - min)/range * 255.0f);
+      // Clamp the value from 0 to 255 (otherwise we'll get wrap around)
+      uint8_t val8 = (uint8_t)std::min<uint32_t>(std::max<uint32_t>(val,0),255);
+      uint32_t idst = (HN_IM_SIZE-v-1) * HN_IM_SIZE + u;
+      // Texture needs to be flipped vertically and 0 --> 255
+      tex_data_hpf[idst * 3] = val8;
+      tex_data_hpf[idst * 3 + 1] = val8;
+      tex_data_hpf[idst * 3 + 2] = val8;
+    }
+  }
+
+  hand_image_generator_->annotateFeatsToHandImage(tex_data_hpf, coeff_convnet);
+
+  im = hand_image_generator_->hand_image();
   for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
     for (uint32_t u = 0; u < HN_IM_SIZE; u++) {
       uint32_t val = (uint32_t)(im[v * HN_IM_SIZE + u] * 255.0f);
@@ -416,13 +456,27 @@ void renderFrame() {
       uint8_t val8 = (uint8_t)std::min<uint32_t>(std::max<uint32_t>(val,0),255);
       uint32_t idst = (HN_IM_SIZE-v-1) * HN_IM_SIZE + u;
       // Texture needs to be flipped vertically and 0 --> 255
-      tex_data[idst * 3] = val8;
-      tex_data[idst * 3 + 1] = val8;
-      tex_data[idst * 3 + 2] = val8;
+      tex_data_depth[idst * 3] = val8;
+      tex_data_depth[idst * 3 + 1] = val8;
+      tex_data_depth[idst * 3 + 2] = val8;
     }
   }
 
-  hand_image_generator_->annotateFeatsToHandImage(tex_data, coeff_convnet);
+  hand_image_generator_->annotateFeatsToHandImage(tex_data_depth, coeff_convnet);
+
+  for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
+    for (uint32_t u = 0; u < HN_IM_SIZE; u++) {
+      uint32_t src_index = v * HN_IM_SIZE + u;
+      uint32_t dst_index_depth = v * HN_IM_SIZE * 2 + u;
+      tex_data[3 * dst_index_depth] = tex_data_depth[3 * src_index];
+      tex_data[3 * dst_index_depth + 1] = tex_data_depth[3 * src_index + 1];
+      tex_data[3 * dst_index_depth + 2] = tex_data_depth[3 * src_index + 2];
+      uint32_t dst_index_hpf = v * HN_IM_SIZE * 2 + u + HN_IM_SIZE;
+      tex_data[3 * dst_index_hpf] = tex_data_hpf[3 * src_index];
+      tex_data[3 * dst_index_hpf + 1] = tex_data_hpf[3 * src_index + 1];
+      tex_data[3 * dst_index_hpf + 2] = tex_data_hpf[3 * src_index + 2];
+    }
+  }
 
   tex->reloadData((unsigned char*)tex_data);
   render->renderFullscreenQuad(tex);
@@ -437,8 +491,9 @@ WindowSettings settings;
 int main(int argc, char *argv[]) {
   static_cast<void>(argc); static_cast<void>(argv);
 #if defined(_DEBUG) && defined(_WIN32)
-  _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-  // _CrtSetBreakAlloc(7910);
+  jtil::debug::EnableMemoryLeakChecks();
+  // jtil::debug::EnableAggressiveMemoryLeakChecks();
+  // jtil::debug::SetBreakPointOnAlocation(8634);
 #endif
 
   cout << "Usage:" << endl;
@@ -448,6 +503,8 @@ int main(int argc, char *argv[]) {
   cout << "q/ESC - Quit" << endl;
   
   try {
+    tp = new ThreadPool(NUM_WORKER_THREADS);
+
     clk = new jtil::clk::Clk();
     t1 = clk->getTime();
     t0 = t1;
@@ -457,7 +514,7 @@ int main(int argc, char *argv[]) {
     Texture::initTextureSystem();
 
     // Fill the settings structure
-    settings.width = 640;
+    settings.width = 640 * 2;
     settings.height = 640;
     settings.fullscreen = false;
     settings.title = string("Hand Fit Project");
@@ -519,8 +576,9 @@ int main(int argc, char *argv[]) {
     }
 
     loadCurrentImage();
-    tex = new Texture(GL_RGB8, HN_IM_SIZE, HN_IM_SIZE, GL_RGB, GL_UNSIGNED_BYTE, 
-      (unsigned char*)tex_data, TEXTURE_WRAP_MODE::TEXTURE_CLAMP, false,
+    tex = new Texture(GL_RGB8, 2 * HN_IM_SIZE, HN_IM_SIZE, GL_RGB, 
+      GL_UNSIGNED_BYTE, (unsigned char*)tex_data, 
+      TEXTURE_WRAP_MODE::TEXTURE_CLAMP, false,
       TEXTURE_FILTER_MODE::TEXTURE_NEAREST);
 
     render->renderFrame(0);

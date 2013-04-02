@@ -1125,11 +1125,14 @@ namespace hand_fit {
     // Fingers
     for (uint32_t i = 0; i < 4; i++) {
     extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-      HandSphereIndices::F1_KNU3_A + 6 * i, F0_TIP_U + 9 * i);
+      HandSphereIndices::F1_KNU3_A + NSPH_PER_FING * i, F0_TIP_U + 
+      FEATURE_SIZE * NUM_FEATS_PER_FINGER * i);
     extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-      HandSphereIndices::F1_KNU2_B + 6 * i, F0_K2_U + 9 * i);
+      HandSphereIndices::F1_KNU2_B + NSPH_PER_FING * i, F0_K2_U + 
+      FEATURE_SIZE * NUM_FEATS_PER_FINGER * i);
     extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-      HandSphereIndices::F1_KNU1_B + 6 * i, F0_BASE_U + 9 * i);
+      HandSphereIndices::F1_KNU1_B + NSPH_PER_FING * i, F0_BASE_U + 
+      FEATURE_SIZE * NUM_FEATS_PER_FINGER * i);
     }
   }
 

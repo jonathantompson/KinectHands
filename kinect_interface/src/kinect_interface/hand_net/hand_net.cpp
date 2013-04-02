@@ -160,7 +160,7 @@ namespace hand_net {
 
   void HandNet::calcHandImage(const int16_t* depth, const uint8_t* label) {
     image_generator_->calcHandImage(depth, label, 
-      data_type_ == HPF_DEPTH_DATA);
+      data_type_ == HPF_DEPTH_DATA, tp_);
   }
 
   void HandNet::calcHandCoeffConvnet(const int16_t* depth, 
@@ -179,7 +179,7 @@ namespace hand_net {
       im = image_generator_->hand_image();
       break;
     case HPF_DEPTH_DATA:
-      im = image_generator_->hpf_hand_images();
+      im = image_generator_->hpf_hand_image();
       break;
     default:
       throw std::wruntime_error("HandNet::calcHandCoeffConvnet() - ERROR: "
@@ -239,12 +239,12 @@ namespace hand_net {
     */
   }
 
-  const float* HandNet::hpf_hand_images() const {
-    return image_generator_->hpf_hand_images();
+  const float* HandNet::hpf_hand_image() const {
+    return image_generator_->hpf_hand_image();
   }
 
   const float* HandNet::hand_image() const {
-    return image_generator_->hpf_hand_images();
+    return image_generator_->hpf_hand_image();
   }
 
   const int32_t HandNet::size_images() const {

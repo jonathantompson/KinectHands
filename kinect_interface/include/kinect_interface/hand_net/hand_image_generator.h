@@ -21,15 +21,16 @@
 #define HN_HAND_SIZE 300.0f
 #define HN_DEFAULT_NUM_CONV_BANKS 3
 #define HN_HPF_GAIN 2.0f
-#define HN_HPF_SIGMA 1.5f  // in pixels
-#define HN_HPF_KERNEL_SIZE 11  // Hopefully >= 2*(3*sigma) + 1 (MUST BE ODD!)
-#define HN_RECT_KERNEL_SIZE 5  // Clemont recommends 5x5 (aggressive)
+#define HN_RECT_KERNEL_SIZE 5  // Clemont recommends 5x5 (aggressive), must be odd
 
 #define HN_USE_RECT_LPF_KERNEL  // Otherwise use gaussian --> Clemont recommends rect.
 
-namespace kinect_interface {
+namespace jtil { namespace threading { class ThreadPool; } }
 
+namespace kinect_interface {
 namespace hand_net {
+
+  struct SpatialContrastiveNormalization;
   
   class HandImageGenerator {
   public:
@@ -43,7 +44,8 @@ namespace hand_net {
     // if synthetic_depth != NULL, then the crop window will be chosen using
     // the real depth, but the synthetic depth will be stored
     void calcHandImage(const int16_t* depth_in, const uint8_t* label_in,
-      const bool create_hpf_image, const float* synthetic_depth = NULL);
+      const bool create_hpf_image, jtil::threading::ThreadPool* tp, 
+      const float* synthetic_depth = NULL);
 
     void HandImageGenerator::annotateFeatsToKinectImage(uint8_t* im, 
       const float* coeff_convnet) const;  // 640 x 480
@@ -51,7 +53,7 @@ namespace hand_net {
       const float* coeff_convnet) const;  // 96 x 96
 
     // Getter methods
-    const float* hpf_hand_images() { return hpf_hand_images_; }
+    const float* hpf_hand_image() { return hpf_hand_image_; }
     const float* hand_image() { return hand_image_; }
     const int32_t size_images() { return size_images_; } 
     inline const jtil::math::Float3& uvd_com() const { return uvd_com_; }
@@ -62,20 +64,17 @@ namespace hand_net {
     float* hand_image_;
     float cur_downsample_scale_;
     int32_t size_images_;  // Default: HAND_NET_IM_SIZE^2 *(1 + 1/(2*2) + 1/(4*4))
-    float* hpf_hand_images_;
-    float* hpf_hand_images_gauss_norm_coeff_;  // integral of a ones image with guass filt
-    float* hpf_hand_images_rect_norm_coeff_;  // integral of a ones image with norm filt
+    float* hpf_hand_image_;
     jtil::math::Float3 uvd_com_;  // UV COM of the hand image.
     jtil::math::Int4 hand_pos_wh_;  // Lower left pos and width/height of the hand image
-    float gauss_filt_[HN_HPF_KERNEL_SIZE];  // This is unnormalized!
-    float rect_filt_[HN_RECT_KERNEL_SIZE];  // This is unnormalized!
-    float* im_temp1_;
+    float* im_temp1_;  // TO DO: Do we need all this temporary data?
     float* im_temp2_;
+    double* im_temp_double_;
+    SpatialContrastiveNormalization** contrast_norm_module_;  // One for each bank
 
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in, 
       const float* synthetic_depth = NULL);
-    void calcHPFHandBanks();
-    void initHPFKernels();
+    void calcHPFHandBanks(jtil::threading::ThreadPool* tp);
     void releaseData();  // Call destructor on all dynamic data
     void initHandImageData();
     void renderCrossToImageArr(const float* uv, uint8_t* im, const int32_t w, 
