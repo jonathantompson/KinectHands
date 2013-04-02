@@ -158,14 +158,21 @@ for i=1,lena:size()[2] do
   end
 end
 file:close()
-normkernel = torch.Tensor(6):fill(1)
+normkernel = torch.Tensor(7):fill(1)
 spatial_contrast_norm = nn.SpatialContrastiveNormalization(1, normkernel)
 model6:add(spatial_contrast_norm)
 res = model6:forward(lena)
 image.display(lena)
 image.display(res)
-
-print('SpatialContrastiveNormalization result')
-print(res)
+file = torch.DiskFile("lena_image_processed.bin", 'r')
+file:binary()
+lena_processed = file:readFloat(lena:size()[2] * lena:size()[3])
+lena_processed = torch.FloatTensor(lena_processed, 1, torch.LongStorage{1, lena:size()[2], 
+            lena:size()[3]}):float()
+file:close()
+image.display(lena_processed)
+err = lena_processed - res
+err_abs = torch.abs(err)
+image.display(err_abs)
 
 
