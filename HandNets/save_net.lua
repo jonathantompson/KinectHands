@@ -72,4 +72,6 @@ stg2 = model:get(5)
 stg2_nn_nonlinear = "None"  -- none
 saveNNStage(stg2, stg2_nn_nonlinear, convnet)
 
+convnet:close()
+
 print("All done saving convnet")
