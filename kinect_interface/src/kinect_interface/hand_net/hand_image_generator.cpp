@@ -13,6 +13,7 @@
 #include "jtil/image_util/image_util.h"
 #include "jtil/renderer/colors/colors.h"
 #include "jtil/exceptions/wruntime_error.h"
+#include "jtil/file_io/file_io.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
@@ -39,6 +40,7 @@ namespace hand_net {
     hand_image_ = NULL;
     im_temp1_ = NULL;
     im_temp2_ = NULL;
+    im_temp_double_ = NULL;
     num_banks_ = num_banks;
     contrast_norm_module_ = NULL;
     initHandImageData();
@@ -53,6 +55,7 @@ namespace hand_net {
     SAFE_DELETE_ARR(hand_image_);
     SAFE_DELETE_ARR(im_temp1_);
     SAFE_DELETE_ARR(im_temp2_);
+    SAFE_DELETE_ARR(im_temp_double_);
     if (contrast_norm_module_) {
       for (int32_t i = 0; i < num_banks_; i++) {
         SAFE_DELETE(contrast_norm_module_[i]);
@@ -78,6 +81,7 @@ namespace hand_net {
     hand_image_ = new float [datasize];
     im_temp1_ = new float[datasize];
     im_temp2_ = new float[datasize];
+    im_temp_double_ = new double[HN_SRC_IM_SIZE * HN_SRC_IM_SIZE];
 
     hpf_hand_image_ = new float[datasize];
 #if defined(DEBUG) || defined(_DEBUG)
@@ -188,7 +192,7 @@ namespace hand_net {
     // Note FracDownsampleImageSAT destroys the origional source image
     FracDownsampleImageSAT<float>(im_temp1_, 0, 0, HN_IM_SIZE, HN_IM_SIZE,
       HN_IM_SIZE, hand_image_, srcx, srcy, srcw, srch, HN_SRC_IM_SIZE, 
-      HN_SRC_IM_SIZE);
+      HN_SRC_IM_SIZE, im_temp_double_);
     // Now ping-pong buffers
     float* tmp = im_temp1_;
     im_temp1_ = hand_image_;
@@ -199,15 +203,6 @@ namespace hand_net {
     hand_pos_wh_[1] = ((int32_t)uvd_com_[1] - (HN_SRC_IM_SIZE / 2)) + srcy;
     hand_pos_wh_[2] = srcw;
     hand_pos_wh_[3] = srch;
-
-    // Clean up the background...  there is floating point error on the
-    // background (due to FractionalDownsample code), which when local contras6
-    // normalization is performed shows up as strong noise.
-    for (uint32_t i = 0; i < HN_IM_SIZE * HN_IM_SIZE; i++) {
-      if (fabsf(hand_image_[i] - background) < 1e-4) {
-        hand_image_[i] = background;
-      }
-    }
 
     // Now downsample as many times as there are banks
     int32_t w = HN_IM_SIZE;

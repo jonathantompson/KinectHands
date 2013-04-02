@@ -67,8 +67,9 @@ namespace hand_net {
     float* hpf_hand_image_;
     jtil::math::Float3 uvd_com_;  // UV COM of the hand image.
     jtil::math::Int4 hand_pos_wh_;  // Lower left pos and width/height of the hand image
-    float* im_temp1_;
+    float* im_temp1_;  // TO DO: Do we need all this temporary data?
     float* im_temp2_;
+    double* im_temp_double_;
     SpatialContrastiveNormalization** contrast_norm_module_;  // One for each bank
 
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in, 
