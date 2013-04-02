@@ -22,14 +22,17 @@ namespace hand_net {
 
   typedef enum {
     UNDEFINED_STAGE = 0,
-    SPATIAL_CONVOLUTION_MAP_STAGE = 1,
+    SEQUENTIAL_STAGE = 1,
     TANH_STAGE = 2,
     THRESHOLD_STAGE = 3,
     LINEAR_STAGE = 4,
     RESHAPE_STAGE = 5,
-    SPATIAL_LP_POOLING_STAGE = 6,
-    SPATIAL_MAX_POOLING_STAGE = 7,
-    SPATIAL_SUBTRACTIVE_NORMALIZATION = 8,
+    SPATIAL_CONVOLUTION_MAP_STAGE = 6,
+    SPATIAL_LP_POOLING_STAGE = 7,
+    SPATIAL_MAX_POOLING_STAGE = 8,
+    SPATIAL_SUBTRACTIVE_NORMALIZATION_STAGE = 9,
+    SPATIAL_DIVISIVE_NORMALIZATION_STAGE = 10,
+    SPATIAL_CONTRASTIVE_NORMALIZATION_STAGE = 11,
   } TorchStageType;
   
   struct TorchStage {
@@ -62,9 +65,11 @@ namespace hand_net {
       const int32_t height, const int32_t width);
 
     // gaussian1D In torch: >> normkernel = image.gaussian1D(n)
-    // It's a gaussian of x = -2*sigma to 2*sigma, where sigma = n / 2
+    // It's a gaussian of x = -2*sigma to 2*sigma, where sigma = size / 2
     template <typename T>
     static T* gaussian1D(const int32_t kernel_size);
+    template <typename T>
+    static T* ones1D(const int32_t kernel_size);
 
   private:
     // Non-copyable, non-assignable.
@@ -82,6 +87,15 @@ namespace hand_net {
     for (int32_t i = 0; i < kernel_size; i++) {
       ret[i] = amplitude * (T)exp(-((T)pow(((T)(i+1)-center) / (sigma*size),
         (T)2.0)/(T)2.0));
+    }
+    return ret;
+  }
+
+  template <typename T>
+  T* TorchStage::ones1D(const int32_t kernel_size) {
+    T* ret = new T[kernel_size];
+    for (int32_t i = 0; i < kernel_size; i++) {
+      ret[i] = (T)1.0;
     }
     return ret;
   }

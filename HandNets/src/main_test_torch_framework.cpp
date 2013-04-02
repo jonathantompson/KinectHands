@@ -15,6 +15,7 @@
 #include "kinect_interface/hand_net/spatial_lp_pooling.h"
 #include "kinect_interface/hand_net/spatial_max_pooling.h"
 #include "kinect_interface/hand_net/spatial_subtractive_normalization.h"
+#include "kinect_interface/hand_net/spatial_divisive_normalization.h"
 #include "kinect_interface/hand_net/linear.h"
 #include "kinect_interface/hand_net/reshape.h"
 #include "kinect_interface/hand_net/tanh.h"
@@ -26,14 +27,14 @@
   #define snprintf _snprintf_s
 #endif
 
-#define NUM_WORKER_THREADS 1 
+#define NUM_WORKER_THREADS 8
 
 using namespace std;
 using namespace kinect_interface::hand_net;
 using namespace jtil::threading;
 
-const uint32_t num_feats_in = 4;
-const uint32_t num_feats_out = 6;
+const uint32_t num_feats_in = 5;
+const uint32_t num_feats_out = 10;
 const uint32_t fan_in = 3;  // For SpatialConvolutionMap
 const uint32_t width = 10;
 const uint32_t height = 10;
@@ -46,7 +47,7 @@ int main(int argc, char *argv[]) {
 #if defined(_DEBUG) || defined(DEBUG)
   jtil::debug::EnableMemoryLeakChecks();
   // jtil::debug::EnableAggressiveMemoryLeakChecks();
-  jtil::debug::SetBreakPointOnAlocation(4727);
+  // jtil::debug::SetBreakPointOnAlocation(4727);
 #endif
 
   data_in = new float[num_feats_in * width * height];
@@ -73,7 +74,7 @@ int main(int argc, char *argv[]) {
   // Test Tanh
   stage[0] = new Tanh(num_feats_in, height, width, NUM_WORKER_THREADS);
   stage[0]->forwardProp(data_in, tp);
-  std::cout << "Tanh output:" << std::endl;
+  std::cout << endl << endl << "Tanh output:" << std::endl;
   TorchStage::print3DTensorToStdCout<float>(stage[0]->output, num_feats_in,
     height, width);
 
@@ -85,7 +86,7 @@ int main(int argc, char *argv[]) {
   ((Threshold*)stage[1])->threshold = threshold;
   ((Threshold*)stage[1])->val = val;
   stage[1]->forwardProp(stage[0]->output, tp);
-  std::cout << "Threshold output:" << std::endl;
+  std::cout << endl << endl << "Threshold output:" << std::endl;
   TorchStage::print3DTensorToStdCout<float>(stage[1]->output, num_feats_in,
     height, width);
 
@@ -129,7 +130,7 @@ int main(int argc, char *argv[]) {
   TorchStage::print3DTensorToStdCout<int16_t>(((SpatialConvolutionMap*)stage[2])->conn_table_, 
     num_feats_out, fan_in, 2);
   stage[2]->forwardProp(stage[1]->output, tp);
-  std::cout << "SpatialConvolutionMap output:" << std::endl;
+  std::cout << endl << endl << "SpatialConvolutionMap output:" << std::endl;
   TorchStage::print3DTensorToStdCout<float>(stage[2]->output, num_feats_out,
     ((SpatialConvolutionMap*)stage[2])->outHeight(), 
     ((SpatialConvolutionMap*)stage[2])->outWidth());
@@ -142,7 +143,7 @@ int main(int argc, char *argv[]) {
   stage[3] = new SpatialLPPooling(num_feats_out, pnorm, pool_v, pool_u, 
     stage[2]->outHeight(), stage[2]->outWidth());
   stage[3]->forwardProp(stage[2]->output, tp);
-  std::cout << "SpatialLPPooling output:" << std::endl;
+  std::cout << endl << endl << "SpatialLPPooling output:" << std::endl;
   TorchStage::print3DTensorToStdCout<float>(stage[3]->output, num_feats_out,
     ((SpatialConvolutionMap*)stage[3])->outHeight(), 
     ((SpatialConvolutionMap*)stage[3])->outWidth());
@@ -152,7 +153,7 @@ int main(int argc, char *argv[]) {
   TorchStage* max_pool_stage = new SpatialMaxPooling(num_feats_in, pool_v,
     pool_u, height, width);
   max_pool_stage->forwardProp(data_in, tp);
-  std::cout << "SpatialLPPooling output:" << std::endl;
+  std::cout << endl << endl << "SpatialLPPooling output:" << std::endl;
   TorchStage::print3DTensorToStdCout<float>(max_pool_stage->output, 
     num_feats_in, ((SpatialMaxPooling*)max_pool_stage)->outHeight(), 
     ((SpatialMaxPooling*)max_pool_stage)->outWidth());
@@ -167,8 +168,20 @@ int main(int argc, char *argv[]) {
   TorchStage* sub_norm_stage = new SpatialSubtractiveNormalization(
     num_feats_in, gauss_size, kernel1D, height, width);
   sub_norm_stage->forwardProp(data_in, tp);
-  std::cout << "SpatialSubtractiveNormalization output:" << std::endl;
+  std::cout << endl << endl << "SpatialSubtractiveNormalization output:" << endl;
   TorchStage::print3DTensorToStdCout<float>(sub_norm_stage->output, 
+    num_feats_in, height, width);
+
+  // ***********************************************
+  // Test SpatialDivisiveNormalization
+  const int32_t lena_width = 512;
+  const int32_t lena_height = 512;
+  float* lena = new float[512*512];
+  TorchStage* sub_div_stage = new SpatialDivisiveNormalization(
+    num_feats_in, gauss_size, kernel1D, height, width);
+  sub_div_stage->forwardProp(data_in, tp);
+  std::cout << endl << endl << "SpatialDivisiveNormalization output:" << endl;
+  TorchStage::print3DTensorToStdCout<float>(sub_div_stage->output, 
     num_feats_in, height, width);
 
   // ***********************************************
@@ -180,7 +193,8 @@ int main(int argc, char *argv[]) {
   lin_stage[1] = new Linear(num_feats_in * width * height, lin_size_out,
     NUM_WORKER_THREADS);
   for (int32_t i = 0; i < lin_size * lin_size_out; i++) {
-    ((Linear*)lin_stage[1])->weights[i] = (float)(i+1) / (float)(lin_size * lin_size_out);
+    ((Linear*)lin_stage[1])->weights[i] = (float)(i+1) / 
+      (float)(lin_size * lin_size_out);
   }
   for (int32_t i = 0; i < lin_size_out; i++) {
     ((Linear*)lin_stage[1])->bias[i] = (float)(i+1) / (float)(lin_size_out);
@@ -200,6 +214,7 @@ int main(int argc, char *argv[]) {
     delete stage[i];
   }
   delete[] kernel1D;
+  delete sub_div_stage;
   delete sub_norm_stage;
   delete max_pool_stage;
   delete lin_stage[0];

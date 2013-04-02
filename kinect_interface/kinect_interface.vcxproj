@@ -38,6 +38,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="src\kinect_interface\hand_net\reshape.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_net\sequential.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_net\spatial_contrastive_normalization.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_net\spatial_divisive_normalization.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\spatial_lp_pooling.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\spatial_max_pooling.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\spatial_subtractive_normalization.cpp" />
@@ -76,6 +79,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="include\kinect_interface\hand_net\reshape.h" />
+    <ClInclude Include="include\kinect_interface\hand_net\sequential.h" />
+    <ClInclude Include="include\kinect_interface\hand_net\spatial_contrastive_normalization.h" />
+    <ClInclude Include="include\kinect_interface\hand_net\spatial_divisive_normalization.h" />
     <ClInclude Include="include\kinect_interface\hand_net\spatial_lp_pooling.h" />
     <ClInclude Include="include\kinect_interface\hand_net\spatial_max_pooling.h" />
     <ClInclude Include="include\kinect_interface\hand_net\spatial_subtractive_normalization.h" />

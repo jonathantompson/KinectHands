@@ -7,7 +7,7 @@ namespace kinect_interface {
 namespace hand_net {
 
   TorchStage::TorchStage() {
-    
+    output = NULL; 
   }
 
   TorchStage::~TorchStage() {
