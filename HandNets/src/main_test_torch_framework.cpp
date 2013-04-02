@@ -16,12 +16,14 @@
 #include "kinect_interface/hand_net/spatial_max_pooling.h"
 #include "kinect_interface/hand_net/spatial_subtractive_normalization.h"
 #include "kinect_interface/hand_net/spatial_divisive_normalization.h"
+#include "kinect_interface/hand_net/spatial_contrastive_normalization.h"
 #include "kinect_interface/hand_net/linear.h"
 #include "kinect_interface/hand_net/reshape.h"
 #include "kinect_interface/hand_net/tanh.h"
 #include "kinect_interface/hand_net/threshold.h"
 #include "jtil/threading/thread_pool.h"
 #include "jtil/debug_util/debug_util.h"
+#include "jtil/file_io/file_io.h"
 
 #if defined(WIN32) || defined(_WIN32)
   #define snprintf _snprintf_s
@@ -47,7 +49,7 @@ int main(int argc, char *argv[]) {
 #if defined(_DEBUG) || defined(DEBUG)
   jtil::debug::EnableMemoryLeakChecks();
   // jtil::debug::EnableAggressiveMemoryLeakChecks();
-  // jtil::debug::SetBreakPointOnAlocation(4727);
+  jtil::debug::SetBreakPointOnAlocation(8634);
 #endif
 
   data_in = new float[num_feats_in * width * height];
@@ -174,15 +176,29 @@ int main(int argc, char *argv[]) {
 
   // ***********************************************
   // Test SpatialDivisiveNormalization
+  TorchStage* div_norm_stage = new SpatialDivisiveNormalization(
+    num_feats_in, gauss_size, kernel1D, height, width);
+  div_norm_stage->forwardProp(data_in, tp);
+  std::cout << endl << endl << "SpatialDivisiveNormalization output:" << endl;
+  TorchStage::print3DTensorToStdCout<float>(div_norm_stage->output, 
+    num_feats_in, height, width);
+
+  // ***********************************************
+  // Test SpatialContrastiveNormalization
   const int32_t lena_width = 512;
   const int32_t lena_height = 512;
   float* lena = new float[512*512];
-  TorchStage* sub_div_stage = new SpatialDivisiveNormalization(
-    num_feats_in, gauss_size, kernel1D, height, width);
-  sub_div_stage->forwardProp(data_in, tp);
-  std::cout << endl << endl << "SpatialDivisiveNormalization output:" << endl;
-  TorchStage::print3DTensorToStdCout<float>(sub_div_stage->output, 
-    num_feats_in, height, width);
+  jtil::file_io::LoadArrayFromFile<float>(lena, lena_width * lena_height, 
+    "lena_image.bin");
+  uint32_t kernel_size = 7;
+  TorchStage* cont_norm_stage = new SpatialContrastiveNormalization(
+    1, lena_height, lena_width, kernel_size, NULL);
+  cont_norm_stage->forwardProp(lena, tp);
+  std::cout << endl << endl << "SpatialContrastiveNormalization output saved ";
+  std::cout << "to lena_image_processed.bin" << endl;
+  jtil::file_io::SaveArrayToFile<float>(
+    ((SpatialContrastiveNormalization*)cont_norm_stage)->output(), 
+    lena_width * lena_height, "lena_image_processed.bin");
 
   // ***********************************************
   // Test Linear
@@ -201,7 +217,7 @@ int main(int argc, char *argv[]) {
   }
   lin_stage[0]->forwardProp(data_in, tp);
   lin_stage[1]->forwardProp(lin_stage[0]->output, tp);
-  std::cout << "Linear output:" << std::endl;
+  std::cout << endl << endl << "Linear output:" << std::endl;
   TorchStage::print3DTensorToStdCout<float>(lin_stage[1]->output, 1, 1,
     lin_size_out);
 
@@ -214,7 +230,9 @@ int main(int argc, char *argv[]) {
     delete stage[i];
   }
   delete[] kernel1D;
-  delete sub_div_stage;
+  delete lena;
+  delete cont_norm_stage;
+  delete div_norm_stage;
   delete sub_norm_stage;
   delete max_pool_stage;
   delete lin_stage[0];

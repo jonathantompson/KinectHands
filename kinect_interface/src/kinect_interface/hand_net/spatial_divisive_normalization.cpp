@@ -138,8 +138,6 @@ namespace hand_net {
       std_accum_[i] = sqrtf(std_accum_[i]);
     }
 
-    TorchStage::print3DTensorToStdCout<float>(std_accum_, 1, height_, width_);
-
     // At this point std_accum should be the same as <substage>.localstds
     // in the torch module
 
