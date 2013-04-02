@@ -21,6 +21,9 @@
 
 #define HN_NUM_WORKER_THREADS 6
 #define FEATURE_SIZE 2  // UV = 2, UVD = 3
+#define NUM_FEATS_PER_FINGER 3
+#define NUM_FEATS_PER_THUMB 4
+#define NUM_FEATS_PER_PALM 4
 
 #if defined(__APPLE__)
   #define CONVNET_FILE string("./../../../../../../../../../data/" \
@@ -128,7 +131,7 @@ namespace hand_net {
     void calcHandImage(const int16_t* depth, const uint8_t* label);
 
     // Getter methods
-    const float* hpf_hand_images() const;
+    const float* hpf_hand_image() const;
     const float* coeff_convnet() const { return coeff_convnet_; }
     float* coeff_convnet() { return coeff_convnet_; }
     const HandImageGenerator* image_generator() const { return image_generator_; }

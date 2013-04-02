@@ -9,6 +9,7 @@
 #include "kinect_interface/hand_net/hand_net.h"  // 
 #include "kinect_interface/open_ni_funcs.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"  // for GDT_MAX_DIST
+#include "kinect_interface/hand_net/spatial_contrastive_normalization.h"
 #include "jtil/image_util/image_util.h"
 #include "jtil/renderer/colors/colors.h"
 #include "jtil/exceptions/wruntime_error.h"
@@ -27,21 +28,20 @@ using std::cout;
 using std::endl;
 using jtil::math::Float3;
 using namespace jtil::image_util;
+using namespace jtil::threading;
 
 namespace kinect_interface {
 namespace hand_net {
  
   HandImageGenerator::HandImageGenerator(const int32_t num_banks) {
-    hpf_hand_images_ = NULL;
+    hpf_hand_image_ = NULL;
     size_images_ = 0;
     hand_image_ = NULL;
     im_temp1_ = NULL;
     im_temp2_ = NULL;
-    hpf_hand_images_gauss_norm_coeff_ = NULL;
-    hpf_hand_images_rect_norm_coeff_ = NULL;
     num_banks_ = num_banks;
+    contrast_norm_module_ = NULL;
     initHandImageData();
-    initHPFKernels();
   }
 
   HandImageGenerator::~HandImageGenerator() {
@@ -49,12 +49,16 @@ namespace hand_net {
   }
 
   void HandImageGenerator::releaseData() {
-    SAFE_DELETE_ARR(hpf_hand_images_);
+    SAFE_DELETE_ARR(hpf_hand_image_);
     SAFE_DELETE_ARR(hand_image_);
     SAFE_DELETE_ARR(im_temp1_);
     SAFE_DELETE_ARR(im_temp2_);
-    SAFE_DELETE_ARR(hpf_hand_images_gauss_norm_coeff_);
-    SAFE_DELETE_ARR(hpf_hand_images_rect_norm_coeff_);
+    if (contrast_norm_module_) {
+      for (int32_t i = 0; i < num_banks_; i++) {
+        SAFE_DELETE(contrast_norm_module_[i]);
+      }
+    }
+    SAFE_DELETE_ARR(contrast_norm_module_);
   }
 
   void HandImageGenerator::initHandImageData() {
@@ -74,59 +78,23 @@ namespace hand_net {
     hand_image_ = new float [datasize];
     im_temp1_ = new float[datasize];
     im_temp2_ = new float[datasize];
-    hpf_hand_images_ = new float[datasize];
-    hpf_hand_images_gauss_norm_coeff_ = new float[datasize];
-    hpf_hand_images_rect_norm_coeff_ = new float[datasize];
-  }
 
-  void HandImageGenerator::initHPFKernels() {
+    hpf_hand_image_ = new float[datasize];
 #if defined(DEBUG) || defined(_DEBUG)
-    if (HN_HPF_KERNEL_SIZE % 2 == 0) {
+    if (HN_RECT_KERNEL_SIZE % 2 == 0) {
       throw std::runtime_error("HandImageGenerator::initHPFKernels() - ERROR:"
-        " HPF kernel size must be odd!");
+        " HN_RECT_KERNEL_SIZE must be odd!");
     }
 #endif
 
-    // Calculate the gaussian coeff
-    int32_t center = (HN_HPF_KERNEL_SIZE - 1)/2;
-    for (int32_t i = 0; i < HN_HPF_KERNEL_SIZE; i++) {
-      gauss_filt_[i] = exp(-pow((float)(i - center) / HN_HPF_SIGMA, 2) * 0.5f);
-    }
-
-    // Calculate the rectangular coeff
-    for (uint32_t i = 0; i < HN_RECT_KERNEL_SIZE; i++) {
-      rect_filt_[i] = 1;
-    }
-
-    // Now at each resolution that we care about, filter an image of ones 
-    // (where we crop to zero for pixels outside image) to create normalization
-    // coefficients per pixel.
-    int32_t w = HN_IM_SIZE;
-    int32_t h = HN_IM_SIZE;
-    float* gauss_coeff = hpf_hand_images_gauss_norm_coeff_;
-    float* rect_coeff = hpf_hand_images_rect_norm_coeff_;
+    contrast_norm_module_ = new SpatialContrastiveNormalization*[num_banks_];
+    im_sizeu = HN_IM_SIZE;
+    im_sizev = HN_IM_SIZE;
     for (int32_t i = 0; i < num_banks_; i++) {
-      // Create ones image
-      for (int32_t j = 0; j < w * h; j++) {
-        im_temp1_[j] = 1.0f;
-      }
-      // Filter ones image
-      ConvolveImageZeroCrop<float>(gauss_coeff, im_temp1_, im_temp2_, w, h, 
-        gauss_filt_, HN_HPF_KERNEL_SIZE);
-
-      // Create ones image
-      for (int32_t j = 0; j < w * h; j++) {
-        im_temp1_[j] = 1.0f;
-      }
-      // Filter ones image
-      ConvolveImageZeroCrop<float>(rect_coeff, im_temp1_, im_temp2_, w, h, 
-        rect_filt_, HN_RECT_KERNEL_SIZE);
-
-      // Step to the next image size
-      gauss_coeff = &gauss_coeff[w * h];
-      rect_coeff = &rect_coeff[w * h];
-      w = w / 2;
-      h = h / 2;
+      contrast_norm_module_[i] = new SpatialContrastiveNormalization(1, 
+        im_sizev, im_sizeu, HN_RECT_KERNEL_SIZE);
+      im_sizeu /= 2;
+      im_sizev /= 2;
     }
   }
 
@@ -140,11 +108,11 @@ namespace hand_net {
   // Create the downsampled hand image, background is at 1 and hand is
   // in front of it.
   void HandImageGenerator::calcHandImage(const int16_t* depth_in, 
-    const uint8_t* label_in, const bool create_hpf_image, 
+    const uint8_t* label_in, const bool create_hpf_image, ThreadPool* tp, 
     const float* synthetic_depth) {
     calcCroppedHand(depth_in, label_in, synthetic_depth);
     if (create_hpf_image) {
-      calcHPFHandBanks();
+      calcHPFHandBanks(tp);
     }
   }
 
@@ -232,6 +200,15 @@ namespace hand_net {
     hand_pos_wh_[2] = srcw;
     hand_pos_wh_[3] = srch;
 
+    // Clean up the background...  there is floating point error on the
+    // background (due to FractionalDownsample code), which when local contras6
+    // normalization is performed shows up as strong noise.
+    for (uint32_t i = 0; i < HN_IM_SIZE * HN_IM_SIZE; i++) {
+      if (fabsf(hand_image_[i] - background) < 1e-4) {
+        hand_image_[i] = background;
+      }
+    }
+
     // Now downsample as many times as there are banks
     int32_t w = HN_IM_SIZE;
     int32_t h = HN_IM_SIZE;
@@ -244,27 +221,18 @@ namespace hand_net {
     }
   }
 
-  void HandImageGenerator::calcHPFHandBanks() {
+  void HandImageGenerator::calcHPFHandBanks(ThreadPool* tp) {
     int32_t w = HN_IM_SIZE;
     int32_t h = HN_IM_SIZE;
-    float* coeff = hpf_hand_images_gauss_norm_coeff_;
-    float* dst = hpf_hand_images_;
+    float* dst = hpf_hand_image_;
     float* src = hand_image_;
     for (int32_t i = 0; i < num_banks_; i++) {
-      // Apply LPF to the source image
-      ConvolveImageZeroCrop<float>(dst, src, im_temp1_, w, h, 
-        gauss_filt_, HN_HPF_KERNEL_SIZE);
-      // Normalize based on the pre-calculated normalization coefficients and
-      // create the HPF image by subtracting the LPF image from the inputs src
-      for (int32_t j = 0; j < w * h; j++) {
-        dst[j] /= coeff[j];
-        dst[j] = HN_HPF_GAIN * (src[j] - dst[j]);  // HPF = src - LPF
-      }
-      // Downsample for the next iteration
+      // Apply local contrast normalization
+      contrast_norm_module_[i]->forwardProp(src, tp);
+      memcpy(dst, contrast_norm_module_[i]->output(), w * h * sizeof(dst[0]));
       if (i < (num_banks_ - 1)) {
         // Iterate the dst, coeff and src pointers
         src = &src[w * h];
-        coeff = &coeff[w * h];
         dst = &dst[w * h];
         // Update the new width and height
 #if defined(DEBUG) || defined(_DEBUG)
@@ -292,7 +260,7 @@ namespace hand_net {
     jtil::math::Int4 hand_pos_wh(0, 0, HN_IM_SIZE, HN_IM_SIZE);
     for (uint32_t i = 0; i < HAND_NUM_COEFF_CONVNET; i += FEATURE_SIZE) {
         renderCrossToImageArr(&coeff_convnet[i], im, HN_IM_SIZE, 
-          HN_IM_SIZE, 2, i, hand_pos_wh);
+          HN_IM_SIZE, 1, i, hand_pos_wh);
     }
   }
 
