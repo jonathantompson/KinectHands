@@ -282,12 +282,12 @@ void saveFrame() {
   // Check that the current coeff doesn't have features points that are off 
   // screen --> Usually an indicator that the HandDetector messed up
   for (uint32_t i = 0; i < HandCoeffConvnet::HAND_NUM_COEFF_CONVNET && 
-    found_hand; i+= 3) {
-    if (coeff_convnet[i] < 0 && coeff_convnet[i] > 1) {
+    found_hand; i+= FEATURE_SIZE) {
+    if (coeff_convnet[i] < 0 || coeff_convnet[i] > 1) {
       std::cout << " Coeff is off screen.  Not saving files." << std::endl;
       found_hand = false;
     }
-    if (coeff_convnet[i+1] < 0 && coeff_convnet[i+1] > 1) {
+    if (coeff_convnet[i+1] < 0 || coeff_convnet[i+1] > 1) {
       std::cout << " Coeff is off screen.  Not saving files." << std::endl;
       found_hand = false;
     }
