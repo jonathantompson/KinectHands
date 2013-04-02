@@ -175,4 +175,21 @@ err = lena_processed - res
 err_abs = torch.abs(err)
 image.display(err_abs)
 
+-- Test the local contrast normalization of the hand image generator
+normkernel = torch.Tensor(11):fill(1)
+spatial_contrast_norm = nn.SpatialContrastiveNormalization(1, normkernel)
+file = torch.DiskFile("processed_hands_4618452720732.bin", 'r')
+file:binary()
+depth = file:readFloat(96*96)
+depth = torch.FloatTensor(depth, 1, torch.LongStorage{1, 96, 96}):float()
+file:close()
+file = torch.DiskFile("hpf_processed_hands_4618452720732.bin", 'r')
+file:binary()
+hpf_depth = file:readFloat(96*96)
+hpf_depth = torch.FloatTensor(hpf_depth, 1, torch.LongStorage{1, 96, 96}):float()
+file:close()
+image.display{image=hpf_depth, zoom=(6.0)}
+image.display{image=depth, zoom=(6.0)}
+hpf_depth_torch = spatial_contrast_norm:forward(depth)
+image.display{image=hpf_depth_torch, zoom=(6.0)}
 
