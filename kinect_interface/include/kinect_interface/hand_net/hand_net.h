@@ -106,9 +106,8 @@ namespace hand_net {
     HPF_DEPTH_DATA = 1,
   } HandNetDataType;
 
-  class ConvStage;
-  class NNStage;
   class HandImageGenerator;
+  struct TorchStage;
   
   class HandNet {
   public:
@@ -128,19 +127,6 @@ namespace hand_net {
     // image -> Useful when we know the correct coeff but we want to debug
     void calcHandImage(const int16_t* depth, const uint8_t* label);
 
-    // Some helper functions for debugging
-    template <typename T>
-    static void print3DTensorToStdCout(T* data, const int32_t n_feats,
-      const int32_t height, const int32_t width);
-    // This version just prints one feature and within this just a sub image
-    template <typename T>
-    static void print3DTensorToStdCout(T* data, const int32_t ifeat,
-      const int32_t height, const int32_t width, const int32_t ustart, 
-      const int32_t vstart, const int32_t printw, const int32_t printh);
-    template <typename T>
-    static void print3DTensorToStdCout(T** data, const int32_t n_feats,
-      const int32_t height, const int32_t width);
-
     // Getter methods
     const float* hpf_hand_images() const;
     const float* coeff_convnet() const { return coeff_convnet_; }
@@ -156,19 +142,11 @@ namespace hand_net {
     HandNetDataType data_type_;
 
     int32_t num_conv_banks_;
-    int32_t n_conv_stages_;  // n_conv_stages_ = Number PER BANK!  
-    ConvStage** conv_stages_;
+    jtil::data_str::VectorManaged<TorchStage*>* conv_stages_;  // 1 vector per bank
 
-    int32_t n_nn_stages_;
-    NNStage** nn_stages_;
+    jtil::data_str::VectorManaged<TorchStage*>* nn_stages_;
 
     float coeff_convnet_[HAND_NUM_COEFF_CONVNET];  // output data
-
-    // The data is split up to make multithreading easier.
-    float** conv_datcur_;  // The current stage's input data (on each bank)
-    float** conv_datnext_;  // The current stage's output data
-    float* nn_datcur_;
-    float* nn_datnext_;
 
     // Multithreading
     jtil::threading::ThreadPool* tp_;
@@ -182,83 +160,7 @@ namespace hand_net {
     HandNet& operator=(const HandNet&);
   };
 
-  // Some debug functions
-  template <typename T>
-  void HandNet::print3DTensorToStdCout(T* data, 
-    const int32_t n_feats, const int32_t height, const int32_t width) {
-    const int32_t dim = width * height;
-    for (int32_t i = 0; i < n_feats; i++) {
-      std::cout.setf(0, std::ios::showpos);
-      std::cout << "  3dtensor[" << i << "] =" << std::endl;
-      for (int32_t v = 0; v < height; v++) {
-        if (v == 0) {
-          std::cout << "    (0,0) ";
-        } else {
-          std::cout << "          ";
-        }
-        std::cout.setf(std::ios::showpos);
-        for (int32_t u = 0; u < width; u++) {
-          std::cout << data[i* dim + v * width + u];
-          if (u != width - 1) {
-            std::cout << ", ";
-          } else {
-            std::cout << std::endl;
-          }
-        }
-      }
-    }
-    std::cout << std::resetiosflags(std::ios_base::showpos);
-  };
-
-  template <typename T>
-  void HandNet::print3DTensorToStdCout(T* data, const int32_t ifeat,
-    const int32_t height, const int32_t width, const int32_t ustart, 
-    const int32_t vstart, const int32_t printw , const int32_t printh) {
-    const int32_t dim = width * height;
-    std::cout.setf(0, std::ios::showpos);
-    std::cout << "  3dtensor[" << ifeat << "] =" << std::endl;
-    std::cout << "    top left is (" << ustart << ", " << vstart << ")";
-    std::cout << std::endl;
-    for (int32_t v = vstart; v < vstart + printh; v++) {
-      std::cout << "          ";
-      std::cout.setf(std::ios::showpos);
-      for (int32_t u = ustart; u < ustart + printw; u++) {
-        std::cout << data[ifeat * dim + v * width + u];
-        if (u != ustart + printw - 1) {
-          std::cout << ", ";
-        } else {
-          std::cout << std::endl;
-        }
-      }
-    }
-    std::cout << std::resetiosflags(std::ios_base::showpos);
-  }
-
-  template <typename T>
-  void HandNet::print3DTensorToStdCout(T** data, 
-    const int32_t n_feats, const int32_t height, const int32_t width) {
-    for (int32_t i = 0; i < n_feats; i++) {
-      std::cout.setf(0, std::ios::showpos);
-      std::cout << "  3dtensor[" << i << "] =" << std::endl;
-      for (int32_t v = 0; v < height; v++) {
-        if (v == 0) {
-          std::cout << "    (0,0) ";
-        } else {
-          std::cout << "          ";
-        }
-        std::cout.setf(std::ios::showpos);
-        for (int32_t u = 0; u < width; u++) {
-          std::cout << data[i][v * width + u];
-          if (u != width - 1) {
-            std::cout << ", ";
-          } else {
-            std::cout << std::endl;
-          }
-        }
-      }
-    }
-    std::cout << std::resetiosflags(std::ios_base::showpos);
-  };
+  
 };  // namespace hand_net
 };  // namespace kinect_interface
 

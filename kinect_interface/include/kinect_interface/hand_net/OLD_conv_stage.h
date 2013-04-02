@@ -100,7 +100,6 @@ namespace hand_net {
     int32_t cur_inw_;
     int32_t cur_inh_;
 
-
     void performSpacialConvolution(float*&in, const int32_t inw, 
       const int32_t inh, float*& out, jtil::threading::ThreadPool* tp);
     void performSpacialConvolutionFeat(const int32_t outf);
