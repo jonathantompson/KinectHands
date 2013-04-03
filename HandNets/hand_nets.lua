@@ -38,6 +38,7 @@ height = 96
 num_hpf_banks = 3
 dim = width * height
 num_coeff = 40
+num_coeff_per_feature = 2  -- UV = 2, UVD = 3
 frame_stride = 1  -- Only 1 works for now
 perform_training = 1
 model_filename = 'handmodel.net'
@@ -57,6 +58,7 @@ dofile('load_data.lua')
 
 -- ************ Visualize one of the depth data samples ***************
 visualize_data = 0
+visualize_data_labels = 1  -- Show features on visualization
 dofile('visualize_data.lua')
 
 -- ***************** Define Criterion (loss) function *****************
