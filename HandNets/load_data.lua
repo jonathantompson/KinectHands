@@ -21,12 +21,15 @@ if paths.dirp(im_dir) == false then
 else 
   -- Collect the filenames
   files = {}
-  i = 1
-  for f in paths.files(im_dir) do
-    files[i] = f
-    i = i+1
+  -- THIS METHOD WONT RETURN THEM SORTED (which takes a long time to do)
+  -- for f in paths.files(im_dir) do
+  --   files[i] = f
+  --   i = i+1
+  -- end
+  -- THIS METHOD RETURNS A SORTED LIST
+  for f in io.popen("ls " .. im_dir):lines() do
+    table.insert(files, f)
   end
-  -- Note: the files are in random order
 end
 -- Partition files into their respective groups
 -- coeffl_files = {}
@@ -53,12 +56,9 @@ if paths.dirp(test_im_dir) == false then
 else 
   -- Collect the filenames
   files = {}
-  i = 1
-  for f in paths.files(test_im_dir) do
-    files[i] = f
-    i = i+1
+  for f in io.popen("ls " .. test_im_dir):lines() do
+    table.insert(files, f)
   end
-  -- Note: The files are in random order
 end
 -- Partition files into their respective groups
 -- coeffl_files = {}
@@ -85,16 +85,22 @@ if (use_hpf_depth == 1) then
 else
   im_files = depth_files
   test_im_files = test_depth_files
-end
 
-print("==> Sorting files so indicies match...")
-function stringComp (a, b) 
-  return string.lower(a) < string.lower(b) 
 end
-table.sort(im_files, stringComp)
-table.sort(test_im_files, stringComp)
-table.sort(coeffr_files, stringComp)
-table.sort(test_coeffr_files, stringComp)
+depth_files = nil
+test_depth_files = nil
+hpf_depth_files = nil
+test_hpf_depth_files = nil
+
+-- EDIT: NO NEED TO SORT NOW THAT ls METHOD IS RETURNING SORTED ORDER
+-- print("==> Sorting files so indicies match...")
+-- function stringComp (a, b) 
+--   return string.lower(a) < string.lower(b) 
+-- end
+-- table.sort(im_files, stringComp)
+-- table.sort(test_im_files, stringComp)
+-- table.sort(coeffr_files, stringComp)
+-- table.sort(test_coeffr_files, stringComp)
 
 -- ************ Randomly permute the files ***********
 print("==> Permuting the files...")
@@ -104,14 +110,15 @@ shuffle_files_right(test_coeffr_files, test_im_files)
 -- ************ Check the file order ***********
 print("==> Verifying the file order...")
 for i=1,#im_files do
-  if (string.sub(im_files[i],17,-5) ~= string.sub(coeffr_files[i],14,-5)) then
-    print("Image file number doesn't match coeff file number!")
+  local tFinal = {}
+  if (string.gfind(im_files[i], "(%d+)")() ~= string.gfind(coeffr_files[i], "(%d+)")()) then
+    print("Image file " .. string.format("%d", i) .. " doesn't match coeff file number!")
     return
   end
 end
-for i=1,#test_im_files do
-  if (string.sub(test_im_files[i],17,-5) ~= string.sub(test_coeffr_files[i],14,-5)) then
-    print("Image file number doesn't match coeff file number!")
+ for i=1,#test_im_files do
+  if (string.gfind(test_im_files[i], "(%d+)")() ~= string.gfind(test_coeffr_files[i], "(%d+)")()) then
+    print("Image file " .. string.format("%d", i) .. " doesn't match coeff file number!")
     return
   end
 end
@@ -139,11 +146,11 @@ testData = {
   size = function() return tesize end
 }
 
-for i=1,(num_hpf_banks-skip_banks) do
+for i=1,num_hpf_banks do
   table.insert(trainData.data, torch.FloatTensor(trsize, 1, 
-    bank_dim[i+skip_banks][1], bank_dim[i+skip_banks][2]))
+    bank_dim[i][1], bank_dim[i][2]))
   table.insert(testData.data, torch.FloatTensor(tesize, 1, 
-    bank_dim[i+skip_banks][1], bank_dim[i+skip_banks][2]))
+    bank_dim[i][1], bank_dim[i][2]))
 end
 
 -- LOAD IN TRAINING SET DIRECTORY --> SOME IMAGES GO TO TEST SET AS WELL!
@@ -151,7 +158,9 @@ itr = 1
 ite = 1
 for i=1,nfiles do
   -- disp progress
-  progress(i, nfiles)
+  if (math.mod(i, 100) == 1) then
+    progress(i, nfiles)
+  end
 
   -- Read in the sample
   coeff_file = torch.DiskFile(im_dir .. coeffr_files[i*frame_stride], 'r')
@@ -170,11 +179,9 @@ for i=1,nfiles do
       -- We need to split the long vector
       ind = 1
       for j=1,num_hpf_banks do
-        if (j > skip_banks) then
-          trainData.data[j-skip_banks][{itr, 1, {}, {}}] = torch.FloatTensor(
-            hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
-            bank_dim[j][2]}):float()
-        end
+        trainData.data[j][{itr, 1, {}, {}}] = torch.FloatTensor(
+          hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
+          bank_dim[j][2]}):float()
         ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
       end
       trainData.labels[{itr, {}}] = torch.FloatTensor(coeff_data, 1,
@@ -188,11 +195,9 @@ for i=1,nfiles do
       -- We need to split the long vector
       ind = 1
       for j=1,num_hpf_banks do
-        if (j > skip_banks) then
-          testData.data[j-skip_banks][{ite, 1, {}, {}}] = torch.FloatTensor(
-            hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
-            bank_dim[j][2]})
-        end
+        testData.data[j][{ite, 1, {}, {}}] = torch.FloatTensor(
+          hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
+          bank_dim[j][2]})
         ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
       end
       testData.labels[{ite, {}}] = torch.FloatTensor(coeff_data, 1,
@@ -206,7 +211,9 @@ end
 -- NOW LOAD IN TEST SET DIRECTORY
 for i=1,#test_im_files do
   -- disp progress
-  progress(i, #test_im_files)
+  if (math.mod(i, 100) == 1) then
+    progress(i, #test_im_files)
+  end
 
   -- Read in the sample
   coeff_file = torch.DiskFile(test_im_dir .. test_coeffr_files[i], 'r')
@@ -223,11 +230,9 @@ for i=1,#test_im_files do
     -- We need to split the long vector
     ind = 1
     for j=1,num_hpf_banks do
-      if (j > skip_banks) then
-        testData.data[j - skip_banks][{ite, 1, {}, {}}] = torch.FloatTensor(
-          hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
-          bank_dim[j][2]})
-      end
+      testData.data[j][{ite, 1, {}, {}}] = torch.FloatTensor(
+        hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
+        bank_dim[j][2]})
       ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
     end
     testData.labels[{ite, {}}] = torch.FloatTensor(coeff_data, 1,
@@ -244,7 +249,7 @@ nfiles = tesize + trsize
 for i=trsize+1,#trainData.files do
   table.remove(trainData.files, trsize+1)
 end
-for j=1,num_hpf_banks-skip_banks do
+for j=1,num_hpf_banks do
   trainData.data[j] = trainData.data[j][{{1,trsize}, {}, {}, {}}]
 end
 trainData.labels = trainData.labels[{{1,trsize}, {}}]
@@ -252,7 +257,7 @@ trainData.size = function() return trsize end
 for i=tesize+1,#testData.files do
   table.remove(testData.files, tesize+1)
 end
-for j=1,num_hpf_banks-skip_banks do
+for j=1,num_hpf_banks do
   testData.data[j] = testData.data[j][{{1,tesize}, {}, {}, {}}]
 end
 testData.labels = testData.labels[{{1,tesize}, {}}]
@@ -267,18 +272,16 @@ print(string.format("    Loaded %d test set images and %d training set images",
 -- end
 
 -- ********************** Converting data to cuda **********************
-print '==> Converting data to cudaTensor'
--- for j=1,testData.size() do
---   for k=1,num_hpf_banks do
---    testData.data[j][k] = testData.data[j][k]:cuda()
---   end
--- end
--- for j=1,trainData.size() do
---   for k=1,num_hpf_banks do
---     trainData.data[j][k] = trainData.data[j][k]:cuda()
---   end
--- end
-if (loss ~= 0) then
-  trainData.labels = trainData.labels:cuda()
-  testData.labels = testData.labels:cuda()
+if false do
+  print '==> Converting image data to cudaTensor'
+  for k=1,num_hpf_banks do
+    testData.data[k] = testData.data[k]:cuda()
+  end
+  for k=1,num_hpf_banks do
+    trainData.data[k] = trainData.data[k]:cuda()
+  end
 end
+print '==> Converting label data to cudaTensor'
+trainData.labels = trainData.labels:cuda()
+testData.labels = testData.labels:cuda()
+
