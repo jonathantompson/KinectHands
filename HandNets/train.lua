@@ -24,14 +24,22 @@ function train()
     end
 
     -- create mini batch
-    local inputs = {}
-    local targets = {}
-    for i = t,math.min(t + batch_size - 1, trainData:size()) do    
+    local cur_batch_start = t
+    local cur_batch_end = math.min(t + batch_size - 1, trainData:size())
+    local cur_batch_size = cur_batch_end - cur_batch_start
+    local input = {}
+    for j=1,num_hpf_banks do
+      table.insert(input, torch.FloatTensor(cur_batch_size, 1, bank_dim[j][1], bank_dim[j][2]))
+    end
+    target = torch.FloatTensor(cur_batch_size, num_coeff)
+
+ -- ************** TO DO: FIX THIS --> IT IS NOW BROKEN **************
+
+    for i = cur_batch_start,cur_batch_end do    
       -- Collect the current image into a single array
-      local cur_i = shuffle[t]
-      local cur_input = {}
+      local cur_i = shuffle[i]
       for j=1,num_hpf_banks do
-        table.insert(cur_input, trainData.data[j][cur_i])
+        input[j][{cur_i,{},{},{}}] = trainData.data[j][{cur_i,{},{},{}}]
       end
       for j=1,num_hpf_banks do
         cur_input[j] = cur_input[j]:cuda()
@@ -40,6 +48,10 @@ function train()
       -- Insert the current data into the array
       table.insert(inputs, cur_input)
       table.insert(targets, cur_target)
+    end
+
+    for j=1,num_hpf_banks do
+      cur_input[j] = cur_input[j]:cuda()
     end
 
     -- create closure to evaluate f(X) and df/dX
