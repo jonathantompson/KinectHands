@@ -1,11 +1,15 @@
+-- Jonathan Tompson
+-- NYU, MRL
+-- Training script for hand model on depth data
+
 require 'nn'
 require 'cunn'
 require 'image'
 require 'torch'
 require 'cutorch'
--- require 'xlua'    -- xlua provides useful tools, like progress bars
-require 'optim'   -- an optimization package, for online and batch methods
+require 'optim'
 require 'sys'
+require 'xlua'
 -- require 'debugger'
 
 dofile("pbar.lua")
@@ -19,18 +23,15 @@ torch.setdefaulttensortype('torch.FloatTensor')
 print("GPU That will be used:")
 print(cutorch.getDeviceProperties(cutorch.getDevice()))
 -- To get GPU Memory usage: nvidia-smi -q -d MEMORY
--- The cuda modules that exist github.com/andresy/torch/tree/master/extra/cuda/pkg/cunn
+-- The cuda modules that exist: 
+--    github.com/andresy/torch/tree/master/extra/cuda/pkg/cunn
+
+-- Some stuff to look at later (from Soumith)
 -- http://code.cogbits.com/wiki/doku.php?id=tutorial_morestuff --> Drop out here
 -- http://arxiv.org/pdf/1302.4389v3.pdf --> Max Out
--- https://code.google.com/p/cuda-convnet/
 -- http://code.cogbits.com/wiki/doku.php?id=tutorial_unsupervised
--- https://github.com/clementfarabet/torch-tutorials/tree/master/3_unsupervised
--- https://github.com/clementfarabet/torch-tutorials/blob/master/3_unsupervised/A_kmeans.lua <-- Check this one
--- http://arxiv.org/abs/1207.0580
-
--- Jonathan Tompson
--- NYU, MRL
--- Training script for hand model on kinect depth data
+-- https://github.com/clementfarabet/torch-tutorials/blob/master/3_unsupervised/A_kmeans.lua
+-- https://github.com/clementfarabet/torch-tutorials --> Random tutorials by clement
 
 width = 96
 height = 96
@@ -45,9 +46,11 @@ test_im_dir = "../data/hand_depth_data_processed_for_CN_test_synthetic/"
 test_data_rate = 20  -- this means 1 / 20 FROM THE TRAINING SET will be test data
 use_hpf_depth = 1
 learning_rate = 1e-3  -- Default 1e-3
-learning_rate_decay = 1e-2   -- Learning rate = l_0 / (1 + learning_rate_decay * epoch)
-l2_reg_param = 5e-4  -- Default 5e-4
+l2_reg_param = 1e-4  -- Default 1e-4
+learning_rate_decay = 1e-7  -- Default 1e-7
+learning_momentum = 0.9 -- Default 0.9 --> Clement suggestion
 max_num_epochs = 60
+batch_size = 1
 
 -- ********************** Load data from Disk *************************
 dofile('load_data.lua')
@@ -81,20 +84,18 @@ if (perform_training == 1) then
   trainLogger = optim.Logger(model_filename .. '.train.log')
   testLogger = optim.Logger(model_filename .. '.test.log')
 
-
   -- ************************* Enable Logging *************************
-  print '==> Extracting model parameters (this may take a while)'
+  print '==> Extracting model parameters'
   if model then
      parameters, gradParameters = model:getParameters()
   end
 
   -- Use SGD
-  print '    Defining optimizer'
+  print '==> Defining optimizer'
   optimState = {
     learningRate = learning_rate,
-    weightDecay = 0,
-    momentum = 0,
-    -- current_learning_rate =learningRate / (1 + iteration * learningRateDecay)
+    weightDecay = l2_reg_param,
+    momentum = learning_momentum,
     learningRateDecay = learning_rate_decay
   }
   optimMethod = optim.sgd
@@ -104,8 +105,9 @@ if (perform_training == 1) then
 
   -- ************************* Test function **************************
   dofile('test.lua')
-
-  dofile 'save_settings.lua'
+ 
+  -- ************************ Saving settings *************************
+  dofile('save_settings.lua')
 
   -- ********************* Perform training loop **********************
   print '==> training!'
@@ -122,9 +124,9 @@ end
 
 if false then
   input = {}
-  table.insert(input, torch.FloatTensor(1, 96, 96):cuda())
-  table.insert(input, torch.FloatTensor(1, 96/2, 96/2):cuda())
-  table.insert(input, torch.FloatTensor(1, 96/4, 96/4):cuda())
+  table.insert(input, torch.FloatTensor(1, 96, 96):zero():cuda())
+  table.insert(input, torch.FloatTensor(1, 96/2, 96/2):zero():cuda())
+  table.insert(input, torch.FloatTensor(1, 96/4, 96/4):zero():cuda())
 end
 
 

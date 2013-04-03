@@ -1,5 +1,5 @@
 -- ********************** Construct model **********************
-print '==> construct model'
+print '==> Constructing model'
 
 model = nn.Sequential()  -- top level model
 

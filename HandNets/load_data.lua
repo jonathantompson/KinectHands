@@ -158,7 +158,7 @@ itr = 1
 ite = 1
 for i=1,nfiles do
   -- disp progress
-  if (math.mod(i, 100) == 1) then
+  if (math.mod(i, 100) == 1 or i == nfiles) then
     progress(i, nfiles)
   end
 
@@ -211,7 +211,7 @@ end
 -- NOW LOAD IN TEST SET DIRECTORY
 for i=1,#test_im_files do
   -- disp progress
-  if (math.mod(i, 100) == 1) then
+  if (math.mod(i, 100) == 1 or i == #test_im_files) then
     progress(i, #test_im_files)
   end
 
@@ -272,7 +272,7 @@ print(string.format("    Loaded %d test set images and %d training set images",
 -- end
 
 -- ********************** Converting data to cuda **********************
-if false do
+if false then
   print '==> Converting image data to cudaTensor'
   for k=1,num_hpf_banks do
     testData.data[k] = testData.data[k]:cuda()
