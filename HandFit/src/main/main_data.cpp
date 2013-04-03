@@ -52,13 +52,14 @@
 // ******************* CHANGEABLE PARAMETERS *******************
 // *************************************************************
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Added
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")  // Added
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Added
-#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Added
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Added *
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Added
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Added
+
 #define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN_synthetic/") 
 
 // #define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
@@ -500,6 +501,7 @@ int main(int argc, char *argv[]) {
   cout << "p - Cycle through the frames continuously" << endl;
   cout << "+/- - Forward and back a frame" << endl;
   cout << "9/0 - Forward and back 100 frames" << endl;
+  cout << "d - Delete frame (when loading processed images)" << endl;
   cout << "q/ESC - Quit" << endl;
   
   try {
