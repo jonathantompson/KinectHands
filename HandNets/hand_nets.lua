@@ -35,230 +35,52 @@ print(cutorch.getDeviceProperties(cutorch.getDevice()))
 width = 96
 height = 96
 num_hpf_banks = 3
-skip_banks = 0  -- Number of MSB banks to skip
 dim = width * height
-num_coeff = 60
+num_coeff = 40
 frame_stride = 1  -- Only 1 works for now
 perform_training = 1
-nonlinear = 0  -- 0 = tanh, 1 = SoftShrink, 2 = ramp
 model_filename = 'handmodel.net'
-loss = 0  -- 0 = abs, 1 = mse
 im_dir = "../data/hand_depth_data_processed_for_CN/"
 test_im_dir = "../data/hand_depth_data_processed_for_CN_test/"
 test_data_rate = 20  -- this means 1 / 20 FROM THE TRAINING SET will be test data
-visualize_data = 0
-pooling = 2  -- 2,.... or math.huge (infinity)
-use_hpf_depth = 0
+use_hpf_depth = 1
 learning_rate = 1e-3  -- Default 1e-3
 learning_rate_decay = 1e-2   -- Learning rate = l_0 / (1 + learning_rate_decay * epoch)
 l2_reg_param = 5e-4  -- Default 5e-4
 max_num_epochs = 60
 
+-- ********************** Load data from Disk *************************
 dofile('load_data.lua')
 
 -- ************ Visualize one of the depth data samples ***************
-print '==> Visualizing some data samples'
-if (visualize_data == 1) then
-  n_images = math.min(trainData.size(), 256)
-  for j=1,num_hpf_banks-skip_banks do
-    im = {
-      data = trainData.data[j][{{1,n_images}, {}, {}, {}}]
-    }
-    im.data = im.data:double()
-    image.display{image=im.data, padding=2, nrow=math.floor(math.sqrt(n_images)), zoom=(0.75*math.pow(2,j-1+skip_banks)), scaleeach=false}
-  end
-  -- image.display(trainData.data[1][{1,1,{},{}}])
+visualize_data = 0
+dofile('visualize_data.lua')
 
-  n_images = math.min(testData.size(), 256)
-  for j=1,num_hpf_banks-skip_banks do
-    im = {
-      data = testData.data[j][{{1,n_images}, {}, {}, {}}]
-    }
-    im.data = im.data:double()
-    image.display{image=im.data, padding=2, nrow=math.floor(math.sqrt(n_images)), zoom=(0.75*math.pow(2,j-1+skip_banks)), scaleeach=false}
-  end
-  -- image.display(testData.data[{1,1,{},{}}])
-  im = nil
-end
-
--- ********************** Converting data to cuda **********************
-print '==> Converting data to cudaTensor'
--- for j=1,testData.size() do
---   for k=1,num_hpf_banks do
---    testData.data[j][k] = testData.data[j][k]:cuda()
---   end
--- end
--- for j=1,trainData.size() do
---   for k=1,num_hpf_banks do
---     trainData.data[j][k] = trainData.data[j][k]:cuda()
---   end
--- end
-if (loss ~= 0) then
-  trainData.labels = trainData.labels:cuda()
-  testData.labels = testData.labels:cuda()
-end
-
--- ********************** Define loss function **********************
+-- *********************** Define loss function ***********************
 print '==> defining loss function'
-
-abs_criterion = nn.AbsCriterion()
-abs_criterion.sizeAverage = false
-
-if (loss == 0) then
-  -- Absoulte Value criterion: loss(x,y) = 1/n \sum |x_i-y_i|.
-  print '   using ABS criterion'
-  criterion = nn.AbsCriterion()
-  criterion.sizeAverage = false
-elseif (loss == 1) then
-  print '   using MSE criterion'
-  criterion = nn.MSECriterion()  
-  criterion:cuda()
-else
-  print("loss should be 0 or 1")
-  return
-end
-
+-- print '   using ABS criterion'
+-- criterion = nn.AbsCriterion()
+-- criterion.sizeAverage = false
+print '   using MSE criterion'
+criterion = nn.MSECriterion()  
+criterion:cuda()
 print(criterion)
 
 if (perform_training == 1) then
 
-  -- ************ define the model parameters ***************
-  -- output dimensions
-  noutputs = num_coeff
-
-  -- input dimensions
+  -- ***************** define the model parameters ********************
   nfeats = 1
   nstates = {{16, 32}, {16, 32}, {16, 32}}
   nstates_nn = 2048
   filtsize = {{5, 6}, {5, 5}, {5, 4}}
   poolsize = {{4, 2}, {2, 2}, {2, 1}}  -- Note: 1 = no pooling
-  fanin = {{1}, {1}, {1}}  -- NOT USING THIS ANY MORE
-  normkernel = image.gaussian1D(7)
+  normkernel = torch.ones(5):float()
+  threshold_init_offset = 0.1
 
-  -- ********************** Construct model **********************
-  print '==> construct model'
+  -- *********************** define the model *************************
+  dofile('define_model.lua')
 
-  model = nn.Sequential()  -- top level model
-
-  -- define the seperate convnet banks (that will execute in parallel)
-  banks = {}
-  banks_total_output_size = 0
-  for j=1,num_hpf_banks do
-    if (j > skip_banks) then
-      b = j - skip_banks
-      table.insert(banks, nn.Sequential():cuda())
-      tensor_dim = {1, bank_dim[j][1], bank_dim[j][2]}
-
-      -- nn.SpatialConvolutionCUDA
-      -- nn.SpatialMaxPoolingCUDA
-
-      -- stage 1 : filter bank -> squashing -> LN pooling -> normalization
-      -- *********** TO DO: SpatialConvolutionMap IS NOT IMPLEMENTED IN CUDA YET **************
-      -- banks[b]:add(nn.SpatialConvolutionMap(nn.tables.full(nfeats, nstates[j][1]), filtsize[j][1], 
-      --   filtsize[j][1]))
-      banks[b]:add(nn.SpatialConvolution(nfeats, nstates[j][1], filtsize[j][1], filtsize[j][1]):cuda())
-
-      if (nonlinear == 1) then 
-        banks[b]:add(nn.SoftShrink():cuda())
-      elseif (nonlinear == 0) then
-        banks[b]:add(nn.Tanh():cuda())
-      elseif (nonlinear == 2) then
-        banks[b]:add(nn.ramp():cuda())
-      end
-
-      if (poolsize[j][1] > 1) then
-        if (pooling ~= math.huge) then
-          banks[b]:add(nn.SpatialLPPooling(nstates[j][1], pooling, poolsize[j][1], poolsize[j][1], poolsize[j][1], poolsize[j][1]):cuda())
-        else
-          banks[b]:add(nn.SpatialMaxPooling(poolsize[j][1], poolsize[j][1], poolsize[j][1], poolsize[j][1]):cuda())
-        end
-      end
-
-      -- *********** TO DO: SpatialSubtractiveNormalization IS NOT IMPLEMENTED IN CUDA YET **************
-      banks[b]:add(nn.Copy('torch.CudaTensor', 'torch.FloatTensor'))
-      banks[b]:add(nn.SpatialSubtractiveNormalization(nstates[j][1], normkernel))
-      banks[b]:add(nn.Copy('torch.FloatTensor', 'torch.CudaTensor'))
-
-      -- nn.SpatialConvolutionCUDA
-      -- nn.Threshold(0,0)
-      -- nn.SpatialMaxPooling
-
-      tensor_dim = {nstates[j][1], (tensor_dim[2] - filtsize[j][1] + 1) / 
-        poolsize[j][1], (tensor_dim[3] - filtsize[j][1] + 1) / poolsize[j][1]}
-      print(string.format("Tensor Dimensions after stage 1 bank %d:", j))
-      print(tensor_dim)
-
-      -- stage 2 : filter bank -> squashing -> LN pooling -> normalization
-      -- *********** TO DO: SPATIALCONVOLUTIONMAP IS NOT IMPLEMENTED IN CUDA YET **************
-      -- banks[b]:add(nn.SpatialConvolutionMap(nn.tables.random(nstates[j][1], nstates[j][2], fanin[j][1]),
-      --   filtsize[j][2], filtsize[j][2]))
-      banks[b]:add(nn.SpatialConvolution(nstates[j][1], nstates[j][2], filtsize[j][2], filtsize[j][2]):cuda())
-      if (nonlinear == 1) then 
-        banks[b]:add(nn.SoftShrink():cuda())
-      elseif (nonlinear == 2) then
-        banks[b]:add(nn.ramp():cuda())
-      elseif (nonlinear == 0) then
-        banks[b]:add(nn.Tanh():cuda())
-      end
-      if (poolsize[j][2] > 1) then
-        if (pooling ~= math.huge) then
-          banks[b]:add(nn.SpatialLPPooling(nstates[j][2], pooling, 
-            poolsize[j][2], poolsize[j][2], poolsize[j][2], poolsize[j][2]):cuda())
-        else
-          banks[b]:add(nn.SpatialMaxPooling(poolsize[j][2], poolsize[j][2], 
-            poolsize[j][2], poolsize[j][2]):cuda())
-        end
-      end
   
-      -- *********** TO DO: SpatialSubtractiveNormalization IS NOT IMPLEMENTED IN CUDA YET **************
-      banks[b]:add(nn.Copy('torch.CudaTensor', 'torch.FloatTensor'))
-      banks[b]:add(nn.SpatialSubtractiveNormalization(nstates[j][2], normkernel))
-      banks[b]:add(nn.Copy('torch.FloatTensor', 'torch.CudaTensor'))
-
-      tensor_dim = {nstates[j][2], (tensor_dim[2] - filtsize[j][2] + 1) / 
-        poolsize[j][2], (tensor_dim[3] - filtsize[j][2] + 1) / poolsize[j][2]}
-      print(string.format("Tensor Dimensions after stage 2 bank %d:", j))
-      print(tensor_dim)
-
-      vec_length = tensor_dim[1] * tensor_dim[2] * tensor_dim[3]
-      banks[b]:add(nn.Reshape(vec_length):cuda())
-      banks_total_output_size = banks_total_output_size + vec_length
-
-      print(string.format("Bank %d output length:", j))
-      print(vec_length)
-    end
-  end
-
-  -- Now join the banks together!
-  -- Parallel applies ith member module to the ith input, and outpus a table
-  parallel = nn.ParallelTable():cuda()
-  for j=1,num_hpf_banks-skip_banks do
-    parallel:add(banks[j])
-  end
-  model:add(parallel)
-  model:add(nn.JoinTable(1):cuda())  -- Take the table of tensors and concat them
-
-  -- stage 3 : standard 2-layer neural network
-
-  print("Neural net first stage input size")
-  print(banks_total_output_size)
-
-  model:add(nn.Linear(banks_total_output_size, nstates_nn):cuda())
-  if (nonlinear == 1) then 
-    model:add(nn.SoftShrink():cuda())
-  elseif (nonlinear == 2) then
-    model:add(nn.ramp():cuda())
-  elseif (nonlinear == 0) then
-    model:add(nn.Tanh():cuda())
-  end
-
-  print("Neural net first stage output size")
-  print(nstates_nn)
-
-  model:add(nn.Linear(nstates_nn, noutputs):cuda())
-
-  print("Final output size")
-  print(noutputs)
 
   -- ********************** Visualize model **********************
   -- print '==> visualizing ConvNet filters'

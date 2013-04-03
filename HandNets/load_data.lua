@@ -265,3 +265,20 @@ print(string.format("    Loaded %d test set images and %d training set images",
 -- if (true) then
 --   return
 -- end
+
+-- ********************** Converting data to cuda **********************
+print '==> Converting data to cudaTensor'
+-- for j=1,testData.size() do
+--   for k=1,num_hpf_banks do
+--    testData.data[j][k] = testData.data[j][k]:cuda()
+--   end
+-- end
+-- for j=1,trainData.size() do
+--   for k=1,num_hpf_banks do
+--     trainData.data[j][k] = trainData.data[j][k]:cuda()
+--   end
+-- end
+if (loss ~= 0) then
+  trainData.labels = trainData.labels:cuda()
+  testData.labels = testData.labels:cuda()
+end
