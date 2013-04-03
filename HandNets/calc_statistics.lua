@@ -42,7 +42,7 @@ print '==> Measuring training dataset performance:'
 tr_crit_error = torch.FloatTensor(trainData:size())
 tr_crit_err_by_coeff  = torch.zeros(num_coeff):float()
 for t=1,trainData:size(),1 do
--- disp progress
+  -- disp progress
   if (math.mod(t, 100) == 1 or t == trainData:size()) then
     progress(t, trainData:size())
   end
@@ -79,9 +79,9 @@ te_crit_err_by_coeff:mul(1 / testData:size())
 print '==> Printing statistics:'
 
 print '    Average Test Set abs(Error) Value BY COEFF:'
-print(te_err_by_coeff)
+print(te_crit_err_by_coeff)
 print '    Average Training Set abs(Error) Value BY COEFF:'
-print(tr_err_by_coeff)
+print(tr_crit_err_by_coeff)
 
 print '    Average Training Set Error Value:'
 print(tr_crit_error:mean())
