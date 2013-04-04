@@ -56,7 +56,9 @@ for j=1,num_hpf_banks do
   parallel:add(banks[j])
 end
 model:add(parallel)
-model:add(nn.JoinTable(1))  -- Take the table of tensors and concat them
+-- If we're doing mini-batches then we need to join along dim=2
+-- otherwise we need to join along dim=1
+model:add(nn.JoinTable(2))  -- Take the table of tensors and concat them
 
 -- stage 3 : standard 2-layer neural network
 

@@ -26,33 +26,32 @@ function train()
     -- create mini batch
     local cur_batch_start = t
     local cur_batch_end = math.min(t + batch_size - 1, trainData:size())
-    local cur_batch_size = cur_batch_end - cur_batch_start
-    local input = {}
+    local cur_batch_size = cur_batch_end - cur_batch_start + 1
+    local batchData = {
+      files = {},
+      data = {},
+      labels = torch.CudaTensor(cur_batch_size, num_coeff),
+      size = function() return cur_batch_size end
+    }
     for j=1,num_hpf_banks do
-      table.insert(input, torch.FloatTensor(cur_batch_size, 1, bank_dim[j][1], bank_dim[j][2]))
+      table.insert(batchData.data, torch.FloatTensor(cur_batch_size, 1, bank_dim[j][1], bank_dim[j][2]))
     end
-    target = torch.FloatTensor(cur_batch_size, num_coeff)
-
- -- ************** TO DO: FIX THIS --> IT IS NOW BROKEN **************
-
+    local out_i = 1
     for i = cur_batch_start,cur_batch_end do    
-      -- Collect the current image into a single array
+      -- Collect the current image and put it into the data slot
       local cur_i = shuffle[i]
       for j=1,num_hpf_banks do
-        input[j][{cur_i,{},{},{}}] = trainData.data[j][{cur_i,{},{},{}}]
+        batchData.data[j][{out_i,{},{},{}}] = trainData.data[j][{cur_i,{},{},{}}]
       end
-      for j=1,num_hpf_banks do
-        cur_input[j] = cur_input[j]:cuda()
-      end
-      local cur_target = trainData.labels[cur_i]
-      -- Insert the current data into the array
-      table.insert(inputs, cur_input)
-      table.insert(targets, cur_target)
+      batchData.labels[{out_i,{}}] = trainData.labels[cur_i]
+      out_i = out_i + 1
+    end
+    for j=1,num_hpf_banks do
+      batchData.data[j] = batchData.data[j]:cuda()
     end
 
-    for j=1,num_hpf_banks do
-      cur_input[j] = cur_input[j]:cuda()
-    end
+    -- Visualize data for debug
+    -- VisualizeData(batchData, 1)
 
     -- create closure to evaluate f(X) and df/dX
     local feval = function(x)
@@ -65,25 +64,23 @@ function train()
       gradParameters:zero()
 
       -- f is the average of all criterions
-      local f = 0
+      local f = torch.FloatTensor(cur_batch_size)
 
       -- evaluate function for complete mini batch
-      for i = 1,#inputs do
-        -- estimate f
-        local output = model:forward(inputs[i])
-        local err = criterion:forward(output, targets[i])
-        f = f + err
-        ave_err = ave_err + err
-        nsamples = nsamples + 1
+      -- estimate f
+      local output = model:forward(batchData.data)
+      local err = criterion:forward(output, batchData.labels)
+      f = f + err
+      ave_err = ave_err + err
+      nsamples = nsamples + 1
 
-        -- estimate df/dW
-        local df_do = criterion:backward(output, targets[i])
-        model:backward(inputs[i], df_do)
-      end
+      -- estimate df/dW
+      local df_do = criterion:backward(output, batchData.labels)
+      model:backward(batchData.data, df_do)
 
       -- normalize gradients and f(X)
-      gradParameters = gradParameters:div(#inputs)
-      f = f / #inputs
+      gradParameters = gradParameters:div(cur_batch_size)
+      -- f = f / cur_batch_size  -- TO DO: DOES THIS NEED TO BE NORMALIZED (IT DOESN'T LOOK LIKE IT)
 
       -- return f and df/dX
       return f, gradParameters
@@ -92,6 +89,9 @@ function train()
     -- optimize on current mini-batch
     optimMethod(feval, parameters, optimState)
   end
+
+  -- Finish the progress bar
+  progress(trainData:size(), trainData:size())
 
   -- time taken
   time = sys.clock() - time

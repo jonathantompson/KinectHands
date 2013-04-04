@@ -59,7 +59,11 @@ dofile('load_data.lua')
 -- ************ Visualize one of the depth data samples ***************
 visualize_data = 0
 visualize_data_labels = 1  -- Show features on visualization
-dofile('visualize_data.lua')
+dofile('visualize_data.lua')  -- Just define the function
+if (visualize_data == 1) then
+  VisualizeData(trainData, visualize_data_labels)
+  VisualizeData(testData, visualize_data_labels)
+end
 
 -- ***************** Define Criterion (loss) function *****************
 dofile('define_criterion.lua')

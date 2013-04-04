@@ -158,7 +158,7 @@ itr = 1
 ite = 1
 for i=1,nfiles do
   -- disp progress
-  if (math.mod(i, 100) == 1 or i == nfiles) then
+  if (math.mod(i, 1000) == 1 or i == nfiles) then
     progress(i, nfiles)
   end
 
