@@ -1,2 +1,4 @@
 torch hand_nets.lua
-torch hand_nets_2.lua
+torch hand_nets2.lua
+torch hand_nets3.lua
+torch hand_nets4.lua

@@ -50,7 +50,7 @@ learning_rate = 1e-3  -- Default 1e-3
 l2_reg_param = 1e-4  -- Default 1e-4
 learning_rate_decay = 1e-7  -- Default 1e-7
 learning_momentum = 0.9 -- Default 0.9 --> Clement suggestion
-max_num_epochs = 60
+max_num_epochs = 40
 batch_size = 128
 
 -- ********************** Load data from Disk *************************
@@ -117,6 +117,7 @@ if (perform_training == 1) then
 
   -- ********************* Perform training loop **********************
   print '==> training!'
+  test()
   for i = 1,max_num_epochs do
      train()
      test()
