@@ -28,17 +28,16 @@ model = model:float()
 ofile = torch.DiskFile(model_filename .. ".convnet", 'w')
 ofile:binary()
 
--- ***************************************************
--- Save top level meta data
--- Number of banks (although this is effectively encoded in the size
--- of the parallel element, but store it anyway)
-ofile:writeInt(num_hpf_banks)
--- Input data type
-ofile:writeInt(use_hpf_depth)
-
 -- Now recursively save the network
 saveNNNode(model, ofile)
 
 ofile:close()
 
 print("All done saving convnet")
+
+if false then
+  input = {}
+  table.insert(input, torch.FloatTensor(4, 1, 96, 96):zero())
+  table.insert(input, torch.FloatTensor(4, 1, 96/2, 96/2):zero())
+  table.insert(input, torch.FloatTensor(4, 1, 96/4, 96/4):zero())
+end

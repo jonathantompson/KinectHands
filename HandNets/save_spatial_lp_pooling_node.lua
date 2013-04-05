@@ -10,9 +10,9 @@ function saveSpatialLPPoolingNode(node, ofile)
   ofile:writeInt(node.kH)
   ofile:writeInt(node.nInputPlane)
 
-  if (torch.typename(node:get(1)) == "nn.Square")
+  if (torch.typename(node:get(1)) == "nn.Square") then
     pnorm = 2
-  elseif (torch.typename(node:get(1)) == "nn.Power")
+  elseif (torch.typename(node:get(1)) == "nn.Power") then
     pnorm = node:get(1).pow
   else
     error("saveSpatialLPPoolingNode() - ERROR: Cannot determine pnorm")
