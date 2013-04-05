@@ -1,14 +1,12 @@
 require 'nn'
 require 'cunn'
 require 'image'
--- require 'torch'
+require 'torch'
 require 'cutorch'
-require 'xlua'    -- xlua provides useful tools, like progress bars
 require 'optim'   -- an optimization package, for online and batch methods
-torch. setnumthreads(4)
-dofile("saveConvStage.lua")  -- Load in helper function
-dofile("saveNNStage.lua")  -- Load in helper function
--- require 'debugger'
+torch. setnumthreads(8)
+
+dofile("save_nn_node.lua")  -- Load in helper function
 
 -- Jonathan Tompson
 -- NYU, MRL
@@ -27,51 +25,20 @@ model = torch.load(model_filename)
 model = model:float()
 
 -- Open an output file
-convnet = torch.DiskFile(model_filename .. ".convnet", 'w')
-convnet:binary()
+ofile = torch.DiskFile(model_filename .. ".convnet", 'w')
+ofile:binary()
 
 -- ***************************************************
 -- Save top level meta data
--- 1. Number of convolution stages
-convnet:writeInt(2)
--- 2. Number of Neural Network stages
-convnet:writeInt(2)
--- 3. Number of banks
-convnet:writeInt(num_hpf_banks)
--- 4. Input data type
-convnet:writeInt(use_hpf_depth)
+-- Number of banks (although this is effectively encoded in the size
+-- of the parallel element, but store it anyway)
+ofile:writeInt(num_hpf_banks)
+-- Input data type
+ofile:writeInt(use_hpf_depth)
 
-for j=1,num_hpf_banks do
-  print(string.format("--> Saving bank %d convnet stage 1 and 2", j))
-  -- ***************************************************
-  -- Save the first conv stage.
-  stg1 = model:get(1):get(j):get(1)
-  -- image.display{image=stg1.weight, padding=2, zoom=4}
-  saveConvStage(stg1, norm, poolsize[j][1], pooling, nonlinear, convnet)
+-- Now recursively save the network
+saveNNNode(model, ofile)
 
-  -- ***************************************************
-  -- Save the second conv stage.
-  if (poolsize[j][1] == 1) then  -- no pooling in the first stage
-    stg2 = model:get(1):get(j):get(6)
-  else
-    stg2 = model:get(1):get(j):get(7)
-  end
-  saveConvStage(stg2, norm, poolsize[j][2], pooling, nonlinear, convnet)
-end
-
--- ***************************************************
--- Save the first neural net stage.
-print("--> Saving neural net stage 1")
-stg1 = model:get(3)
-saveNNStage(stg1, nonlinear, convnet)
-
--- ***************************************************
--- Save the second neural net stage.
-print("--> Saving neural net stage 2")
-stg2 = model:get(5)
-stg2_nn_nonlinear = "None"  -- none
-saveNNStage(stg2, stg2_nn_nonlinear, convnet)
-
-convnet:close()
+ofile:close()
 
 print("All done saving convnet")

@@ -16,7 +16,7 @@ dofile("pbar.lua")
 dofile("shuffle_files.lua")
 dofile("modules_cc.lua")
 
-torch.setnumthreads(7)
+torch.setnumthreads(8)
 torch.manualSeed(1)
 
 torch.setdefaulttensortype('torch.FloatTensor')
