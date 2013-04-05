@@ -33,11 +33,10 @@ function test()
     local out_i = 1
     for i = cur_batch_start,cur_batch_end do    
       -- Collect the current image and put it into the data slot
-      local cur_i = shuffle[i]
       for j=1,num_hpf_banks do
-        batchData.data[j][{out_i,{},{},{}}] = trainData.data[j][{cur_i,{},{},{}}]
+        batchData.data[j][{out_i,{},{},{}}] = trainData.data[j][{i,{},{},{}}]
       end
-      batchData.labels[{out_i,{}}] = trainData.labels[cur_i]
+      batchData.labels[{out_i,{}}] = trainData.labels[i]
       out_i = out_i + 1
     end
     for j=1,num_hpf_banks do
