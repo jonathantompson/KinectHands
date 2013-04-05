@@ -8,7 +8,7 @@ function train()
   local time = sys.clock()
   
   -- shuffle at each epoch
-  shuffle = torch.randperm(trsize)
+  local shuffle = torch.randperm(trsize)
 
   -- do one epoch
   print('==> doing epoch on training data:')
@@ -79,7 +79,7 @@ function train()
       model:backward(batchData.data, df_do)
 
       -- normalize gradients and f(X)
-      gradParameters = gradParameters:div(cur_batch_size)
+      -- gradParameters = gradParameters:div(cur_batch_size)
       -- f = f / cur_batch_size  -- TO DO: DOES THIS NEED TO BE NORMALIZED (IT DOESN'T LOOK LIKE IT)
 
       -- return f and df/dX

@@ -17,7 +17,8 @@ for j=1,num_hpf_banks do
   
   -- Stage 1
   banks[j]:add(nn.SpatialConvolution(nfeats, nstates[j][1], filtsize[j][1], 
-    filtsize[j][1]))
+     filtsize[j][1]))
+  -- SpatialConvolutionCUDA expects: height, width, batch, input_planes
   banks[j]:get(1).bias:add(-banks[j]:get(1).bias:min()) -- Set up the initial condition
   banks[j]:add(nn.Threshold())
   banks[j]:add(nn.SpatialMaxPooling(poolsize[j][1], poolsize[j][1], 
@@ -80,3 +81,31 @@ print(num_coeff)
 print '==> Converting model to cuda'
 model:cuda()
 
+
+if (false) then
+  -- Test the SpatialConvolution Vs. SpatialConvolutionMap:
+  data = torch.rand(128, 4, 96, 96):cuda()  -- batch, n_in, height, width
+  n_in = 4
+  n_out = 6
+  filt_sizev = 5
+  filt_sizeu = 5
+  conv = nn.SpatialConvolution(n_in, n_out, filt_sizev, filt_sizeu):cuda()
+  out = conv:forward(data)
+
+  convCUDA = nn.Sequential()
+  convCUDA:add(nn.Transpose({1,4}, {2,3}, {1,3}))  -- I'm sure this is wrong
+  convCUDA:add(nn.SpatialConvolutionCUDA(n_in, n_out, filt_sizev, filt_sizeu))
+  convCUDA:cuda()
+  outCUDA = convCUDA:forward(data)
+  print(outCUDA:size())
+
+  input = data:clone()
+  for _,perm in ipairs(convCUDA:get(1).permutations) do
+    input = input:transpose(perm[1],perm[2])
+  end
+
+  convCUDA:add(nn.SpatialConvolutionCUDA(n_in, n_out, filt_sizev, filt_sizeu))
+  convCUDA:add(nn.Transpose({1,3}, {2,4}, {1,2}, {1,4}))
+  convCUDA:cuda()
+  
+end
