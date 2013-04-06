@@ -143,18 +143,18 @@ print(tr_crit_error:mean())
 print '    Average Test Set Error Value:'
 print(te_crit_error:mean())
 
-tr_crit_error = torch.sort(tr_crit_error)
-te_crit_error = torch.sort(te_crit_error)
+--tr_crit_error = torch.sort(tr_crit_error)
+--te_crit_error = torch.sort(te_crit_error)
 
-print '    Average Training Set Error Value top 20%:'
-print(tr_crit_error[{{1,math.floor(0.2*trainData:size())}}]:mean())
+--print '    Average Training Set Error Value top 20%:'
+--print(tr_crit_error[{{1,math.floor(0.2*trainData:size())}}]:mean())
 
-print '    Average Test Set Error Value top 20%:'
-print(te_crit_error[{{1,math.floor(0.2*testData:size())}}]:mean())
+--print '    Average Test Set Error Value top 20%:'
+--print(te_crit_error[{{1,math.floor(0.2*testData:size())}}]:mean())
 
-print '    Average Training Set Error Value top 80%:'
-print(tr_crit_error[{{1,math.floor(0.8*trainData:size())}}]:mean())
+--print '    Average Training Set Error Value top 80%:'
+--print(tr_crit_error[{{1,math.floor(0.8*trainData:size())}}]:mean())
 
-print '    Average Test Set Error Value top 80%:'
-print(te_crit_error[{{1,math.floor(0.8*testData:size())}}]:mean())
+--print '    Average Test Set Error Value top 80%:'
+--print(te_crit_error[{{1,math.floor(0.8*testData:size())}}]:mean())
 
