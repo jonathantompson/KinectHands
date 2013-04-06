@@ -5,6 +5,9 @@ function test()
   local time = sys.clock()
 
   local err_ave = 0
+  local	total_t_minibatch = 0
+  local	total_t_forward = 0
+  local	total_t_criterion = 0
 
   -- test over test data
   print('==> testing on test set:')
@@ -17,6 +20,7 @@ function test()
       next_progress = next_progress + 50
     end
 
+    local t_minibatch = sys.clock() 
     -- create mini batch
     local cur_batch_start = t
     local cur_batch_end = math.min(t + batch_size - 1, testData:size())
@@ -42,12 +46,22 @@ function test()
     for j=1,num_hpf_banks do
       batchData.data[j] = batchData.data[j]:cuda()
     end
+    t_minibatch = sys.clock() - t_minibatch
+    total_t_minibatch = total_t_minibatch + t_minibatch
 
     -- test sample
+    local t_forward = sys.clock()
     local pred = model:forward(batchData.data)
+    t_forward = sys.clock() - t_forward
+    total_t_forward = total_t_forward + t_forward
+    
     cutorch.synchronize()
+
+    local t_criterion = sys.clock()
     local err = criterion:forward(pred, batchData.labels)
-  
+    t_criterion = sys.clock() - t_criterion
+    total_t_criterion = total_t_criterion + t_criterion  
+
     err_ave = err_ave + err
     n_samples = n_samples + 1
   end
@@ -61,6 +75,13 @@ function test()
   time = sys.clock() - time
   time = time / testData:size()
   print("\n==> time to test 1 sample = " .. (time*1000) .. 'ms')
+
+  print("==> total time spent creating minibatch = " .. 
+    total_t_minibatch .. 's')
+  print("==> total time spent in forward model = " ..
+    total_t_forward .. 's')
+  print("==> total time spent in forward criterion = " ..
+    total_t_criterion .. 's')
 
   print("Average loss function value on test set: " .. (err_ave) .. " (using criterion)")
   testLogger:add{['average err'] = string.format('%.8e', err_ave)}

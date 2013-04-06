@@ -6,7 +6,12 @@ function train()
 
   -- local vars
   local time = sys.clock()
-  
+  local total_t_minibatch = 0
+  local total_t_model_forward = 0
+  local total_t_criterion_forward = 0
+  local total_t_model_backward = 0
+  local total_t_criterion_backward = 0
+
   -- shuffle at each epoch
   local shuffle = torch.randperm(trsize)
 
@@ -24,6 +29,7 @@ function train()
     end
 
     -- create mini batch
+    local t_minibatch = sys.clock()
     local cur_batch_start = t
     local cur_batch_end = math.min(t + batch_size - 1, trainData:size())
     local cur_batch_size = cur_batch_end - cur_batch_start + 1
@@ -49,6 +55,8 @@ function train()
     for j=1,num_hpf_banks do
       batchData.data[j] = batchData.data[j]:cuda()
     end
+    t_minibatch = sys.clock() - t_minibatch
+    total_t_minibatch = total_t_minibatch + t_minibatch
 
     -- Visualize data for debug
     -- VisualizeData(batchData, 1)
@@ -68,15 +76,32 @@ function train()
 
       -- evaluate function for complete mini batch
       -- estimate f
+      local t_model_forward = sys.clock()
       local output = model:forward(batchData.data)
+      t_model_forward = sys.clock() - t_model_forward
+      total_t_model_forward = total_t_model_forward + t_model_forward
+    
+      local t_criterion_forward = sys.clock()
       local err = criterion:forward(output, batchData.labels)
+      t_criterion_forward = sys.clock() - t_criterion_forward
+      total_t_criterion_forward = total_t_criterion_forward + 
+        t_criterion_forward
+
       f = f + err
       ave_err = ave_err + err
       nsamples = nsamples + 1
 
       -- estimate df/dW
+      local t_criterion_backward = sys.clock()
       local df_do = criterion:backward(output, batchData.labels)
+      t_criterion_backward = sys.clock() - t_criterion_backward
+      total_t_criterion_backward = total_t_criterion_backward + 
+        t_criterion_backward
+
+      local t_model_backward = sys.clock()
       model:backward(batchData.data, df_do)
+      t_model_backward = sys.clock() - t_model_backward
+      total_t_model_backward = total_t_model_backward + t_model_backward
 
       -- normalize gradients and f(X)
       -- gradParameters = gradParameters:div(cur_batch_size)
@@ -97,7 +122,17 @@ function train()
   time = sys.clock() - time
   time = time / trainData:size()
   print("\n==> time to learn 1 sample = " .. (time*1000) .. 'ms')
-  
+  print("==> total time spent creating minibatch = " ..
+    total_t_minibatch .. 's')
+  print("==> total time spent in forward model = " ..
+    total_t_model_forward .. 's')
+  print("==> total time spent in forward criterion = " ..
+    total_t_criterion_forward .. 's')
+  print("==> total time spent in backward model = " ..
+    total_t_model_backward .. 's')
+  print("==> total time spent in backward criterion = " ..
+    total_t_criterion_backward .. 's')
+
   ave_err = ave_err / nsamples
   print("current loss function value: " .. (ave_err) .. " (using criterion)")
   trainLogger:add{['average err'] = string.format('%.8e', ave_err)}
