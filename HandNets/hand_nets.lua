@@ -27,11 +27,10 @@ print(cutorch.getDeviceProperties(cutorch.getDevice()))
 --    github.com/andresy/torch/tree/master/extra/cuda/pkg/cunn
 
 -- Some stuff to look at later (from Soumith)
--- http://code.cogbits.com/wiki/doku.php?id=tutorial_morestuff --> Drop out here
+-- http://code.cogbits.com/wiki/doku.php?id=tutorial_morestuff --> Drop out
 -- http://arxiv.org/pdf/1302.4389v3.pdf --> Max Out
 -- http://code.cogbits.com/wiki/doku.php?id=tutorial_unsupervised
--- https://github.com/clementfarabet/torch-tutorials/blob/master/3_unsupervised/A_kmeans.lua
--- https://github.com/clementfarabet/torch-tutorials --> Random tutorials by clement
+-- https://github.com/clementfarabet/torch-tutorials
 
 width = 96
 height = 96
@@ -40,11 +39,11 @@ dim = width * height
 num_coeff = 40
 num_coeff_per_feature = 2  -- UV = 2, UVD = 3
 frame_stride = 1  -- Only 1 works for now
-perform_training = 1
+perform_training = 0
 model_filename = 'handmodel.net'
 im_dir = "../data/hand_depth_data_processed_for_CN_synthetic/"
 test_im_dir = "../data/hand_depth_data_processed_for_CN_test_synthetic/"
-test_data_rate = 20  -- this means 1 / 20 FROM THE TRAINING SET will be test data
+test_data_rate = 20  -- this means 1 / 20 FROM THE TRAINING SET will be test
 use_hpf_depth = 1
 learning_rate = 1e-3  -- Default 1e-3
 l2_reg_param = 1e-4  -- Default 1e-4
