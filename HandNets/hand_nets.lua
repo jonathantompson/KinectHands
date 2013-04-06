@@ -39,17 +39,17 @@ dim = width * height
 num_coeff = 40
 num_coeff_per_feature = 2  -- UV = 2, UVD = 3
 frame_stride = 1  -- Only 1 works for now
-perform_training = 0
+perform_training = 1
 model_filename = 'handmodel.net'
 im_dir = "../data/hand_depth_data_processed_for_CN_synthetic/"
 test_im_dir = "../data/hand_depth_data_processed_for_CN_test_synthetic/"
 test_data_rate = 20  -- this means 1 / 20 FROM THE TRAINING SET will be test
 use_hpf_depth = 1
-learning_rate = 1e-3  -- Default 1e-3
+learning_rate = 1e-2  -- Default 1e-3
 l2_reg_param = 1e-4  -- Default 1e-4
 learning_rate_decay = 1e-7  -- Default 1e-7
 learning_momentum = 0.9 -- Default 0.9 --> Clement suggestion
-max_num_epochs = 40
+max_num_epochs = 80
 batch_size = 128
 
 -- ********************** Load data from Disk *************************
