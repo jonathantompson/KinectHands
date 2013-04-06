@@ -19,7 +19,7 @@ function test()
 
     -- create mini batch
     local cur_batch_start = t
-    local cur_batch_end = math.min(t + batch_size - 1, trainData:size())
+    local cur_batch_end = math.min(t + batch_size - 1, testData:size())
     local cur_batch_size = cur_batch_end - cur_batch_start + 1
     local batchData = {
       files = {},
@@ -34,9 +34,9 @@ function test()
     for i = cur_batch_start,cur_batch_end do    
       -- Collect the current image and put it into the data slot
       for j=1,num_hpf_banks do
-        batchData.data[j][{out_i,{},{},{}}] = trainData.data[j][{i,{},{},{}}]
+        batchData.data[j][{out_i,{},{},{}}] = testData.data[j][{i,{},{},{}}]
       end
-      batchData.labels[{out_i,{}}] = trainData.labels[i]
+      batchData.labels[{out_i,{}}] = testData.labels[i]
       out_i = out_i + 1
     end
     for j=1,num_hpf_banks do
