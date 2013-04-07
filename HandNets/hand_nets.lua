@@ -27,11 +27,10 @@ print(cutorch.getDeviceProperties(cutorch.getDevice()))
 --    github.com/andresy/torch/tree/master/extra/cuda/pkg/cunn
 
 -- Some stuff to look at later (from Soumith)
--- http://code.cogbits.com/wiki/doku.php?id=tutorial_morestuff --> Drop out here
+-- http://code.cogbits.com/wiki/doku.php?id=tutorial_morestuff --> Drop out
 -- http://arxiv.org/pdf/1302.4389v3.pdf --> Max Out
 -- http://code.cogbits.com/wiki/doku.php?id=tutorial_unsupervised
--- https://github.com/clementfarabet/torch-tutorials/blob/master/3_unsupervised/A_kmeans.lua
--- https://github.com/clementfarabet/torch-tutorials --> Random tutorials by clement
+-- https://github.com/clementfarabet/torch-tutorials
 
 width = 96
 height = 96
@@ -44,13 +43,13 @@ perform_training = 1
 model_filename = 'handmodel.net'
 im_dir = "../data/hand_depth_data_processed_for_CN_synthetic/"
 test_im_dir = "../data/hand_depth_data_processed_for_CN_test_synthetic/"
-test_data_rate = 20  -- this means 1 / 20 FROM THE TRAINING SET will be test data
+test_data_rate = 20  -- this means 1 / 20 FROM THE TRAINING SET will be test
 use_hpf_depth = 1
-learning_rate = 1e-3  -- Default 1e-3
-l2_reg_param = 1e-4  -- Default 1e-4
+learning_rate = 1e-0  -- Default 1e-3
+l2_reg_param = 1e-2  -- Default 1e-4
 learning_rate_decay = 1e-7  -- Default 1e-7
 learning_momentum = 0.9 -- Default 0.9 --> Clement suggestion
-max_num_epochs = 40
+max_num_epochs = 80
 batch_size = 128
 
 -- ********************** Load data from Disk *************************

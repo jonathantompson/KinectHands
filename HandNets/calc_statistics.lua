@@ -3,75 +3,129 @@ model = torch.load(model_filename)
 
 print("==> Measuring test dataset performance:")
 
-te_crit_error = torch.FloatTensor(testData:size())
+te_crit_error = torch.FloatTensor(math.ceil(testData:size()/batch_size))
 te_crit_err_by_coeff = torch.zeros(num_coeff):float()
-for t=1,testData:size(),1 do
+te_sample = 1
+next_disp = math.max(batch_size, 100)
+for t=1,testData:size(),batch_size do
   -- disp progress
-  if (math.mod(t, 100) == 1 or t == testData:size()) then
+  if (t >= next_disp) then
     progress(t, testData:size())
+    next_disp = t + math.max(batch_size, 100)
   end
- 
-  data_pt = {
-    input = {},
-    target = testData.labels[t]
+  
+  -- create mini batch
+  local cur_batch_start = t
+  local cur_batch_end = math.min(t + batch_size - 1, testData:size())
+  local cur_batch_size = cur_batch_end - cur_batch_start + 1
+  local batchData = {
+    files = {},
+    data = {},
+    labels = torch.CudaTensor(cur_batch_size, num_coeff),
+    size = function() return cur_batch_size end
   }
   for j=1,num_hpf_banks do
-    table.insert(data_pt.input, testData.data[j][t])
+    table.insert(batchData.data, torch.FloatTensor(cur_batch_size, 1, 
+      bank_dim[j][1], bank_dim[j][2]))
+  end
+  local out_i = 1
+  for i = cur_batch_start,cur_batch_end do
+    -- Collect the current image and put it into the data slot
+    for j=1,num_hpf_banks do
+      batchData.data[j][{out_i,{},{},{}}] = testData.data[j][{i,{},{},{}}]
+    end
+    batchData.labels[{out_i,{}}] = testData.labels[i]
+    out_i = out_i + 1
   end
   for j=1,num_hpf_banks do
-    data_pt.input[j] = data_pt.input[j]:cuda()
+    batchData.data[j] = batchData.data[j]:cuda()
   end
 
-  pred = model:forward(data_pt.input)
-  te_crit_error[t] = math.abs(criterion:forward(pred, data_pt.target))
+  pred = model:forward(batchData.data)
+  te_crit_error[te_sample] = math.abs(criterion:forward(pred, 
+    batchData.labels))
 
-  err = te_crit_error[t]
+  err = te_crit_error[te_sample]
   if (err == math.huge or err ~= err) then
-    print(string.format("%d, %s is nan or inf!\n", t, testData.files[t]))
+    print(string.format("nan or inf found!\n"))
+  end
+  
+  pred = pred:float()
+  batchData.labels = batchData.labels:float()
+  delta = (pred - batchData.labels)
+  delta:abs()
+  
+  for i=1,cur_batch_size do
+    te_crit_err_by_coeff:add(delta[{i,{}}])
   end
 
-  pred = pred:float()
-  data_pt.target = data_pt.target:float()
-  delta = (pred - data_pt.target)
-  delta:abs()
-  te_crit_err_by_coeff:add(delta)
+  te_sample = te_sample + 1
 end
+te_sample = te_sample - 1
+progress(testData:size(), testData:size())
 
 print '==> Measuring training dataset performance:'
 
-tr_crit_error = torch.FloatTensor(trainData:size())
+tr_crit_error = torch.FloatTensor(math.ceil(trainData:size()/batch_size))
 tr_crit_err_by_coeff  = torch.zeros(num_coeff):float()
-for t=1,trainData:size(),1 do
+tr_sample = 1
+next_disp = math.max(batch_size, 100)
+for t=1,trainData:size(),batch_size do
   -- disp progress
-  if (math.mod(t, 100) == 1 or t == trainData:size()) then
+  if (t >= next_disp) then
     progress(t, trainData:size())
+    next_disp = next_disp + math.max(batch_size, 100)
   end
 
-  data_pt = {
-    input = {},
-    target = trainData.labels[t]
+  -- create mini batch
+  local cur_batch_start = t
+  local cur_batch_end = math.min(t + batch_size - 1, trainData:size())
+  local cur_batch_size = cur_batch_end - cur_batch_start + 1
+  local batchData = {
+    files = {},
+    data = {},
+    labels = torch.CudaTensor(cur_batch_size, num_coeff),
+    size = function() return cur_batch_size end
   }
   for j=1,num_hpf_banks do
-    table.insert(data_pt.input, trainData.data[j][t])
+    table.insert(batchData.data, torch.FloatTensor(cur_batch_size, 1,
+      bank_dim[j][1], bank_dim[j][2]))
+  end
+  local out_i = 1
+  for i = cur_batch_start,cur_batch_end do
+    -- Collect the current image and put it into the data slot
+    for j=1,num_hpf_banks do
+      batchData.data[j][{out_i,{},{},{}}] = trainData.data[j][{i,{},{},{}}]
+    end
+    batchData.labels[{out_i,{}}] = trainData.labels[i]
+    out_i = out_i + 1
   end
   for j=1,num_hpf_banks do
-    data_pt.input[j] = data_pt.input[j]:cuda()
+    batchData.data[j] = batchData.data[j]:cuda()
   end
 
-  pred = model:forward(data_pt.input)
-  tr_crit_error[t] = math.abs(criterion:forward(pred, data_pt.target))
+  pred = model:forward(batchData.data)
+  tr_crit_error[tr_sample] = math.abs(criterion:forward(pred,
+    batchData.labels))
 
-  err = tr_crit_error[t]
+  err = tr_crit_error[tr_sample]
   if (err == math.huge or err ~= err) then
-    print(string.format("%d, %s is nan or inf!\n", t, trainData.files[t]))
+    print(string.format("nan or inf found!\n"))
   end
 
   pred = pred:float()
-  data_pt.target = data_pt.target:float()
-  delta = (pred - data_pt.target)
+  batchData.labels = batchData.labels:float()
+  delta = (pred - batchData.labels)
   delta:abs()
-  tr_crit_err_by_coeff:add(delta)
+
+  for i=1,cur_batch_size do
+    tr_crit_err_by_coeff:add(delta[{i,{}}])
+  end
+
+  tr_sample = tr_sample + 1
 end
+tr_sample = tr_sample - 1
+progress(trainData:size(), trainData:size())
 
 tr_crit_err_by_coeff:mul(1 / trainData:size())
 te_crit_err_by_coeff:mul(1 / testData:size()) 
@@ -89,18 +143,18 @@ print(tr_crit_error:mean())
 print '    Average Test Set Error Value:'
 print(te_crit_error:mean())
 
-tr_crit_error = torch.sort(tr_crit_error)
-te_crit_error = torch.sort(te_crit_error)
+--tr_crit_error = torch.sort(tr_crit_error)
+--te_crit_error = torch.sort(te_crit_error)
 
-print '    Average Training Set Error Value top 20%:'
-print(tr_crit_error[{{1,math.floor(0.2*trainData:size())}}]:mean())
+--print '    Average Training Set Error Value top 20%:'
+--print(tr_crit_error[{{1,math.floor(0.2*trainData:size())}}]:mean())
 
-print '    Average Test Set Error Value top 20%:'
-print(te_crit_error[{{1,math.floor(0.2*testData:size())}}]:mean())
+--print '    Average Test Set Error Value top 20%:'
+--print(te_crit_error[{{1,math.floor(0.2*testData:size())}}]:mean())
 
-print '    Average Training Set Error Value top 80%:'
-print(tr_crit_error[{{1,math.floor(0.8*trainData:size())}}]:mean())
+--print '    Average Training Set Error Value top 80%:'
+--print(tr_crit_error[{{1,math.floor(0.8*trainData:size())}}]:mean())
 
-print '    Average Test Set Error Value top 80%:'
-print(te_crit_error[{{1,math.floor(0.8*testData:size())}}]:mean())
+--print '    Average Test Set Error Value top 80%:'
+--print(te_crit_error[{{1,math.floor(0.8*testData:size())}}]:mean())
 
