@@ -20,6 +20,8 @@
 #include "jtil/threading/callback.h"
 #include "kinect_interface/hand_net/torch_stage.h"
 
+namespace jtil { namespace data_str { template <typename T> class VectorManaged; } }
+
 namespace kinect_interface {
 namespace hand_net {
   
@@ -28,14 +30,12 @@ namespace hand_net {
     // Constructor / Destructor
     SpatialConvolutionMap(const int32_t feats_in, const int32_t feats_out,
       const int32_t fan_in, const int32_t filt_height, 
-      const int32_t filt_width, const int32_t height, const int32_t width);
+      const int32_t filt_width);
     virtual ~SpatialConvolutionMap();
 
     virtual TorchStageType type() const { return SPATIAL_CONVOLUTION_MAP_STAGE; }
-    virtual void forwardProp(float* input, jtil::threading::ThreadPool* tp);
-    virtual int32_t outWidth() const;
-    virtual int32_t outHeight() const;
-    virtual int32_t outNFeats() const { return feats_out_; }
+    virtual void forwardProp(FloatTensor& input, 
+      jtil::threading::ThreadPool& tp);
 
     float** weights_;
     float* biases_;
@@ -51,16 +51,20 @@ namespace hand_net {
     int32_t feats_in_;
     int32_t feats_out_;
     int32_t fan_in_;
-    int32_t width_;
-    int32_t height_;
 
     // Multithreading primatives and functions
     float* cur_input_;
+    int32_t cur_input_width_;
+    int32_t cur_input_height_;
+    float* cur_output_;
     int32_t threads_finished_;
     std::mutex thread_update_lock_;
     std::condition_variable not_finished_;
-    jtil::threading::Callback<void>** thread_cbs_;  
+    jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* thread_cbs_; 
+
     void forwardPropThread(const int32_t outf);
+
+    void init(FloatTensor& input, jtil::threading::ThreadPool& tp);
 
     // Non-copyable, non-assignable.
     SpatialConvolutionMap(SpatialConvolutionMap&);

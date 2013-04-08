@@ -126,6 +126,7 @@ namespace hand_net {
 
   void SpatialDivisiveNormalization::forwardProp(FloatTensor& input, 
     ThreadPool& tp) { 
+    init(input, tp);
     const int32_t width = input.dim()[0];
     const int32_t height = input.dim()[1];
     const int32_t n_feats = input.dim()[2];
@@ -198,7 +199,7 @@ namespace hand_net {
       cur_input_ = cur_in;
       cur_output_ = cur_out;
       threads_finished_ = 0;
-      for (int32_t i = 0; i < thread_cbs_->size(); i++) {
+      for (uint32_t i = 0; i < thread_cbs_->size(); i++) {
         tp.addTask((*thread_cbs_)[i]);
       } 
 

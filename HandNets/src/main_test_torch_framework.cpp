@@ -31,7 +31,7 @@
   #define snprintf _snprintf_s
 #endif
 
-#define NUM_WORKER_THREADS 8
+#define NUM_WORKER_THREADS 1
 
 using namespace std;
 using namespace kinect_interface::hand_net;
@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
 #if defined(_DEBUG) || defined(DEBUG)
   jtil::debug::EnableMemoryLeakChecks();
   // jtil::debug::EnableAggressiveMemoryLeakChecks();
-  // jtil::debug::SetBreakPointOnAlocation(8634);
+  // jtil::debug::SetBreakPointOnAlocation(3434);
 #endif
 
   FloatTensor data_in(Int3(width, height, num_feats_in));
