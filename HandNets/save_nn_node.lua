@@ -5,13 +5,16 @@ dofile('save_threshold_node.lua')
 dofile('save_linear_node.lua')
 dofile('save_reshape_node.lua')
 dofile('save_spatial_convolution_node.lua')
+dofile('save_spatial_convolution_cuda_node.lua')
 dofile('save_spatial_convolution_map_node.lua')
 dofile('save_spatial_lp_pooling_node.lua')
 dofile('save_spatial_max_pooling_node.lua')
+dofile('save_spatial_max_pooling_cuda_node.lua')
 dofile('save_spatial_subtractive_normalization_node.lua')
 dofile('save_spatial_divisive_normalization_node.lua')
 dofile('save_spatial_contrastive_normalization_node.lua')
 dofile('save_join_table_node.lua')
+dofile('save_transpose_node.lua')
 
 function saveNNNode(node, ofile)
   -- Just send the node off to the correct routine depending on it's type
@@ -42,6 +45,11 @@ function saveNNNode(node, ofile)
      --       as SpatialConvolutionMap
      ofile:writeInt(7)
      saveSpatialConvolutionNode(node, ofile)
+  elseif (class_str == "nn.SpatialConvolutionCUDA") then
+     -- Note: SpatialConvolutionCUDA gets saved with same index
+     --       as SpatialConvolutionMap
+     ofile:writeInt(7)
+     saveSpatialConvolutionCUDANode(node, ofile)
   elseif (class_str == "nn.SpatialConvolutionMap") then
      ofile:writeInt(7)
      saveSpatialConvolutionMapNode(node, ofile)
@@ -51,6 +59,11 @@ function saveNNNode(node, ofile)
   elseif (class_str == "nn.SpatialMaxPooling") then
      ofile:writeInt(9)
      saveSpatialMaxPoolingNode(node, ofile)
+  elseif (class_str == "nn.SpatialMaxPoolingCUDA") then
+     -- Note: SpatialMaxPoolingCUDA gets saved with the same index
+     --       as SpatialMaxPooling
+     ofile:writeInt(9)
+     saveSpatialMaxPoolingCUDANode(node, ofile)
   elseif (class_str == "nn.SpatialSubtractiveNormalization") then
      ofile:writeInt(10)
      saveSpatialSubtractiveNormalizationNode(node, ofile)
@@ -63,6 +76,9 @@ function saveNNNode(node, ofile)
   elseif (class_str == "nn.JoinTable") then
      ofile:writeInt(13)
      saveJoinTableNode(node, ofile)
+  elseif (class_str == "nn.Transpose") then
+     ofile:writeInt(14)
+     saveTransposeNode(node, ofile)
   else
      error('Node type ' .. class_str .. ' is not recognized.')
      return
