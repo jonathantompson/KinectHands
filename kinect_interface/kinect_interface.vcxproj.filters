@@ -102,6 +102,12 @@
     <ClCompile Include="src\kinect_interface\hand_net\spatial_contrastive_normalization.cpp">
       <Filter>Source Files\kinect_interface\hand_net</Filter>
     </ClCompile>
+    <ClCompile Include="src\kinect_interface\hand_net\parallel.cpp">
+      <Filter>Source Files\kinect_interface\hand_net</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kinect_interface\hand_net\float_tensor.cpp">
+      <Filter>Source Files\kinect_interface\hand_net</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\kinect_interface\hand_detector\hand_detector.h">
@@ -186,6 +192,12 @@
       <Filter>Header Files\kinect_interface\hand_net</Filter>
     </ClInclude>
     <ClInclude Include="include\kinect_interface\hand_net\spatial_contrastive_normalization.h">
+      <Filter>Header Files\kinect_interface\hand_net</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kinect_interface\hand_net\parallel.h">
+      <Filter>Header Files\kinect_interface\hand_net</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kinect_interface\hand_net\float_tensor.h">
       <Filter>Header Files\kinect_interface\hand_net</Filter>
     </ClInclude>
   </ItemGroup>

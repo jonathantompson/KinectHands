@@ -28,12 +28,13 @@ namespace hand_net {
 
     virtual TorchStageType type() const { return SPATIAL_DIVISIVE_NORMALIZATION_STAGE; }
     virtual void forwardProp(float* input, jtil::threading::ThreadPool* tp);
-    static TorchStage* loadFromFile(std::ifstream& file);
     virtual int32_t outWidth() const { return width_; }
     virtual int32_t outHeight() const { return height_; }
     virtual int32_t outNFeats() const { return n_feats_; }
 
-  private:
+    static TorchStage* loadFromFile(std::ifstream& file);
+
+  protected:
     float* kernel1d_;
     int32_t kernel1d_size_;
     float* std_coef_;

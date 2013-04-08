@@ -33,7 +33,6 @@ namespace hand_net {
 
     virtual TorchStageType type() const { return SPATIAL_CONVOLUTION_MAP_STAGE; }
     virtual void forwardProp(float* input, jtil::threading::ThreadPool* tp);
-    static TorchStage* loadFromFile(std::ifstream& file);
     virtual int32_t outWidth() const;
     virtual int32_t outHeight() const;
     virtual int32_t outNFeats() const { return feats_out_; }
@@ -44,7 +43,9 @@ namespace hand_net {
                             // For each output: [0] is input feature and [1]
                             // is the weight matrix (filter) to use
 
-  private:
+    static TorchStage* loadFromFile(std::ifstream& file);
+
+  protected:
     int32_t filt_width_;
     int32_t filt_height_;
     int32_t feats_in_;

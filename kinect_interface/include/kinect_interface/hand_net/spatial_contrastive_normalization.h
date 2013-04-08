@@ -37,14 +37,15 @@ namespace hand_net {
 
     virtual TorchStageType type() const { return SPATIAL_CONTRASTIVE_NORMALIZATION_STAGE; }
     virtual void forwardProp(float* input, jtil::threading::ThreadPool* tp);
-    static TorchStage* loadFromFile(std::ifstream& file);
     virtual int32_t outWidth() const;
     virtual int32_t outHeight() const;
     virtual int32_t outNFeats() const;
 
     float* output();  // Override output float*
 
-  private:
+    static TorchStage* loadFromFile(std::ifstream& file);
+
+  protected:
     Sequential* network_;
 
     // Non-copyable, non-assignable.

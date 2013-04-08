@@ -28,12 +28,13 @@ namespace hand_net {
 
     virtual TorchStageType type() const { return SPATIAL_MAX_POOLING_STAGE; }
     virtual void forwardProp(float* input, jtil::threading::ThreadPool* tp);
-    static TorchStage* loadFromFile(std::ifstream& file);
     virtual int32_t outWidth() const;
     virtual int32_t outHeight() const;
     virtual int32_t outNFeats() const { return n_feats_; }
 
-  private:
+    static TorchStage* loadFromFile(std::ifstream& file);
+
+  protected:
     int32_t n_feats_;
     int32_t poolsize_v_;
     int32_t poolsize_u_;

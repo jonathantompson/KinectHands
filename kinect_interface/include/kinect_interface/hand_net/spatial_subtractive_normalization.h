@@ -15,33 +15,28 @@
 #include "jtil/threading/callback.h"
 #include "kinect_interface/hand_net/torch_stage.h"
 
+class FloatTensor;
+
 namespace kinect_interface {
 namespace hand_net {
   
   struct SpatialSubtractiveNormalization : public TorchStage {
   public:
     // Constructor / Destructor
-    SpatialSubtractiveNormalization(const int32_t n_feats, 
-      const uint32_t kernel1d_size, const float* kernel1d, 
-      const int32_t height, const int32_t width);
+    SpatialSubtractiveNormalization(const FloatTensor& kernel1d);
     virtual ~SpatialSubtractiveNormalization();
 
     virtual TorchStageType type() const { return SPATIAL_SUBTRACTIVE_NORMALIZATION_STAGE; }
-    virtual void forwardProp(float* input, jtil::threading::ThreadPool* tp);
-    static TorchStage* loadFromFile(std::ifstream& file);
-    virtual int32_t outWidth() const { return width_; }
-    virtual int32_t outHeight() const { return height_; }
-    virtual int32_t outNFeats() const { return n_feats_; }
+    virtual void forwardProp(FloatTensor& input, 
+      jtil::threading::ThreadPool& tp);
 
-  private:
-    float* kernel1d_;
-    int32_t kernel1d_size_;
-    float* mean_coef_;
-    float* mean_accum_;
-    float* filt_tmp_;
-    int32_t n_feats_;
-    int32_t width_;
-    int32_t height_;
+    static TorchStage* loadFromFile(std::ifstream& file);
+
+  protected:
+    FloatTensor* kernel1d_;
+    FloatTensor* mean_coef_;
+    FloatTensor* mean_accum_;
+    FloatTensor* filt_tmp_;
 
     // Multithreading primatives and functions
     float* cur_input_;
@@ -50,6 +45,8 @@ namespace hand_net {
     std::condition_variable not_finished_;
     jtil::threading::Callback<void>** thread_cbs_;  
     void normalizeFeature(const int32_t outf);
+
+    void init(FloatTensor& input, jtil::threading::ThreadPool& tp);
 
     // Non-copyable, non-assignable.
     SpatialSubtractiveNormalization(SpatialSubtractiveNormalization&);

@@ -11,6 +11,7 @@
 #include <iostream>
 #include <limits>
 #include "kinect_interface/hand_net/torch_stage.h"
+#include "kinect_interface/hand_net/float_tensor.h"
 #include "kinect_interface/hand_net/spatial_convolution_map.h"
 #include "kinect_interface/hand_net/spatial_lp_pooling.h"
 #include "kinect_interface/hand_net/spatial_max_pooling.h"
@@ -22,6 +23,7 @@
 #include "kinect_interface/hand_net/tanh.h"
 #include "kinect_interface/hand_net/threshold.h"
 #include "jtil/threading/thread_pool.h"
+#include "jtil/data_str/vector_managed.h"
 #include "jtil/debug_util/debug_util.h"
 #include "jtil/file_io/file_io.h"
 
@@ -34,6 +36,8 @@
 using namespace std;
 using namespace kinect_interface::hand_net;
 using namespace jtil::threading;
+using namespace jtil::math;
+using namespace jtil::data_str;
 
 const uint32_t num_feats_in = 5;
 const uint32_t num_feats_out = 10;
@@ -49,49 +53,46 @@ int main(int argc, char *argv[]) {
 #if defined(_DEBUG) || defined(DEBUG)
   jtil::debug::EnableMemoryLeakChecks();
   // jtil::debug::EnableAggressiveMemoryLeakChecks();
-  jtil::debug::SetBreakPointOnAlocation(8634);
+  // jtil::debug::SetBreakPointOnAlocation(8634);
 #endif
 
-  data_in = new float[num_feats_in * width * height];
-  data_out = new float[num_feats_out * width * height];
-  ThreadPool* tp = new ThreadPool(NUM_WORKER_THREADS);
+  FloatTensor data_in(Uint3(width, height, num_feats_in));
+  FloatTensor data_out(Uint3(width, height, num_feats_out));
+  ThreadPool tp(NUM_WORKER_THREADS);
 
   for (uint32_t f = 0; f < num_feats_in; f++) {
     float val = (f+1) - (float)(width * height) / 16.0f;
     for (uint32_t v = 0; v < height; v++) {
       for (uint32_t u = 0; u < width; u++) {
-        data_in[f * width * height + v * width + u] = val;
+        data_in(u, v, f, 0) = val;
         val += 1.0f / 8.0f;
       }
     }
   }
   std::cout << "Data In:" << std::endl;
-  TorchStage::print3DTensorToStdCout<float>(data_in, num_feats_in, height, 
-    width);
+  data_in.print();
 
-  const int n_stages = 4;
-  TorchStage* stage[n_stages];
+  VectorManaged<TorchStage*> stages;
 
   // ***********************************************
   // Test Tanh
-  stage[0] = new Tanh(num_feats_in, height, width, NUM_WORKER_THREADS);
-  stage[0]->forwardProp(data_in, tp);
+  stages.pushBack(new Tanh());
+  stages[0]->forwardProp(data_in, tp);
   std::cout << endl << endl << "Tanh output:" << std::endl;
-  TorchStage::print3DTensorToStdCout<float>(stage[0]->output, num_feats_in,
-    height, width);
+  stages[0]->output->print();
 
   // ***********************************************
   // Test Threshold
   const float threshold = 0.5f;
   const float val = 0.1f;
-  stage[1] = new Threshold(num_feats_in, height, width, NUM_WORKER_THREADS);
-  ((Threshold*)stage[1])->threshold = threshold;
-  ((Threshold*)stage[1])->val = val;
-  stage[1]->forwardProp(stage[0]->output, tp);
+  stages.pushBack(new Threshold());
+  ((Threshold*)stages[1])->threshold = threshold;
+  ((Threshold*)stages[1])->val = val;
+  stages[1]->forwardProp(*stages[0]->output, tp);
   std::cout << endl << endl << "Threshold output:" << std::endl;
-  TorchStage::print3DTensorToStdCout<float>(stage[1]->output, num_feats_in,
-    height, width);
+  stages[1]->output->print();
 
+  /*
   // ***********************************************
   // Test SpatialConvolutionMap
   stage[2] = new SpatialConvolutionMap(num_feats_in, num_feats_out, fan_in,
@@ -221,24 +222,15 @@ int main(int argc, char *argv[]) {
   TorchStage::print3DTensorToStdCout<float>(lin_stage[1]->output, 1, 1,
     lin_size_out);
 
+  // ***********************************************
+  // Test Loading a model
+  TorchStage* m = TorchStage::loadFromFile("../data/handmodel.net.convnet");
+  */
+
 #if defined(WIN32) || defined(_WIN32)
   cout << endl;
   system("PAUSE");
 #endif
 
-  for (uint32_t i = 0; i < n_stages; i++) {
-    delete stage[i];
-  }
-  delete[] kernel1D;
-  delete lena;
-  delete cont_norm_stage;
-  delete div_norm_stage;
-  delete sub_norm_stage;
-  delete max_pool_stage;
-  delete lin_stage[0];
-  delete lin_stage[1];
-  delete[] data_in;
-  delete[] data_out;
-  tp->stop();
-  delete tp;
+  tp.stop();
 }

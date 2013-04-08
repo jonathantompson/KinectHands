@@ -23,7 +23,14 @@ namespace hand_net {
   }
 
   TorchStage* Sequential::loadFromFile(std::ifstream& file) {
-    throw std::wruntime_error("Not yet implemented");
+    int n_nodes;
+    file.read(reinterpret_cast<char*>(&n_nodes), sizeof(n_nodes));
+    Sequential* ret = new Sequential();
+    ret->network_->capacity(n_nodes);
+    for (uint32_t i = 0; i < n_nodes; i++) {
+      ret->network_->pushBack(TorchStage::loadFromFile(file));
+    }
+    return ret;
   }
 
   int32_t Sequential::outWidth() const {

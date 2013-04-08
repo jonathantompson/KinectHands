@@ -27,7 +27,6 @@ namespace hand_net {
 
     virtual TorchStageType type() const { return SEQUENTIAL_STAGE; }
     virtual void forwardProp(float* input, jtil::threading::ThreadPool* tp);
-    static TorchStage* loadFromFile(std::ifstream& file);
     virtual int32_t outWidth() const;
     virtual int32_t outHeight() const;
     virtual int32_t outNFeats() const;
@@ -36,7 +35,9 @@ namespace hand_net {
 
     float* output();  // Override output float*
 
-  private:
+    static TorchStage* loadFromFile(std::ifstream& file);
+
+  protected:
     jtil::data_str::VectorManaged<TorchStage*>* network_;
 
     // Non-copyable, non-assignable.

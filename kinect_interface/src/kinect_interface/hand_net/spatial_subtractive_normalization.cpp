@@ -1,11 +1,17 @@
 #include "kinect_interface/hand_net/spatial_subtractive_normalization.h"
+#include "kinect_interface/hand_net/float_tensor.h"
 #include "jtil/exceptions/wruntime_error.h"
+#include "jtil/threading/thread.h"
+#include "jtil/threading/callback.h"
 #include "jtil/threading/thread_pool.h"
+#include "jtil/data_str/vector_managed.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
 using namespace jtil::threading;
+using namespace jtil::math;
+using namespace jtil::data_str;
 
 namespace kinect_interface {
 namespace hand_net {
@@ -13,29 +19,28 @@ namespace hand_net {
   // kernel1d default is either TorchStage::gaussian1D<float>(n) or just a
   // vector of 1 values.
   SpatialSubtractiveNormalization::SpatialSubtractiveNormalization(
-    const int32_t n_feats, const uint32_t kernel1d_size, const float* kernel1d, 
-    const int32_t height, const int32_t width) : TorchStage() {
-    if (kernel1d_size % 2 == 0) {
+    const FloatTensor& kernel1d) : TorchStage() {
+    if (kernel1d.dataSize() % 2 == 0 || kernel1d.dim()[1] != 1 ||
+      kernel1d.dim()[2] != 1 || kernel1d.dim()[3] != 1) {
       throw std::wruntime_error("SpatialDivisiveNormalization() - ERROR: "
-        "Averaging kernel must have odd dimensions!");
+        "Averaging kernel must be 1D and have odd size!");
     }
 
-    kernel1d_size_ = kernel1d_size;
-    n_feats_ = n_feats;
-    width_ = width;
-    height_ = height;
-
-    output = new float[n_feats_ * outWidth() * outHeight()];
-    kernel1d_ = new float[kernel1d_size_];
-    memcpy(kernel1d_, kernel1d, kernel1d_size_ * sizeof(kernel1d_[0]));
+    kernel1d_ = kernel1d.copy();
     // Now normalize the kernel!
     float sum = 0.0f;
-    for (int32_t i = 0; i < kernel1d_size_; i++) {
-      sum += kernel1d_[i];
+    for (int32_t i = 0; i < kernel1d_->dim()[0]; i++) {
+      sum += kernel1d_->data()[i];
     }
-    for (int32_t i = 0; i < kernel1d_size_; i++) {
-      kernel1d_[i] /= sum;
+    for (int32_t i = 0; i < kernel1d_->dim()[0]; i++) {
+      kernel1d_->data()[i] /= sum;
     }
+
+    output = NULL;
+    mean_coef_ = NULL;
+    mean_accum_ = NULL;
+    filt_tmp_ = NULL;
+    
 
     // Filter an image of all 1 values to create the normalization constants
     // See norm_test.lua for proof that this works as well as:
@@ -71,6 +76,38 @@ namespace hand_net {
       thread_cbs_[i] = 
         MakeCallableMany(&SpatialSubtractiveNormalization::normalizeFeature, 
         this, i);
+    }
+  }
+
+  void SpatialSubtractiveNormalization::init(FloatTensor& input, 
+    jtil::threading::ThreadPool& tp)  {
+    if (output != NULL) {
+      if (!Uint4::equal(input.dim(), output->dim())) {
+        // Input dimension has changed!
+        SAFE_DELETE(output);
+        SAFE_DELETE(mean_coef_);
+        SAFE_DELETE(mean_accum_);
+        SAFE_DELETE(filt_tmp_);
+        SAFE_DELETE(thread_cbs_);
+      }
+    }
+    if (output == NULL) {
+      output = new FloatTensor(input.dim());
+    }
+    if (thread_cbs_ == NULL) {
+      int32_t n_threads = tp.num_workers();
+      // pix_per_thread is rounded up (so we always cover the correct amount)
+      int32_t input_size = input.dataSize();
+      int32_t pix_per_thread = 1 + input.dataSize() / n_threads;
+      thread_cbs_ = new VectorManaged<Callback<void>*>(n_threads);
+      for (uint32_t i = 0; i < n_threads; i++) {
+        int32_t start = i * pix_per_thread;
+        // Note: end is inclusive
+        int32_t end = std::min<int32_t>((i + 1) * pix_per_thread - 1,
+          input_size - 1);
+        thread_cbs_->pushBack(MakeCallableMany(&Tanh::forwardPropThread, 
+          this, start, end));
+      }
     }
   }
 

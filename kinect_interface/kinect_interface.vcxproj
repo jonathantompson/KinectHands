@@ -25,6 +25,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="src\kinect_interface\hand_net\float_tensor.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\hand_image_generator.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\hand_model.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\hand_net.cpp" />
@@ -37,6 +38,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="src\kinect_interface\hand_net\parallel.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\reshape.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\sequential.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\spatial_contrastive_normalization.cpp" />
@@ -66,6 +68,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="include\kinect_interface\hand_net\float_tensor.h" />
     <ClInclude Include="include\kinect_interface\hand_net\hand_image_generator.h" />
     <ClInclude Include="include\kinect_interface\hand_net\hand_model.h" />
     <ClInclude Include="include\kinect_interface\hand_net\hand_net.h" />
@@ -78,6 +81,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="include\kinect_interface\hand_net\parallel.h" />
     <ClInclude Include="include\kinect_interface\hand_net\reshape.h" />
     <ClInclude Include="include\kinect_interface\hand_net\sequential.h" />
     <ClInclude Include="include\kinect_interface\hand_net\spatial_contrastive_normalization.h" />

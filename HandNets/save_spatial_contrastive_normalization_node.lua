@@ -15,7 +15,6 @@ function saveSpatialContrastiveNormalizationNode(node, ofile)
   for i=1,node.kernel:size() do
     ofile:writeFloat(node.kernel[{i}])
   end
-  ofile:writeInt(node.nInputPlane)
   ofile:writeFloat(node.threshold)
 
 end

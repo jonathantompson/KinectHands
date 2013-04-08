@@ -30,12 +30,13 @@ namespace hand_net {
 
     virtual TorchStageType type() const { return RESHAPE_STAGE; }
     virtual void forwardProp(float* input, jtil::threading::ThreadPool* tp);
-    static TorchStage* loadFromFile(std::ifstream& file);
     virtual int32_t outWidth() const { return feats_in_ * width_ * height_; }
     virtual int32_t outHeight() const { return 1; }
     virtual int32_t outNFeats() const { return 1; }
 
-  private:
+    static TorchStage* loadFromFile(std::ifstream& file);
+
+  protected:
     int32_t feats_in_;
     int32_t width_;
     int32_t height_;

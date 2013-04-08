@@ -24,7 +24,6 @@ namespace hand_net {
 
     virtual TorchStageType type() const { return LINEAR_STAGE; }
     virtual void forwardProp(float* input, jtil::threading::ThreadPool* tp);
-    static TorchStage* loadFromFile(std::ifstream& file);
     virtual int32_t outWidth() const { return n_outputs_; }
     virtual int32_t outHeight() const { return 1; }
     virtual int32_t outNFeats() const { return 1; }
@@ -32,7 +31,9 @@ namespace hand_net {
     float* weights;
     float* bias;
 
-  private:
+    static TorchStage* loadFromFile(std::ifstream& file);
+
+  protected:
     int32_t n_inputs_;
     int32_t n_outputs_;
     int32_t n_threads_;
