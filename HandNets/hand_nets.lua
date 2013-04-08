@@ -45,12 +45,12 @@ im_dir = "../data/hand_depth_data_processed_for_CN_synthetic/"
 test_im_dir = "../data/hand_depth_data_processed_for_CN_test_synthetic/"
 test_data_rate = 20  -- this means 1 / 20 FROM THE TRAINING SET will be test
 use_hpf_depth = 1
-learning_rate = 1e-0  -- Default 1e-3
-l2_reg_param = 1e-2  -- Default 1e-4
+learning_rate = 1e-0  -- Default 1e-1
+l2_reg_param = 2e-4  -- Default 2e-4
 learning_rate_decay = 1e-7  -- Default 1e-7
 learning_momentum = 0.9 -- Default 0.9 --> Clement suggestion
-max_num_epochs = 80
-batch_size = 128
+max_num_epochs = 200
+batch_size = 128  -- Default 128
 
 -- ********************** Load data from Disk *************************
 dofile('load_data.lua')
