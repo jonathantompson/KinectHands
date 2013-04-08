@@ -16,40 +16,39 @@
 #include "jtil/threading/callback.h"
 #include "kinect_interface/hand_net/torch_stage.h"
 
+namespace jtil { namespace data_str { template <typename T> class VectorManaged; } }
+
 namespace kinect_interface {
 namespace hand_net {
   
-  struct SpatialLPPooling : public TorchStage {
+  class SpatialLPPooling : public TorchStage {
   public:
     // Constructor / Destructor
-    SpatialLPPooling(const int32_t n_feats, const float p_norm,
-      const int32_t poolsize_v, const int32_t poolsize_u, 
-      const int32_t height, const int32_t width);
+    SpatialLPPooling(const float p_norm, const int32_t poolsize_v, 
+      const int32_t poolsize_u);
     virtual ~SpatialLPPooling();
 
     virtual TorchStageType type() const { return SPATIAL_LP_POOLING_STAGE; }
-    virtual void forwardProp(float* input, jtil::threading::ThreadPool* tp);
-    virtual int32_t outWidth() const;
-    virtual int32_t outHeight() const;
-    virtual int32_t outNFeats() const { return n_feats_; }
+    virtual void forwardProp(FloatTensor& input, 
+      jtil::threading::ThreadPool& tp);
 
     static TorchStage* loadFromFile(std::ifstream& file);
 
   protected:
-    int32_t n_feats_;
     float p_norm_;
     int32_t poolsize_v_;
     int32_t poolsize_u_;
-    int32_t width_;
-    int32_t height_;
 
     // Multithreading primatives and functions
-    float* cur_input_;
+    FloatTensor* cur_input_;
     int32_t threads_finished_;
     std::mutex thread_update_lock_;
     std::condition_variable not_finished_;
-    jtil::threading::Callback<void>** thread_cbs_;  
-    void forwardPropThread(const int32_t outf);
+    jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* thread_cbs_; 
+
+    void forwardPropThread(const int32_t outf, const int32_t outb);
+
+    void init(FloatTensor& input, jtil::threading::ThreadPool& tp);
 
     // Non-copyable, non-assignable.
     SpatialLPPooling(SpatialLPPooling&);

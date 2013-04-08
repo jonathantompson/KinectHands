@@ -10,6 +10,7 @@
 #include "kinect_interface/open_ni_funcs.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"  // for GDT_MAX_DIST
 #include "kinect_interface/hand_net/spatial_contrastive_normalization.h"
+#include "kinect_interface/hand_net/float_tensor.h"
 #include "jtil/image_util/image_util.h"
 #include "jtil/renderer/colors/colors.h"
 #include "jtil/exceptions/wruntime_error.h"
@@ -28,8 +29,11 @@ using std::runtime_error;
 using std::cout;
 using std::endl;
 using jtil::math::Float3;
+
 using namespace jtil::image_util;
 using namespace jtil::threading;
+using namespace jtil::math;
+using namespace jtil::data_str;
 
 namespace kinect_interface {
 namespace hand_net {
@@ -43,6 +47,7 @@ namespace hand_net {
     im_temp_double_ = NULL;
     num_banks_ = num_banks;
     contrast_norm_module_ = NULL;
+    contrast_norm_module_input_ = NULL;
     initHandImageData();
   }
 
@@ -62,6 +67,12 @@ namespace hand_net {
       }
     }
     SAFE_DELETE_ARR(contrast_norm_module_);
+    if (contrast_norm_module_input_) {
+      for (int32_t i = 0; i < num_banks_; i++) {
+        SAFE_DELETE(contrast_norm_module_input_[i]);
+      }
+    }
+    SAFE_DELETE_ARR(contrast_norm_module_input_);
   }
 
   void HandImageGenerator::initHandImageData() {
@@ -92,11 +103,15 @@ namespace hand_net {
 #endif
 
     contrast_norm_module_ = new SpatialContrastiveNormalization*[num_banks_];
+    contrast_norm_module_input_ = new FloatTensor*[num_banks_];
     im_sizeu = HN_IM_SIZE;
     im_sizev = HN_IM_SIZE;
     for (int32_t i = 0; i < num_banks_; i++) {
-      contrast_norm_module_[i] = new SpatialContrastiveNormalization(1, 
-        im_sizev, im_sizeu, HN_RECT_KERNEL_SIZE);
+      FloatTensor* kernel = FloatTensor::ones1D(HN_RECT_KERNEL_SIZE);
+      contrast_norm_module_input_[i] = 
+        new FloatTensor(Int4(im_sizeu, im_sizev, 1, 1));
+      contrast_norm_module_[i] = new SpatialContrastiveNormalization(kernel);
+      delete kernel;
       im_sizeu /= 2;
       im_sizev /= 2;
     }
@@ -223,8 +238,12 @@ namespace hand_net {
     float* src = hand_image_;
     for (int32_t i = 0; i < num_banks_; i++) {
       // Apply local contrast normalization
-      contrast_norm_module_[i]->forwardProp(src, tp);
-      memcpy(dst, contrast_norm_module_[i]->output(), w * h * sizeof(dst[0]));
+      memcpy(contrast_norm_module_input_[i]->data(), src, 
+        w * h * sizeof(contrast_norm_module_input_[i]->data()[0]));
+      contrast_norm_module_[i]->forwardProp(*contrast_norm_module_input_[i], 
+        *tp);
+      memcpy(dst, contrast_norm_module_[i]->output->data(), 
+        w * h * sizeof(dst[0]));
       if (i < (num_banks_ - 1)) {
         // Iterate the dst, coeff and src pointers
         src = &src[w * h];

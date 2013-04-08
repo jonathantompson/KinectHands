@@ -5,6 +5,10 @@
 //
 //  This stage is only partially multi-threaded!
 //
+//  Note that just like the torch stage, this divisive stage assumes zero
+//  input mean.  That is, it does not subtract off the mean per element when 
+//  estimating the standard deviation.
+//
 
 #ifndef KINECT_INTERFACE_HAND_SPATIAL_DIVISIVE_NORMALIZATION_HEADER
 #define KINECT_INTERFACE_HAND_SPATIAL_DIVISIVE_NORMALIZATION_HEADER
@@ -15,43 +19,45 @@
 #include "jtil/threading/callback.h"
 #include "kinect_interface/hand_net/torch_stage.h"
 
+namespace jtil { namespace data_str { template <typename T> class VectorManaged; } }
+
 namespace kinect_interface {
 namespace hand_net {
+
+  class FloatTensor;
   
-  struct SpatialDivisiveNormalization : public TorchStage {
+  class SpatialDivisiveNormalization : public TorchStage {
   public:
     // Constructor / Destructor
-    SpatialDivisiveNormalization(const int32_t n_feats, 
-      const uint32_t kernel1d_size, const float* kernel1d, 
-      const int32_t height, const int32_t width, const float threshold = 1e-4f);
+    SpatialDivisiveNormalization(const FloatTensor& kernel1d, 
+      const float threshold = 1e-4f);
     virtual ~SpatialDivisiveNormalization();
 
     virtual TorchStageType type() const { return SPATIAL_DIVISIVE_NORMALIZATION_STAGE; }
-    virtual void forwardProp(float* input, jtil::threading::ThreadPool* tp);
-    virtual int32_t outWidth() const { return width_; }
-    virtual int32_t outHeight() const { return height_; }
-    virtual int32_t outNFeats() const { return n_feats_; }
+    virtual void forwardProp(FloatTensor& input, 
+      jtil::threading::ThreadPool& tp);
 
     static TorchStage* loadFromFile(std::ifstream& file);
 
   protected:
-    float* kernel1d_;
-    int32_t kernel1d_size_;
+    FloatTensor* kernel1d_;
+    FloatTensor* kernel1d_norm_;  // kernel normalization depends on input size
     float* std_coef_;
     float* std_accum_;
     float* filt_tmp_;
-    int32_t n_feats_;
-    int32_t width_;
-    int32_t height_;
     float threshold_;
 
     // Multithreading primatives and functions
     float* cur_input_;
+    float* cur_output_;
     int32_t threads_finished_;
     std::mutex thread_update_lock_;
     std::condition_variable not_finished_;
-    jtil::threading::Callback<void>** thread_cbs_;  
+    jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* thread_cbs_; 
+
     void normalizeFeature(const int32_t outf);
+
+    void init(FloatTensor& input, jtil::threading::ThreadPool& tp);
 
     // Non-copyable, non-assignable.
     SpatialDivisiveNormalization(SpatialDivisiveNormalization&);

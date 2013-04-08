@@ -30,7 +30,8 @@ namespace jtil { namespace threading { class ThreadPool; } }
 namespace kinect_interface {
 namespace hand_net {
 
-  struct SpatialContrastiveNormalization;
+  class FloatTensor;
+  class SpatialContrastiveNormalization;
   
   class HandImageGenerator {
   public:
@@ -70,7 +71,8 @@ namespace hand_net {
     float* im_temp1_;  // TO DO: Do we need all this temporary data?
     float* im_temp2_;
     double* im_temp_double_;
-    SpatialContrastiveNormalization** contrast_norm_module_;  // One for each bank
+    SpatialContrastiveNormalization** contrast_norm_module_;  // One per bank
+    FloatTensor** contrast_norm_module_input_;
 
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in, 
       const float* synthetic_depth = NULL);

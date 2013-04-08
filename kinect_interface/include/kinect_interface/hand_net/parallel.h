@@ -19,24 +19,18 @@ namespace jtil { namespace data_str { template <typename T> class VectorManaged;
 namespace kinect_interface {
 namespace hand_net {
   
-  struct Parallel : public TorchStage {
+  class Parallel : public TorchStage {
   public:
     // Constructor / Destructor
     Parallel();
     virtual ~Parallel();
 
     virtual TorchStageType type() const { return PARALLEL_STAGE; }
-    virtual void forwardProp(float* input, jtil::threading::ThreadPool* tp);
-    int32_t outWidth(const uint32_t index) const;
-    int32_t outHeight(const uint32_t index) const;
-    int32_t outNFeats(const uint32_t index) const;
-    virtual int32_t outWidth() const { return 0; }
-    virtual int32_t outHeight() const { return 0; }
-    virtual int32_t outNFeats() const { return 0; }
+    virtual void forwardProp(FloatTensor& input, 
+      jtil::threading::ThreadPool& tp);
 
     void add(TorchStage* stage);
 
-    float* output(const uint32_t index);  // Override output float*
     uint32_t numBanks() const;
 
     static TorchStage* loadFromFile(std::ifstream& file);

@@ -13,17 +13,17 @@ using namespace jtil::math;
 namespace kinect_interface {
 namespace hand_net {
 
-  FloatTensor::FloatTensor(const jtil::math::Uint4& dim) {
+  FloatTensor::FloatTensor(const jtil::math::Int4& dim) {
     dim_.set(dim);
     data_ = new float[dim_[0] * dim_[1] * dim_[2] * dim_[3]]; 
   }
 
-  FloatTensor::FloatTensor(const jtil::math::Uint3& dim) {
+  FloatTensor::FloatTensor(const jtil::math::Int3& dim) {
     dim_.set(dim[0], dim[1], dim[2], 1);
     data_ = new float[dim_[0] * dim_[1] * dim_[2] * dim_[3]]; 
   }
 
-  FloatTensor::FloatTensor(const jtil::math::Uint2& dim) {
+  FloatTensor::FloatTensor(const jtil::math::Int2& dim) {
     dim_.set(dim[0], dim[1], 1, 1);
     data_ = new float[dim_[0] * dim_[1] * dim_[2] * dim_[3]]; 
   }
@@ -37,17 +37,17 @@ namespace hand_net {
     delete[] data_;
   }
 
-  float& FloatTensor::operator()(const uint32_t x, const uint32_t y, 
-    const uint32_t z, const uint32_t w) {
+  float& FloatTensor::operator()(const uint32_t u, const uint32_t v, 
+    const uint32_t f, const uint32_t b) {
 #if defined(DEBUG) || defined(_DEBUG)
-    if (x >= dim_[0] || y >= dim_[1] || z >= dim_[2] || w >= dim_[3]) {
+    if (u >= dim_[0] || v >= dim_[1] || f >= dim_[2] || b >= dim_[3]) {
       throw std::wruntime_error("FloatTensor::operator() - ERROR: index out "
         "of bounds!");
     }
 #endif
     // We want: X + dim[0]*Y + dim[0]*dim[1]*Z + dim[0]*dim[1]*dim[2]*W
     //        = X + dim[0]*(Y + dim[1]*(Z + dim[2]*W)
-    return data_[x + dim_[0]*(y + dim_[1]*(z + dim_[2]*w))];
+    return data_[u + dim_[0]*(v + dim_[1]*(f + dim_[2]*b))];
   }
 
   void FloatTensor::print() const {
@@ -81,20 +81,20 @@ namespace hand_net {
   };
 
   FloatTensor* FloatTensor::gaussian1D(const int32_t kernel_size) {
-    FloatTensor* ret = new FloatTensor(Uint4(kernel_size, 1, 1, 1));
+    FloatTensor* ret = new FloatTensor(Int4(kernel_size, 1, 1, 1));
     const float sigma = 0.25f;
     const float amplitude = 1.0f;
     const float size = (float)kernel_size;
     const float center = size/2.0f + 0.5f;
     for (int32_t i = 0; i < kernel_size; i++) {
-      ret->data_[i] = amplitude * expf(-(powf(((float)(i+1)-center) / (sigma*size),
-        2.0f)/2.0f));
+      ret->data_[i] = amplitude * expf(-(powf(((float)(i+1) - center) / 
+        (sigma*size), 2.0f) / 2.0f));
     }
     return ret;
   }
 
   FloatTensor* FloatTensor::ones1D(const int32_t kernel_size) {
-    FloatTensor* ret = new FloatTensor(Uint4(kernel_size, 1, 1, 1));
+    FloatTensor* ret = new FloatTensor(Int4(kernel_size, 1, 1, 1));
     for (int32_t i = 0; i < kernel_size; i++) {
       ret->data_[i] = 1.0f;
     }
@@ -104,6 +104,7 @@ namespace hand_net {
   FloatTensor* FloatTensor::copy() const {
     FloatTensor* ret = new FloatTensor(dim_);
     memcpy(ret->data_, data_, sizeof(ret->data_[0]) * dataSize());
+    return ret;
   }
 
 }  // namespace hand_net

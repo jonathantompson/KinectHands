@@ -24,26 +24,23 @@
 namespace kinect_interface {
 namespace hand_net {
   
-  struct Sequential;
+  class Sequential;
 
-  struct SpatialContrastiveNormalization : public TorchStage {
+  class SpatialContrastiveNormalization : public TorchStage {
   public:
     // Constructor / Destructor
     // Note if kernel1d is NULL, then a rectangular filter kernel is used
-    SpatialContrastiveNormalization(const int32_t n_feats, 
-      const int32_t height, const int32_t width, const uint32_t kernel1d_size, 
-      const float* kernel1d = NULL, const float threshold = 1e-4f);
+    SpatialContrastiveNormalization(const FloatTensor* kernel1d = NULL, 
+      const float threshold = 1e-4f);
     virtual ~SpatialContrastiveNormalization();
 
     virtual TorchStageType type() const { return SPATIAL_CONTRASTIVE_NORMALIZATION_STAGE; }
-    virtual void forwardProp(float* input, jtil::threading::ThreadPool* tp);
-    virtual int32_t outWidth() const;
-    virtual int32_t outHeight() const;
-    virtual int32_t outNFeats() const;
-
-    float* output();  // Override output float*
+    virtual void forwardProp(FloatTensor& input, 
+      jtil::threading::ThreadPool& tp);
 
     static TorchStage* loadFromFile(std::ifstream& file);
+
+    FloatTensor* output;  // Not owned here for ContrastiveNormalization
 
   protected:
     Sequential* network_;

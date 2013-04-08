@@ -1,84 +1,107 @@
 #include "kinect_interface/hand_net/spatial_lp_pooling.h"
+#include "kinect_interface/hand_net/float_tensor.h"
 #include "jtil/exceptions/wruntime_error.h"
+#include "jtil/threading/thread.h"
+#include "jtil/threading/callback.h"
 #include "jtil/threading/thread_pool.h"
+#include "jtil/data_str/vector_managed.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
 using namespace jtil::threading;
+using namespace jtil::math;
+using namespace jtil::data_str;
 
 namespace kinect_interface {
 namespace hand_net {
 
-  SpatialLPPooling::SpatialLPPooling(const int32_t n_feats, 
-    const float p_norm, const int32_t poolsize_v, const int32_t poolsize_u, 
-    const int32_t height, const int32_t width) : TorchStage() {
-    n_feats_ = n_feats;
+  SpatialLPPooling::SpatialLPPooling(const float p_norm, 
+    const int32_t poolsize_v, const int32_t poolsize_u) : TorchStage() {
     p_norm_ = p_norm;
     poolsize_v_ = poolsize_v;
     poolsize_u_ = poolsize_u;
-    width_ = width;
-    height_ = height;
-
-    if (width_ % poolsize_u_ != 0 || height_ % poolsize_v_ != 0) {
-      throw std::wruntime_error("width or height is not a multiple of "
-        "the poolsize!");
-    }
-
-    output = new float[n_feats_ * outWidth() * outHeight()];
-
-    thread_cbs_ = new Callback<void>*[n_feats_];
-    for (int32_t i = 0; i < n_feats_; i++) {
-      thread_cbs_[i] = 
-        MakeCallableMany(&SpatialLPPooling::forwardPropThread, this, i);
-    }
+    output = NULL;
+    thread_cbs_ = NULL;
   }
 
   SpatialLPPooling::~SpatialLPPooling() {
-    SAFE_DELETE_ARR(output);
-    for (int32_t i = 0; i < n_feats_; i++) {
-      SAFE_DELETE(thread_cbs_[i]);
-    }
-    SAFE_DELETE_ARR(thread_cbs_);
+    SAFE_DELETE(output);
+    SAFE_DELETE(thread_cbs_);
   }
 
-  void SpatialLPPooling::forwardProp(float* input, 
-    jtil::threading::ThreadPool* tp) { 
-    cur_input_ = input;
+  void SpatialLPPooling::init(FloatTensor& input, ThreadPool& tp)  {
+    if (output != NULL) {
+      if (!Int4::equal(input.dim(), output->dim())) {
+        // Input dimension has changed!
+        SAFE_DELETE(output);
+        SAFE_DELETE(thread_cbs_);
+      }
+    }
+    if (output == NULL) {
+      if (input.dim()[0] % poolsize_u_ != 0 || 
+        input.dim()[1] % poolsize_v_ != 0) {
+        throw std::wruntime_error("width or height is not a multiple of "
+          "the poolsize!");
+      }
+      Int4 out_dim(input.dim());
+      out_dim[0] /= poolsize_u_;
+      out_dim[1] /= poolsize_v_;
+      output = new FloatTensor(out_dim);
+    }
+
+    if (thread_cbs_ == NULL) {
+      int32_t n_threads = output->dim()[2] * output->dim()[3];
+      thread_cbs_ = new VectorManaged<Callback<void>*>(n_threads);
+      for (int32_t b = 0; b < output->dim()[3]; b++) {
+        for (int32_t f = 0; f < output->dim()[2]; f++) {
+          thread_cbs_->pushBack(MakeCallableMany(
+            &SpatialLPPooling::forwardPropThread, this, f, b));
+        }
+      }
+    }
+  }
+
+  void SpatialLPPooling::forwardProp(FloatTensor& input, 
+    jtil::threading::ThreadPool& tp) { 
+    init(input, tp);
+    cur_input_ = &input;
     threads_finished_ = 0;
-    for (int32_t i = 0; i < n_feats_; i++) {
-      tp->addTask(thread_cbs_[i]);
+    for (uint32_t i = 0; i < thread_cbs_->size(); i++) {
+      tp.addTask((*thread_cbs_)[i]);
     } 
 
     // Wait for all threads to finish
     std::unique_lock<std::mutex> ul(thread_update_lock_);  // Get lock
-    while (threads_finished_ != n_feats_) {
+    while (threads_finished_ != thread_cbs_->size()) {
       not_finished_.wait(ul);
     }
     ul.unlock();  // Release lock
   }
 
-  void SpatialLPPooling::forwardPropThread(const int32_t outf) {
-    const int32_t out_w = outWidth();
-    const int32_t out_h = outHeight();
-    const int32_t out_offset = outf * out_w * out_h;
-    const int32_t in_offset = outf * width_ * height_;
-    const int32_t in_dim = width_ * height_;
-
+  void SpatialLPPooling::forwardPropThread(const int32_t outf, 
+    const int32_t outb) {
+    const int32_t out_w = output->dim()[0];
+    const int32_t out_h = output->dim()[1];
+    const int32_t in_w = cur_input_->dim()[0];
     const float one_over_p_norm = 1.0f / p_norm_;
+
+    float* out = &(*output)(0, 0, outf, outb);
+    float* in = &(*cur_input_)(0, 0, outf, outb);
 
     for (int32_t outv = 0; outv < out_h; outv++) {
       for (int32_t outu = 0; outu < out_w; outu++) {
-        output[out_offset + outv * out_w + outu] = 0.0f;
-        // Now perform L2 pooling:
+        int32_t out_index = outv * out_w + outu;
+        out[out_index] = -std::numeric_limits<float>::infinity();
+        // Now perform max pooling:
         for (int32_t inv = outv * poolsize_v_; inv < (outv + 1) * poolsize_v_; inv++) {
           for (int32_t inu = outu * poolsize_u_; inu < (outu + 1) * poolsize_u_; inu++) {
-            float val = fabsf(cur_input_[in_offset + inv * width_ + inu]);
-            output[out_offset + outv * out_w + outu] += powf(val, p_norm_);
+            float val = fabsf(in[inv * in_w + inu]);
+            out[out_index] += powf(val, p_norm_);
           }
         }
-        output[out_offset + outv * out_w + outu] = 
-          powf(output[out_offset + outv * out_w + outu], one_over_p_norm);
+        out[outv * out_w + outu] = powf(out[outv * out_w + outu], 
+          one_over_p_norm);
       }
     }
     std::unique_lock<std::mutex> ul(thread_update_lock_);
@@ -89,14 +112,6 @@ namespace hand_net {
 
   TorchStage* SpatialLPPooling::loadFromFile(std::ifstream& file) {
     throw std::wruntime_error("Not yet implemented");
-  }
-
-  int32_t SpatialLPPooling::outWidth() const {
-    return width_ / poolsize_u_;
-  }
-
-  int32_t SpatialLPPooling::outHeight() const {
-    return height_ / poolsize_v_;
   }
 
 }  // namespace hand_net

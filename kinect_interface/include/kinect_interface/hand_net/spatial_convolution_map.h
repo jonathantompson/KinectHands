@@ -23,7 +23,7 @@
 namespace kinect_interface {
 namespace hand_net {
   
-  struct SpatialConvolutionMap : public TorchStage {
+  class SpatialConvolutionMap : public TorchStage {
   public:
     // Constructor / Destructor
     SpatialConvolutionMap(const int32_t feats_in, const int32_t feats_out,

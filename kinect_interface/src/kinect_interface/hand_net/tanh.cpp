@@ -28,7 +28,7 @@ namespace hand_net {
 
   void Tanh::init(FloatTensor& input, jtil::threading::ThreadPool& tp)  {
     if (output != NULL) {
-      if (!Uint4::equal(input.dim(), output->dim())) {
+      if (!Int4::equal(input.dim(), output->dim())) {
         // Input dimension has changed!
         SAFE_DELETE(output);
         SAFE_DELETE(thread_cbs_);
@@ -43,7 +43,7 @@ namespace hand_net {
       int32_t input_size = input.dataSize();
       int32_t pix_per_thread = 1 + input.dataSize() / n_threads;
       thread_cbs_ = new VectorManaged<Callback<void>*>(n_threads);
-      for (uint32_t i = 0; i < n_threads; i++) {
+      for (int32_t i = 0; i < n_threads; i++) {
         int32_t start = i * pix_per_thread;
         // Note: end is inclusive
         int32_t end = std::min<int32_t>((i + 1) * pix_per_thread - 1,
@@ -59,7 +59,7 @@ namespace hand_net {
     cur_input_ = input.data();
     cur_output_ = output->data();
     threads_finished_ = 0;
-    for (int32_t i = 0; i < thread_cbs_->size(); i++) {
+    for (uint32_t i = 0; i < thread_cbs_->size(); i++) {
       tp.addTask((*thread_cbs_)[i]);
     } 
 
@@ -86,6 +86,7 @@ namespace hand_net {
 
   TorchStage* Tanh::loadFromFile(std::ifstream& file) {
     // Nothing to do for Tanh
+    return new Tanh();
   }
 
 }  // namespace hand_net

@@ -15,12 +15,14 @@
 #include "jtil/threading/callback.h"
 #include "kinect_interface/hand_net/torch_stage.h"
 
-class FloatTensor;
+namespace jtil { namespace data_str { template <typename T> class VectorManaged; } }
 
 namespace kinect_interface {
 namespace hand_net {
+
+  class FloatTensor;
   
-  struct SpatialSubtractiveNormalization : public TorchStage {
+  class SpatialSubtractiveNormalization : public TorchStage {
   public:
     // Constructor / Destructor
     SpatialSubtractiveNormalization(const FloatTensor& kernel1d);
@@ -34,17 +36,19 @@ namespace hand_net {
 
   protected:
     FloatTensor* kernel1d_;
-    FloatTensor* mean_coef_;
-    FloatTensor* mean_accum_;
-    FloatTensor* filt_tmp_;
+    float* mean_coef_;
+    float* mean_accum_;
+    float* filt_tmp_;
 
     // Multithreading primatives and functions
     float* cur_input_;
+    float* cur_output_;
     int32_t threads_finished_;
     std::mutex thread_update_lock_;
     std::condition_variable not_finished_;
-    jtil::threading::Callback<void>** thread_cbs_;  
-    void normalizeFeature(const int32_t outf);
+    jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* thread_cbs_; 
+
+    void normalizeFeature(const int32_t feat);
 
     void init(FloatTensor& input, jtil::threading::ThreadPool& tp);
 

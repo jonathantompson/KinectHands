@@ -12,21 +12,22 @@
 #include "jtil/threading/callback.h"
 #include "kinect_interface/hand_net/torch_stage.h"
 
+namespace jtil { namespace data_str { template <typename T> class VectorManaged; } }
+
 namespace kinect_interface {
 namespace hand_net {
+
+  class FloatTensor;
   
-  struct Linear : public TorchStage {
+  class Linear : public TorchStage {
   public:
     // Constructor / Destructor
-    Linear(const int32_t n_inputs, const int32_t n_outputs, 
-      const int32_t n_threads);
+    Linear(const int32_t n_inputs, const int32_t n_outputs);
     virtual ~Linear();
 
     virtual TorchStageType type() const { return LINEAR_STAGE; }
-    virtual void forwardProp(float* input, jtil::threading::ThreadPool* tp);
-    virtual int32_t outWidth() const { return n_outputs_; }
-    virtual int32_t outHeight() const { return 1; }
-    virtual int32_t outNFeats() const { return 1; }
+    virtual void forwardProp(FloatTensor& input, 
+      jtil::threading::ThreadPool& tp);
 
     float* weights;
     float* bias;
@@ -36,15 +37,18 @@ namespace hand_net {
   protected:
     int32_t n_inputs_;
     int32_t n_outputs_;
-    int32_t n_threads_;
 
     // Multithreading primatives and functions
     float* cur_input_;
+    float* cur_output_;
     int32_t threads_finished_;
     std::mutex thread_update_lock_;
     std::condition_variable not_finished_;
-    jtil::threading::Callback<void>** thread_cbs_;  
+    jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* thread_cbs_; 
+
     void forwardPropThread(const int32_t start_outf, const int32_t end_outf);
+
+    void init(FloatTensor& input, jtil::threading::ThreadPool& tp);
 
     // Non-copyable, non-assignable.
     Linear(Linear&);

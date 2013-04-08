@@ -1,9 +1,16 @@
 #include "kinect_interface/hand_net/parallel.h"
+#include "kinect_interface/hand_net/float_tensor.h"
+#include "jtil/exceptions/wruntime_error.h"
+#include "jtil/threading/thread.h"
+#include "jtil/threading/callback.h"
+#include "jtil/threading/thread_pool.h"
 #include "jtil/data_str/vector_managed.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
+using namespace jtil::threading;
+using namespace jtil::math;
 using namespace jtil::data_str;
 
 namespace kinect_interface {
@@ -33,40 +40,9 @@ namespace hand_net {
     return ret;
   }
 
-  int32_t Parallel::outWidth(const uint32_t index) const {
-    if (network_ == NULL) {
-      throw std::wruntime_error("Parallel::outWidth() - ERROR: "
-        "Network is empty!");
-    }
-    return (*network_)[index]->outWidth();
-  }
-
-  int32_t Parallel::outHeight(const uint32_t index) const {
-    if (network_ == NULL) {
-      throw std::wruntime_error("Parallel::outHeight() - ERROR: "
-        "Network is empty!");
-    }
-    return (*network_)[index]->outHeight();
-  }
-
-  int32_t Parallel::outNFeats(const uint32_t index) const {
-    if (network_ == NULL) {
-      throw std::wruntime_error("Parallel::outNFeats() - ERROR: "
-        "Network is empty!");
-    }
-    return (*network_)[index]->outNFeats();
-  }
-
-  void Parallel::forwardProp(float* input, jtil::threading::ThreadPool* tp) {
+  void Parallel::forwardProp(FloatTensor& input, 
+    ThreadPool& tp) {
     throw std::wruntime_error("Not yet implemented");
-  }
-
-  float* Parallel::output(const uint32_t index) {
-    if (network_ == NULL) {
-      throw std::wruntime_error("Parallel::output() - ERROR: "
-        "Network is empty!");
-    }
-    return (*network_)[index]->output;
   }
 
   uint32_t Parallel::numBanks() const {

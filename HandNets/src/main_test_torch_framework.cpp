@@ -56,8 +56,8 @@ int main(int argc, char *argv[]) {
   // jtil::debug::SetBreakPointOnAlocation(8634);
 #endif
 
-  FloatTensor data_in(Uint3(width, height, num_feats_in));
-  FloatTensor data_out(Uint3(width, height, num_feats_out));
+  FloatTensor data_in(Int3(width, height, num_feats_in));
+  FloatTensor data_out(Int3(width, height, num_feats_out));
   ThreadPool tp(NUM_WORKER_THREADS);
 
   for (uint32_t f = 0; f < num_feats_in; f++) {

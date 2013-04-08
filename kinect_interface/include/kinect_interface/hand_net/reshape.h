@@ -22,24 +22,20 @@
 namespace kinect_interface {
 namespace hand_net {
   
-  struct Reshape : public TorchStage {
+  class Reshape : public TorchStage {
   public:
     // Constructor / Destructor
-    Reshape(const int32_t feats_in, const int32_t height, const int32_t width);
+    Reshape();
     virtual ~Reshape();
 
     virtual TorchStageType type() const { return RESHAPE_STAGE; }
-    virtual void forwardProp(float* input, jtil::threading::ThreadPool* tp);
-    virtual int32_t outWidth() const { return feats_in_ * width_ * height_; }
-    virtual int32_t outHeight() const { return 1; }
-    virtual int32_t outNFeats() const { return 1; }
+    virtual void forwardProp(FloatTensor& input, 
+      jtil::threading::ThreadPool& tp);
 
     static TorchStage* loadFromFile(std::ifstream& file);
 
   protected:
-    int32_t feats_in_;
-    int32_t width_;
-    int32_t height_;
+    void init(FloatTensor& input, jtil::threading::ThreadPool& tp);
 
     // Non-copyable, non-assignable.
     Reshape(Reshape&);

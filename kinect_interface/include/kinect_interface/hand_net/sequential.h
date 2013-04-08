@@ -19,23 +19,21 @@ namespace jtil { namespace data_str { template <typename T> class VectorManaged;
 namespace kinect_interface {
 namespace hand_net {
   
-  struct Sequential : public TorchStage {
+  class Sequential : public TorchStage {
   public:
     // Constructor / Destructor
     Sequential();
     virtual ~Sequential();
 
     virtual TorchStageType type() const { return SEQUENTIAL_STAGE; }
-    virtual void forwardProp(float* input, jtil::threading::ThreadPool* tp);
-    virtual int32_t outWidth() const;
-    virtual int32_t outHeight() const;
-    virtual int32_t outNFeats() const;
+    virtual void forwardProp(FloatTensor& input, 
+      jtil::threading::ThreadPool& tp);
 
     void add(TorchStage* stage);
 
-    float* output();  // Override output float*
-
     static TorchStage* loadFromFile(std::ifstream& file);
+
+    FloatTensor* output;  // Not owned here for Sequential
 
   protected:
     jtil::data_str::VectorManaged<TorchStage*>* network_;

@@ -22,15 +22,15 @@ namespace hand_net {
   class FloatTensor {
   public:
     // Constructor / Destructor
-    FloatTensor(const jtil::math::Uint4& dim);  
-    FloatTensor(const jtil::math::Uint3& dim);  // Assumes dim[3]=1
-    FloatTensor(const jtil::math::Uint2& dim);  // Assumes dim[3]=1, dim[2]=1
+    FloatTensor(const jtil::math::Int4& dim);  
+    FloatTensor(const jtil::math::Int3& dim);  // Assumes dim[3]=1
+    FloatTensor(const jtil::math::Int2& dim);  // Assumes dim[3]=1, dim[2]=1
     FloatTensor(const int dim);  // Assumes dim[3]=1, dim[2]=1, dim[1]=1
     virtual ~FloatTensor();
 
-    float& operator()(const uint32_t x, const uint32_t y, const uint32_t z, 
-      const uint32_t w);  // x is the lowest contiguous dimension
-    const jtil::math::Uint4& dim() const { return dim_; }
+    float& operator()(const uint32_t u, const uint32_t v, const uint32_t f, 
+      const uint32_t b);  // u is the lowest contiguous dimension
+    const jtil::math::Int4& dim() const { return dim_; }
 
     void print() const;  // print to std::cout
 
@@ -47,7 +47,7 @@ namespace hand_net {
 
   protected:
     float* data_;  // Internal data
-    jtil::math::Uint4 dim_;  // dim_[0] is lowest contiguous dimension, 
+    jtil::math::Int4 dim_;  // dim_[0] is lowest contiguous dimension, 
                              // dim_[3] is highest dimension
 
     // Non-copyable, non-assignable.
