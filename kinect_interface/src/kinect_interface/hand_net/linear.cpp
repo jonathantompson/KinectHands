@@ -99,7 +99,16 @@ namespace hand_net {
   }
 
   TorchStage* Linear::loadFromFile(std::ifstream& file) {
-    throw std::wruntime_error("Not yet implemented");
+    int32_t n_outputs;
+    int32_t n_inputs;
+    file.read((char*)(&n_outputs), sizeof(n_outputs));
+    file.read((char*)(&n_inputs), sizeof(n_inputs));
+    Linear* ret = new Linear(n_inputs, n_outputs);
+
+    int32_t n_weights = n_outputs * n_inputs;
+    file.read((char*)(ret->weights), sizeof(ret->weights[0]) * n_weights);
+    file.read((char*)(ret->bias), sizeof(ret->bias[0]) * n_outputs);
+    return ret;
   }
 
 }  // namespace hand_net

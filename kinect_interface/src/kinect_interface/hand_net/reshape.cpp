@@ -49,5 +49,10 @@ namespace hand_net {
       sizeof(((FloatTensor*)output)->data()[0]));
   }
 
+  TorchStage* Reshape::loadFromFile(std::ifstream& file) {
+    // Nothing to do for Reshape
+    return new Reshape();
+  }
+
 }  // namespace hand_net
 }  // namespace kinect_interface

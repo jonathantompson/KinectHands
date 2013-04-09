@@ -41,5 +41,9 @@ namespace hand_net {
     return data_->size();
   }
 
+  uint32_t Table::tableSize() const {
+    return data_->size();
+  }
+
 }  // namespace hand_net
 }  // namespace kinect_interface

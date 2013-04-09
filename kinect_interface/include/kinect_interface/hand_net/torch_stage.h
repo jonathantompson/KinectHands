@@ -35,8 +35,7 @@ namespace hand_net {
     SPATIAL_DIVISIVE_NORMALIZATION_STAGE = 11,
     SPATIAL_CONTRASTIVE_NORMALIZATION_STAGE = 12,
     JOIN_TABLE_STAGE = 13,
-    JOIN_TRANSPOSE_STAGE = 14,  // Not actually implemented.  
-                                // Data just passes straight through.
+    TRANSPOSE_STAGE = 14,  // Not actually implemented --> Ignored
   } TorchStageType;
 
   class TorchData;

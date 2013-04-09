@@ -239,7 +239,15 @@ namespace hand_net {
   }
 
   TorchStage* SpatialDivisiveNormalization::loadFromFile(std::ifstream& file) {
-    throw std::wruntime_error("Not yet implemented");
+    int32_t kernel_size;
+    file.read((char*)(&kernel_size), sizeof(kernel_size));
+    FloatTensor* kernel = new FloatTensor(kernel_size);
+    file.read((char*)(kernel->data()), kernel_size * sizeof(*kernel->data()));
+    float threshold;
+    file.read((char*)(&threshold), sizeof(threshold));
+    TorchStage* ret = new SpatialDivisiveNormalization(*kernel, threshold);
+    delete kernel;
+    return ret;
   }
 
 }  // namespace hand_net

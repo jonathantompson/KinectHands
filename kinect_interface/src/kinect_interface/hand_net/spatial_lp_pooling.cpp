@@ -117,7 +117,11 @@ namespace hand_net {
   }
 
   TorchStage* SpatialLPPooling::loadFromFile(std::ifstream& file) {
-    throw std::wruntime_error("Not yet implemented");
+    int filt_width, filt_height, pnorm;
+    file.read((char*)(&filt_width), sizeof(filt_width));
+    file.read((char*)(&filt_height), sizeof(filt_height));
+    file.read((char*)(&pnorm), sizeof(pnorm));
+    return new SpatialLPPooling((float)pnorm, filt_height, filt_width);
   }
 
 }  // namespace hand_net

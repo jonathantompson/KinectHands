@@ -29,29 +29,29 @@ namespace hand_net {
     output = NULL;
     thread_cbs_ = NULL;
 
-    weights_ = new float*[feats_out_ * fan_in_];
+    weights = new float*[feats_out_ * fan_in_];
     for (int32_t i = 0; i < feats_out_ * fan_in_; i++) {
-      weights_[i] = new float[filt_width_ * filt_height_];
+      weights[i] = new float[filt_width_ * filt_height_];
     }
-    conn_table_ = new int16_t*[feats_out_];
+    conn_table = new int16_t*[feats_out_];
     for (int32_t i = 0; i < feats_out_; i++) {
-      conn_table_[i] = new int16_t[fan_in_ * 2];
+      conn_table[i] = new int16_t[fan_in_ * 2];
     }
-    biases_ = new float[feats_out_];
+    biases = new float[feats_out_];
   }
 
   SpatialConvolutionMap::~SpatialConvolutionMap() {
     SAFE_DELETE(output);
     SAFE_DELETE(thread_cbs_);
     for (int32_t i = 0; i < feats_out_ * fan_in_; i++) {
-      SAFE_DELETE_ARR(weights_[i]);
+      SAFE_DELETE_ARR(weights[i]);
     }
-    SAFE_DELETE(weights_);
+    SAFE_DELETE(weights);
     for (int32_t i = 0; i < feats_out_; i++) {
-      SAFE_DELETE_ARR(conn_table_[i]);
+      SAFE_DELETE_ARR(conn_table[i]);
     }
-    SAFE_DELETE(conn_table_);
-    SAFE_DELETE_ARR(biases_);
+    SAFE_DELETE(conn_table);
+    SAFE_DELETE_ARR(biases);
   }
 
   void SpatialConvolutionMap::init(TorchData& input, 
@@ -130,14 +130,14 @@ namespace hand_net {
     // http://www.torch.ch/manual/nn/index#spatialconvolution
     // Set the output layer to the current bias
     for (int32_t uv = outf * out_dim; uv < ((outf+1) * out_dim); uv++) {
-      cur_output_[uv] = biases_[outf];
+      cur_output_[uv] = biases[outf];
     }
 
     // Now iterate through the connection table:
     for (int32_t inf = 0; inf < fan_in_; inf++) {
-      int32_t inf_index = (int32_t)conn_table_[outf][inf * 2];
-      int32_t weight_index = (int32_t)conn_table_[outf][inf * 2 + 1];
-      float* cur_filt = weights_[weight_index];
+      int32_t inf_index = (int32_t)conn_table[outf][inf * 2];
+      int32_t weight_index = (int32_t)conn_table[outf][inf * 2 + 1];
+      float* cur_filt = weights[weight_index];
 
       // for each output pixel, perform the convolution over the input
       for (int32_t outv = 0; outv < out_h; outv++) {
@@ -163,7 +163,29 @@ namespace hand_net {
   }
 
   TorchStage* SpatialConvolutionMap::loadFromFile(std::ifstream& file) {
-    throw std::wruntime_error("Not yet implemented");
+    int32_t filt_width, filt_height, n_input_features, n_output_features;
+    int32_t filt_fan_in;
+    file.read((char*)(&filt_width), sizeof(filt_width));
+    file.read((char*)(&filt_height), sizeof(filt_height));
+    file.read((char*)(&n_input_features), sizeof(n_input_features));
+    file.read((char*)(&n_output_features), sizeof(n_output_features));
+    file.read((char*)(&filt_fan_in), sizeof(filt_fan_in));
+
+    SpatialConvolutionMap* ret = new SpatialConvolutionMap(n_input_features,
+      n_output_features, filt_fan_in, filt_height, filt_width);
+
+    int32_t filt_dim = filt_width * filt_height;
+    for (int32_t i = 0; i < n_output_features * filt_fan_in; i++) {
+      file.read((char*)(ret->weights[i]), sizeof(ret->weights[i][0]) * filt_dim);
+    }
+
+    for (int32_t i = 0; i < n_output_features; i++) {
+      file.read((char*)(ret->conn_table[i]), 
+        sizeof(ret->conn_table[i][0]) * filt_fan_in * 2);
+    }
+
+    file.read((char*)(ret->biases), sizeof(ret->biases[0]) * n_output_features);
+    return ret;
   }
 
 }  // namespace hand_net

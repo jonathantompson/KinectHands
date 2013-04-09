@@ -37,11 +37,11 @@ namespace hand_net {
     virtual void forwardProp(TorchData& input, 
       jtil::threading::ThreadPool& tp);
 
-    float** weights_;
-    float* biases_;
-    int16_t** conn_table_;  // This is the same as conn_table_rev in Torch
-                            // For each output: [0] is input feature and [1]
-                            // is the weight matrix (filter) to use
+    float** weights;
+    float* biases;
+    int16_t** conn_table;  // This is the same as conn_table_rev in Torch
+                           // For each output: [0] is input feature and [1]
+                           // is the weight matrix (filter) to use
 
     static TorchStage* loadFromFile(std::ifstream& file);
 

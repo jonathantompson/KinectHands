@@ -3,6 +3,9 @@
 //
 //  Created by Jonathan Tompson on 4/8/13.
 //
+//  Note: For now the output of each network in the parallel stage must be
+//  a FloatTensor.
+//
 
 #ifndef KINECT_INTERFACE_HAND_NET_PARALLEL_HEADER
 #define KINECT_INTERFACE_HAND_NET_PARALLEL_HEADER

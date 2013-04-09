@@ -22,7 +22,7 @@ namespace jtil { namespace data_str { template <typename T> class VectorManaged;
 namespace kinect_interface {
 namespace hand_net {
   
-  class Table : TorchData {
+  class Table : public TorchData {
   public:
     // Constructor / Destructor
     Table();  // Create an empty table
@@ -34,6 +34,8 @@ namespace hand_net {
     virtual TorchDataType type() const { return TABLE_DATA; }
     virtual void print() const;  // print to std::cout
     virtual uint32_t dataSize() const;
+    
+    uint32_t tableSize() const;
 
   protected:
     jtil::data_str::VectorManaged<TorchData*>* data_;  // Internal data
