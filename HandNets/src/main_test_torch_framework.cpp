@@ -216,17 +216,32 @@ int main(int argc, char *argv[]) {
     // Test Loading a model
     TorchStage* m = TorchStage::loadFromFile("../data/handmodel.net.convnet");
 
+
+
     // Lets create a fake input image (of zeros) and make sure it passes through
     uint32_t w = HN_IM_SIZE;
     uint32_t h = HN_IM_SIZE;
+    uint32_t data_file_size = 0;
     Table* hand_image = new Table();
     for (uint32_t i = 0; i < HN_DEFAULT_NUM_CONV_BANKS; i++) {
+      data_file_size += w * h;
       FloatTensor* cur_image = new FloatTensor(Int2(h, w));
-      float* internal_data = cur_image->data();
-      for (uint32_t j = 0; j < w * h; j++) {
-        internal_data[j] = 0.0f;
-      }
       hand_image->add(cur_image);
+      w = w / 2;
+      h = h / 2;
+    }
+
+    float* im = new float[data_file_size];
+    jtil::file_io::LoadArrayFromFile<float>(im, data_file_size, 
+      "kinect_hpf_depth_image_uncompressed.bin");
+    
+    w = HN_IM_SIZE;
+    h = HN_IM_SIZE;
+    float* ptr = im;
+    for (uint32_t i = 0; i < HN_DEFAULT_NUM_CONV_BANKS; i++) {
+      float* internal_data = ((FloatTensor*)(*hand_image)(i))->data();
+      memcpy(internal_data, ptr, sizeof(internal_data[0]) * w * h);
+      ptr = &ptr[w*h];
       w = w / 2;
       h = h / 2;
     }
@@ -235,7 +250,18 @@ int main(int argc, char *argv[]) {
     std::cout << "Model Output = " << std::endl;
     m->output->print();
 
+    // Some debugging if things go wrong:
+    if (m->type() != SEQUENTIAL_STAGE) {
+      throw std::wruntime_error("main() - ERROR: Expecting sequential!");
+    }
+    TorchStage* join_table = ((Sequential*)m)->get(1);
+    if (join_table->type() != JOIN_TABLE_STAGE) {
+      throw std::wruntime_error("main() - ERROR: Expecting JoinTable!");
+    }
+    FloatTensor* join_table_out = (FloatTensor*)join_table->output;
+
     delete m;
+    delete im;
     delete hand_image;
 #endif
 

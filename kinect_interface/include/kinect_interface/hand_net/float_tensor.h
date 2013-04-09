@@ -36,6 +36,9 @@ namespace hand_net {
     const jtil::math::Int4& dim() const { return dim_; }
 
     virtual void print() const;  // print to std::cout
+    void print(const jtil::math::Int2& interval0, 
+      const jtil::math::Int2& interval1, const jtil::math::Int2& interval2, 
+      const jtil::math::Int2& interval3) const;
 
     // Deep copy
     FloatTensor* copy() const;
