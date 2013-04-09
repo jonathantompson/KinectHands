@@ -1,12 +1,13 @@
 DRIVERS:
 
 Uninstall libfreenect if it is installed.
+Uninstall OpenNI 1.x and sensorkinect and NITE if they are installed
 
 Install drivers (in this order):
 
-DriversWin\openni-win64-1.5.4.0-dev.msi
-DriversWin\SensorKinect093-Bin-Win64-v5.1.2.1.msi
-DriversWin\nite-win64-1.5.2.21-dev.msi
+DriversWin\KinectSDK-v1.0-Setup.exe
+DriversWin\OpenNI-Windows-x64-2.1.0.zip --> Unzip and run msi
+DriversWin\NiTE-Windows-x64-2.0.011.zip --> Unzip and run msi 
 
 Now restart otherwise you'll get an environment variable missing error...
 
