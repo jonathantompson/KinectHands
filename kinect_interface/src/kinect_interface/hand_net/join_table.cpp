@@ -95,6 +95,12 @@ namespace hand_net {
               sizeof(start[0]));
             start = &start[cur_data->dim()[0]];  // Move ptr foward
           }
+#if defined(DEBUG) || defined(_DEBUG)
+          if (start != &(&out(0, v, f, b))[out.dim()[0]]) {
+            throw std::wruntime_error("JoinTable::forwardProp() - ERROR: "
+              "Internal Pointer arithmetic error!");
+          }
+#endif
         }
       }
     }

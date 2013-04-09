@@ -23,6 +23,7 @@ Some torch prerequisites:
 sudo apt-get install cmake libreadline-dev git-core gnuplot libqt4-core libqt4-gui libqt4-dev
 sudo apt-get install libpng-dev
 sudo apt-get install libjpeg-dev
+sudo apt-get install libqt4-core libqt4-gui libqt4-dev
 
 **************************************************
 Install blas:

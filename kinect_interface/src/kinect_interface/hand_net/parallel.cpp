@@ -93,9 +93,10 @@ namespace hand_net {
     // Now copy the data to the output structure
     Table* out = (Table*)output;
     for (uint32_t i = 0; i < network_->size(); i++) {
-      FloatTensor* dst_data = (FloatTensor*)(*out)(i);
+      FloatTensor* dst_data = (FloatTensor*)((*out)(i));
       FloatTensor* src_data = (FloatTensor*)(*network_)[i]->output;
-      memcpy(dst_data->data(), src_data->data(), dst_data->dataSize());
+      memcpy(dst_data->data(), src_data->data(), sizeof(dst_data->data()[0]) *
+        dst_data->dataSize());
     }
   }
 

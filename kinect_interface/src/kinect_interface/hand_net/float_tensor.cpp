@@ -40,7 +40,8 @@ namespace hand_net {
   float& FloatTensor::operator()(const uint32_t u, const uint32_t v, 
     const uint32_t f, const uint32_t b) {
 #if defined(DEBUG) || defined(_DEBUG)
-    if (u >= dim_[0] || v >= dim_[1] || f >= dim_[2] || b >= dim_[3]) {
+    if (u >= (uint32_t)dim_[0] || v >= (uint32_t)dim_[1] || 
+      f >= (uint32_t)dim_[2] || b >= (uint32_t)dim_[3]) {
       throw std::wruntime_error("FloatTensor::operator() - ERROR: index out "
         "of bounds!");
     }
@@ -55,7 +56,7 @@ namespace hand_net {
     for (int32_t j = 0; j < dim_[3]; j++) {
       for (int32_t i = 0; i < dim_[2]; i++) {
         std::cout.setf(0, std::ios::showpos);
-        std::cout << "  3dtensor[" << j << ", " << i << ", *, *] =";
+        std::cout << "  4dtensor[" << j << ", " << i << ", *, *] =";
         std::cout << std::endl;
         float* data = &data_[j * dim_[2]*dim_[1]*dim_[0] +
           i * dim_[1]*dim_[0]];
@@ -79,6 +80,48 @@ namespace hand_net {
     }
     std::cout << std::resetiosflags(std::ios_base::showpos);
   };
+
+  void FloatTensor::print(const jtil::math::Int2& interval0, 
+    const jtil::math::Int2& interval1, const jtil::math::Int2& interval2, 
+    const jtil::math::Int2& interval3) const {
+    if (interval0[0] > interval0[1] || interval0[0] > interval0[1] || 
+      interval0[0] > interval0[1] || interval0[0] > interval0[1]) {
+      throw std::wruntime_error("FloatTensor::print() - ERROR: "
+        "intervals must be monotonic");
+    }
+    if (interval0[0] < 0 || interval0[1] >= dim_[0] || 
+      interval1[0] < 0 || interval1[1] >= dim_[1] ||
+      interval2[0] < 0 || interval2[1] >= dim_[2] ||
+      interval3[0] < 0 || interval3[1] >= dim_[3]) {
+      throw std::wruntime_error("FloatTensor::print() - ERROR: "
+        "intervals out of range");
+    }
+    for (int32_t b = interval3[0]; b <= interval3[1]; b++) {
+      for (int32_t f = interval2[0]; f <= interval2[1]; f++) {
+        std::cout.setf(0, std::ios::showpos);
+        std::cout << "  4dtensor[" << b << ", " << f << ", *, *] =";
+        std::cout << std::endl;
+        float* data = &data_[b * dim_[2]*dim_[1]*dim_[0] +
+          f * dim_[1]*dim_[0]];
+        for (int32_t v = interval1[0]; v <= interval1[1]; v++) {
+          if (v == interval1[0]) {
+            std::cout << "    (" << interval1[0] << "," <<  interval0[0] << ") ";
+          } else {
+            std::cout << "          ";
+          }
+          std::cout.setf(std::ios::showpos);
+          for (int32_t u = interval0[0]; u <= interval0[1]; u++) {
+            std::cout << data[v * dim_[0] + u];
+            if (u != interval0[1]) {
+              std::cout << ", ";
+            } else {
+              std::cout << std::endl;
+            }
+          }
+          }
+      }
+    }
+  }
 
   FloatTensor* FloatTensor::gaussian1D(const int32_t kernel_size) {
     FloatTensor* ret = new FloatTensor(Int4(kernel_size, 1, 1, 1));
