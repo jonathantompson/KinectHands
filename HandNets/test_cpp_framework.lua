@@ -147,8 +147,8 @@ image.display(res)
 file = torch.DiskFile("lena_image_processed.bin", 'r')
 file:binary()
 lena_processed = file:readFloat(lena:size()[2] * lena:size()[3])
-lena_processed = torch.FloatTensor(lena_processed, 1, torch.LongStorage{1, lena:size()[2], 
-            lena:size()[3]}):float()
+lena_processed = torch.FloatTensor(lena_processed, 1, torch.LongStorage{1, 
+lena:size()[2], lena:size()[3]}):float()
 file:close()
 image.display(lena_processed)
 err = lena_processed - res
