@@ -34,8 +34,6 @@ namespace hand_net {
 
     static TorchStage* loadFromFile(std::ifstream& file);
 
-    TorchData* output;  // Not owned here for Sequential
-
   protected:
     jtil::data_str::VectorManaged<TorchStage*>* network_;
 

@@ -42,7 +42,7 @@ namespace hand_net {
         "FloatTensor expected!");
     }
     FloatTensor& in = (FloatTensor&)input;
-    if (in.dim()[1] != 1 || in.dim()[1] != 1 || in.dim()[1] != 1) {
+    if (in.dim()[1] != 1 || in.dim()[2] != 1 || in.dim()[3] != 1) {
       throw std::wruntime_error("Linear::init() - ERROR: 1D input expected!");
     }
     if (in.dim()[0] != n_inputs_) {

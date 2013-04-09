@@ -53,7 +53,8 @@ namespace hand_net {
     }
     (*network_)[0]->forwardProp(input, tp);
     for (uint32_t i = 1; i < network_->size(); i++) {
-      (*network_)[i]->forwardProp(*(*network_)[i-1]->output, tp);
+      TorchData* cur_input = (*network_)[i-1]->output;
+      (*network_)[i]->forwardProp(*cur_input, tp);
     }
     output = (*network_)[network_->size()-1]->output;
   }

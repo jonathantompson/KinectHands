@@ -16,6 +16,7 @@
 #include "kinect_interface/hand_net/tanh.h"
 #include "kinect_interface/hand_net/threshold.h"
 #include "kinect_interface/hand_net/join_table.h"
+#include "kinect_interface/hand_net/transpose.h"
 #include "jtil/exceptions/wruntime_error.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
@@ -95,6 +96,7 @@ namespace hand_net {
       return JoinTable::loadFromFile(ifile);
     case TRANSPOSE_STAGE:
       std::cout << "  Loading Transpose..." << std::endl;
+      return Transpose::loadFromFile(ifile);
     default:
       throw std::wruntime_error("TorchStage::loadFromFile() - ERROR: "
         "Node type not recognized!");

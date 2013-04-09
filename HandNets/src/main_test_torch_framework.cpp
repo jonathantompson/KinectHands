@@ -23,6 +23,8 @@
 #include "kinect_interface/hand_net/tanh.h"
 #include "kinect_interface/hand_net/threshold.h"
 #include "kinect_interface/hand_net/sequential.h"
+#include "kinect_interface/hand_net/table.h"
+#include "kinect_interface/hand_net/hand_image_generator.h"
 #include "jtil/threading/thread_pool.h"
 #include "jtil/data_str/vector_managed.h"
 #include "jtil/debug_util/debug_util.h"
@@ -34,6 +36,8 @@
 #endif
 
 #define NUM_WORKER_THREADS 1
+//#define TEST_MODULES
+#define TEST_MODEL
 
 using namespace std;
 using namespace kinect_interface::hand_net;
@@ -55,14 +59,15 @@ int main(int argc, char *argv[]) {
 #if defined(_DEBUG) || defined(DEBUG)
   jtil::debug::EnableMemoryLeakChecks();
   // jtil::debug::EnableAggressiveMemoryLeakChecks();
-  // jtil::debug::SetBreakPointOnAlocation(6965);
+  // jtil::debug::SetBreakPointOnAlocation(3940);
 #endif
 
   try {
+    ThreadPool tp(NUM_WORKER_THREADS);
 
+#ifdef TEST_MODULES
     FloatTensor data_in(Int3(width, height, num_feats_in));
     FloatTensor data_out(Int3(width, height, num_feats_out));
-    ThreadPool tp(NUM_WORKER_THREADS);
 
     for (uint32_t f = 0; f < num_feats_in; f++) {
       float val = (f+1) - (float)(width * height) / 16.0f;
@@ -202,12 +207,37 @@ int main(int argc, char *argv[]) {
     std::cout << endl << endl << "Linear output:" << std::endl;
     lin_stage.output->print();
 
+    delete kernel;
+    delete kernel2;
+#endif
+
+#ifdef TEST_MODEL
     // ***********************************************
     // Test Loading a model
     TorchStage* m = TorchStage::loadFromFile("../data/handmodel.net.convnet");
 
-    delete kernel;
-    delete kernel2;
+    // Lets create a fake input image (of zeros) and make sure it passes through
+    uint32_t w = HN_IM_SIZE;
+    uint32_t h = HN_IM_SIZE;
+    Table* hand_image = new Table();
+    for (uint32_t i = 0; i < HN_DEFAULT_NUM_CONV_BANKS; i++) {
+      FloatTensor* cur_image = new FloatTensor(Int2(h, w));
+      float* internal_data = cur_image->data();
+      for (uint32_t j = 0; j < w * h; j++) {
+        internal_data[j] = 0.0f;
+      }
+      hand_image->add(cur_image);
+      w = w / 2;
+      h = h / 2;
+    }
+
+    m->forwardProp(*hand_image, tp);
+    std::cout << "Model Output = " << std::endl;
+    m->output->print();
+
+    delete m;
+    delete hand_image;
+#endif
 
     tp.stop();
   } catch (std::wruntime_error e) {

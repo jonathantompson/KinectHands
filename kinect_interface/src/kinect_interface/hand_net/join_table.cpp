@@ -46,7 +46,7 @@ namespace hand_net {
     }
 
     // Check that it is a table of FloatTensors (since tables can be nested)
-    for (uint32_t i = 1; i < in.tableSize(); i++) {
+    for (uint32_t i = 0; i < in.tableSize(); i++) {
       if (in(i)->type() != FLOAT_TENSOR_DATA) {
         throw std::wruntime_error("Parallel::forwardProp() - "
           "Table of float tensors expected!");
@@ -64,8 +64,8 @@ namespace hand_net {
           dim_i[1] != dim_0[1]) {
           throw std::wruntime_error("Parallel::forwardProp() - "
             "Tensor dimension mismatch!");
-          out_dim[0] += dim_i[0];
         }
+        out_dim[0] += dim_i[0];
       }
     }
     
@@ -89,7 +89,7 @@ namespace hand_net {
       for (int32_t f = 0; f < out.dim()[2]; f++) {
         for (int32_t v = 0; v < out.dim()[1]; v++) {
           float* start = &out(0, v, f, b);
-          for (uint32_t i = 0; 0 < in.tableSize(); i++) {
+          for (uint32_t i = 0; i < in.tableSize(); i++) {
             FloatTensor* cur_data = (FloatTensor*)in(i);
             memcpy(start, &(*cur_data)(0, v, f, b), cur_data->dim()[0] *
               sizeof(start[0]));

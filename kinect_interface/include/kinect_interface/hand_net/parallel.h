@@ -41,6 +41,8 @@ namespace hand_net {
   protected:
     jtil::data_str::VectorManaged<TorchStage*>* network_;
 
+    void initOutput();
+
     // Non-copyable, non-assignable.
     Parallel(Parallel&);
     Parallel& operator=(const Parallel&);

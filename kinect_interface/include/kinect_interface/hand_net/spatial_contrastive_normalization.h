@@ -40,8 +40,6 @@ namespace hand_net {
 
     static TorchStage* loadFromFile(std::ifstream& file);
 
-    TorchData* output;  // Not owned here for ContrastiveNormalization
-
   protected:
     Sequential* network_;
 

@@ -24,6 +24,7 @@ namespace hand_net {
 
   Parallel::~Parallel() {
     SAFE_DELETE(network_);
+    SAFE_DELETE(output);
   }
 
   void Parallel::add(TorchStage* stage) {
@@ -42,26 +43,17 @@ namespace hand_net {
     return ret;
   }
 
-  void Parallel::forwardProp(TorchData& input, 
-    ThreadPool& tp) {
-    if (input.type() != TorchDataType::TABLE_DATA) {
-      throw std::wruntime_error("Parallel::forwardProp() - "
-        "Table expected!");
-    }
-    Table& in = (Table&)input;
-    for (uint32_t i = 0; i < network_->size(); i++) {
-      (*network_)[i]->forwardProp(*in(i), tp);
-    }
+  void Parallel::initOutput() {
     if (output != NULL) {
       // Check output sizes
       Table* out = (Table*)output;
       bool data_ok = out->tableSize() == network_->size();
       for (uint32_t i = 0; i < out->tableSize() && data_ok; i++) {
-        if ((*network_)[i]->type() != FLOAT_TENSOR_DATA) {
+        if ((*network_)[i]->output->type() != FLOAT_TENSOR_DATA) {
           throw std::wruntime_error("Parallel::forwardProp() - ERROR: "
             "Float Tensor output required!");
         }
-        if (!Int4::equal(((FloatTensor*)(*network_)[i])->dim(), 
+        if (!Int4::equal(((FloatTensor*)((*network_)[i])->output)->dim(), 
           ((FloatTensor*)(*out)(i))->dim())) {
           data_ok = false;
         }
@@ -74,19 +66,36 @@ namespace hand_net {
       output = new Table();
       Table* out = (Table*)output;
       for (uint32_t i = 0; i < network_->size(); i++) {
-        if ((*network_)[i]->type() != FLOAT_TENSOR_DATA) {
+        if ((*network_)[i]->output->type() != FLOAT_TENSOR_DATA) {
           throw std::wruntime_error("Parallel::forwardProp() - ERROR: "
             "Float Tensor output required for now!");
         }
-        out->add(new FloatTensor(((FloatTensor*)(*network_)[i])->dim()));
+        out->add(new FloatTensor(((FloatTensor*)(*network_)[i]->output)->dim()));
       }
     }
+  }
+
+  void Parallel::forwardProp(TorchData& input, 
+    ThreadPool& tp) {
+    if (input.type() != TorchDataType::TABLE_DATA) {
+      throw std::wruntime_error("Parallel::forwardProp() - "
+        "Table expected!");
+    }
+    Table& in = (Table&)input;
+    if (in.tableSize() != network_->size()) {
+      throw std::wruntime_error("Parallel::forwardProp() - ERROR: "
+        "Table size does not match number of parallel stages!");
+    }
+    for (uint32_t i = 0; i < network_->size(); i++) {
+      (*network_)[i]->forwardProp(*in(i), tp);
+    }
+    initOutput();
     // Now copy the data to the output structure
     Table* out = (Table*)output;
     for (uint32_t i = 0; i < network_->size(); i++) {
-      TorchData* data = (*out)(i);
-      memcpy(((FloatTensor*)data)->data(), 
-        ((FloatTensor*)(*network_)[i])->data(), data->dataSize());
+      FloatTensor* dst_data = (FloatTensor*)(*out)(i);
+      FloatTensor* src_data = (FloatTensor*)(*network_)[i]->output;
+      memcpy(dst_data->data(), src_data->data(), dst_data->dataSize());
     }
   }
 
