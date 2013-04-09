@@ -51,7 +51,7 @@ namespace hand_net {
     }
     FloatTensor& in = (FloatTensor&)input;
     if (output != NULL) {
-      if (!Int4::equal(in.dim(), output->dim())) {
+      if (!Int4::equal(in.dim(), ((FloatTensor*)output)->dim())) {
         // Input dimension has changed!
         SAFE_DELETE(output);
         SAFE_DELETE_ARR(mean_coef_);
@@ -64,7 +64,8 @@ namespace hand_net {
       output = new FloatTensor(in.dim());
     }
     if (mean_coef_ == NULL) {
-      mean_coef_ = new float[output->dim()[0] * output->dim()[1]];
+      mean_coef_ = new float[((FloatTensor*)output)->dim()[0] * 
+        ((FloatTensor*)output)->dim()[1]];
       // Filter an image of all 1 values to create the normalization constants
       // See norm_test.lua for proof that this works as well as:
       // https://github.com/andresy/torch/blob/master/extra/nn/SpatialSubtractiveNormalization.lua
@@ -72,9 +73,9 @@ namespace hand_net {
       // we only do this once on startup.  --> O(n * m)
       int32_t kernel1d_size = kernel1d_->dim()[0];
       int32_t filt_rad = (kernel1d_size - 1) / 2;
-      int32_t n_feats = output->dim()[2];
-      int32_t height = output->dim()[1];
-      int32_t width = output->dim()[0];
+      int32_t n_feats = ((FloatTensor*)output)->dim()[2];
+      int32_t height = ((FloatTensor*)output)->dim()[1];
+      int32_t width = ((FloatTensor*)output)->dim()[0];
       for (int32_t v = 0; v < height; v++) {
         for (int32_t u = 0; u < width; u++) {
           mean_coef_[v * width + u] = 0.0f;
@@ -95,10 +96,12 @@ namespace hand_net {
       }
     }
     if (mean_accum_ == NULL) {
-      mean_accum_ = new float[output->dim()[0] * output->dim()[1]];
+      mean_accum_ = new float[((FloatTensor*)output)->dim()[0] * 
+        ((FloatTensor*)output)->dim()[1]];
     }
     if (filt_tmp_ == NULL) {
-      filt_tmp_ = new float[output->dim()[0] * output->dim()[1]];
+      filt_tmp_ = new float[((FloatTensor*)output)->dim()[0] * 
+        ((FloatTensor*)output)->dim()[1]];
     }
     if (thread_cbs_ == NULL) {
       int32_t n_feats = in.dim()[2];
@@ -139,7 +142,7 @@ namespace hand_net {
         mean_accum_[i] = 0.0f;
       }
       float* cur_in = &in(0, 0, 0, outb);
-      float* cur_out = &((*output)(0, 0, 0, outb));
+      float* cur_out = &((*((FloatTensor*)output))(0, 0, 0, outb));
       for (int32_t outf = 0; outf < n_feats; outf++) {
         // The filter is seperable --> Filter HORIZONTALLY first
         for (int32_t v = 0; v < height; v++) {
@@ -201,8 +204,8 @@ namespace hand_net {
   }
 
   void SpatialSubtractiveNormalization::normalizeFeature(const int32_t outf) {
-    const int32_t width = (int32_t)output->dim()[0];
-    const int32_t height = (int32_t)output->dim()[1];
+    const int32_t width = (int32_t)((FloatTensor*)output)->dim()[0];
+    const int32_t height = (int32_t)((FloatTensor*)output)->dim()[1];
     const int32_t im_dim = width * height;
     for (int32_t v = 0; v < height; v++) {
       for (int32_t u = 0; u < width; u++) {

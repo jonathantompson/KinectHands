@@ -31,7 +31,7 @@ namespace hand_net {
     }
     FloatTensor& in = (FloatTensor&)input;
     if (output != NULL) {
-      if (!Int4::equal(in.dim(), output->dim())) {
+      if (!Int4::equal(in.dim(), ((FloatTensor*)output)->dim())) {
         // Input dimension has changed!
         SAFE_DELETE(output);
       }
@@ -44,8 +44,9 @@ namespace hand_net {
 
   void Reshape::forwardProp(TorchData& input, ThreadPool& tp) { 
     init(input, tp);
-    memcpy(output->data(), ((FloatTensor&)input).data(), 
-      output->dim()[0] * sizeof(output->data()[0]));
+    memcpy(((FloatTensor*)output)->data(), ((FloatTensor&)input).data(), 
+      ((FloatTensor*)output)->dim()[0] * 
+      sizeof(((FloatTensor*)output)->data()[0]));
   }
 
 }  // namespace hand_net

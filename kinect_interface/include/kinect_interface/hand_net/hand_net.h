@@ -110,7 +110,7 @@ namespace hand_net {
   } HandNetDataType;
 
   class HandImageGenerator;
-  struct TorchStage;
+  class TorchStage;
   
   class HandNet {
   public:
@@ -144,10 +144,7 @@ namespace hand_net {
 
     HandNetDataType data_type_;
 
-    int32_t num_conv_banks_;
-    jtil::data_str::VectorManaged<TorchStage*>* conv_stages_;  // 1 vector per bank
-
-    jtil::data_str::VectorManaged<TorchStage*>* nn_stages_;
+    TorchStage* conv_network_;
 
     float coeff_convnet_[HAND_NUM_COEFF_CONVNET];  // output data
 

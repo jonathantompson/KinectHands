@@ -56,7 +56,7 @@ namespace hand_net {
     static TorchStage* loadFromFile(const std::string& file);
 
     // Everyone must define an output structure
-    FloatTensor* output;
+    TorchData* output;
 
   protected:
     static TorchStage* loadFromFile(std::ifstream& file);

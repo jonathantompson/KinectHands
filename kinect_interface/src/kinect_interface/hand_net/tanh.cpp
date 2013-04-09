@@ -32,7 +32,7 @@ namespace hand_net {
     }
     FloatTensor& in = (FloatTensor&)input;
     if (output != NULL) {
-      if (!Int4::equal(in.dim(), output->dim())) {
+      if (!Int4::equal(in.dim(), ((FloatTensor*)output)->dim())) {
         // Input dimension has changed!
         SAFE_DELETE(output);
         SAFE_DELETE(thread_cbs_);
@@ -61,7 +61,7 @@ namespace hand_net {
   void Tanh::forwardProp(TorchData& input, ThreadPool& tp) { 
     init(input, tp);
     cur_input_ = ((FloatTensor&)input).data();
-    cur_output_ = output->data();
+    cur_output_ = ((FloatTensor*)output)->data();
     threads_finished_ = 0;
     for (uint32_t i = 0; i < thread_cbs_->size(); i++) {
       tp.addTask((*thread_cbs_)[i]);

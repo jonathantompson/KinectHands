@@ -37,10 +37,8 @@ namespace kinect_interface {
 namespace hand_net {
  
   HandNet::HandNet() {
-    num_conv_banks_ = 0;
-    conv_stages_ = NULL;
+    conv_network_ = NULL;
     image_generator_ = NULL;
-    nn_stages_ = NULL;
     tp_ = NULL;
   }
 
@@ -53,8 +51,7 @@ namespace hand_net {
       tp_->stop();
     }
     SAFE_DELETE(tp_);
-    SAFE_DELETE_ARR(conv_stages_);
-    SAFE_DELETE(nn_stages_);
+    SAFE_DELETE(conv_network_);
     SAFE_DELETE(image_generator_);
   }
 
@@ -165,7 +162,7 @@ namespace hand_net {
 
   void HandNet::calcHandCoeffConvnet(const int16_t* depth, 
     const uint8_t* label) {
-    if (num_conv_banks_ == 0 || image_generator_ == NULL) {
+    if (conv_network_ == NULL || image_generator_ == NULL) {
       std::cout << "HandNet::calcHandCoeff() - ERROR: Convnet not loaded";
       std::cout << " from file!" << std::endl;
     }

@@ -178,7 +178,7 @@ int main(int argc, char *argv[]) {
   cont_norm_stage.forwardProp(lena, tp);
   std::cout << endl << endl << "SpatialContrastiveNormalization output saved ";
   std::cout << "to lena_image_processed.bin" << endl;
-  jtil::file_io::SaveArrayToFile<float>(cont_norm_stage.output->data(), 
+  jtil::file_io::SaveArrayToFile<float>(((FloatTensor*)cont_norm_stage.output)->data(), 
     lena_width * lena_height, "lena_image_processed.bin");
 
   // ***********************************************

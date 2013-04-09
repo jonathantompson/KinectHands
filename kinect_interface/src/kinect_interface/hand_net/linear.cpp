@@ -69,7 +69,7 @@ namespace hand_net {
     init(input, tp);
     FloatTensor& in = (FloatTensor&)input;
     cur_input_ = in.data();
-    cur_output_ = output->data();
+    cur_output_ = ((FloatTensor*)output)->data();
     threads_finished_ = 0;
     for (uint32_t i = 0; i < thread_cbs_->size(); i++) {
       tp.addTask((*thread_cbs_)[i]);

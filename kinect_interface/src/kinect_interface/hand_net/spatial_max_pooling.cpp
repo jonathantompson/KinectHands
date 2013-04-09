@@ -36,7 +36,7 @@ namespace hand_net {
     }
     FloatTensor& in = (FloatTensor&)input;
     if (output != NULL) {
-      if (!Int4::equal(in.dim(), output->dim())) {
+      if (!Int4::equal(in.dim(), ((FloatTensor*)output)->dim())) {
         // Input dimension has changed!
         SAFE_DELETE(output);
         SAFE_DELETE(thread_cbs_);
@@ -55,10 +55,11 @@ namespace hand_net {
     }
 
     if (thread_cbs_ == NULL) {
-      int32_t n_threads = output->dim()[2] * output->dim()[3];
+      int32_t n_threads = ((FloatTensor*)output)->dim()[2] * 
+        ((FloatTensor*)output)->dim()[3];
       thread_cbs_ = new VectorManaged<Callback<void>*>(n_threads);
-      for (int32_t b = 0; b < output->dim()[3]; b++) {
-        for (int32_t f = 0; f < output->dim()[2]; f++) {
+      for (int32_t b = 0; b < ((FloatTensor*)output)->dim()[3]; b++) {
+        for (int32_t f = 0; f < ((FloatTensor*)output)->dim()[2]; f++) {
           thread_cbs_->pushBack(MakeCallableMany(
             &SpatialMaxPooling::forwardPropThread, this, f, b));
         }
@@ -85,11 +86,11 @@ namespace hand_net {
 
   void SpatialMaxPooling::forwardPropThread(const int32_t outf, 
     const int32_t outb) {
-    const int32_t out_w = output->dim()[0];
-    const int32_t out_h = output->dim()[1];
+    const int32_t out_w = ((FloatTensor*)output)->dim()[0];
+    const int32_t out_h = ((FloatTensor*)output)->dim()[1];
     const int32_t in_w = cur_input_->dim()[0];
 
-    float* out = &(*output)(0, 0, outf, outb);
+    float* out = &(*((FloatTensor*)output))(0, 0, outf, outb);
     float* in = &(*cur_input_)(0, 0, outf, outb);
 
     for (int32_t outv = 0; outv < out_h; outv++) {

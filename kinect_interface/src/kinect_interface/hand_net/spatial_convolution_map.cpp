@@ -70,7 +70,7 @@ namespace hand_net {
       out_dim[0] = out_dim[0] - filt_width_ + 1;
       out_dim[1] = out_dim[1] - filt_height_ + 1;
       out_dim[2] = feats_out_;
-      if (!Int4::equal(out_dim, output->dim())) {
+      if (!Int4::equal(out_dim, ((FloatTensor*)output)->dim())) {
         // Input dimension has changed!
         SAFE_DELETE(output);
         SAFE_DELETE(thread_cbs_);
@@ -102,7 +102,7 @@ namespace hand_net {
     const int32_t n_banks = in.dim()[3];
     for (int32_t outb = 0; outb < n_banks; outb++) {
       cur_input_ = &in(0, 0, 0, outb);
-      cur_output_ = &((*output)(0, 0, 0, outb));
+      cur_output_ = &((*((FloatTensor*)output))(0, 0, 0, outb));
       cur_input_width_ = in.dim()[0];
       cur_input_height_ = in.dim()[1];
 
@@ -121,8 +121,8 @@ namespace hand_net {
   }
 
   void SpatialConvolutionMap::forwardPropThread(const int32_t outf) {
-    const int32_t out_w = output->dim()[0];
-    const int32_t out_h = output->dim()[1];
+    const int32_t out_w = ((FloatTensor*)output)->dim()[0];
+    const int32_t out_h = ((FloatTensor*)output)->dim()[1];
     const int32_t out_dim = out_w * out_h;
     const int32_t in_dim = cur_input_width_ * cur_input_height_;
 

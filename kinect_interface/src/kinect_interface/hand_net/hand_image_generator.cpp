@@ -242,7 +242,7 @@ namespace hand_net {
         w * h * sizeof(contrast_norm_module_input_[i]->data()[0]));
       contrast_norm_module_[i]->forwardProp(*contrast_norm_module_input_[i], 
         *tp);
-      memcpy(dst, contrast_norm_module_[i]->output->data(), 
+      memcpy(dst, ((FloatTensor*)contrast_norm_module_[i]->output)->data(), 
         w * h * sizeof(dst[0]));
       if (i < (num_banks_ - 1)) {
         // Iterate the dst, coeff and src pointers
