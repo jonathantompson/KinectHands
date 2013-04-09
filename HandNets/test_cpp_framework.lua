@@ -104,26 +104,6 @@ res = model3:forward(data_in)
 print('SpatialLPPooling result')
 print(res)
 
--- Test Linear
-model2 = nn.Sequential()
-lin_size = num_feats_in * width * height
-lin_size_out = 20
-model2:add(nn.Reshape(lin_size))
-lin_stage = nn.Linear(lin_size, lin_size_out)
-for i=1,lin_size_out do
-  for j=1,lin_size do
-    k = (i-1) * lin_size + j
-    lin_stage.weight[{i,j}] = k / (lin_size * lin_size_out)
-  end
-end
-for i=1,lin_size_out do
-  lin_stage.bias[{i}] = i / lin_size_out
-end
-model2:add(lin_stage)
-res = model2:forward(data_in)
-print('Linear result')
-print(res)
-
 -- Test SpatialSubtractiveNormalization
 model4 = nn.Sequential()
 normkernel = image.gaussian1D(7)
@@ -193,3 +173,22 @@ image.display{image=depth, zoom=(6.0)}
 hpf_depth_torch = spatial_contrast_norm:forward(depth)
 image.display{image=hpf_depth_torch, zoom=(6.0)}
 
+-- Test Linear
+model2 = nn.Sequential()
+lin_size = num_feats_in * width * height
+lin_size_out = 20
+model2:add(nn.Reshape(lin_size))
+lin_stage = nn.Linear(lin_size, lin_size_out)
+for i=1,lin_size_out do
+  for j=1,lin_size do
+    k = (i-1) * lin_size + j
+    lin_stage.weight[{i,j}] = k / (lin_size * lin_size_out)
+  end
+end
+for i=1,lin_size_out do
+  lin_stage.bias[{i}] = i / lin_size_out
+end
+model2:add(lin_stage)
+res = model2:forward(data_in)
+print('Linear result')
+print(res)
