@@ -239,7 +239,11 @@ end
 
 input.labels = model:forward(input.data)
 
-print(ret)
+print(input.labels)
+
+-- Some non-zero outputs
+join_table = model:get(2)
+return join_table.output[{1,{501,600}}]
 
 dofile('visualize_data.lua')  -- Just define the function
 VisualizeData(input, visualize_data_labels)
