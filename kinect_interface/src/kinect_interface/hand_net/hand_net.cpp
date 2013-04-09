@@ -8,6 +8,10 @@
 #include "kinect_interface/hand_net/hand_net.h"
 #include "kinect_interface/hand_net/hand_image_generator.h"
 #include "kinect_interface/hand_net/torch_stage.h"
+#include "kinect_interface/hand_net/parallel.h"
+#include "kinect_interface/hand_net/sequential.h"
+#include "kinect_interface/hand_net/table.h"
+#include "kinect_interface/hand_net/float_tensor.h"
 #include "kinect_interface/hand_net/hand_model.h"  // for HandCoeff
 #include "kinect_interface/open_ni_funcs.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"  // for GDT_MAX_DIST
@@ -24,6 +28,7 @@ using jtil::math::FloatQuat;
 using jtil::math::Float3;
 using jtil::math::Float4;
 using jtil::math::Float2;
+using jtil::math::Int2;
 using jtil::threading::ThreadPool;
 using std::string;
 using std::runtime_error;
@@ -39,6 +44,7 @@ namespace hand_net {
   HandNet::HandNet() {
     conv_network_ = NULL;
     image_generator_ = NULL;
+    conv_network_input_ = NULL;
     tp_ = NULL;
   }
 
@@ -53,6 +59,7 @@ namespace hand_net {
     SAFE_DELETE(tp_);
     SAFE_DELETE(conv_network_);
     SAFE_DELETE(image_generator_);
+    SAFE_DELETE(conv_network_input_);
   }
 
   void HandNet::loadFromFile(const std::string& filename) {
@@ -60,99 +67,32 @@ namespace hand_net {
 
     std::cout << "loading HandNet from " << filename << std::endl;
 
-    /*
-    // TO DO: UPDATE THIS
-    std::ifstream file(filename.c_str(), std::ios::in|std::ios::binary);
-    if (file.is_open()) {
+    conv_network_ = TorchStage::loadFromFile(filename);
 
-      file.seekg(0, std::ios::beg);
-
-      // Get the meta data
-      file.read(reinterpret_cast<char*>(&n_conv_stages_), 
-        sizeof(n_conv_stages_));
-      file.read(reinterpret_cast<char*>(&n_nn_stages_), sizeof(n_nn_stages_));
-      file.read(reinterpret_cast<char*>(&num_conv_banks_), sizeof(num_conv_banks_));
-
-      int32_t data_type;
-      file.read(reinterpret_cast<char*>(&data_type), sizeof(data_type));
-      data_type_ = (HandNetDataType)data_type;
-
-      conv_stages_ = new ConvStage*[n_conv_stages_ * num_conv_banks_];
-      for (int32_t j = 0; j < num_conv_banks_; j++) {
-        // Load in the convolution stages
-        for (int32_t i = 0; i < n_conv_stages_; i++) {
-          conv_stages_[j * n_conv_stages_ + i] = new ConvStage();
-          conv_stages_[j * n_conv_stages_ + i]->loadFromFile(file);
-        }
-      }
-
-      // Load in the neural network stages
-      nn_stages_ = new NNStage*[n_nn_stages_];
-      for (int32_t i = 0; i < n_nn_stages_; i++) {
-        nn_stages_[i] = new NNStage();
-        nn_stages_[i]->loadFromFile(file);
-      }
-
-      // clean up file io
-      file.close();
-
-      // Now create sufficient temporary data so that we can propogate the
-      // forward model
-      int32_t total_conv_output_size = 0;
-      conv_datcur_ = new float*[num_conv_banks_];
-      conv_datnext_ = new float*[num_conv_banks_];
-      for (int32_t j = 0; j < num_conv_banks_; j++) {
-        ConvStage* cstage;
-        int32_t im_sizeu = HN_IM_SIZE / (1 << j);
-        int32_t im_sizev = HN_IM_SIZE / (1 << j);
-        int32_t max_size = im_sizeu * im_sizev;
-        for (int32_t i = 0; i < n_conv_stages_; i++) {
-          cstage = conv_stages_[j * n_conv_stages_ + i];
-          max_size = std::max<int32_t>(max_size, 
-            cstage->dataSizeReq(im_sizeu, im_sizev));
-          im_sizeu = cstage->calcOutWidth(im_sizeu);
-          im_sizev = cstage->calcOutHeight(im_sizev);
-        }
-        total_conv_output_size += im_sizeu * im_sizev * 
-          cstage->n_output_features();
-        conv_datcur_[j] = new float[max_size];
-        conv_datnext_[j] = new float[max_size];
-      }
-      
-
-      // Quick check to make sure the sizes match up!
-      if (total_conv_output_size != nn_stages_[0]->n_inputs()) {
-          throw std::wruntime_error("HandNet::loadFromFile() - INTERNAL ERROR:"
-            " convolution output size doesn't match neural net intput size");
-      }
-
-      uint32_t max_size = 0;
-      for (int32_t i = 0; i < n_nn_stages_; i++) {
-        max_size = std::max<uint32_t>(max_size, nn_stages_[i]->dataSizeReq());
-        if (i < n_nn_stages_ - 1) {
-          if (nn_stages_[i]->n_outputs() != nn_stages_[i+1]->n_inputs()) {
-            throw std::wruntime_error("HandNet::loadFromFile() - INTERNAL "
-              "ERROR: neural net out size doesn't match neural net in size");
-          }
-        }
-      }
-
-      image_generator_ = new HandImageGenerator(num_conv_banks_);
-
-      // Finally, allocate size for the data that will flow through convnet
-      nn_datcur_ = new float[max_size];
-      nn_datnext_ = new float[max_size];
-
-      // Now set up multithreaded callbacks.
-      tp_ = new ThreadPool(HN_NUM_WORKER_THREADS);
-
-    } else {
-      std::stringstream ss;
-      ss << "HandNet::loadFromFile() - ERROR: Could not open convnet";
-      ss << " file " << filename << std::endl;
-      throw std::wruntime_error(ss.str());
+    // Check the basic structure...
+    if (conv_network_->type() != TorchStageType::SEQUENTIAL_STAGE) {
+      throw std::wruntime_error("HandNet::loadFromFile() - ERROR: "
+        "Convnet structure may be corrupt!");
     }
-    */
+    Sequential* network = (Sequential*)conv_network_;
+    if (network->get(0)->type() != TorchStageType::PARALLEL_STAGE) {
+      throw std::wruntime_error("HandNet::loadFromFile() - ERROR: "
+        "Convnet structure may be corrupt!");
+    }
+    Parallel* banks = (Parallel*)network->get(0);
+    data_type_ = HPF_DEPTH_DATA;
+
+    num_conv_banks_ = (int32_t)banks->numBanks();
+    image_generator_ = new HandImageGenerator(num_conv_banks_);
+
+    conv_network_input_ = new Table();
+    for (int32_t j = 0; j < num_conv_banks_; j++) {
+      int32_t w = HN_IM_SIZE / (1 << j);
+      int32_t h = HN_IM_SIZE / (1 << j);
+      conv_network_input_->add(new FloatTensor(Int2(w, h)));
+    }
+
+    tp_ = new ThreadPool(HN_NUM_WORKER_THREADS);
   }
 
   void HandNet::calcHandImage(const int16_t* depth, const uint8_t* label) {
@@ -183,57 +123,20 @@ namespace hand_net {
         "data_type value is not supported!");
     }
 
-    /*
-    // TO DO: UPDATE THIS
     for (int32_t j = 0; j < num_conv_banks_; j++) {
       int32_t w = HN_IM_SIZE / (1 << j);
       int32_t h = HN_IM_SIZE / (1 << j);
-      memcpy(conv_datcur_[j], im, w * h * sizeof(conv_datcur_[j][0]));
+      FloatTensor* cur_dst_im = (FloatTensor*)((*conv_network_input_)(j));
+      memcpy(cur_dst_im->data(), im, w * h * sizeof(cur_dst_im->data()[0]));
       im = &im[w*h];
     }
 
-    // Now propogate the outputs through each of the banks and copy each
-    // output into the nn input
-    float* nn_input = nn_datcur_;
-    ConvStage* stage = NULL;
-    for (int32_t j = 0; j < num_conv_banks_; j++) {
-      int32_t w = HN_IM_SIZE / (1 << j);
-      int32_t h = HN_IM_SIZE / (1 << j);
-      for (int32_t i = 0; i < n_conv_stages_; i++) {
-        stage = conv_stages_[j * n_conv_stages_ + i];
-        stage->forwardProp(conv_datcur_[j], w, h, conv_datnext_[j], tp_);
-        // Ping-pong the buffers
-        float* tmp = conv_datnext_[j];
-        conv_datnext_[j] = conv_datcur_[j];
-        conv_datcur_[j] = tmp;
-        // Calculate the next stage size
-        w = stage->calcOutWidth(w);
-        h = stage->calcOutHeight(h);
-      }
-      int32_t s = w * h * stage->n_output_features();
-      memcpy(nn_input, conv_datcur_[j], s * sizeof(nn_input[0]));
-      nn_input = &nn_input[s];
-      // print3DTensorToStdCout<float>(conv_datcur_[j], 0, w, h, 2, 2, 6, 6);
-    }
+    // Now propogate through the network
+    conv_network_->forwardProp(*conv_network_input_, *tp_);
+    FloatTensor* output_tensor = (FloatTensor*)(conv_network_->output);
 
-    // print3DTensorToStdCout<float>(nn_datcur_, 1, 
-    //   nn_stages_[0]->n_inputs(), 1);
-
-    for (int32_t i = 0; i < n_nn_stages_; i++) {
-      nn_stages_[i]->forwardProp(nn_datcur_, nn_datnext_, tp_);
-      // Ping-pong the buffers
-      float* tmp = nn_datnext_;
-      nn_datnext_ = nn_datcur_;
-      nn_datcur_ = tmp; 
-      // print3DTensorToStdCout<float>(nn_datcur_, 1, 
-      //   nn_stages_[i]->n_outputs(), 1);
-    }
-
-    memcpy(coeff_convnet_, nn_datcur_, HAND_NUM_COEFF_CONVNET * 
+    memcpy(coeff_convnet_, output_tensor->data(), HAND_NUM_COEFF_CONVNET * 
       sizeof(coeff_convnet_[0]));
-
-    // print3DTensorToStdCout<float>(nn_datcur_, 1, HAND_NUM_COEFF_CONVNET, 1);
-    */
   }
 
   const float* HandNet::hpf_hand_image() const {

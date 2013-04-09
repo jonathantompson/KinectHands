@@ -111,6 +111,7 @@ namespace hand_net {
 
   class HandImageGenerator;
   class TorchStage;
+  class Table;
   
   class HandNet {
   public:
@@ -141,11 +142,10 @@ namespace hand_net {
 
   private:
     HandImageGenerator* image_generator_;
-
     HandNetDataType data_type_;
-
+    Table* conv_network_input_;
+    int32_t num_conv_banks_;  // Set after Torch model is read from file
     TorchStage* conv_network_;
-
     float coeff_convnet_[HAND_NUM_COEFF_CONVNET];  // output data
 
     // Multithreading
