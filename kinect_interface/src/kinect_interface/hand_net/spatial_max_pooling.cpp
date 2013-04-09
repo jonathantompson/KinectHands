@@ -29,21 +29,26 @@ namespace hand_net {
     SAFE_DELETE(thread_cbs_);
   }
 
-  void SpatialMaxPooling::init(FloatTensor& input, ThreadPool& tp)  {
+  void SpatialMaxPooling::init(TorchData& input, ThreadPool& tp)  {
+    if (input.type() != TorchDataType::FLOAT_TENSOR_DATA) {
+      throw std::wruntime_error("SpatialMaxPooling::init() - "
+        "FloatTensor expected!");
+    }
+    FloatTensor& in = (FloatTensor&)input;
     if (output != NULL) {
-      if (!Int4::equal(input.dim(), output->dim())) {
+      if (!Int4::equal(in.dim(), output->dim())) {
         // Input dimension has changed!
         SAFE_DELETE(output);
         SAFE_DELETE(thread_cbs_);
       }
     }
     if (output == NULL) {
-      if (input.dim()[0] % poolsize_u_ != 0 || 
-        input.dim()[1] % poolsize_v_ != 0) {
+      if (in.dim()[0] % poolsize_u_ != 0 || 
+        in.dim()[1] % poolsize_v_ != 0) {
         throw std::wruntime_error("width or height is not a multiple of "
           "the poolsize!");
       }
-      Int4 out_dim(input.dim());
+      Int4 out_dim(in.dim());
       out_dim[0] /= poolsize_u_;
       out_dim[1] /= poolsize_v_;
       output = new FloatTensor(out_dim);
@@ -61,10 +66,10 @@ namespace hand_net {
     }
   }
 
-  void SpatialMaxPooling::forwardProp(FloatTensor& input, 
+  void SpatialMaxPooling::forwardProp(TorchData& input, 
     jtil::threading::ThreadPool& tp) { 
     init(input, tp);
-    cur_input_ = &input;
+    cur_input_ = &((FloatTensor&)input);
     threads_finished_ = 0;
     for (uint32_t i = 0; i < thread_cbs_->size(); i++) {
       tp.addTask((*thread_cbs_)[i]);

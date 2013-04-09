@@ -26,7 +26,7 @@ namespace hand_net {
     virtual ~Parallel();
 
     virtual TorchStageType type() const { return PARALLEL_STAGE; }
-    virtual void forwardProp(FloatTensor& input, 
+    virtual void forwardProp(TorchData& input, 
       jtil::threading::ThreadPool& tp);
 
     void add(TorchStage* stage);

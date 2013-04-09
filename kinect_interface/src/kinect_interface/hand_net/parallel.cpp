@@ -1,5 +1,6 @@
 #include "kinect_interface/hand_net/parallel.h"
 #include "kinect_interface/hand_net/float_tensor.h"
+#include "kinect_interface/hand_net/table.h"
 #include "jtil/exceptions/wruntime_error.h"
 #include "jtil/threading/thread.h"
 #include "jtil/threading/callback.h"
@@ -34,15 +35,22 @@ namespace hand_net {
     file.read(reinterpret_cast<char*>(&n_nodes), sizeof(n_nodes));
     Parallel* ret = new Parallel();
     ret->network_->capacity(n_nodes);
-    for (uint32_t i = 0; i < n_nodes; i++) {
+    for (int32_t i = 0; i < n_nodes; i++) {
       ret->network_->pushBack(TorchStage::loadFromFile(file));
     }
     return ret;
   }
 
-  void Parallel::forwardProp(FloatTensor& input, 
+  void Parallel::forwardProp(TorchData& input, 
     ThreadPool& tp) {
-    throw std::wruntime_error("Not yet implemented");
+    if (input.type() != TorchDataType::TABLE_DATA) {
+      throw std::wruntime_error("Parallel::forwardProp() - "
+        "Table expected!");
+    }
+    Table& in = (Table&)input;
+    for (uint32_t i = 0; i < network_->size(); i++) {
+      (*network_)[i]->forwardProp(*in(i), tp);
+    }
   }
 
   uint32_t Parallel::numBanks() const {

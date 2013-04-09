@@ -56,7 +56,7 @@
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")  // Added
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Added
+#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Added
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Added
 

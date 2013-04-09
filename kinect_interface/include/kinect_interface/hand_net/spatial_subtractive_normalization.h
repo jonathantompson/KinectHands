@@ -29,7 +29,7 @@ namespace hand_net {
     virtual ~SpatialSubtractiveNormalization();
 
     virtual TorchStageType type() const { return SPATIAL_SUBTRACTIVE_NORMALIZATION_STAGE; }
-    virtual void forwardProp(FloatTensor& input, 
+    virtual void forwardProp(TorchData& input, 
       jtil::threading::ThreadPool& tp);
 
     static TorchStage* loadFromFile(std::ifstream& file);
@@ -50,7 +50,7 @@ namespace hand_net {
 
     void normalizeFeature(const int32_t feat);
 
-    void init(FloatTensor& input, jtil::threading::ThreadPool& tp);
+    void init(TorchData& input, jtil::threading::ThreadPool& tp);
 
     // Non-copyable, non-assignable.
     SpatialSubtractiveNormalization(SpatialSubtractiveNormalization&);

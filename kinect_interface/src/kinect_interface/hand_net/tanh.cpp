@@ -26,16 +26,20 @@ namespace hand_net {
     SAFE_DELETE(thread_cbs_);
   }
 
-  void Tanh::init(FloatTensor& input, jtil::threading::ThreadPool& tp)  {
+  void Tanh::init(TorchData& input, jtil::threading::ThreadPool& tp)  {
+    if (input.type() != TorchDataType::FLOAT_TENSOR_DATA) {
+      throw std::wruntime_error("Tanh::init() - FloatTensor expected!");
+    }
+    FloatTensor& in = (FloatTensor&)input;
     if (output != NULL) {
-      if (!Int4::equal(input.dim(), output->dim())) {
+      if (!Int4::equal(in.dim(), output->dim())) {
         // Input dimension has changed!
         SAFE_DELETE(output);
         SAFE_DELETE(thread_cbs_);
       }
     }
     if (output == NULL) {
-      output = new FloatTensor(input.dim());
+      output = new FloatTensor(in.dim());
     }
     if (thread_cbs_ == NULL) {
       int32_t n_threads = tp.num_workers();
@@ -54,9 +58,9 @@ namespace hand_net {
     }
   }
 
-  void Tanh::forwardProp(FloatTensor& input, ThreadPool& tp) { 
+  void Tanh::forwardProp(TorchData& input, ThreadPool& tp) { 
     init(input, tp);
-    cur_input_ = input.data();
+    cur_input_ = ((FloatTensor&)input).data();
     cur_output_ = output->data();
     threads_finished_ = 0;
     for (uint32_t i = 0; i < thread_cbs_->size(); i++) {

@@ -40,12 +40,18 @@ namespace hand_net {
     mean_coef_ = NULL;
     mean_accum_ = NULL;
     filt_tmp_ = NULL;
+    thread_cbs_ = NULL;
   }
 
-  void SpatialSubtractiveNormalization::init(FloatTensor& input, 
+  void SpatialSubtractiveNormalization::init(TorchData& input, 
     jtil::threading::ThreadPool& tp)  {
+    if (input.type() != TorchDataType::FLOAT_TENSOR_DATA) {
+      throw std::wruntime_error("SpatialSubtractiveNormalization::init() - "
+        "FloatTensor expected!");
+    }
+    FloatTensor& in = (FloatTensor&)input;
     if (output != NULL) {
-      if (!Int4::equal(input.dim(), output->dim())) {
+      if (!Int4::equal(in.dim(), output->dim())) {
         // Input dimension has changed!
         SAFE_DELETE(output);
         SAFE_DELETE_ARR(mean_coef_);
@@ -55,7 +61,7 @@ namespace hand_net {
       }
     }
     if (output == NULL) {
-      output = new FloatTensor(input.dim());
+      output = new FloatTensor(in.dim());
     }
     if (mean_coef_ == NULL) {
       mean_coef_ = new float[output->dim()[0] * output->dim()[1]];
@@ -91,14 +97,14 @@ namespace hand_net {
     if (mean_accum_ == NULL) {
       mean_accum_ = new float[output->dim()[0] * output->dim()[1]];
     }
-    if (mean_accum_ == NULL) {
+    if (filt_tmp_ == NULL) {
       filt_tmp_ = new float[output->dim()[0] * output->dim()[1]];
     }
     if (thread_cbs_ == NULL) {
-      int32_t n_feats = input.dim()[2];
+      int32_t n_feats = in.dim()[2];
       int32_t n_threads = n_feats;
       thread_cbs_ = new VectorManaged<Callback<void>*>(n_threads);
-      for (int32_t dim2 = 0; dim2 < (int32_t)input.dim()[2]; dim2++) {
+      for (int32_t dim2 = 0; dim2 < (int32_t)in.dim()[2]; dim2++) {
         thread_cbs_->pushBack(MakeCallableMany(
           &SpatialSubtractiveNormalization::normalizeFeature, 
           this, dim2));
@@ -115,14 +121,15 @@ namespace hand_net {
     SAFE_DELETE(thread_cbs_);
   }
 
-  void SpatialSubtractiveNormalization::forwardProp(FloatTensor& input, 
+  void SpatialSubtractiveNormalization::forwardProp(TorchData& input, 
     ThreadPool& tp) { 
     init(input, tp);
-    const int32_t width = input.dim()[0];
-    const int32_t height = input.dim()[1];
-    const int32_t n_feats = input.dim()[2];
-    const int32_t n_banks = input.dim()[3];
-    const int32_t im_dim = input.dim()[0] * input.dim()[1];
+    FloatTensor& in = (FloatTensor&)input;
+    const int32_t width = in.dim()[0];
+    const int32_t height = in.dim()[1];
+    const int32_t n_feats = in.dim()[2];
+    const int32_t n_banks = in.dim()[3];
+    const int32_t im_dim = in.dim()[0] * in.dim()[1];
     const float* kernel = kernel1d_->data();
     int32_t filt_rad = (kernel1d_->dim()[0] - 1) / 2;
 
@@ -131,7 +138,7 @@ namespace hand_net {
       for (int32_t i = 0; i < im_dim; i++) {
         mean_accum_[i] = 0.0f;
       }
-      float* cur_in = &input(0, 0, 0, outb);
+      float* cur_in = &in(0, 0, 0, outb);
       float* cur_out = &((*output)(0, 0, 0, outb));
       for (int32_t outf = 0; outf < n_feats; outf++) {
         // The filter is seperable --> Filter HORIZONTALLY first

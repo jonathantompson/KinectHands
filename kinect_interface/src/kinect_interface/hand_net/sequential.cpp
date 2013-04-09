@@ -30,18 +30,22 @@ namespace hand_net {
     network_->pushBack(stage);
   }
 
+  TorchStage* Sequential::get(const uint32_t i) {
+    return (*network_)[i];
+  }
+
   TorchStage* Sequential::loadFromFile(std::ifstream& file) {
     int n_nodes;
     file.read(reinterpret_cast<char*>(&n_nodes), sizeof(n_nodes));
     Sequential* ret = new Sequential();
     ret->network_->capacity(n_nodes);
-    for (uint32_t i = 0; i < n_nodes; i++) {
+    for (int32_t i = 0; i < n_nodes; i++) {
       ret->network_->pushBack(TorchStage::loadFromFile(file));
     }
     return ret;
   }
 
-  void Sequential::forwardProp(FloatTensor& input, 
+  void Sequential::forwardProp(TorchData& input, 
     ThreadPool& tp) {
     if (network_ == NULL) {
       throw std::wruntime_error("Sequential::forwardProp() - ERROR: "

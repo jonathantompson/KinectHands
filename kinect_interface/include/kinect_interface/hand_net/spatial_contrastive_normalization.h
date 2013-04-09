@@ -35,7 +35,7 @@ namespace hand_net {
     virtual ~SpatialContrastiveNormalization();
 
     virtual TorchStageType type() const { return SPATIAL_CONTRASTIVE_NORMALIZATION_STAGE; }
-    virtual void forwardProp(FloatTensor& input, 
+    virtual void forwardProp(TorchData& input, 
       jtil::threading::ThreadPool& tp);
 
     static TorchStage* loadFromFile(std::ifstream& file);

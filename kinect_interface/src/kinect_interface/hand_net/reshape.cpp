@@ -24,22 +24,27 @@ namespace hand_net {
     SAFE_DELETE(output);
   }
 
-  void Reshape::init(FloatTensor& input, ThreadPool& tp)  {
+  void Reshape::init(TorchData& input, ThreadPool& tp)  {
+    if (input.type() != TorchDataType::FLOAT_TENSOR_DATA) {
+      throw std::wruntime_error("Reshape::init() - "
+        "FloatTensor expected!");
+    }
+    FloatTensor& in = (FloatTensor&)input;
     if (output != NULL) {
-      if (!Int4::equal(input.dim(), output->dim())) {
+      if (!Int4::equal(in.dim(), output->dim())) {
         // Input dimension has changed!
         SAFE_DELETE(output);
       }
     }
     if (output == NULL) {
-      Int4 out_dim(input.dataSize(), 1, 1, 1);
+      Int4 out_dim(in.dataSize(), 1, 1, 1);
       output = new FloatTensor(out_dim);
     }
   }
 
-  void Reshape::forwardProp(FloatTensor& input, ThreadPool& tp) { 
+  void Reshape::forwardProp(TorchData& input, ThreadPool& tp) { 
     init(input, tp);
-    memcpy(output->data(), input.data(), 
+    memcpy(output->data(), ((FloatTensor&)input).data(), 
       output->dim()[0] * sizeof(output->data()[0]));
   }
 

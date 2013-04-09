@@ -28,7 +28,7 @@ namespace hand_net {
     virtual ~SpatialMaxPooling();
 
     virtual TorchStageType type() const { return SPATIAL_MAX_POOLING_STAGE; }
-    virtual void forwardProp(FloatTensor& input, 
+    virtual void forwardProp(TorchData& input, 
       jtil::threading::ThreadPool& tp);
 
     static TorchStage* loadFromFile(std::ifstream& file);
@@ -46,7 +46,7 @@ namespace hand_net {
 
     void forwardPropThread(const int32_t outf, const int32_t outb);
 
-    void init(FloatTensor& input, jtil::threading::ThreadPool& tp);
+    void init(TorchData& input, jtil::threading::ThreadPool& tp);
 
     // Non-copyable, non-assignable.
     SpatialMaxPooling(SpatialMaxPooling&);

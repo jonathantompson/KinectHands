@@ -26,7 +26,7 @@ namespace hand_net {
     virtual ~Linear();
 
     virtual TorchStageType type() const { return LINEAR_STAGE; }
-    virtual void forwardProp(FloatTensor& input, 
+    virtual void forwardProp(TorchData& input, 
       jtil::threading::ThreadPool& tp);
 
     float* weights;
@@ -48,7 +48,7 @@ namespace hand_net {
 
     void forwardPropThread(const int32_t start_outf, const int32_t end_outf);
 
-    void init(FloatTensor& input, jtil::threading::ThreadPool& tp);
+    void init(TorchData& input, jtil::threading::ThreadPool& tp);
 
     // Non-copyable, non-assignable.
     Linear(Linear&);

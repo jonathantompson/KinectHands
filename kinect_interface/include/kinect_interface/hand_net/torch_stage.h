@@ -39,6 +39,7 @@ namespace hand_net {
                                 // Data just passes straight through.
   } TorchStageType;
 
+  class TorchData;
   class FloatTensor;
   
   class TorchStage {
@@ -48,7 +49,7 @@ namespace hand_net {
     virtual ~TorchStage();
 
     virtual TorchStageType type() const { return UNDEFINED_STAGE; }
-    virtual void forwardProp(FloatTensor& input, 
+    virtual void forwardProp(TorchData& input, 
       jtil::threading::ThreadPool& tp) = 0;  // Pure virtual
 
     // Top level read-write

@@ -50,7 +50,7 @@ namespace hand_net {
     SAFE_DELETE(network_);
   }
 
-  void SpatialContrastiveNormalization::forwardProp(FloatTensor& input, 
+  void SpatialContrastiveNormalization::forwardProp(TorchData& input, 
     jtil::threading::ThreadPool& tp) {
     network_->forwardProp(input, tp);
     output = network_->output;

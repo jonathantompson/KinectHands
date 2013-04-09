@@ -54,16 +54,21 @@ namespace hand_net {
     SAFE_DELETE_ARR(biases_);
   }
 
-  void SpatialConvolutionMap::init(FloatTensor& input, 
+  void SpatialConvolutionMap::init(TorchData& input, 
     jtil::threading::ThreadPool& tp)  {
-    if (input.dim()[2] != feats_in_) {
+    if (input.type() != TorchDataType::FLOAT_TENSOR_DATA) {
+      throw std::wruntime_error("SpatialConvolutionMap::init() - "
+        "FloatTensor expected!");
+    }
+    FloatTensor& in = (FloatTensor&)input;
+    if (in.dim()[2] != feats_in_) {
       throw std::wruntime_error("SpatialConvolutionMap::init() - ERROR: "
         "incorrect number of input features!");
     }
     if (output != NULL) {
-      Int4 out_dim(input.dim());
-      out_dim[0] -= out_dim[0] - filt_width_ + 1;
-      out_dim[1] -= out_dim[1] - filt_height_ + 1;
+      Int4 out_dim(in.dim());
+      out_dim[0] = out_dim[0] - filt_width_ + 1;
+      out_dim[1] = out_dim[1] - filt_height_ + 1;
       out_dim[2] = feats_out_;
       if (!Int4::equal(out_dim, output->dim())) {
         // Input dimension has changed!
@@ -72,17 +77,17 @@ namespace hand_net {
       }
     }
     if (output == NULL) {
-      Int4 out_dim(input.dim());
-      out_dim[0] -= out_dim[0] - filt_width_ + 1;
-      out_dim[1] -= out_dim[1] - filt_height_ + 1;
+      Int4 out_dim(in.dim());
+      out_dim[0] = out_dim[0] - filt_width_ + 1;
+      out_dim[1] = out_dim[1] - filt_height_ + 1;
       out_dim[2] = feats_out_;
       output = new FloatTensor(out_dim);
     }
     if (thread_cbs_ == NULL) {
-      int32_t n_feats = input.dim()[2];
+      int32_t n_feats = feats_out_;
       int32_t n_threads = n_feats;
       thread_cbs_ = new VectorManaged<Callback<void>*>(n_threads);
-      for (int32_t dim2 = 0; dim2 < (int32_t)input.dim()[2]; dim2++) {
+      for (int32_t dim2 = 0; dim2 < n_feats; dim2++) {
         thread_cbs_->pushBack(MakeCallableMany(
           &SpatialConvolutionMap::forwardPropThread, 
           this, dim2));
@@ -90,15 +95,16 @@ namespace hand_net {
     }
   }
 
-  void SpatialConvolutionMap::forwardProp(FloatTensor& input, 
+  void SpatialConvolutionMap::forwardProp(TorchData& input, 
     ThreadPool& tp) { 
     init(input, tp);
-    const int32_t n_banks = input.dim()[3];
+    FloatTensor& in = (FloatTensor&)input;
+    const int32_t n_banks = in.dim()[3];
     for (int32_t outb = 0; outb < n_banks; outb++) {
-      float* cur_input_ = &input(0, 0, 0, outb);
-      float* cur_output_ = &((*output)(0, 0, 0, outb));
-      cur_input_width_ = input.dim()[0];
-      cur_input_height_ = input.dim()[1];
+      cur_input_ = &in(0, 0, 0, outb);
+      cur_output_ = &((*output)(0, 0, 0, outb));
+      cur_input_width_ = in.dim()[0];
+      cur_input_height_ = in.dim()[1];
 
       threads_finished_ = 0;
       for (int32_t i = 0; i < feats_out_; i++) {

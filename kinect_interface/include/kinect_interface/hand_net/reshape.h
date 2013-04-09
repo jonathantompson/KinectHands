@@ -29,13 +29,13 @@ namespace hand_net {
     virtual ~Reshape();
 
     virtual TorchStageType type() const { return RESHAPE_STAGE; }
-    virtual void forwardProp(FloatTensor& input, 
+    virtual void forwardProp(TorchData& input, 
       jtil::threading::ThreadPool& tp);
 
     static TorchStage* loadFromFile(std::ifstream& file);
 
   protected:
-    void init(FloatTensor& input, jtil::threading::ThreadPool& tp);
+    void init(TorchData& input, jtil::threading::ThreadPool& tp);
 
     // Non-copyable, non-assignable.
     Reshape(Reshape&);

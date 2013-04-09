@@ -108,6 +108,12 @@
     <ClCompile Include="src\kinect_interface\hand_net\float_tensor.cpp">
       <Filter>Source Files\kinect_interface\hand_net</Filter>
     </ClCompile>
+    <ClCompile Include="src\kinect_interface\hand_net\table.cpp">
+      <Filter>Source Files\kinect_interface\hand_net</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kinect_interface\hand_net\torch_data.cpp">
+      <Filter>Source Files\kinect_interface\hand_net</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\kinect_interface\hand_detector\hand_detector.h">
@@ -198,6 +204,12 @@
       <Filter>Header Files\kinect_interface\hand_net</Filter>
     </ClInclude>
     <ClInclude Include="include\kinect_interface\hand_net\float_tensor.h">
+      <Filter>Header Files\kinect_interface\hand_net</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kinect_interface\hand_net\torch_data.h">
+      <Filter>Header Files\kinect_interface\hand_net</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kinect_interface\hand_net\table.h">
       <Filter>Header Files\kinect_interface\hand_net</Filter>
     </ClInclude>
   </ItemGroup>

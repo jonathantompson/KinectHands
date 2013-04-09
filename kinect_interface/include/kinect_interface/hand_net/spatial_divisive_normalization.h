@@ -34,7 +34,7 @@ namespace hand_net {
     virtual ~SpatialDivisiveNormalization();
 
     virtual TorchStageType type() const { return SPATIAL_DIVISIVE_NORMALIZATION_STAGE; }
-    virtual void forwardProp(FloatTensor& input, 
+    virtual void forwardProp(TorchData& input, 
       jtil::threading::ThreadPool& tp);
 
     static TorchStage* loadFromFile(std::ifstream& file);
@@ -57,7 +57,7 @@ namespace hand_net {
 
     void normalizeFeature(const int32_t outf);
 
-    void init(FloatTensor& input, jtil::threading::ThreadPool& tp);
+    void init(TorchData& input, jtil::threading::ThreadPool& tp);
 
     // Non-copyable, non-assignable.
     SpatialDivisiveNormalization(SpatialDivisiveNormalization&);

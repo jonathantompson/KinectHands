@@ -26,6 +26,7 @@
       </ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="src\kinect_interface\hand_net\float_tensor.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_net\table.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\hand_image_generator.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\hand_model.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\hand_net.cpp" />
@@ -48,6 +49,7 @@
     <ClCompile Include="src\kinect_interface\hand_net\spatial_subtractive_normalization.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\tanh.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\threshold.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_net\torch_data.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\torch_stage.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\spatial_convolution_map.cpp" />
     <ClCompile Include="src\kinect_interface\kinect_interface.cpp" />
@@ -69,6 +71,7 @@
       </ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="include\kinect_interface\hand_net\float_tensor.h" />
+    <ClInclude Include="include\kinect_interface\hand_net\table.h" />
     <ClInclude Include="include\kinect_interface\hand_net\hand_image_generator.h" />
     <ClInclude Include="include\kinect_interface\hand_net\hand_model.h" />
     <ClInclude Include="include\kinect_interface\hand_net\hand_net.h" />
@@ -91,6 +94,7 @@
     <ClInclude Include="include\kinect_interface\hand_net\spatial_subtractive_normalization.h" />
     <ClInclude Include="include\kinect_interface\hand_net\tanh.h" />
     <ClInclude Include="include\kinect_interface\hand_net\threshold.h" />
+    <ClInclude Include="include\kinect_interface\hand_net\torch_data.h" />
     <ClInclude Include="include\kinect_interface\hand_net\torch_stage.h" />
     <ClInclude Include="include\kinect_interface\hand_net\spatial_convolution_map.h" />
     <ClInclude Include="include\kinect_interface\kinect_interface.h" />

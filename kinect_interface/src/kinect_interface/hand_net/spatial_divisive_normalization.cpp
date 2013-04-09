@@ -33,6 +33,7 @@ namespace hand_net {
     std_coef_ = NULL;
     std_accum_ = NULL;
     filt_tmp_ = NULL;
+    thread_cbs_ = NULL;
 
     threshold_ = threshold;
   }
@@ -47,10 +48,15 @@ namespace hand_net {
     SAFE_DELETE(thread_cbs_);
   }
 
-  void SpatialDivisiveNormalization::init(FloatTensor& input, 
+  void SpatialDivisiveNormalization::init(TorchData& input, 
     jtil::threading::ThreadPool& tp)  {
+    if (input.type() != TorchDataType::FLOAT_TENSOR_DATA) {
+      throw std::wruntime_error("SpatialDivisiveNormalization::init() - "
+        "FloatTensor expected!");
+    }
+    FloatTensor& in = (FloatTensor&)input;
     if (output != NULL) {
-      if (!Int4::equal(input.dim(), output->dim())) {
+      if (!Int4::equal(in.dim(), output->dim())) {
         // Input dimension has changed!
         SAFE_DELETE(output);
         SAFE_DELETE(kernel1d_norm_);
@@ -61,12 +67,12 @@ namespace hand_net {
       }
     }
     if (output == NULL) {
-      output = new FloatTensor(input.dim());
+      output = new FloatTensor(in.dim());
     }
     if (kernel1d_norm_ == NULL) {
       kernel1d_norm_ = kernel1d_->copy();
       // Now normalize the kernel!
-      const float n_feats = (float)input.dim()[2];
+      const float n_feats = (float)in.dim()[2];
       float sum = 0.0f;
       for (int32_t i = 0; i < kernel1d_norm_->dim()[0]; i++) {
         sum += kernel1d_norm_->data()[i];
@@ -87,6 +93,7 @@ namespace hand_net {
       int32_t n_feats = output->dim()[2];
       int32_t height = output->dim()[1];
       int32_t width = output->dim()[0];
+      float* kernel = kernel1d_norm_->data();
       for (int32_t v = 0; v < height; v++) {
         for (int32_t u = 0; u < width; u++) {
           std_coef_[v * width + u] = 0.0f;
@@ -97,8 +104,7 @@ namespace hand_net {
               if (u_in >= 0 && u_in < width && v_in >= 0 && v_in < height) {
                 // Pixel is inside --> We'll effectively clamp zeros elsewhere.
                 std_coef_[v * width + u] += 
-                  (kernel1d_->data()[v_filt + filt_rad] *
-                   kernel1d_->data()[u_filt + filt_rad]);
+                  (kernel[v_filt + filt_rad] * kernel[u_filt + filt_rad]);
               }
             }
           }
@@ -109,14 +115,14 @@ namespace hand_net {
     if (std_accum_ == NULL) {
       std_accum_ = new float[output->dim()[0] * output->dim()[1]];
     }
-    if (std_accum_ == NULL) {
+    if (filt_tmp_ == NULL) {
       filt_tmp_ = new float[output->dim()[0] * output->dim()[1]];
     }
     if (thread_cbs_ == NULL) {
-      int32_t n_feats = input.dim()[2];
+      int32_t n_feats = in.dim()[2];
       int32_t n_threads = n_feats;
       thread_cbs_ = new VectorManaged<Callback<void>*>(n_threads);
-      for (int32_t dim2 = 0; dim2 < (int32_t)input.dim()[2]; dim2++) {
+      for (int32_t dim2 = 0; dim2 < (int32_t)in.dim()[2]; dim2++) {
         thread_cbs_->pushBack(MakeCallableMany(
           &SpatialDivisiveNormalization::normalizeFeature, 
           this, dim2));
@@ -124,14 +130,15 @@ namespace hand_net {
     }
   }
 
-  void SpatialDivisiveNormalization::forwardProp(FloatTensor& input, 
+  void SpatialDivisiveNormalization::forwardProp(TorchData& input, 
     ThreadPool& tp) { 
     init(input, tp);
-    const int32_t width = input.dim()[0];
-    const int32_t height = input.dim()[1];
-    const int32_t n_feats = input.dim()[2];
-    const int32_t n_banks = input.dim()[3];
-    const int32_t im_dim = input.dim()[0] * input.dim()[1];
+    FloatTensor& in = (FloatTensor&)input;
+    const int32_t width = in.dim()[0];
+    const int32_t height = in.dim()[1];
+    const int32_t n_feats = in.dim()[2];
+    const int32_t n_banks = in.dim()[3];
+    const int32_t im_dim = in.dim()[0] * in.dim()[1];
     const float* kernel = kernel1d_norm_->data();
     int32_t filt_rad = (kernel1d_norm_->dim()[0] - 1) / 2;
 
@@ -140,7 +147,7 @@ namespace hand_net {
       for (int32_t i = 0; i < im_dim; i++) {
         std_accum_[i] = 0.0f;
       }
-      float* cur_in = &input(0, 0, 0, outb);
+      float* cur_in = &in(0, 0, 0, outb);
       float* cur_out = &((*output)(0, 0, 0, outb));
       for (int32_t outf = 0; outf < n_feats; outf++) {
         // The filter is seperable --> Filter HORIZONTALLY first

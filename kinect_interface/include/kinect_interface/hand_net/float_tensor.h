@@ -13,13 +13,14 @@
 #include <iomanip>
 #include <fstream>
 #include "jtil/math/math_types.h"
+#include "kinect_interface/hand_net/torch_data.h"
 
 namespace jtil { namespace threading { class ThreadPool; } }
 
 namespace kinect_interface {
 namespace hand_net {
   
-  class FloatTensor {
+  class FloatTensor : public TorchData {
   public:
     // Constructor / Destructor
     FloatTensor(const jtil::math::Int4& dim);  
@@ -28,11 +29,13 @@ namespace hand_net {
     FloatTensor(const int dim);  // Assumes dim[3]=1, dim[2]=1, dim[1]=1
     virtual ~FloatTensor();
 
+    virtual TorchDataType type() const { return FLOAT_TENSOR_DATA; }
+
     float& operator()(const uint32_t u, const uint32_t v, const uint32_t f, 
       const uint32_t b);  // u is the lowest contiguous dimension
     const jtil::math::Int4& dim() const { return dim_; }
 
-    void print() const;  // print to std::cout
+    virtual void print() const;  // print to std::cout
 
     // Deep copy
     FloatTensor* copy() const;

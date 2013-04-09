@@ -36,36 +36,42 @@ namespace hand_net {
     SAFE_DELETE(thread_cbs_);
   }
 
-  void Linear::init(FloatTensor& input, ThreadPool& tp)  {
-    if (input.dim()[1] != 1 || input.dim()[1] != 1 || input.dim()[1] != 1) {
+  void Linear::init(TorchData& input, ThreadPool& tp)  {
+    if (input.type() != TorchDataType::FLOAT_TENSOR_DATA) {
+      throw std::wruntime_error("Linear::init() - "
+        "FloatTensor expected!");
+    }
+    FloatTensor& in = (FloatTensor&)input;
+    if (in.dim()[1] != 1 || in.dim()[1] != 1 || in.dim()[1] != 1) {
       throw std::wruntime_error("Linear::init() - ERROR: 1D input expected!");
     }
-    if (input.dim()[0] != n_inputs_) {
+    if (in.dim()[0] != n_inputs_) {
       throw std::wruntime_error("Linear::init() - ERROR: input size mismatch!");
     }
     if (thread_cbs_ == NULL) {
       int32_t n_threads = tp.num_workers();
       // pix_per_thread is rounded up (so we always cover the correct amount)
-      int32_t input_size = input.dataSize();
-      int32_t pix_per_thread = 1 + input.dataSize() / n_threads;
+      int32_t output_size = output->dataSize();
+      int32_t pix_per_thread = 1 + output_size / n_threads;
       thread_cbs_ = new VectorManaged<Callback<void>*>(n_threads);
-      for (uint32_t i = 0; i < n_threads; i++) {
+      for (int32_t i = 0; i < n_threads; i++) {
         int32_t start = i * pix_per_thread;
         // Note: end is inclusive
         int32_t end = std::min<int32_t>((i + 1) * pix_per_thread - 1,
-          input_size - 1);
+          output_size - 1);
         thread_cbs_->pushBack(MakeCallableMany(&Linear::forwardPropThread, 
           this, start, end));
       }
     }
   }
 
-  void Linear::forwardProp(FloatTensor& input, ThreadPool& tp) { 
+  void Linear::forwardProp(TorchData& input, ThreadPool& tp) { 
     init(input, tp);
-    cur_input_ = input.data();
+    FloatTensor& in = (FloatTensor&)input;
+    cur_input_ = in.data();
     cur_output_ = output->data();
     threads_finished_ = 0;
-    for (int32_t i = 0; i < thread_cbs_->size(); i++) {
+    for (uint32_t i = 0; i < thread_cbs_->size(); i++) {
       tp.addTask((*thread_cbs_)[i]);
     } 
 

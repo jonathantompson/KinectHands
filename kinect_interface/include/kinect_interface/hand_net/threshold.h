@@ -25,7 +25,7 @@ namespace hand_net {
     virtual ~Threshold();
 
     virtual TorchStageType type() const { return THRESHOLD_STAGE; }
-    virtual void forwardProp(FloatTensor& input, 
+    virtual void forwardProp(TorchData& input, 
       jtil::threading::ThreadPool& tp);
 
     float threshold;  // Single threshold value
@@ -44,7 +44,7 @@ namespace hand_net {
 
     void forwardPropThread(const int32_t start, const int32_t end);
 
-    void init(FloatTensor& input, jtil::threading::ThreadPool& tp);
+    void init(TorchData& input, jtil::threading::ThreadPool& tp);
 
     // Non-copyable, non-assignable.
     Threshold(Threshold&);

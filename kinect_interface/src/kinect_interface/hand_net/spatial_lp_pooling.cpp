@@ -30,21 +30,26 @@ namespace hand_net {
     SAFE_DELETE(thread_cbs_);
   }
 
-  void SpatialLPPooling::init(FloatTensor& input, ThreadPool& tp)  {
+  void SpatialLPPooling::init(TorchData& input, ThreadPool& tp)  {
+    if (input.type() != TorchDataType::FLOAT_TENSOR_DATA) {
+      throw std::wruntime_error("SpatialLPPooling::init() - "
+        "FloatTensor expected!");
+    }
+    FloatTensor& in = (FloatTensor&)input;
     if (output != NULL) {
-      if (!Int4::equal(input.dim(), output->dim())) {
+      if (!Int4::equal(in.dim(), output->dim())) {
         // Input dimension has changed!
         SAFE_DELETE(output);
         SAFE_DELETE(thread_cbs_);
       }
     }
     if (output == NULL) {
-      if (input.dim()[0] % poolsize_u_ != 0 || 
-        input.dim()[1] % poolsize_v_ != 0) {
+      if (in.dim()[0] % poolsize_u_ != 0 || 
+        in.dim()[1] % poolsize_v_ != 0) {
         throw std::wruntime_error("width or height is not a multiple of "
           "the poolsize!");
       }
-      Int4 out_dim(input.dim());
+      Int4 out_dim(in.dim());
       out_dim[0] /= poolsize_u_;
       out_dim[1] /= poolsize_v_;
       output = new FloatTensor(out_dim);
@@ -62,10 +67,10 @@ namespace hand_net {
     }
   }
 
-  void SpatialLPPooling::forwardProp(FloatTensor& input, 
+  void SpatialLPPooling::forwardProp(TorchData& input, 
     jtil::threading::ThreadPool& tp) { 
     init(input, tp);
-    cur_input_ = &input;
+    cur_input_ = &((FloatTensor&)input);
     threads_finished_ = 0;
     for (uint32_t i = 0; i < thread_cbs_->size(); i++) {
       tp.addTask((*thread_cbs_)[i]);
@@ -92,7 +97,7 @@ namespace hand_net {
     for (int32_t outv = 0; outv < out_h; outv++) {
       for (int32_t outu = 0; outu < out_w; outu++) {
         int32_t out_index = outv * out_w + outu;
-        out[out_index] = -std::numeric_limits<float>::infinity();
+        out[out_index] = 0.0f;
         // Now perform max pooling:
         for (int32_t inv = outv * poolsize_v_; inv < (outv + 1) * poolsize_v_; inv++) {
           for (int32_t inu = outu * poolsize_u_; inu < (outu + 1) * poolsize_u_; inu++) {
