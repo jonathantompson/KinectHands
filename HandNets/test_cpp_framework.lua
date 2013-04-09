@@ -192,3 +192,57 @@ model2:add(lin_stage)
 res = model2:forward(data_in)
 print('Linear result')
 print(res)
+
+-- Test model
+require 'nn'
+require 'cunn'
+require 'image'
+require 'torch'
+require 'cutorch'
+require 'optim'
+require 'sys'
+require 'xlua'
+torch.setdefaulttensortype('torch.FloatTensor')
+model = torch.load('handmodel.net')
+data_file_size = 0
+bank_dim = {}
+dim = 96
+num_coeff = 40
+num_hpf_banks = 3
+for i = 1,num_hpf_banks do
+  table.insert(bank_dim, {dim, dim})
+  data_file_size = data_file_size + dim * dim
+  dim = dim / 2
+end
+
+hpf_depth_file = torch.DiskFile('kinect_hpf_depth_image_uncompressed.bin','r')
+hpf_depth_file:binary()
+hpf_depth_data = hpf_depth_file:readFloat(data_file_size)
+hpf_depth_file:close()
+
+data = {}
+input = {
+  data = {},
+  labels = torch.FloatTensor(1, num_coeff),
+  size = function() return 1 end
+}
+ind = 1
+for j=1,num_hpf_banks do
+  table.insert(data, torch.FloatTensor(hpf_depth_data, ind, 
+    torch.LongStorage{bank_dim[j][1], bank_dim[j][2]}):float())
+  ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
+  table.insert(input.data, torch.FloatTensor(1, 1, 
+    bank_dim[j][1], bank_dim[j][2]))
+  input.data[j][{1,1,{},{}}] = data[j]
+  input.data[j] = input.data[j]:cuda()
+end
+
+input.labels = model:forward(input.data)
+
+print(ret)
+
+dofile('visualize_data.lua')  -- Just define the function
+VisualizeData(input, visualize_data_labels)
+
+
+

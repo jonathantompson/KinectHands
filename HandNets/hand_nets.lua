@@ -45,11 +45,11 @@ im_dir = "../data/hand_depth_data_processed_for_CN_synthetic/"
 test_im_dir = "../data/hand_depth_data_processed_for_CN_test_synthetic/"
 test_data_rate = 20  -- this means 1 / 20 FROM THE TRAINING SET will be test
 use_hpf_depth = 1
-learning_rate = 1e-0  -- Default 1e-1
+learning_rate = 3e-1  -- Default 1e-1
 l2_reg_param = 2e-4  -- Default 2e-4
 learning_rate_decay = 1e-7  -- Default 1e-7
 learning_momentum = 0.9 -- Default 0.9 --> Clement suggestion
-max_num_epochs = 200
+max_num_epochs = 250
 batch_size = 128  -- Default 128
 
 -- ********************** Load data from Disk *************************
@@ -71,7 +71,7 @@ if (perform_training == 1) then
 
   -- ***************** define the model parameters ********************
   nfeats = 1
-  nstates = {{16, 32}, {16, 32}, {16, 32}}
+  nstates = {{16, 48}, {16, 48}, {16, 48}}
   nstates_nn = 2048
   filtsize = {{7, 6}, {7, 6}, {7, 5}}
   poolsize = {{2, 4}, {2, 2}, {2, 1}}  -- Note: 1 = no pooling
