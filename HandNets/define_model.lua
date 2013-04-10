@@ -86,6 +86,13 @@ model:add(nn.Threshold())
 print("    Neural net first stage output size")
 print(nstates_nn)
 
+model:add(nn.Linear(nstates_nn, nstates_nn))
+model:get(3).bias:add(-model:get(3).bias:min()) -- Set up the initial condition
+model:add(nn.Threshold())
+
+print("    Neural net second stage output size")
+print(nstates_nn)
+
 model:add(nn.Linear(nstates_nn, num_coeff))
 
 print("    Final output size")
@@ -94,7 +101,7 @@ print(num_coeff)
 print '==> Converting model to cuda'
 model:cuda()
 
-
+-- Temp code to test data
 if (false) then
   -- Test the SpatialConvolution Vs. SpatialConvolutionCUDA:
   data = torch.rand(128, 4, 96, 96):cuda()  -- batch, n_in, height, width
