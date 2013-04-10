@@ -156,7 +156,7 @@
     </Link>
     <Lib>
       <AdditionalLibraryDirectories>$(ProjectDir)..\lib\WIN7;$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>jtil_d.lib;openNI64.lib;XnVCNITE64_1_5_2.lib;XnVFeatures64_1_5_2.lib;XnVHandGenerator64_1_5_2.lib;XnVNITE.jni64.lib;XnVNITE64_1_5_2.lib</AdditionalDependencies>
+      <AdditionalDependencies>jtil_d.lib;OpenNI2.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
     </Lib>
     <ProjectReference>
@@ -185,7 +185,7 @@
     </Link>
     <Lib>
       <AdditionalLibraryDirectories>$(ProjectDir)..\lib\WIN7;$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>jtil.lib;openNI64.lib;XnVCNITE64_1_5_2.lib;XnVFeatures64_1_5_2.lib;XnVHandGenerator64_1_5_2.lib;XnVNITE.jni64.lib;XnVNITE64_1_5_2.lib</AdditionalDependencies>
+      <AdditionalDependencies>jtil.lib;OpenNI2.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
     </Lib>
     <PreBuildEvent>

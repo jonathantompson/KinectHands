@@ -7,9 +7,11 @@
 #include <mutex>
 #include <thread>
 #include <string>
+#include <sstream>
 #include <fstream>
 #include <iostream>
 #include "kinect_interface/kinect_interface.h"
+#include "kinect_interface/open_ni_funcs.h"
 #include "kinect_interface/hand_detector/hand_detector.h"
 #include "jtil/jtil.h"
 #include "jtil/clk/clk.h"
@@ -18,16 +20,18 @@
 #include "jtil/threading/thread.h"
 #include "jtil/settings/settings_manager.h"
 #include "jtil/exceptions/wruntime_error.h"
-#include "kinect_interface/open_ni_funcs.h"
 #include "kinect_interface/depth_images_io.h"
 #include "kinect_interface/hand_net/hand_net.h"
+#include "jtil/threading/thread_pool.h"
 
-#include "XnCppWrapper.h"
-#include "XnVNite.h"
-#include "XnLog.h"
+#include "OpenNI.h"
+#include "OniCAPI.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
+
+#define MIN_NUM_CHUNKS(data_size, chunk_size)	((((data_size)-1) / (chunk_size) + 1))
+#define MIN_CHUNKS_SIZE(data_size, chunk_size)	(MIN_NUM_CHUNKS(data_size, chunk_size) * (chunk_size))
 
 #ifdef _WIN32
 #ifndef snprintf
@@ -35,27 +39,15 @@
 #endif
 #endif
 
-// Some macro defines copied from ofxOpenNIMacros.h
-#define SHOW_RC(rc, what)  \
-  std::cout << what << " status: " << xnGetStatusString(rc) << std::endl;
-
-#define CHECK_RC(rc, what)  \
-  if (rc != XN_STATUS_OK) {  \
-    std::cout << what << " failed: " << xnGetStatusString(rc) << std::endl;  \
-  } else {  \
-    std::cout << what << " succeed: " << xnGetStatusString(rc) << std::endl;  \
-  }
-#define CALIBRATION_POSE "Psi"
-#define CALIBRATION_FILE "UserCalibration.bin"
-
 using std::cout;
 using std::endl;
 using std::thread;
 using jtil::math::Float3;
-using jtil::threading::Callback;
-using jtil::threading::MakeThread;
-using jtil::threading::MakeCallableOnce;
 using jtil::clk::Clk;
+using namespace jtil::data_str;
+using namespace jtil::threading;
+using openni::PixelFormat;
+using openni::DepthPixel;
 using namespace jtil::file_io;
 using namespace kinect_interface::hand_detector;
 using namespace kinect_interface::hand_net;
@@ -63,39 +55,34 @@ using namespace kinect_interface::hand_net;
 namespace kinect_interface {
   using hand_detector::HandDetector;
 
-  KinectInterface* KinectInterface::g_kinect_;  
-  bool g_bNeedPose = false;
-  XnChar g_strPose[20] = "";
+  bool KinectInterface::openni_init_ = false;
+  std::mutex KinectInterface::openni_static_lock_;
+  uint32_t KinectInterface::openni_devices_open_ = 0;
 
-  KinectInterface::KinectInterface() {
-    context_ = NULL;
-    dg_ = NULL;
-    ig_ = NULL;
-    ug_ = NULL;
-    clk_ = NULL;
+  KinectInterface::KinectInterface(const char* device_uri) {
+    device_ = NULL;
+    pts_world_ = NULL;
+    labels_ = NULL;
     hand_detector_ = NULL;
-    image_io_ = NULL;
     hand_net_ = NULL;
-
-    if (g_kinect_) {
-      throw std::wruntime_error("KinectInterface::KinectInterface() - ERROR: "
-        "multiple kinects not yet supported!");
+    hands_[0] = NULL;
+    hands_[1] = NULL;
+    image_io_ = NULL;
+    openni_funcs_ = NULL;
+    clk_ = NULL;
+    depth_dim_.zeros();
+    rgb_dim_.zeros();
+    for (uint32_t i = 0; i < NUM_STREAMS; i++) {
+      streams_[i] = NULL;
+      frames_[i] = NULL;
     }
-    GET_SETTING("track_openni_skeleton", bool, tracking_skeleton_);
-    cout << "Initializing KinectInterface..." << endl;
-    if (!init()) {
-      throw std::wruntime_error("Kinect Initialization failed!");
-    }
-    cout << "Kinect initialization finished"  << endl;
-    g_kinect_ = this;
-
-    for (int i = 0; i < SKEL_NJOINTS; i++) {
-      joints_found_[i] = false;
-    }
-    num_users_found_ = 0;
-    num_users_tracked_ = 0;
+    
     frame_number_ = 0;
     fps_ = 0;
+    tp_ = NULL;
+    pts_world_thread_cbs_ = NULL;
+
+    init(device_uri);
 
     //  Now spawn the Kinect Update Thread
     kinect_running_ = true;
@@ -105,255 +92,311 @@ namespace kinect_interface {
   }
 
   KinectInterface::~KinectInterface() {
+    // Stop the openNI device
+    for (uint32_t i = 0; i < NUM_STREAMS; i++) {
+      frames_[i]->release();
+      streams_[i]->stop();
+      streams_[i]->destroy();
+    }
+    device_->close();
+
+    tp_->stop();
+    SAFE_DELETE(tp_);
+
     // Clean up
-    if (ig_) { ig_->Release(); }
-    if (dg_) { dg_->Release(); }
-    if (ug_) { ug_->Release(); }
-    if (context_) { context_->Release(); }
-    SAFE_DELETE(ig_);
-    SAFE_DELETE(dg_);
-    SAFE_DELETE(ug_);
-    SAFE_DELETE(context_);
     SAFE_DELETE(clk_);
     SAFE_DELETE(hand_detector_);
     SAFE_DELETE(image_io_);
     SAFE_DELETE(hand_net_);
-    SAFE_DELETE_ARR(coeff_convnet_from_file_);
+    SAFE_DELETE_ARR(pts_world_);
+    SAFE_DELETE_ARR(labels_);
+    SAFE_DELETE(openni_funcs_);
+    for (uint32_t i = 0; i < NUM_STREAMS; i++) {
+      SAFE_DELETE(frames_[i]);
+      SAFE_DELETE(streams_[i]);
+    }
+    SAFE_DELETE(device_);
+    openni_static_lock_.lock();
+    openni_devices_open_--;
+    if (openni_devices_open_ == 0) {
+      shutdownOpenNIStatic();
+    }
+    openni_static_lock_.unlock();
   }
 
   // ************************************************************
   // Initialization
   // ************************************************************
 
-  bool KinectInterface::init() {
+  void KinectInterface::initOpenNIStatic() {
+    // Initialize OpenNI static methods
+    openni_static_lock_.lock();
+    if (!openni_init_) {
+      openni::Status rc = openni::OpenNI::initialize();
+
+      if (rc == openni::STATUS_OK) {
+        openni_init_ = true;
+      } else {
+        std::stringstream ss;
+        ss << "KinectInterface::initOpenNI() - ERROR: ";
+        ss << "Failed to initilize OpenNI API: ";
+        ss << openni::OpenNI::getExtendedError();
+        openni_static_lock_.unlock();
+        throw std::wruntime_error(ss.str());
+      }
+    }
+    openni_static_lock_.unlock();
+  }
+
+  void KinectInterface::shutdownOpenNIStatic() {
+    openni_static_lock_.lock();
+    openni::OpenNI::shutdown();
+    openni_static_lock_.unlock();
+  }
+
+  void KinectInterface::checkOpenNIRC(int rc, const char* error_msg) {
+    if (rc != openni::STATUS_OK) {
+      std::stringstream ss;
+      ss << error_msg << ": " << openni::OpenNI::getExtendedError();
+      shutdownOpenNIStatic();
+      throw std::wruntime_error(ss.str());
+    }
+  }
+
+  std::string KinectInterface::formatToString(const int mode) {
+    switch (mode) {
+    case PixelFormat::PIXEL_FORMAT_DEPTH_1_MM:
+      return "PIXEL_FORMAT_DEPTH_1_MM";
+    case PixelFormat::PIXEL_FORMAT_DEPTH_100_UM:
+      return "PIXEL_FORMAT_DEPTH_100_UM";
+    case PixelFormat::PIXEL_FORMAT_SHIFT_9_2:
+      return "PIXEL_FORMAT_SHIFT_9_2";
+    case PixelFormat::PIXEL_FORMAT_SHIFT_9_3:
+      return "PIXEL_FORMAT_SHIFT_9_3";
+    case PixelFormat::PIXEL_FORMAT_RGB888:
+      return "PIXEL_FORMAT_RGB888";
+    case PixelFormat::PIXEL_FORMAT_YUV422:
+      return "PIXEL_FORMAT_YUV422";
+    case PixelFormat::PIXEL_FORMAT_GRAY8:
+      return "PIXEL_FORMAT_GRAY8";
+    case PixelFormat::PIXEL_FORMAT_GRAY16:
+      return "PIXEL_FORMAT_GRAY16";
+    case PixelFormat::PIXEL_FORMAT_JPEG:
+      return "PIXEL_FORMAT_JPEG";
+    default: 
+      shutdownOpenNIStatic();
+      throw std::wruntime_error("KinectInterface::formatToString() - ERROR: "
+        "Format enum not recognized!");
+    }
+  }
+
+  void KinectInterface::printMode(const openni::VideoMode& mode) {
+    std::cout << "Res: " << mode.getResolutionX() << "x";
+    std::cout << mode.getResolutionY() << ", fps = " << mode.getFps();
+    std::cout << ", format = " << formatToString(mode.getPixelFormat());
+    std::cout << std::endl;
+  }
+
+  void KinectInterface::init(const char* device_uri) {
+    initOpenNI(device_uri);
+
+    // Create a thread pool for parallelizing the UVD to depth calculations
+    uint32_t num_threads = KINECT_INTERFACE_NUM_WORKER_THREADS;
+    tp_ = new jtil::threading::ThreadPool(num_threads);
+    pts_world_thread_cbs_ = new VectorManaged<Callback<void>*>(num_threads);
+    uint32_t n_pixels = depth_dim_[0] * depth_dim_[1];
+    uint32_t n_pixels_per_thread = 1 + n_pixels / num_threads;  // round up
+    for (uint32_t i = 0; i < num_threads; i++) {
+      uint32_t start = i * n_pixels_per_thread;
+      uint32_t end = std::min<uint32_t>(((i + 1) * n_pixels_per_thread) - 1,
+        n_pixels - 1);
+      pts_world_thread_cbs_->pushBack(MakeCallableMany(
+        &KinectInterface::convertDepthToWorldThread, this, start, end));
+    }
+
     clk_ = new Clk();
-    hand_detector_ = new HandDetector();
-    hand_detector_->init(src_width, src_height);
+    hand_detector_ = new HandDetector(tp_);
+    hand_detector_->init(depth_dim_[0], depth_dim_[1]);
 
     hand_net_ = new HandNet();
     hand_net_->loadFromFile("./data/handmodel.net.convnet");
 
     image_io_ = new DepthImagesIO();
-    image_io_->LoadCompressedImageWithRedHands("./kinect_image.bin", 
-      depth_from_file_, labels_from_file_, rgb_from_file_, NULL);
-    DepthImagesIO::convertSingleImageToXYZ(pts_world_from_file_,
-      depth_from_file_);
-    coeff_convnet_from_file_ = new float[HAND_NUM_COEFF_CONVNET];
-    LoadArrayFromFile<float>(coeff_convnet_from_file_, HAND_NUM_COEFF_CONVNET,
-      "./kinect_image_coeff_convnet.bin");
 
-    XnStatus nRetVal = XN_STATUS_OK;
-    xn::EnumerationErrors errors;
-
-    // INIT AN OPENNI CONTEXT
-    context_ = new xn::Context();
-    nRetVal = context_->Init();
-    if (nRetVal != XN_STATUS_OK) {
-      logErrors(errors);
-    }
-    CHECK_RC(nRetVal, "context.Init()");
-
-    static std::string vendor("PrimeSense");
-    static std::string key("0KOIk2JeIBYClPWVnMoRKn5cdY4=");
-    addLicense(vendor, key);
-    cout << endl;
-    enableLogging();
-
-    // INIT AN OPENNI DEPTHGENERATOR
-    XnMapOutputMode map_mode;
-    dg_ = new xn::DepthGenerator();
-    nRetVal = context_->FindExistingNode(XN_NODE_TYPE_DEPTH, *dg_);
-    if (nRetVal == XN_STATUS_OK) {
-      // found the depth generator so set map_mode from it
-      dg_->GetMapOutputMode(map_mode);
+    if (device_uri) {
+      cout << "Finished initializing device " << device_uri << "..." << endl;
     } else {
-      nRetVal = dg_->Create(*context_);
-      CHECK_RC(nRetVal, "Creating depth generator");
-
-      if (nRetVal != XN_STATUS_OK) 
-        return false;
-
-      // make new map mode -> default to 640 x 480 @ 30fps
-      map_mode.nXRes = XN_VGA_X_RES;
-      map_mode.nYRes = XN_VGA_Y_RES;
-      map_mode.nFPS  = 30;
-
-      dg_->SetMapOutputMode(map_mode);
+      cout << "Finished initializing openNI device..." << endl;
     }
-
-    max_depth_ = dg_->GetDeviceMaxDepth();
-    dg_->StartGenerating(); 
-
-    // INIT AN OPENNI IMAGEGENERATOR
-    ig_ = new xn::ImageGenerator();
-    nRetVal = context_->FindExistingNode(XN_NODE_TYPE_IMAGE, *ig_);
-    if (nRetVal == XN_STATUS_OK) {
-      // found the image generator so set map_mode from it
-      ig_->GetMapOutputMode(map_mode);
-    } else {
-      nRetVal = ig_->Create(*context_);
-      CHECK_RC(nRetVal, "Creating image generator");
-
-      if (nRetVal != XN_STATUS_OK) 
-        return false;
-
-      // make new map mode -> default to 640 x 480 @ 30fps
-      map_mode.nXRes = XN_VGA_X_RES;
-      map_mode.nYRes = XN_VGA_Y_RES;
-      map_mode.nFPS  = 30;
-
-      ig_->SetMapOutputMode(map_mode);
-      ig_->GetMapOutputMode(map_mode);  // Get it back, just in case
-      if (src_width != map_mode.nXRes || src_height != map_mode.nYRes) {
-        throw std::wruntime_error("INTERNAL ERROR: kinect image dimensions "
-          "aren't what we were expecting!");
-      }
-    }
-
-    ig_->StartGenerating(); 
-
-    ug_ = new xn::UserGenerator();
-    bool OK = initUserGenerator();
-    if (OK == FALSE) {
-      return false;
-    }
-
-    // Register the depth and rgb images
-    dg_->GetAlternativeViewPointCap().SetViewPoint(*ig_);
-    dg_->GetFrameSyncCap().FrameSyncWith(*ig_);
-    ig_->GetFrameSyncCap().FrameSyncWith(*dg_);
-
-    context_->SetGlobalMirror(MIRROR);
-
-    // Start generating
-    nRetVal = context_->StartGeneratingAll();
-
-    return true;
   }
 
-  bool KinectInterface::initUserGenerator() {
-    // Only need a user generator if we're tracking the skeleton
-    if (tracking_skeleton_) {
-      XnStatus nRetVal;
-      // INIT AN OPENNI USERGENERATOR
-      nRetVal = context_->FindExistingNode(XN_NODE_TYPE_USER, *ug_);
-      if (nRetVal != XN_STATUS_OK) {
-        // if one doesn't exist then create user generator.
-        nRetVal = ug_->Create(*context_);
-        CHECK_RC(nRetVal, "Create user generator");
+  void KinectInterface::initOpenNI(const char* device_uri) {
+    initOpenNIStatic();
 
-        if (nRetVal != XN_STATUS_OK) 
-          return false;
-      }
+    if (device_uri) {
+      cout << "Initializing device " << device_uri << "..." << endl;
+    } else {
+      cout << "Initializing first avaliable openNI device..." << endl;
+    }
 
-      XnCallbackHandle hUserCallbacks, hCalibrationStart, hCalibrationComplete; 
-      XnCallbackHandle hPoseDetected;
-      if (!ug_->IsCapabilitySupported(XN_CAPABILITY_SKELETON)) {
-        cout << "Supplied user generator doesn't support skeleton" << endl;
-        return 1;
-      }
+    // Open a connection to the OpenNI device
+    const char* deviceURI = openni::ANY_DEVICE;
+    if (device_uri != NULL) {
+      deviceURI = device_uri;
+    }
+    device_ = new openni::Device();
+    checkOpenNIRC(device_->open(deviceURI), "Failed to connect to device");
 
-      nRetVal = ug_->RegisterUserCallbacks(newUser, lostUser, NULL, 
-        hUserCallbacks);
-      nRetVal = ug_->GetSkeletonCap().RegisterToCalibrationStart(
-        calStart, NULL, hCalibrationStart);
-      nRetVal = ug_->GetSkeletonCap().RegisterToCalibrationComplete(
-        calFinish, NULL, hCalibrationComplete);
+    // Open a connection to the device's depth channel
+    initDepth();
 
-      if (ug_->GetSkeletonCap().NeedPoseForCalibration()) {
-        g_bNeedPose = TRUE;
-        if (!ug_->IsCapabilitySupported(
-          XN_CAPABILITY_POSE_DETECTION)) {
-            cout << "Pose required, but not supported" << endl;
-            return 1;
+    labels_ = new uint8_t[depth_dim_[0] * depth_dim_[1]];
+    pts_world_ = new float[3 * depth_dim_[0] * depth_dim_[1]];
+
+    // Open a connection to the device's rgb channel
+    initRGB();
+
+    // Now update all the frames so they're initialized at least once:
+    for (uint32_t i = 0; i < NUM_STREAMS; i++) {
+      streams_[i]->readFrame(frames_[i]);
+    }
+
+    checkOpenNIRC(device_->setDepthColorSyncEnabled(true),
+      "Failed to set depth/color sync");
+  }
+
+  openni::VideoMode KinectInterface::findMaxResYFPSMode(
+    const openni::SensorInfo& sensor, const int required_format) const {
+    const openni::Array<openni::VideoMode>& modes = 
+      sensor.getSupportedVideoModes();
+    int ibest = -1;
+    std::cout << "Supported Modes:" << std::endl;
+    for (int i = 0; i < modes.getSize(); i++) {
+      const openni::VideoMode& mode = modes[i];
+      printMode(mode);
+      PixelFormat format = mode.getPixelFormat();
+      int res_x = mode.getResolutionX();
+      int res_y = mode.getResolutionY();
+      int fps = mode.getFps();
+      if (format == required_format) {
+        if (ibest == -1 || res_y > modes[ibest].getResolutionY()) {
+          ibest = i;
+        } else if (res_y == modes[ibest].getResolutionY() && 
+          fps > modes[ibest].getFps()){
+          ibest = i;
         }
-        nRetVal = ug_->GetPoseDetectionCap().RegisterToPoseDetected(
-          poseDetected, NULL, hPoseDetected);
-        ug_->GetSkeletonCap().GetCalibrationPose(g_strPose);
       }
+    }
+    if (ibest == -1) {
+      shutdownOpenNIStatic();
+      throw std::wruntime_error("KinectInterface::findMaxResYFPSMode() - "
+        "ERROR: Couldn't find a good format!");
+    }
+    return modes[ibest];
+  }
 
-      ug_->GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
-      ug_->GetSkeletonCap().SetSmoothing(SKELETON_SMOOTHING);
+  openni::VideoMode KinectInterface::findMatchingMode(
+    const openni::SensorInfo& sensor, const jtil::math::Int2& dim, 
+    const int fps, const int format) const {
+    const openni::Array<openni::VideoMode>& modes = 
+      sensor.getSupportedVideoModes();
+    int ibest = -1;
+    std::cout << "Supported Modes:" << std::endl;
+    for (int i = 0; i < modes.getSize(); i++) {
+      const openni::VideoMode& mode = modes[i];
+      printMode(mode);
+      PixelFormat cur_format = mode.getPixelFormat();
+      int res_x = mode.getResolutionX();
+      int res_y = mode.getResolutionY();
+      int cur_fps = mode.getFps();
+      if (cur_format == format && res_x == dim[0] && res_y == dim[1] &&
+        fps == fps) {
+        ibest = i;
+      }
+    }
+    if (ibest == -1) {
+      shutdownOpenNIStatic();
+      throw std::wruntime_error("KinectInterface::findMatchingMode() - "
+        "ERROR: Couldn't find a matching format!");
+    }
+    return modes[ibest];
+  }
 
-      ug_->StartGenerating();
+  void KinectInterface::initDepth() {
+    streams_[DEPTH] = new openni::VideoStream();
+    checkOpenNIRC(streams_[DEPTH]->create(*device_, openni::SENSOR_DEPTH),
+      "Failed to connect to device depth channel");
+    checkOpenNIRC(streams_[DEPTH]->start(), "Failed to start depth stream");
+    if (!streams_[DEPTH]->isValid()) {
+      shutdownOpenNIStatic();
+      throw std::wruntime_error("KinectInterface::init() - ERROR: "
+        "Depth stream is not valid");
     }
 
-    return true;
-  }
+    // Find the supported mode with the highest depth resolution.  If more
+    // than one format has the max resolution, choose the highest fps mode
+    const openni::SensorInfo& depth_sensor_info = 
+      streams_[DEPTH]->getSensorInfo();
+    std::cout << "Depth ";
+    openni::VideoMode mode = findMaxResYFPSMode(depth_sensor_info,
+      PixelFormat::PIXEL_FORMAT_DEPTH_1_MM);
+    std::cout << "Setting Depth mode: ";
+    printMode(mode);
+    checkOpenNIRC(streams_[DEPTH]->setVideoMode(mode), 
+      "Failed to set depth video mode");
+    depth_fps_setting_ = mode.getFps();
 
-  // we need to programmatically add a license when playing back a recording
-  // file otherwise the skeleton tracker will throw an error and not work
-  void KinectInterface::addLicense(const std::string& sVendor, 
-    const std::string& sKey) {
-      XnLicense license = {0};
-      XnStatus status = XN_STATUS_OK;
-
-      status = xnOSStrNCopy(license.strVendor, sVendor.c_str(), 
-        (XnUInt32)sVendor.size(), (XnUInt32)sizeof(license.strVendor));
-      if (status != XN_STATUS_OK) {
-        cout << "KinectInterface error creating license (vendor)" << endl;
-        return;
-      }
-
-      status = xnOSStrNCopy(license.strKey, sKey.c_str(), 
-        (XnUInt32)sKey.size(), (XnUInt32)sizeof(license.strKey));
-      if (status != XN_STATUS_OK) {
-        cout << "KinectInterface error creating license (key)" << endl;
-        return;
-      } 
-
-      status = context_->AddLicense(license);
-      SHOW_RC(status, "AddLicense");
-
-      // xnPrintRegisteredLicenses();
-  }
-
-  void KinectInterface::enableLogging() {
-    XnStatus result = xnLogSetConsoleOutput(true);
-    SHOW_RC(result, "Set console output");
-
-    result = xnLogSetSeverityFilter(XN_LOG_ERROR);
-    SHOW_RC(result, "Set log level");
-
-    xnLogSetMaskState(XN_LOG_MASK_ALL, TRUE);
-  }
-
-  void KinectInterface::updateJoint(const unsigned int user_id, 
-    const int32_t joint /*XnUserID id, XnSkeletonJoint joint*/) {
-    const XnUserID xn_user_id = (const XnUserID)user_id;
-    const XnSkeletonJoint xn_joint = (const XnSkeletonJoint)joint;
-
-    XnSkeletonJointPosition joint_pos_world;
-    if (ug_->GetSkeletonCap().IsJointActive(xn_joint)){
-      ug_->GetSkeletonCap().GetSkeletonJointPosition(user_id, 
-        xn_joint, joint_pos_world);
-      if (joint_pos_world.fConfidence < 0.005f) {
-        joints_found_[joint] = false;
-      } else {
-        joints_found_[joint] = true;
-        joints_world_[joint*3] = joint_pos_world.position.X;
-        joints_world_[joint*3+1] = joint_pos_world.position.Y;
-        joints_world_[joint*3+2] = joint_pos_world.position.Z;
-        OpenNIFuncs::xnConvertRealWorldToProjective(1, &joints_world_[joint*3],
-          &joints_uvd_[joint*3]);
-      }
-    } else {
-      joints_found_[joint] = false;
+    // Now retrieve the current mode to make sure everything went OK.
+    openni::VideoMode depth_mode = streams_[DEPTH]->getVideoMode();
+    if (depth_mode.getPixelFormat() != PixelFormat::PIXEL_FORMAT_DEPTH_1_MM) {
+      throw std::wruntime_error("KinectInterface::init() - ERROR: "
+        "Depth stream is not a 16 bit grayscale format!");
     }
+    depth_dim_.set(depth_mode.getResolutionX(), depth_mode.getResolutionY());
+    frames_[DEPTH] = new openni::VideoFrameRef();
+
+    // Update the OpenNIFuncs constants
+    openni_funcs_ = new OpenNIFuncs(depth_dim_[0], depth_dim_[1],
+      streams_[DEPTH]->getHorizontalFieldOfView(), 
+      streams_[DEPTH]->getVerticalFieldOfView());
+  }
+
+  void KinectInterface::initRGB() {
+    streams_[RGB] = new openni::VideoStream();
+    checkOpenNIRC(streams_[RGB]->create(*device_, openni::SENSOR_COLOR),
+      "Failed to connect to device rgb channel");
+    checkOpenNIRC(streams_[RGB]->start(), "Failed to start rgb stream");
+    if (!streams_[RGB]->isValid()) {
+      shutdownOpenNIStatic();
+      throw std::wruntime_error("KinectInterface::init() - ERROR: "
+        "RGB stream is not valid");
+    }
+
+    // Find a resolution mode to match the depth mode
+    const openni::SensorInfo& rgb_sensor_info = 
+      streams_[RGB]->getSensorInfo();
+    std::cout << "RGB ";
+    openni::VideoMode mode = findMatchingMode(rgb_sensor_info, depth_dim_,
+      depth_fps_setting_, PixelFormat::PIXEL_FORMAT_RGB888);
+    std::cout << "Setting RGB mode: ";
+    printMode(mode);
+    checkOpenNIRC(streams_[RGB]->setVideoMode(mode), 
+      "Failed to set rgb video mode");
+    rgb_fps_setting_ = mode.getFps();
+
+    // Now retrieve the current mode to make sure everything went OK.
+    openni::VideoMode rgb_mode = streams_[RGB]->getVideoMode();
+    if (rgb_mode.getPixelFormat() != PixelFormat::PIXEL_FORMAT_RGB888) {
+      throw std::wruntime_error("KinectInterface::init() - ERROR: "
+        "RGB stream is not a 24 bit rgb format!");
+    }
+    rgb_dim_.set(rgb_mode.getResolutionX(), rgb_mode.getResolutionY());
+    frames_[RGB] = new openni::VideoFrameRef(); 
   }
 
   char* KinectInterface::getStatusMessage() {
-    if (tracking_skeleton_) {
-      snprintf(status_str_, sizeof(status_str_), "Users: %d, Tracked: %d, ", 
-        num_users_found_, num_users_tracked_);
-    } else {
-      status_str_[0] = '\0';  // Empty string
-    }
+    status_str_[0] = '\0';  // Empty string
     return status_str_;
-  }
-
-  int KinectInterface::getNumUsersTracked() {
-    return num_users_tracked_;
   }
 
   void KinectInterface::kinectUpdateThread() {
@@ -362,84 +405,40 @@ namespace kinect_interface {
     uint64_t last_frame_number = 0;
 
     while (kinect_running_) {
-      // Update to next frame: Because of an odd performance bug, 
-      // WaitAndUpdateAll gives very bad performance on Windows 7. 
-
-      context_lock_.lock();
-      // XnStatus nRetVal = context_->WaitAndUpdateAll();
-      // Better alignment if we wait on depth
-      XnStatus nRetVal = context_->WaitOneUpdateAll(*dg_);
-
-      if (nRetVal != XN_STATUS_OK) {
-        throw std::wruntime_error("ERROR WaitOneUpdateAll() failed!");
-      }
-
-      // Lock the local data structure to copy over data
       data_lock_.lock();
 
-      bool use_depth_from_file;
-      GET_SETTING("use_depth_from_file", bool, use_depth_from_file);
+      //int changed_index;
+      //openni::Status rc = openni::OpenNI::waitForAnyStream(streams_,
+      //  NUM_STREAMS, &changed_index);
+      //checkOpenNIRC(rc, "waitForAnyStream() failed");
 
-      if (!use_depth_from_file) {
-        // Retrieve the RGB image and copy into local array
-        xn::ImageMetaData image_md_;
-        xn::DepthMetaData depth_md_;
+      //if (changed_index != DEPTH && changed_index != RGB) {
+      //  shutdownOpenNIStatic();
+      //  throw std::wruntime_error("waitForAnyStream() failed");
+      //}
+    
+      //streams_[changed_index]->readFrame(frames_[changed_index]);
+      //std::cout << "changed_index = " << changed_index << std::cout;
 
-        ig_->GetMetaData(image_md_);
-        const XnRGB24Pixel* pColor = image_md_.RGB24Data();
-        memcpy(rgb_, pColor, sizeof(rgb_[0]) * src_dim * 3);
-
-        // Retrieve the depth map and copy into local array
-        dg_->GetMetaData(depth_md_);
-        const XnDepthPixel* pDepth = depth_md_.Data();
-        memcpy(depth_, pDepth, sizeof(depth_[0]) * src_dim);
-
-        // Now get the point cloud data
-        for (int v = 0, i = 0; v < src_height; v++) {
-          for (int u = 0; u < src_width; u++, i++) {
-            pts_uvd_[i * 3] = (float)u;
-            pts_uvd_[i * 3 + 1] = (float)v;
-            pts_uvd_[i * 3 + 2] = (float)pDepth[i];
-          }
-        }
-
-        // Now convert kinect space to world space
-        OpenNIFuncs::xnConvertProjectiveToRealWorld(src_dim, pts_uvd_, 
-          pts_world_);
-
-        // Now Get the skeleton
-        if (tracking_skeleton_) {
-          XnUserID aUsers[8];
-          XnUInt16 nUsers = 8;
-          ug_->GetUsers(aUsers, nUsers);
-
-          if (nUsers > 0 && ug_->GetSkeletonCap().IsTracking(aUsers[0])) {
-            updateJoint(aUsers[0], XN_SKEL_HEAD);
-            updateJoint(aUsers[0], XN_SKEL_NECK);
-            updateJoint(aUsers[0], XN_SKEL_TORSO);
-            updateJoint(aUsers[0], XN_SKEL_LEFT_SHOULDER);
-            updateJoint(aUsers[0], XN_SKEL_LEFT_ELBOW);
-            updateJoint(aUsers[0], XN_SKEL_LEFT_HAND);
-            updateJoint(aUsers[0], XN_SKEL_RIGHT_SHOULDER);
-            updateJoint(aUsers[0], XN_SKEL_RIGHT_ELBOW);
-            updateJoint(aUsers[0], XN_SKEL_RIGHT_HAND);
-            updateJoint(aUsers[0], XN_SKEL_LEFT_HIP);
-            updateJoint(aUsers[0], XN_SKEL_RIGHT_HIP);
-          }
-        }
-
-      } else {  // if (!use_depth_from_file) {
-        memcpy(depth_, depth_from_file_, sizeof(depth_[0]) * src_dim);
-        memcpy(rgb_, rgb_from_file_, sizeof(rgb_[0]) * src_dim * 3);
-        memcpy(pts_world_, pts_world_from_file_, 
-          sizeof(pts_world_[0]) * src_dim * 3);
+      bool crop_depth_to_rgb;
+      GET_SETTING("crop_depth_to_rgb", bool, crop_depth_to_rgb);
+      if (crop_depth_to_rgb) {
+        device_->setImageRegistrationMode(openni::IMAGE_REGISTRATION_DEPTH_TO_COLOR);
+      } else {
+        device_->setImageRegistrationMode(openni::IMAGE_REGISTRATION_OFF);
       }
+
+      for (uint32_t i = 0; i < NUM_STREAMS; i++) {
+        streams_[i]->readFrame(frames_[i]);
+      }
+
+      convertDepthToWorld();
 
       bool detect_hands, found_hand;
       GET_SETTING("detect_hands", bool, detect_hands);
       if (detect_hands) {
         //hand_detector_->evaluateForest((int16_t*)depth_);
-        found_hand = hand_detector_->findHandLabels((int16_t*)depth_, 
+        found_hand = hand_detector_->findHandLabels((int16_t*)depth(), 
           pts_world_, HDLabelMethod::HDFloodfill, labels_);
         if (!found_hand) {
           memset(labels_, 0, sizeof(labels_[0]) * src_dim);
@@ -459,15 +458,58 @@ namespace kinect_interface {
         time_accum = 0;
         last_frame_number = frame_number_;
       }
-
-      // Unlock the local data structure since we've finished copying data
       data_lock_.unlock();
 
-      context_lock_.unlock();
       std::this_thread::yield();
 
     }  // end while (app::App::app_running)
     cout << "kinectUpdateThread shutting down..." << endl;
+
+  }
+
+  void KinectInterface::convertDepthToWorld() {
+    openni_funcs_->ConvertDepthImageToProjective(depth(), pts_uvd_);
+
+    threads_finished_ = 0;
+    for (uint32_t i = 0; i < pts_world_thread_cbs_->size(); i++) {
+      tp_->addTask((*pts_world_thread_cbs_)[i]);
+    }
+
+    // Wait until the other threads are done
+    std::unique_lock<std::mutex> ul(thread_update_lock_);  // Get lock
+    while (threads_finished_ != pts_world_thread_cbs_->size()) {
+      not_finished_.wait(ul);
+    }
+    ul.unlock();  // Release lock
+  }
+
+  void KinectInterface::convertDepthToWorldThread(const uint32_t start, 
+    const uint32_t end) {
+    // There are two ways to do this: one is with the 
+    // openni::CoordinateConverter class, but looking through the source on
+    // github it looks expensive.  The other is digging into the c src directly
+    // and defining our own version.
+    openni::DepthPixel* depth = (openni::DepthPixel*)frames_[DEPTH]->getData();
+
+
+    for (uint32_t i = 0; i <= end; i++) {
+      uint32_t u = i % depth_dim_[0];
+      uint32_t v = i / depth_dim_[0];
+      openni::CoordinateConverter::convertDepthToWorld(*streams_[DEPTH], u, v, 
+        depth[i], &pts_world_[i*3], &pts_world_[i*3+1], &pts_world_[i*3+2]);
+    }
+    std::unique_lock<std::mutex> ul(thread_update_lock_);
+    threads_finished_++;
+    not_finished_.notify_all();  // Signify that all threads might have finished
+    ul.unlock();
+  }
+
+  const uint8_t* KinectInterface::rgb() const { 
+    return (uint8_t*)frames_[RGB]->getData(); 
+  } 
+
+  const uint16_t* KinectInterface::depth() const { 
+    return (uint16_t*)frames_[DEPTH]->getData(); 
   }
 
   void KinectInterface::shutdownKinect() {
@@ -478,193 +520,7 @@ namespace kinect_interface {
 
   void KinectInterface::detectPose(const int16_t* depth, 
     const uint8_t* labels) {
-    bool coeff_from_file;
-    GET_SETTING("use_coeff_convnet_from_file", bool, coeff_from_file);
-    if (!coeff_from_file) {
-      hand_net_->calcHandCoeffConvnet(depth, labels);
-    } else {
-      hand_net_->calcHandImage(depth, labels);
-      memcpy(hand_net_->coeff_convnet(), coeff_convnet_from_file_,
-        HAND_NUM_COEFF_CONVNET * sizeof(*hand_net_->coeff_convnet()));
-    }
-  }
-
-  void KinectInterface::logErrors(xn::EnumerationErrors& rErrors) {
-    for (xn::EnumerationErrors::Iterator it = rErrors.Begin(); 
-      it != rErrors.End(); ++it) {
-        XnChar desc[512];
-        xnProductionNodeDescriptionToString(&it.Description(), desc, 512);
-        cout << desc << " failed: " << xnGetStatusString(it.Error()) << endl;
-    } 
-  }
-
-  // ************************************************************
-  // XN Callbacks
-  // ************************************************************
-  // Callback: New user was detected
-  void __stdcall KinectInterface::newUser(xn::UserGenerator& generator, 
-    XnUserID nId, void* pCookie) {
-    cout << "New User " << nId << endl;
-    g_kinect_->num_users_found_++;
-    // ONLY TRACK ONE USER
-    if (KinectInterface::g_kinect_->num_users_found_ <= 1) {
-      if (KinectInterface::g_kinect_->loadCalibration() == false) {
-        // New user found
-        if (g_bNeedPose) {
-          g_kinect_->ug_->GetPoseDetectionCap().StartPoseDetection(
-            g_strPose,
-            nId);
-        } else {
-          g_kinect_->ug_->GetSkeletonCap().RequestCalibration(nId, 
-            TRUE);
-        }
-      } else {
-        g_kinect_->num_users_tracked_++;
-      }
-    }
-  }
-
-  // Callback: An existing user was lost
-  void __stdcall KinectInterface::lostUser(xn::UserGenerator& generator, 
-    XnUserID nId, void* pCookie) {
-      cout << "Lost User " << nId << endl;
-      g_kinect_->ug_->GetSkeletonCap().Reset(nId);
-      g_kinect_->num_users_found_--;
-  }
-
-  // Callback: Detected a pose
-  void __stdcall KinectInterface::poseDetected(
-    xn::PoseDetectionCapability& capability, const char* strPose, 
-    unsigned int nId, void* pCookie) {
-    cout << "Pose " << strPose << " detected for user " << nId << endl;
-    g_kinect_->ug_->GetPoseDetectionCap().StopPoseDetection(nId);
-    g_kinect_->ug_->GetSkeletonCap().RequestCalibration(nId, TRUE);
-  }
-
-  // Callback: Started calibration
-  void __stdcall KinectInterface::calStart(xn::SkeletonCapability& capability, 
-    XnUserID nId, void* pCookie) {
-    cout << "Calibration started for user " << nId << endl;
-  }
-
-  // Callback: Finished calibration
-  void __stdcall KinectInterface::calFinish(xn::SkeletonCapability& capability,
-    XnUserID nId, XnCalibrationStatus eStatus, void* pCookie) {
-    if (eStatus == XN_CALIBRATION_STATUS_OK) {
-      // Calibration succeeded
-      cout << "Calibration complete, start tracking user " << nId << endl; 
-      g_kinect_->ug_->GetSkeletonCap().StartTracking(nId);
-      g_kinect_->num_users_tracked_++;
-    } else {
-      // Calibration failed
-      cout << "Calibration failed for user " << nId << endl; 
-      if (g_bNeedPose) {
-        g_kinect_->ug_->GetPoseDetectionCap().StartPoseDetection(g_strPose,
-          nId);
-      } else {
-        g_kinect_->ug_->GetSkeletonCap().RequestCalibration(nId, TRUE);
-      }
-    }
-  }
-
-  // ************************************************************
-  // Calibration data load / save
-  // ************************************************************
-
-  // Save calibration to file
-  void KinectInterface::saveCalibration() {
-    XnUserID aUserIDs[20] = {0};
-    XnUInt16 nUsers = 20;
-    ug_->GetUsers(aUserIDs, nUsers);
-    if (nUsers == 0) {
-      cout << "No user's detected yet --> Move around!" << endl; 
-      cout << "KinectInterface will save calibration when done." << endl; 
-    } else {
-      for (int i = 0; i < nUsers; ++i) {
-        // Find a user who is already calibrated
-        if (ug_->GetSkeletonCap().IsCalibrated(aUserIDs[i])) {
-          // Save user's calibration to file
-          XnStatus rc = 
-            ug_->GetSkeletonCap().SaveCalibrationDataToFile(
-            aUserIDs[i], 
-            CALIBRATION_FILE);
-          SHOW_RC(rc, "SaveCalibrationDataToFile() ");
-          break;
-        } else {
-          cout << "User " << i << "is not yet calibrated, no data to save!" << endl; 
-          cout << "KinectInterface will save calibration when done" << endl; 
-        }
-      }
-    }
-  }
-
-  // Load calibration from file
-  bool KinectInterface::loadCalibration() {
-    XnUserID aUserIDs[20] = {0};
-    XnUInt16 nUsers = 20;
-    ug_->GetUsers(aUserIDs, nUsers);
-    if (nUsers == 0) {
-      cout << "No user's detected yet --> Move around!" << endl; 
-      return false;
-    } else {
-      for (int i = 0; i < nUsers; ++i) {
-        // Find a user who isn't calibrated or currently in pose
-        if (ug_->GetSkeletonCap().IsCalibrated(aUserIDs[i])) {
-          continue;
-        }
-        if (ug_->GetSkeletonCap().IsCalibrating(aUserIDs[i])) {
-          continue;
-        }
-
-        // Load user's calibration from file
-        XnStatus rc = 
-          ug_->GetSkeletonCap().LoadCalibrationDataFromFile(aUserIDs[i], 
-          CALIBRATION_FILE);
-        SHOW_RC(rc, "LoadCalibrationDataFromFile() ");
-        if (rc == XN_STATUS_OK) {
-          // Make sure state is coherent
-          ug_->GetPoseDetectionCap().StopPoseDetection(aUserIDs[i]);
-          ug_->GetSkeletonCap().StartTracking(aUserIDs[i]);
-          return true;
-        } else {
-          return false;
-        }
-        break;
-      }
-    }
-    return false;
-  }
-
-
-  void KinectInterface::resetTracking() {
-    GET_SETTING("track_openni_skeleton", bool, tracking_skeleton_);
-
-    context_lock_.lock();
-    data_lock_.lock();
-
-    // This is a bit of a hack.  We need to completely rebuild the user gen.
-    // since OpenNI doesn't have a Reset switch :-(
-    std::cout << "Resetting tracking.  Please wait... " << endl;
-
-    // Turn off the generator
-    num_users_tracked_ = 0;
-    num_users_found_ = 0;
-    std::fill(joints_found_, joints_found_ + SKEL_NJOINTS, false);
-    std::cout << "   --> Releasing ug_" << endl;
-    ug_->Release();
-
-    // Toggle tracking and turn it back on;
-    initUserGenerator();
-    std::cout << "Tracking Reset" << endl;
-
-    for (uint32_t i = 0; i < SKEL_NJOINTS; i++) {
-      joints_found_[i] = false;
-    }
-
-    hand_detector_->reset();
-
-    data_lock_.unlock();
-    context_lock_.unlock();
+    hand_net_->calcHandCoeffConvnet(depth, labels);
   }
 
   const uint8_t* KinectInterface::filteredDecisionForestLabels() const {

@@ -76,11 +76,15 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\;$(ProjectDir)..\lib\WIN7;$(ProjectDir)..\kinect_interface\build\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>kinect_interface_d.lib;jtil_d.lib;libzmq_d.lib;openNI64.lib;XnVCNITE64_1_5_2.lib;XnVFeatures64_1_5_2.lib;XnVHandGenerator64_1_5_2.lib;XnVNITE.jni64.lib;XnVNITE64_1_5_2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kinect_interface_d.lib;jtil_d.lib;libzmq_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>COPY /Y $(SolutionDir)lib\WIN7\OpenNI2.dll $(SolutionDir)OpenNI2.dll
+COPY /Y $(SolutionDir)lib\WIN7\OpenNI.ini $(SolutionDir)OpenNI.ini
+COPY /Y $(SolutionDir)lib\WIN7\PS1080.ini $(SolutionDir)PS1080.ini
+mkdir $(SolutionDir)OpenNI2\Drivers
+COPY /Y $(SolutionDir)lib\WIN7\OpenNI2\Drivers\* $(SolutionDir)OpenNI2\Drivers
+</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -100,11 +104,15 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\;$(ProjectDir)..\lib\WIN7;$(ProjectDir)..\kinect_interface\build\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>kinect_interface.lib;jtil.lib;libzmq.lib;openNI64.lib;XnVCNITE64_1_5_2.lib;XnVFeatures64_1_5_2.lib;XnVHandGenerator64_1_5_2.lib;XnVNITE.jni64.lib;XnVNITE64_1_5_2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kinect_interface.lib;jtil.lib;libzmq.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>COPY /Y $(SolutionDir)lib\WIN7\OpenNI2.dll $(SolutionDir)OpenNI2.dll
+COPY /Y $(SolutionDir)lib\WIN7\OpenNI.ini $(SolutionDir)OpenNI.ini
+COPY /Y $(SolutionDir)lib\WIN7\PS1080.ini $(SolutionDir)PS1080.ini
+mkdir $(SolutionDir)OpenNI2\Drivers
+COPY /Y $(SolutionDir)lib\WIN7\OpenNI2\Drivers\* $(SolutionDir)OpenNI2\Drivers
+</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

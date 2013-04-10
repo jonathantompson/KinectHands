@@ -30,12 +30,6 @@
     <ClCompile Include="src\kinect_interface\hand_detector\hand_detector.cpp">
       <Filter>Source Files\kinect_interface\hand_detector</Filter>
     </ClCompile>
-    <ClCompile Include="src\kinect_interface\kinect_interface.cpp">
-      <Filter>Source Files\kinect_interface</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\open_ni_funcs.cpp">
-      <Filter>Source Files\kinect_interface</Filter>
-    </ClCompile>
     <ClCompile Include="src\kinect_interface\hand_detector\forest_io.cpp">
       <Filter>Source Files\kinect_interface\hand_detector</Filter>
     </ClCompile>
@@ -120,16 +114,16 @@
     <ClCompile Include="src\kinect_interface\hand_net\transpose.cpp">
       <Filter>Source Files\kinect_interface\hand_net</Filter>
     </ClCompile>
+    <ClCompile Include="src\kinect_interface\kinect_interface.cpp">
+      <Filter>Source Files\kinect_interface</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kinect_interface\open_ni_funcs.cpp">
+      <Filter>Source Files\kinect_interface</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\kinect_interface\hand_detector\hand_detector.h">
       <Filter>Header Files\kinect_interface\hand_detector</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\kinect_interface.h">
-      <Filter>Header Files\kinect_interface</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\open_ni_funcs.h">
-      <Filter>Header Files\kinect_interface</Filter>
     </ClInclude>
     <ClInclude Include="include\kinect_interface\hand_detector\decision_tree_func.h">
       <Filter>Header Files\kinect_interface\hand_detector</Filter>
@@ -223,6 +217,12 @@
     </ClInclude>
     <ClInclude Include="include\kinect_interface\hand_net\transpose.h">
       <Filter>Header Files\kinect_interface\hand_net</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kinect_interface\kinect_interface.h">
+      <Filter>Header Files\kinect_interface</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kinect_interface\open_ni_funcs.h">
+      <Filter>Header Files\kinect_interface</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

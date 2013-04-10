@@ -12,14 +12,29 @@ using std::endl;
 
 namespace kinect_interface {
   
-  const double OpenNIFuncs::fHFOV = 1.0144686707507438;
-  const double OpenNIFuncs::fVFOV = 0.78980943449644714;
-  // FROM: XnOpenNI.cpp (and slightly edited)
-  const double OpenNIFuncs::m_fRealWorldXtoZ = tan(OpenNIFuncs::fHFOV/2)*2;
-  const double OpenNIFuncs::m_fRealWorldYtoZ = tan(OpenNIFuncs::fVFOV/2)*2;
-  const uint32_t OpenNIFuncs::nXRes = 640;
-  const uint32_t OpenNIFuncs::nYRes = 480;
-  const uint32_t OpenNIFuncs::nFPS = 30;
+  const double OpenNIFuncs::fHFOV_kinect_ = 1.0144686707507438;
+  const double OpenNIFuncs::fVFOV_kinect_ = 0.78980943449644714;
+
+  // Kinect constants FROM: XnOpenNI.cpp (and slightly edited)
+  const double OpenNIFuncs::m_fRealWorldXtoZ_kinect_ = tan(OpenNIFuncs::fHFOV_kinect_/2)*2;
+  const double OpenNIFuncs::m_fRealWorldYtoZ_kinect_ = tan(OpenNIFuncs::fVFOV_kinect_/2)*2;
+  const uint32_t OpenNIFuncs::nXRes_kinect_ = 640;
+  const uint32_t OpenNIFuncs::nYRes_kinect_ = 480;
+  const uint32_t OpenNIFuncs::nFPS_kinect_ = 30;
+
+  OpenNIFuncs::OpenNIFuncs(const uint32_t nXRes, const uint32_t nYRes, 
+      const float hFOV, const float vFOV) {
+    nXRes_ = (float)nXRes;
+    nYRes_ = (float)nYRes;
+    fHFOV_ = hFOV;
+    fVFOV_ = vFOV;
+    xzFactor_ = tan(fHFOV_ / 2) * 2;
+	  yzFactor_ = tan(fVFOV_ / 2) * 2;
+    halfResX_ = nXRes_ / 2;
+	  halfResY_ = nYRes_ / 2;
+	  coeffX_ = nXRes_ / xzFactor_;
+	  coeffY_ = nYRes_ / yzFactor_;
+  }
   
   // FROM: XnOpenNI.cpp (and slightly edited)
   uint32_t OpenNIFuncs::xnConvertProjectiveToRealWorld(uint32_t nCount,
@@ -30,15 +45,15 @@ namespace kinect_interface {
      * X_RW = (X_proj / X_res - 1/2) * Z * x_to_z
      */
     
-    double fXToZ = GetRealWorldXtoZ();
-    double fYToZ = GetRealWorldYtoZ();
+    double fXToZ = GetRealWorldXtoZKinect();
+    double fYToZ = GetRealWorldYtoZKinect();
     
     for (uint32_t i = 0; i < nCount; ++i)
     {
-      double fNormalizedX = (aProjective[i*3] / nXRes - 0.5);
+      double fNormalizedX = (aProjective[i*3] / nXRes_kinect_ - 0.5);
       aRealWorld[i*3] = (float)(fNormalizedX * aProjective[i*3+2] * fXToZ);
       
-      double fNormalizedY = (0.5 - aProjective[i*3+1] / nYRes);
+      double fNormalizedY = (0.5 - aProjective[i*3+1] / nYRes_kinect_);
       aRealWorld[i*3+1] = (float)(fNormalizedY * aProjective[i*3+2] * fYToZ);
       
       aRealWorld[i*3+2] = aProjective[i*3+2];
@@ -59,15 +74,15 @@ namespace kinect_interface {
      *		= X_res / x_to_z * X_RW / z + X_res/2     (more efficient)
      */
     
-    double fXToZ = GetRealWorldXtoZ();
-    double fYToZ = GetRealWorldYtoZ();
+    double fXToZ = GetRealWorldXtoZKinect();
+    double fYToZ = GetRealWorldYtoZKinect();
     
-    double fCoeffX = nXRes / fXToZ;
-    double fCoeffY = nYRes / fYToZ;
+    double fCoeffX = nXRes_kinect_ / fXToZ;
+    double fCoeffY = nYRes_kinect_ / fYToZ;
     
     // we can assume resolution is even (so integer div is sufficient)
-    uint32_t nHalfXres = nXRes / 2;
-    uint32_t nHalfYres = nYRes / 2;
+    uint32_t nHalfXres = nXRes_kinect_ / 2;
+    uint32_t nHalfYres = nYRes_kinect_ / 2;
     
     for (uint32_t i = 0; i < nCount; ++i)
     {
@@ -79,11 +94,11 @@ namespace kinect_interface {
     return nRetVal;
   }
   
-  uint32_t OpenNIFuncs::ConvertDepthImageToProjective(const uint16_t* aDepth,
+  uint32_t OpenNIFuncs::ConvertDepthImageToProjectiveKinect(const uint16_t* aDepth,
     float* aProjective) {
     int nIndex = 0;
-    for (uint32_t nY = 0; nY < nYRes; nY += 1) {
-      for (uint32_t nX = 0; nX < nXRes; nX += 1, nIndex += 1) {
+    for (uint32_t nY = 0; nY < nYRes_kinect_; nY += 1) {
+      for (uint32_t nX = 0; nX < nXRes_kinect_; nX += 1, nIndex += 1) {
         aProjective[nIndex*3] = static_cast<float>(nX);
         aProjective[nIndex*3+1] = static_cast<float>(nY);
         aProjective[nIndex*3+2] = aDepth[nIndex];
@@ -91,7 +106,39 @@ namespace kinect_interface {
     }
     return XN_STATUS_OK;
   }
-  
+
+  void OpenNIFuncs::ConvertDepthImageToProjective(const uint16_t* aDepth,
+    float* aProjective) {
+    int nIndex = 0;
+    for (uint32_t nY = 0; nY < nYRes_; nY += 1) {
+      for (uint32_t nX = 0; nX < nXRes_; nX += 1, nIndex += 1) {
+        aProjective[nIndex*3] = static_cast<float>(nX);
+        aProjective[nIndex*3+1] = static_cast<float>(nY);
+        aProjective[nIndex*3+2] = aDepth[nIndex];
+      }
+    }
+  }
+
+  // From OniStream.cpp (and edited)
+  // https://github.com/OpenNI/OpenNI2/blob/master/Source/Core/OniStream.cpp
+  void OpenNIFuncs::convertDepthToWorldCoordinates(const float* uvd, float* xyz, 
+    const uint32_t nCount) {
+    for (uint32_t i = 0; i < nCount; i++) {
+      float normalizedX = uvd[i*3] / nXRes_ - .5f;
+	    float normalizedY = .5f - uvd[i*3+1] / nYRes_;
+      xyz[i*3] = normalizedX * uvd[i*3+2] * xzFactor_;
+	    xyz[i*3+1] = normalizedY * uvd[i*3+2] * yzFactor_;
+	    xyz[i*3+2] = uvd[i*3+2];
+    }
+  }
+  void OpenNIFuncs::convertWorldToDepthCoordinates(const float* xyz, float* uvd, 
+    const uint32_t nCount) {
+    for (uint32_t i = 0; i < nCount; i++) {
+      uvd[3*i] = coeffX_ * xyz[3*i] / xyz[3*i+2] + halfResX_;
+	    uvd[3*i+1] = halfResY_ - coeffY_ * xyz[3*i+1] / xyz[3*i+2];
+	    uvd[3*i+2] = xyz[3*i+2];
+    }
+  }
 
 
 }  // namespace kinect

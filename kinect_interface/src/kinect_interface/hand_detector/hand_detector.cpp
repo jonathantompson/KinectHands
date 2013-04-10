@@ -9,10 +9,13 @@
 #include "jtil/image_util/image_util.h"
 #include "jtil/file_io/file_io.h"
 #include "jtil/threading/thread_pool.h"
+#include "jtil/data_str/vector_managed.h"
 
 using std::string;
 using std::runtime_error;
 using jtil::data_str::Vector;
+using jtil::data_str::VectorManaged;
+using jtil::threading::Callback;
 using namespace jtil::math;
 using namespace jtil::threading;
 using namespace jtil::image_util;
@@ -31,7 +34,7 @@ namespace hand_detector {
      {+f_r, -f_r}, {0, -f_r}, {-c_r, -c_r}, {-c_r, 0}, {-c_r, +c_r}, {0, +c_r},
      {+c_r, +c_r}, {+c_r, 0}, {+c_r, -c_r}, {0, -c_r}};
 
-  HandDetector::HandDetector() {
+  HandDetector::HandDetector(ThreadPool* tp) {
     stage2_med_filter_radius_ = HD_STARTING_MED_FILT_RAD;
     stage3_grow_filter_radius_ = HD_STARTING_GROW_FILT_RAD;
     stage1_shrink_filter_radius_ = HD_STARTING_SHRINK_FILT_RAD;
@@ -54,24 +57,18 @@ namespace hand_detector {
     forest_ = NULL;
     num_trees_ = 0;
 
-    tp_ = NULL;
+    tp_ = tp;
     thread_cbs_ = NULL;
   }
 
   HandDetector::~HandDetector() {
-    tp_->stop();
-    SAFE_DELETE(tp_);
     releaseForest(forest_, num_trees_);
     SAFE_DELETE_ARR(labels_evaluated_);
     SAFE_DELETE_ARR(labels_filtered_);
     SAFE_DELETE_ARR(labels_temp_);
     SAFE_DELETE_ARR(labels_temp2_);
     SAFE_DELETE_ARR(depth_downsampled_);
-    if (thread_cbs_) {
-      for (uint32_t i = 0; i < HD_NUM_WORKER_THREADS; i++) {
-        SAFE_DELETE(thread_cbs_);
-      }
-    }
+    SAFE_DELETE(thread_cbs_);
     SAFE_DELETE_ARR(thread_cbs_);
     SAFE_DELETE(pixel_on_queue_);
   }
@@ -112,24 +109,20 @@ namespace hand_detector {
     max_height_to_evaluate_ = max_height_ < max_height_to_evaluate_ ? max_height_ 
                              : max_height_to_evaluate_;
 
-    tp_ = new ThreadPool(HD_NUM_WORKER_THREADS);
-    thread_cbs_ = new Callback<void>*[HD_NUM_WORKER_THREADS];
+    const int num_threads = tp_->num_workers();
+    thread_cbs_ = new VectorManaged<Callback<void>*>(num_threads);
 
     // Figure out the load balance accross worker threads.  This thread will act
     // as a worker thread as well.
     uint32_t n_pixels = down_width_*down_height_;
-    uint32_t n_pixels_per_thread = n_pixels / HD_NUM_WORKER_THREADS;
-    for (uint32_t i = 0; i < (HD_NUM_WORKER_THREADS - 1); i++) {
+    uint32_t n_pixels_per_thread = 1 + n_pixels / num_threads;
+    for (uint32_t i = 0; i < (num_threads - 1); i++) {
       uint32_t start = i * n_pixels_per_thread;
-      uint32_t end = ((i + 1) * n_pixels_per_thread) - 1;
-      thread_cbs_[i] = MakeCallableMany(&HandDetector::evaluateForestPixelRange, 
-        this, start, end);
+      uint32_t end = std::min<uint32_t>(((i + 1) * n_pixels_per_thread) - 1,
+        n_pixels - 1);
+      thread_cbs_->pushBack(MakeCallableMany(&HandDetector::evaluateForestPixelRange, 
+        this, start, end));
     }
-    // The last thread may have more pixels then the other due to integer
-    // round off, but this is OK.
-    thread_cbs_[HD_NUM_WORKER_THREADS-1] = 
-      MakeCallableMany(&HandDetector::evaluateForestPixelRange, this, 
-      (HD_NUM_WORKER_THREADS - 1) * n_pixels_per_thread, n_pixels-1);
   }
 
   bool HandDetector::findHandLabels(const int16_t* depth_in, const float* xyz, 
@@ -330,13 +323,13 @@ namespace hand_detector {
 
   void HandDetector::evaluateForestMultithreaded() {
     threads_finished_ = 0;
-    for (uint32_t i = 0; i < HD_NUM_WORKER_THREADS; i++) {
-      tp_->addTask(thread_cbs_[i]);
+    for (uint32_t i = 0; i < thread_cbs_->size(); i++) {
+      tp_->addTask((*thread_cbs_)[i]);
     }
 
     // Wait until the other threads are done
     std::unique_lock<std::mutex> ul(thread_update_lock_);  // Get lock
-    while (threads_finished_ != HD_NUM_WORKER_THREADS) {
+    while (threads_finished_ != thread_cbs_->size()) {
       not_finished_.wait(ul);
     }
     ul.unlock();  // Release lock

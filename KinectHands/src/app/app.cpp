@@ -92,7 +92,7 @@ namespace app {
     frame_time_ = clk_->getTime();
     app_running_ = true;
 
-    kinect_ = new KinectInterface();
+    kinect_ = new KinectInterface(NULL);
   }
 
   void App::killApp() {
@@ -202,7 +202,7 @@ namespace app {
           break;
         case OUTPUT_DEPTH:
           for (uint32_t i = 0; i < src_dim; i++) {
-            uint8_t val = (depth_[i] * 2) % 255;
+            uint8_t val = (depth_[i] / 5) % 255;
             im_[i*3] = val;
             im_[i*3+1] = val;
             im_[i*3+2] = val;
@@ -210,7 +210,7 @@ namespace app {
           break;
         case OUTPUT_HAND_DETECTOR_DEPTH:
           for (uint32_t i = 0; i < src_dim; i++) {
-            uint8_t val = (hand_detector_depth_[i] * 2) % 255;
+            uint8_t val = (hand_detector_depth_[i] / 5) % 255;
             im_[i*3] = val;
             im_[i*3+1] = val;
             im_[i*3+2] = val;
@@ -301,10 +301,8 @@ namespace app {
       ui::UIEnumVal(OUTPUT_DEPTH, "Depth"));
     ui->addSelectboxItem("kinect_output", 
       ui::UIEnumVal(OUTPUT_HAND_DETECTOR_DEPTH, "Hand Detector Depth"));
-    ui->addCheckbox("use_depth_from_file", "(Debug) Use Depth From File");
-    ui->addCheckbox("use_coeff_convnet_from_file", "(Debug) Use coeffs "
-      "from file");
     ui->addCheckbox("render_kinect_fps", "Render Kinect FPS");
+    ui->addCheckbox("crop_depth_to_rgb", "Crop depth to RGB");
 
     ui->addHeadingText("Hand Detection:");
     ui->addCheckbox("detect_hands", "Enable Hand Detection");

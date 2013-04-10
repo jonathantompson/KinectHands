@@ -21,7 +21,6 @@
 #define HD_STARTING_SHRINK_FILT_RAD 0 
 #define HD_STARTING_MED_FILT_RAD 2  // EDIT: 2/13 (prev 1)
 #define HD_STARTING_GROW_FILT_RAD 2
-#define HD_NUM_WORKER_THREADS 6
 
 // Post processing variables
 #define HD_SMALL_HAND_RADIUS 20.0f
@@ -37,6 +36,7 @@
 #define HD_BACKGROUND_THRESH_GROW 100.0f  // For hand flood fill
 
 namespace jtil { namespace threading { class ThreadPool; } }
+namespace jtil { namespace data_str { template <typename T> class VectorManaged; } }
 
 namespace kinect_interface {
 namespace hand_detector {
@@ -50,7 +50,7 @@ namespace hand_detector {
 
   class HandDetector {
   public:
-    HandDetector();
+    HandDetector(jtil::threading::ThreadPool* tp);
     ~HandDetector();
     void init(const uint32_t im_width, const uint32_t im_height,
       const std::string filename = FOREST_DATA_FILENAME);
@@ -109,11 +109,11 @@ namespace hand_detector {
     uint8_t* pixel_on_queue_;
 
     // Multithreading
-    jtil::threading::ThreadPool* tp_;
+    jtil::threading::ThreadPool* tp_;  // Not owned here
     uint32_t threads_finished_;
     std::mutex thread_update_lock_;
     std::condition_variable not_finished_;
-    jtil::threading::Callback<void>** thread_cbs_;
+    jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* thread_cbs_;
 
     static const float floodFillKernel_[HD_N_PTS_FILL_KERNEL][2]; 
 
