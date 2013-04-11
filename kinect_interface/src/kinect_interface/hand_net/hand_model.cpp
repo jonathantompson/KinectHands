@@ -70,10 +70,10 @@ namespace hand_net {
     coeff_[F1_TWIST] = 0;
     coeff_[F2_TWIST] = 0;
     coeff_[F3_TWIST] = 0;
-    coeff_[F0_LENGTH] = 1.0f;
-    coeff_[F1_LENGTH] = 1.0f;
-    coeff_[F2_LENGTH] = 1.0f;
-    coeff_[F3_LENGTH] = 1.0f;
+    coeff_[F0_LENGTH] = 0;
+    coeff_[F1_LENGTH] = 0;
+    coeff_[F2_LENGTH] = 0;
+    coeff_[F3_LENGTH] = 0;
     local_scale_ = HAND_MODEL_DEFAULT_SCALE;
     renormalizeCoeffs(coeff_);  // Just in case
   }

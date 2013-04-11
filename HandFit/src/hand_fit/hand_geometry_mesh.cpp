@@ -265,7 +265,7 @@ namespace hand_fit {
     mat->leftMultTranslation(coeff[HAND_POS_X],
                              coeff[HAND_POS_Y],
                              coeff[HAND_POS_Z]);
-    mat->rightMultScale(HandModel::scale, HandModel::scale, HandModel::scale);
+    mat->rightMultScale(HandModel::scale, HandModel::scale, HandModel::scale); 
 
     // Set the palm bone (depending on wrist angle)
     mat = bones_in_file_->bones[bone_wrist_index_]->getNode()->mat();
@@ -284,20 +284,35 @@ namespace hand_fit {
       float psi = coeff[F0_TWIST + i];
       mat = bones_in_file_->bones[bone_finger_2_index_[i]]->getNode()->mat();
       Float4x4::euler2RotMat(mat_tmp3, psi, theta, phi);
-      //Float4x4::rotateMatXAxis(mat_tmp2, phi);
-      //Float4x4::rotateMatZAxis(mat_tmp1, theta);
-      //Float4x4::mult(mat_tmp3, mat_tmp1, mat_tmp2);
       Float4x4::mult(*mat, rest_transforms_[bone_finger_2_index_[i]], mat_tmp3);
+      mat->rightMultScale(1.0f, 1.0f + coeff[F0_LENGTH + i], 1.0f);  // Scale this node
 
       mat = bones_in_file_->bones[bone_finger_3_index_[i]]->getNode()->mat();
       float k2_theta = coeff[F0_KNUCKLE_CURL + i * FINGER_NUM_COEFF];
       Float4x4::rotateMatXAxis(mat_tmp1, k2_theta);
-      Float4x4::mult(*mat, rest_transforms_[bone_finger_3_index_[i]], mat_tmp1);
+      const Float4x4& bone_mid = rest_transforms_[bone_finger_3_index_[i]];
+      Float3 bone_mid_pos;
+      Float4x4::getTranslation(bone_mid_pos, bone_mid);
+      float bone_base_length = bone_mid_pos.length();
+      mat_tmp2.set(bone_mid);
+      // Move bone by fraction of the bone length:
+      mat_tmp2.leftMultTranslation(0, bone_base_length * coeff[F0_LENGTH + i], 0);  
+      Float4x4::mult(*mat, mat_tmp2, mat_tmp1);
+      mat->leftMultScale(1.0f, 1.0f / (1.0f + coeff[F0_LENGTH + i]), 1.0f);  // Undo parent scale
+      mat->rightMultScale(1.0f, 1.0f + coeff[F0_LENGTH + i], 1.0f);  // Scale this node
 
       mat = bones_in_file_->bones[bone_finger_4_index_[i]]->getNode()->mat();
-      // float k3_theta = coeff[F0_KNUCKLE_CURL + i * FINGER_NUM_COEFF));
-      // mat_tmp1.rotateMatXAxis(k3_theta);
-      Float4x4::mult(*mat, rest_transforms_[bone_finger_4_index_[i]], mat_tmp1);
+      const Float4x4& bone_tip = rest_transforms_[bone_finger_4_index_[i]];
+      Float3 bone_tip_pos;
+      Float4x4::getTranslation(bone_tip_pos, bone_tip);
+      float bone_mid_length = bone_tip_pos.length();
+      mat_tmp2.set(bone_tip);
+      // Move bone by fraction of the bone length:
+      mat_tmp2.leftMultTranslation(0, bone_mid_length * coeff[F0_LENGTH + i], 0);
+      Float4x4::mult(*mat, mat_tmp2, mat_tmp1);
+
+      mat->leftMultScale(1.0f, 1.0f / (1.0f + coeff[F0_LENGTH + i]), 1.0f);  // Undo parent scale
+      mat->rightMultScale(1.0f, 1.0f + coeff[F0_LENGTH + i], 1.0f);  // Scale this node
     }
 
     // Set the thumb bones
