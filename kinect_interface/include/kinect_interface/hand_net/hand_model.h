@@ -181,6 +181,8 @@ namespace hand_net {
     void saveBlankFile(const std::string& dir, const std::string& filename) 
       const;
     bool loadFromFile(const std::string& dir, const std::string& filename);
+    // Model update 4/11 with the Primesense 1.09 (added thumb twist and other stuff)
+    bool loadOldModelFromFile(const std::string& dir, const std::string& filename);  
 
     void copyCoeffFrom(const HandModel* model);
     void copyCoeffFrom(const float* coeff, const uint32_t ncoeffs);

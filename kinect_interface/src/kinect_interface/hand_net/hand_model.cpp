@@ -303,6 +303,39 @@ namespace hand_net {
     return true;
   }
 
+  bool HandModel::loadOldModelFromFile(const std::string& dir, 
+    const std::string& filename) {
+    string full_filename = dir + filename;
+    std::ifstream file(full_filename.c_str(), std::ios::in | std::ios::binary);
+    if (!file.is_open()) {
+      return false;
+    }
+    file.seekg(0, std::ios::beg);
+    // Make sure this isn't a blank file (indicating no hands on the screen)
+    file.read(reinterpret_cast<char*>(coeff_), 
+      (F3_KNUCKLE_CURL+1) * sizeof(coeff_[0]));
+    if (coeff_[HAND_POS_X] < EPSILON && coeff_[HAND_POS_Y] < EPSILON && 
+      coeff_[HAND_POS_Z] < EPSILON) {
+      resetPose();
+    }
+
+    file.close();
+
+    coeff_[F0_TWIST] = 0;
+    coeff_[F1_TWIST] = 0;
+    coeff_[F2_TWIST] = 0;
+    coeff_[F3_TWIST] = 0;
+    coeff_[THUMB_TWIST] = 0;
+    coeff_[F0_LENGTH] = 0;
+    coeff_[F1_LENGTH] = 0;
+    coeff_[F2_LENGTH] = 0;
+    coeff_[F3_LENGTH] = 0;
+    coeff_[THUMB_LENGTH] = 0;
+    coeff_[SCALE] = HAND_MODEL_DEFAULT_SCALE;
+
+    return true;
+  }
+
   const uint8_t labelFromRGB(const float r, const float g, const float b) {
     uint32_t red_type;
     if (r < 0.25f) {
