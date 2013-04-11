@@ -27,13 +27,21 @@ function VisualizeData(x, plot_labels)
             round(bank_dim[j][1] * im.labels[{i, k}]), 
             round(bank_dim[j][2] * im.labels[{i, k+1}])
           }
+          uv_pos[1] = math.min(uv_pos[1], bank_dim[j][1])
+          uv_pos[2] = math.min(uv_pos[2], bank_dim[j][2])
+          uv_pos[1] = math.max(uv_pos[1], 1)
+          uv_pos[2] = math.max(uv_pos[2], 1)
           -- Add vert line at feature
           for v=(uv_pos[2]-1),(uv_pos[2]+1) do
-            im.data[{i,1,v,uv_pos[1]}] = max_val
+            if (v >= 1 and v <= bank_dim[j][2]) then
+              im.data[{i,1,v,uv_pos[1]}] = max_val
+            end
           end
           -- Add horiz line at feature
           for u=(uv_pos[1]-1),(uv_pos[1]+1) do
-            im.data[{i,1,uv_pos[2],u}] = max_val
+            if (u >= 1 and u <= bank_dim[j][1]) then
+              im.data[{i,1,uv_pos[2],u}] = max_val
+            end
           end
         end
       end

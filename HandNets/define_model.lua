@@ -86,12 +86,13 @@ model:add(nn.Threshold())
 print("    Neural net first stage output size")
 print(nstates_nn)
 
-model:add(nn.Linear(nstates_nn, nstates_nn))
-model:get(3).bias:add(-model:get(3).bias:min()) -- Set up the initial condition
-model:add(nn.Threshold())
-
-print("    Neural net second stage output size")
-print(nstates_nn)
+-- EXTRA LINEAR LAYER
+-- model:add(nn.Linear(nstates_nn, nstates_nn))
+-- model:get(5).bias:add(-model:get(5).bias:min()) -- Set up the initial condition
+-- model:add(nn.Threshold())
+-- print("    Neural net second stage output size")
+-- print(nstates_nn)
+-- END EXTRA LINEAR LAYER
 
 model:add(nn.Linear(nstates_nn, num_coeff))
 
