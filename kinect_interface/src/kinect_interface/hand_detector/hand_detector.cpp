@@ -229,11 +229,16 @@ namespace hand_detector {
       DownsampleImageWithoutNonZeroPixelsAndBackground<int16_t>(
         depth_downsampled_, depth_, src_width_, src_height_, DT_DOWNSAMPLE,
         GDT_MAX_DIST);
+      for (int32_t i = 0; i < down_height_*down_width_; i++) {
+        if (depth_downsampled_[i] > GDT_INNER_DIST) {
+          depth_downsampled_[i] = GDT_MAX_DIST+1;
+        }
+      }
     } else {
       memcpy(depth_downsampled_, depth_, 
         down_width_ * down_height_ * sizeof(depth_downsampled_[0]));
       for (int32_t i = 0; i < down_width_ * down_height_; i++) {
-        if (depth_downsampled_[i] > (GDT_MAX_DIST + 1) ||
+        if (depth_downsampled_[i] > GDT_INNER_DIST ||
           depth_downsampled_[i] == 0) {
             depth_downsampled_[i] = GDT_MAX_DIST + 1;
         }

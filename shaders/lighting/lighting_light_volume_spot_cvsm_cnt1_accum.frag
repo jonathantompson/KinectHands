@@ -10,7 +10,7 @@ uniform float f_camera_far;
 
 // Shadowmap specific uniforms
 uniform mat4 f_vsm_split_pv_camviewinv[max_sm_count];
-uniform sampler2D f_vsm;
+uniform sampler2DArray f_vsm_array;
 uniform float f_vsm_min_variance;
 uniform float f_lbr_amount;
 uniform vec2 f_light_near_far;
@@ -25,7 +25,7 @@ float PerPixelShadow(in vec3 pos,
   vec2 light_tex_coord = (pos_light.xy / pos_light.w) * vec2(0.5, 0.5) + 
     vec2(0.5, 0.5);
   
-  vec2 moments = texture2D(f_vsm, light_tex_coord).xy;
+  vec2 moments = texture2DArray(f_vsm_array, vec3(light_tex_coord, 0.0)).xy;
   
   float dist_to_light_scaled = linstep(-f_light_near_far.x, 
     -f_light_near_far.y, dist_to_light);

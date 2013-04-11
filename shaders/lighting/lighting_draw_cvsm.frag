@@ -6,9 +6,13 @@ in vec2 f_texture;
 
 out vec4 color;
 
-uniform sampler2D f_vsm;
+uniform sampler2DArray f_vsm_array;
+uniform int sm_index;
 
 void main(){
-  vec2 moments = texture2D(f_vsm, f_texture).xy;
+  
+  vec2 moments = texture2DArray(f_vsm_array, 
+    vec3(f_texture, sm_index)).xy;
+
   color = vec4(moments.x, moments.x, moments.x, 1.0);
 }

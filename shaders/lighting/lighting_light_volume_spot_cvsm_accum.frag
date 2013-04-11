@@ -17,6 +17,7 @@ uniform isampler2D f_vsm_splits;
 uniform float f_vsm_min_variance;
 uniform vec2 f_light_near_far;
 uniform float f_vsm_blend_zone;
+uniform float f_lbr_amount;
 
 out vec4 frag_color; 
 
@@ -37,7 +38,7 @@ float PerPixelShadow(in vec3 pos,
     -f_light_near_far.y, dist_to_light);
 	
   float shadow_coeff = ChebyshevUpperBound(moments, dist_to_light_scaled, 
-    f_vsm_min_variance);
+    f_vsm_min_variance, f_lbr_amount);
 
   // Now get the next split so we can blend...
   if(split < (f_vsm_count - 1)) {
@@ -49,7 +50,7 @@ float PerPixelShadow(in vec3 pos,
       float(split_safe + 1))).xy;
 
 	float shadow_coeff_next = ChebyshevUpperBound(moments_next, 
-	  dist_to_light_scaled, f_vsm_min_variance);
+	  dist_to_light_scaled, f_vsm_min_variance, f_lbr_amount);
 
     float s0 = f_vsm_split_depths[split_safe];
     float s1 = f_vsm_split_depths[split_safe + 1];

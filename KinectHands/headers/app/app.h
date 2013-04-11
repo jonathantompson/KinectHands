@@ -98,6 +98,9 @@ namespace app {
     uint8_t im_flipped_[src_dim * 3];
     float coeff_convnet_[kinect_interface::hand_net::HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
     jtil::math::Int4 hand_pos_wh_;  // From hand image generator
+    uint8_t* disk_im_;  // Used when saving video stream to disk
+    uint8_t* disk_im_compressed_;
+    uint32_t disk_im_size_;
 
     void run();
     void init();
@@ -107,6 +110,7 @@ namespace app {
     void moveStuff(const double dt);  // Temporary: just to play with renderer
     void addStuff();
     void registerNewRenderer();
+    void saveSensorData(const std::string& file);
 
     // Non-copyable, non-assignable.
     App(App&);

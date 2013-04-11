@@ -14,6 +14,7 @@
 #endif
 
 #define GDT_MAX_DIST 2000  // Early out for points 2m away from the kinect
+#define GDT_INNER_DIST 1400  // Points greater than that are set to background
 #define NUM_LABELS 2  // The labels must be indexed (per pixel) from 0 --> NUM_LABELS - 1
 #define DT_DOWNSAMPLE 4  // 1 --> no downsample, 4 --> 16th origional size (default)
 #define NUM_WL_FUNCS 2  // My depth test and the Kinect paper's depth test

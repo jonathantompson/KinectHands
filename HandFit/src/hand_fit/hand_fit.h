@@ -16,6 +16,7 @@
 
 #include "renderer/open_gl_common.h"  // GLfloat
 #include "kinect_interface/hand_net/hand_model.h"
+#include "kinect_interface/depth_images_io.h"  // src_dim
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector.h"
 #include "jtil/data_str/vector_managed.h"

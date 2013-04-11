@@ -34,6 +34,7 @@
 #include "jtil/clk/clk.h"
 #include "jtil/file_io/file_io.h"
 #include "jtil/string_util/string_util.h"
+#include "jtil/threading/thread_pool.h"
 #include "kinect_interface/hand_net/hand_model.h"
 #include "hand_fit/hand_geometry.h"
 #include "hand_fit/hand_renderer.h"
@@ -55,10 +56,13 @@
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")  // Fit
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")  // Fit
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")  // Fit
-#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Fit
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Fit
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Fit
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Fit -> Training Data
- 
+#define IM_DIR_BASE string("data/hand_depth_data/")  // Fit 
+
+//#define KINECT_DATA  // Otherwise Primesense 1.09 data
+
 #if defined(__APPLE__)
   #define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
 #else
@@ -95,6 +99,7 @@ using kinect_interface::hand_detector::HandDetector;
 using kinect_interface::hand_net::HandCoeffConvnet;
 using kinect_interface::hand_net::HandCoeff;
 using kinect_interface::hand_net::HandModel;
+using kinect_interface::OpenNIFuncs;
 using kinect_interface::hand_net::HandNet;
 
 jtil::clk::Clk* clk = NULL;
@@ -138,6 +143,7 @@ uint32_t coeff_src = 0;
 DepthImagesIO* image_io = NULL;
 jtil::data_str::VectorManaged<char*> im_files;
 float cur_xyz_data[src_dim*3];
+float cur_uvd_data[src_dim*3];
 int16_t cur_depth_data[src_dim*3];
 uint8_t cur_label_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
@@ -147,6 +153,8 @@ float temp_xyz[3 * src_dim];
 float temp_rgb[3 * src_dim];
 bool render_depth = true;
 int playback_step = 1;
+OpenNIFuncs openni_funcs;
+jtil::threading::ThreadPool* tp;
 
 // Convolutional Neural Network
 HandNet* convnet = NULL;
@@ -159,6 +167,8 @@ Texture* tex = NULL;
 uint8_t tex_data[src_dim * 3];
 
 void quit() {
+  tp->stop();
+  delete tp;
   delete image_io;
   delete clk; 
   if (l_hands) {
@@ -198,7 +208,14 @@ void loadCurrentImage(bool print_to_screen = true) {
   
   image_io->LoadCompressedImageWithRedHands(full_filename, 
     cur_depth_data, cur_label_data, cur_image_rgb, NULL);
+#ifdef KINECT_DATA
   DepthImagesIO::convertSingleImageToXYZ(cur_xyz_data, cur_depth_data);
+#else
+  openni_funcs.ConvertDepthImageToProjective((uint16_t*)cur_depth_data, 
+    cur_uvd_data);
+  openni_funcs.convertDepthToWorldCoordinates(cur_uvd_data, cur_xyz_data, 
+    src_dim);
+#endif
 }
 
 void InitXYZPointsForRendering() {
@@ -1016,12 +1033,14 @@ int main(int argc, char *argv[]) {
     wnd = new Window(settings);
     GLState::initGLState();    
 
+    tp = new jtil::threading::ThreadPool(KINECT_INTERFACE_NUM_WORKER_THREADS);
+
     // Load the convnet from file
     convnet = new HandNet();
     convnet->loadFromFile(CONVNET_FILE);
 
     // Load the decision forest
-    hand_detector = new HandDetector();
+    hand_detector = new HandDetector(tp);
     hand_detector->init(src_width, src_height, KINECT_HANDS_ROOT +
       FOREST_DATA_FILENAME);
     tex = new Texture(GL_RGB8, src_width, src_height, GL_RGB, 

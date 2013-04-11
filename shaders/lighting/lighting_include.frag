@@ -61,10 +61,16 @@ vec2 ComputeMoments(in float depth) {
   return moments;
 }
 
+// Light bleeding reduction
+float LBR(in float p, in float lbr_amount) {
+    return linstep(lbr_amount, 1, p);
+}
+
+
 // Computes Chebyshev's Inequality
 // Returns an upper bound given the first two moments and mean
 float ChebyshevUpperBound(in vec2 moments, in float mean, 
-  in float min_variance) {
+  in float min_variance, in float lbr_amount) {
   // Standard shadow map comparison
   // float p = (mean <= moments.x);
 
@@ -81,7 +87,10 @@ float ChebyshevUpperBound(in vec2 moments, in float mean,
   float d     = mean - moments.x;
   float p_max = variance / (variance + d*d);
   
-  p_max = smoothstep(0.0, 1.0, p_max);  // Light bleeding reduction
+  // Light bleeding reduction:
+  float p_ret = smoothstep(lbr_amount, 1.0, max(p, p_max));  
+  // float p_ret = LBR(p_max, lbr_amount);  // Light bleeding reduction
 
-  return max(p, p_max);
+  return p_ret;
+  // return max(p, p_max);
 }

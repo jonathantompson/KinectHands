@@ -2,6 +2,9 @@
 #include <thread>
 #include <string>
 #include <iostream>  // for cout
+#if defined(WIN32) || defined(_WIN32) 
+  #include <direct.h>
+#endif
 #include "app/app.h"
 #include "jtil/ui/ui.h"
 #include "kinect_interface/kinect_interface.h"
@@ -11,11 +14,13 @@
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
 #include "jtil/glew/glew.h"
 #include "jtil/image_util/image_util.h"
+#include "jtil/fastlz/fastlz.h"
 
 #ifndef NULL
 #define NULL 0
 #endif
 #define SAFE_DELETE(x) if (x) { delete x; x = NULL; }
+#define SAFE_DELETE_ARR(x) if (x) { delete[] x; x = NULL; }
 
 #ifdef _WIN32
 #ifndef snprintf
@@ -48,6 +53,8 @@ namespace app {
     app_running_ = false;
     clk_ = NULL;
     kinect_ = NULL;
+    disk_im_ = NULL;
+    disk_im_compressed_ = NULL;
     rand_norm_ = new NORM_DIST<float>(0.0f, 1.0f);
     rand_uni_ = new UNIF_DIST<float>(-1.0f, 1.0f);
     kinect_frame_number_ = MAX_UINT64;
@@ -61,6 +68,8 @@ namespace app {
     SAFE_DELETE(clk_);
     SAFE_DELETE(rand_norm_);
     SAFE_DELETE(rand_uni_);
+    SAFE_DELETE_ARR(disk_im_);
+    SAFE_DELETE_ARR(disk_im_compressed_);
     Renderer::ShutdownRenderer();
   }
 
@@ -93,6 +102,25 @@ namespace app {
     app_running_ = true;
 
     kinect_ = new KinectInterface(NULL);
+
+    // We have lots of hard-coded dimension values (check that they are
+    // consistent).
+    Int2 expected_dim(src_width, src_height);
+    if (!Int2::equal(kinect_->depth_dim(), expected_dim) ||
+      !Int2::equal(kinect_->rgb_dim(), expected_dim)) {
+      throw std::wruntime_error("App::newApp() - ERROR: Sensor image "
+        "dimensions don't match our hard-coded values!");
+    }
+
+    uint16_t dummy_16;
+    uint8_t dummy_8;
+    static_cast<void>(dummy_8);
+    static_cast<void>(dummy_16);
+    disk_im_size_ = src_dim * sizeof(dummy_16) + 
+      src_dim * 3 * sizeof(dummy_8);
+    disk_im_ = new uint8_t[disk_im_size_];
+    // Compressed image could be 5% + overhead larger! Just allocate 2x space
+    disk_im_compressed_ = new uint8_t[disk_im_size_*2];  
   }
 
   void App::killApp() {
@@ -269,7 +297,17 @@ namespace app {
       }
 
       Renderer::g_renderer()->renderFrame();
- 
+
+      // Save the frame to file if we have been asked to:
+      bool continuous_snapshot;
+      GET_SETTING("continuous_snapshot", bool, continuous_snapshot);
+      if (continuous_snapshot) {
+        std::stringstream ss;
+        uint64_t time = (uint64_t)(clk_->getTime() * 1e9);
+        ss << "hands_" << time << ".bin";
+        saveSensorData(ss.str());
+      }
+
       // Give OS the opportunity to deschedule
       std::this_thread::yield();
     }
@@ -294,7 +332,7 @@ namespace app {
     Renderer::g_renderer()->setBackgroundTexture(background_tex_);
 
     ui::UI* ui = Renderer::g_renderer()->ui();
-    ui->addHeadingText("Kinect Render Output:");
+    ui->addHeadingText("Kinect Settings:");
     ui->addSelectbox("kinect_output", "Kinect Output");
     ui->addSelectboxItem("kinect_output", ui::UIEnumVal(OUTPUT_RGB, "RGB"));
     ui->addSelectboxItem("kinect_output", 
@@ -303,6 +341,7 @@ namespace app {
       ui::UIEnumVal(OUTPUT_HAND_DETECTOR_DEPTH, "Hand Detector Depth"));
     ui->addCheckbox("render_kinect_fps", "Render Kinect FPS");
     ui->addCheckbox("crop_depth_to_rgb", "Crop depth to RGB");
+    ui->addCheckbox("continuous_snapshot", "Save continuous video stream");
 
     ui->addHeadingText("Hand Detection:");
     ui->addCheckbox("detect_hands", "Enable Hand Detection");
@@ -381,6 +420,57 @@ namespace app {
   
   void App::characterInputCB(int character, int action) {
 
+  }
+
+  void App::saveSensorData(const std::string& filename) {
+    // Now copy over the depth image and also flag the user pixels (which for
+    // now are just pixels less than some threshold):
+    uint16_t* depth_dst = (uint16_t*)disk_im_;
+    memcpy(depth_dst, depth_, src_dim * sizeof(depth_dst[0]));
+    for (int i = 0; i < src_width * src_height; i++) {
+      if (depth_[i] < GDT_INNER_DIST) {
+        depth_dst[i] |= 0x8000;  // Mark the second MSB
+      }
+    }
+    
+    // Now copy over the rgb image
+    uint8_t* rgb_dst = (uint8_t*)&depth_dst[src_dim];
+    memcpy(rgb_dst, rgb_, 3 * src_dim * sizeof(rgb_dst[0]));
+
+    // Compress the array
+    static const int compression_level = 1;  // 1 fast, 2 better compression
+    int compressed_length = fastlz_compress_level(compression_level,
+      (void*)disk_im_, disk_im_size_, (void*)disk_im_compressed_);
+
+    // Now save the array to file
+#ifdef _WIN32
+    _mkdir("./data/hand_depth_data/");  // Silently fails if dir exists
+    std::string full_filename = "./data/hand_depth_data/" + filename;
+#endif
+#ifdef __APPLE__
+    std::string full_path = file_io::GetHomePath() +
+      std::string("Desktop/data/hand_depth_data/");
+    struct stat st;
+    if (stat(full_path.c_str(), &st) != 0) {
+      if (mkdir(full_path.c_str(), S_IRWXU|S_IRWXG) != 0) {
+        printf("Error creating directory %s: %s\n", full_path.c_str(),
+               strerror(errno));
+        return false;
+      } else {
+        printf("%s created\n", full_path.c_str());
+      }
+    }
+    std::string full_filename = full_path + filename;
+#endif
+    
+    // Save the file compressed
+    std::ofstream file(full_filename.c_str(), std::ios::out | std::ios::binary);
+    if (!file.is_open()) {
+      throw std::runtime_error(std::string("error opening file:") + filename);
+    }
+    file.write((const char*)disk_im_compressed_, compressed_length);
+    file.flush();
+    file.close();
   }
 
 }  // namespace app
