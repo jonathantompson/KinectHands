@@ -86,8 +86,8 @@ namespace kinect_interface {
       int32_t radius, int16_t thresh);
 
     // convertImageDepthToXYZ - Use OpenNI functions for UVD --> XYZ conversion
-    static void convertImageDepthToXYZ(float*& xyz, DepthImageData*& images);
-    static void convertSingleImageToXYZ(float* xyz, int16_t* depth);
+    static void convertKinectImageDepthToXYZ(float*& xyz, DepthImageData*& images);
+    static void convertKinectSingleImageToXYZ(float* xyz, int16_t* depth);
 
     // testRedPixel - Single "red-test" of a hsv+rgb pixel (for debugging only)
     static void testRedPixel(uint32_t index, uint8_t* hsv, uint8_t* rgb);

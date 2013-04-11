@@ -62,6 +62,7 @@ namespace kinect_interface {
   KinectInterface::KinectInterface(const char* device_uri) {
     device_ = NULL;
     pts_world_ = NULL;
+    pts_uvd_ = NULL;
     labels_ = NULL;
     hand_detector_ = NULL;
     hand_net_ = NULL;
@@ -108,6 +109,7 @@ namespace kinect_interface {
     SAFE_DELETE(hand_detector_);
     SAFE_DELETE(image_io_);
     SAFE_DELETE(hand_net_);
+    SAFE_DELETE_ARR(pts_uvd_);
     SAFE_DELETE_ARR(pts_world_);
     SAFE_DELETE_ARR(labels_);
     SAFE_DELETE(openni_funcs_);
@@ -250,8 +252,10 @@ namespace kinect_interface {
     // Open a connection to the device's depth channel
     initDepth();
 
-    labels_ = new uint8_t[depth_dim_[0] * depth_dim_[1]];
-    pts_world_ = new float[3 * depth_dim_[0] * depth_dim_[1]];
+    const int depth_size = depth_dim_[0] * depth_dim_[1];
+    labels_ = new uint8_t[depth_size];
+    pts_world_ = new float[3 * depth_size];
+    pts_uvd_ = new float[3 * depth_size];
 
     // Open a connection to the device's rgb channel
     initRGB();
@@ -437,7 +441,6 @@ namespace kinect_interface {
       bool detect_hands, found_hand;
       GET_SETTING("detect_hands", bool, detect_hands);
       if (detect_hands) {
-        //hand_detector_->evaluateForest((int16_t*)depth_);
         found_hand = hand_detector_->findHandLabels((int16_t*)depth(), 
           pts_world_, HDLabelMethod::HDFloodfill, labels_);
         if (!found_hand) {
@@ -489,15 +492,19 @@ namespace kinect_interface {
     // openni::CoordinateConverter class, but looking through the source on
     // github it looks expensive.  The other is digging into the c src directly
     // and defining our own version.
-    openni::DepthPixel* depth = (openni::DepthPixel*)frames_[DEPTH]->getData();
+    float* pts_uvd_start = &pts_uvd_[start*3];
+    float* pts_world_start = &pts_world_[start*3];
+    const uint32_t count = end - start + 1;
+    openni_funcs_->convertDepthToWorldCoordinates(pts_uvd_start, 
+      pts_world_start, count);
 
+    //for (uint32_t i = 0; i <= end; i++) {
+    //  uint32_t u = i % depth_dim_[0];
+    //  uint32_t v = i / depth_dim_[0];
+    //  openni::CoordinateConverter::convertDepthToWorld(*streams_[DEPTH], u, v, 
+    //    depth[i], &pts_world_[i*3], &pts_world_[i*3+1], &pts_world_[i*3+2]);
+    //}
 
-    for (uint32_t i = 0; i <= end; i++) {
-      uint32_t u = i % depth_dim_[0];
-      uint32_t v = i / depth_dim_[0];
-      openni::CoordinateConverter::convertDepthToWorld(*streams_[DEPTH], u, v, 
-        depth[i], &pts_world_[i*3], &pts_world_[i*3+1], &pts_world_[i*3+2]);
-    }
     std::unique_lock<std::mutex> ul(thread_update_lock_);
     threads_finished_++;
     not_finished_.notify_all();  // Signify that all threads might have finished

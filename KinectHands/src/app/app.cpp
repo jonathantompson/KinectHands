@@ -202,7 +202,7 @@ namespace app {
           break;
         case OUTPUT_DEPTH:
           for (uint32_t i = 0; i < src_dim; i++) {
-            uint8_t val = (depth_[i] / 5) % 255;
+            uint8_t val = (depth_[i] * 2) % 255;
             im_[i*3] = val;
             im_[i*3+1] = val;
             im_[i*3+2] = val;
@@ -210,7 +210,7 @@ namespace app {
           break;
         case OUTPUT_HAND_DETECTOR_DEPTH:
           for (uint32_t i = 0; i < src_dim; i++) {
-            uint8_t val = (hand_detector_depth_[i] / 5) % 255;
+            uint8_t val = (hand_detector_depth_[i] * 2) % 255;
             im_[i*3] = val;
             im_[i*3+1] = val;
             im_[i*3+2] = val;

@@ -116,7 +116,7 @@ namespace hand_detector {
     // as a worker thread as well.
     uint32_t n_pixels = down_width_*down_height_;
     uint32_t n_pixels_per_thread = 1 + n_pixels / num_threads;
-    for (uint32_t i = 0; i < (num_threads - 1); i++) {
+    for (int32_t i = 0; i < num_threads; i++) {
       uint32_t start = i * n_pixels_per_thread;
       uint32_t end = std::min<uint32_t>(((i + 1) * n_pixels_per_thread) - 1,
         n_pixels - 1);

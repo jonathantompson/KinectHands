@@ -1057,12 +1057,12 @@ namespace kinect_interface {
     }
   }
 
-  void DepthImagesIO::convertImageDepthToXYZ(float*& xyz, DepthImageData*& images) {
+  void DepthImagesIO::convertKinectImageDepthToXYZ(float*& xyz, DepthImageData*& images) {
     float* uvd_data = new float[src_dim * 3];
 
     for (int32_t i = 0; i < images->num_images; i++) {
       int16_t* image_src = &images->image_data[src_dim * i];
-      OpenNIFuncs::ConvertDepthImageToProjective(
+      OpenNIFuncs::ConvertDepthImageToProjectiveKinect(
         reinterpret_cast<uint16_t*>(image_src), uvd_data);
 
       float* xyz_dest = &xyz[src_dim * i * 3];
@@ -1071,9 +1071,9 @@ namespace kinect_interface {
     delete[] uvd_data;
   }
 
-  void DepthImagesIO::convertSingleImageToXYZ(float* xyz, int16_t* depth) {
+  void DepthImagesIO::convertKinectSingleImageToXYZ(float* xyz, int16_t* depth) {
     float* uvd_data = new float[src_dim * 3];
-    OpenNIFuncs::ConvertDepthImageToProjective((uint16_t*)depth, uvd_data);
+    OpenNIFuncs::ConvertDepthImageToProjectiveKinect((uint16_t*)depth, uvd_data);
     OpenNIFuncs::xnConvertProjectiveToRealWorld(src_dim, uvd_data, xyz);
     delete[] uvd_data;
   }
