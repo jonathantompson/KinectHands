@@ -13,7 +13,11 @@
 #include "jtil/data_str/vector.h"
 #include "kinect_interface/kinect_interface.h"  // for src_width/height
 
-#define HAND_NUM_COEFF 25  // The number of coefficients to use when optimizing
+#ifdef FIT_TWIST
+  #define HAND_NUM_COEFF 29  // The num of coefficients to use when optimizing
+#else
+  #define HAND_NUM_COEFF 25
+#endif
 #define FINGER_NUM_COEFF 3
 #define NSPH_PER_FING 6
 #define HAND_MODEL_DEFAULT_SCALE 58.0f
@@ -65,10 +69,16 @@ namespace hand_net {
     F3_THETA          = 22,
     F3_PHI            = 23,
     F3_KNUCKLE_CURL   = 24,
-    WRIST_LENGTH      = 25,  // Not used in optimization
-    SCALE             = 26,  // Not used in optimization
-    WRIST_TWIST       = 27,  // Not used in optimization
-    NUM_PARAMETERS    = 28,  // NOTE: Not to be confused with HAND_NUM_COEFF!!
+    F0_TWIST          = 25,
+    F1_TWIST          = 26,
+    F2_TWIST          = 27,
+    F3_TWIST          = 28,
+    F0_LENGTH         = 29,  // Not used in optimization
+    F1_LENGTH         = 30,  // Not used in optimization
+    F2_LENGTH         = 31,  // Not used in optimization
+    F3_LENGTH         = 32,  // Not used in optimization
+    SCALE             = 33,  // Not used in optimization
+    NUM_PARAMETERS    = 34,  // NOTE: Not to be confused with HAND_NUM_COEFF!!
   } HandCoeff;
 
   typedef enum {
@@ -169,8 +179,6 @@ namespace hand_net {
     void saveBlankFile(const std::string& dir, const std::string& filename) 
       const;
     bool loadFromFile(const std::string& dir, const std::string& filename);
-    bool loadOldFormatFromFile(const std::string& dir, 
-      const std::string& filename);
 
     void copyCoeffFrom(const HandModel* model);
     void copyCoeffFrom(const float* coeff);
@@ -179,8 +187,6 @@ namespace hand_net {
     void resetPose();
     
     static float scale;
-    static float wrist_length;
-    static float wrist_twist;
 
     // Bounding sphere positions:
     // Bones aren't in the correct position (need offsets)
@@ -188,7 +194,7 @@ namespace hand_net {
     static const float sph_size_[NUM_BOUNDING_SPHERES];
 
   private:
-    float coeff_[HAND_NUM_COEFF];  // The current state
+    float coeff_[NUM_PARAMETERS - 1];  // The current state
     float local_scale_;
     HandType hand_type_;
 

@@ -31,10 +31,10 @@
 #define PSO_MAX_ITERATIONS 300  // Default 501
 #define PSO_DELTA_C_TERMINATION 1e-3f
 #define PSO_SWARM_SIZE 64  // Default 128 or 64
-#define PSO_RAD_FINGERS 0.40f  // Search radius in frac of min - max coeff
+#define PSO_RAD_FINGERS 0.40f  // Search radius in frac of min - max coeff - Def 0.4
 #define PSO_RAD_WRIST 0.40f
 #define PSO_RAD_THUMB 0.40f 
-#define PSO_RAD_EULER 0.40f
+#define PSO_RAD_EULER 0.30f
 #define PSO_RAD_POSITION 25  // Absolute value in mm
 #define PSO_REPEATS 1  // Default 2
 
@@ -53,7 +53,7 @@
 #define DESCENT_PENALTY_SIZE 0.1f
 #define DESCENT_PENALTY_SIZE 0.1f 
  
-//#define DEPTH_ONLY_RESIDUE_FUNC  // Faster but less accurate
+#define DEPTH_ONLY_RESIDUE_FUNC  // Faster but less accurate
 #define MAX_DEPTH_IN_RESIDUE 30.0f  // default 40 (from paper) but 30 works better
 #define DATA_TERM_LAMBDA 0.2f  // default 0.0025f  (higher values = depth difference is more important)
 #define INTERPENETRATION_ALLOWENCE 2.0f  // Let them intepenetrate a little bit

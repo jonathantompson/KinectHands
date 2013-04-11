@@ -281,10 +281,12 @@ namespace hand_fit {
       // K1 base
       float theta = coeff[F0_THETA + i * FINGER_NUM_COEFF];
       float phi = coeff[F0_PHI + i * FINGER_NUM_COEFF];
+      float psi = coeff[F0_TWIST + i];
       mat = bones_in_file_->bones[bone_finger_2_index_[i]]->getNode()->mat();
-      Float4x4::rotateMatXAxis(mat_tmp2, phi);
-      Float4x4::rotateMatZAxis(mat_tmp1, theta);
-      Float4x4::mult(mat_tmp3, mat_tmp1, mat_tmp2);
+      Float4x4::euler2RotMat(mat_tmp3, psi, theta, phi);
+      //Float4x4::rotateMatXAxis(mat_tmp2, phi);
+      //Float4x4::rotateMatZAxis(mat_tmp1, theta);
+      //Float4x4::mult(mat_tmp3, mat_tmp1, mat_tmp2);
       Float4x4::mult(*mat, rest_transforms_[bone_finger_2_index_[i]], mat_tmp3);
 
       mat = bones_in_file_->bones[bone_finger_3_index_[i]]->getNode()->mat();

@@ -622,6 +622,12 @@ namespace hand_fit {
     0.01f,   // F3_THETA
     0.01f,   // F3_PHI
     0.01f,   // F3_KNUCKLE_CURL
+#ifdef FIT_TWIST
+    0.01f,  // F0_TWIST
+    0.01f,  // F1_TWIST
+    0.01f,  // F2_TWIST
+    0.01f,  // F3_TWIST
+#endif
   };
   
   // preturb_coeff_ is the std of the normally dist. random number added to each
@@ -653,6 +659,12 @@ namespace hand_fit {
     0.01f,  // F3_THETA
     0.01f,  // F3_PHI
     0.01f,  // F3_KNUCKLE_CURL
+#ifdef FIT_TWIST
+    0.01f,  // F0_TWIST
+    0.01f,  // F1_TWIST
+    0.01f,  // F2_TWIST
+    0.01f,  // F3_TWIST
+#endif
   };
   
   // angle_coeffs are boolean values indicating if the coefficient represents
@@ -684,6 +696,12 @@ namespace hand_fit {
     true,   // F3_THETA
     true,   // F3_PHI
     true,   // F3_KNUCKLE_CURL
+#ifdef FIT_TWIST
+    true,   // F0_TWIST
+    true,   // F1_TWIST
+    true,   // F2_TWIST
+    true,   // F3_TWIST
+#endif
     // Hand 2
     false,  // HAND_POS_X
     false,  // HAND_POS_Y
@@ -710,6 +728,12 @@ namespace hand_fit {
     true,   // F3_THETA
     true,   // F3_PHI
     true,   // F3_KNUCKLE_CURL
+#ifdef FIT_TWIST
+    true,   // F0_TWIST
+    true,   // F1_TWIST
+    true,   // F2_TWIST
+    true,   // F3_TWIST
+#endif
   };
   
   // coeff_min_limit is the minimum coefficient value before the penalty
@@ -740,6 +764,12 @@ namespace hand_fit {
     -0.600f,  // F3_THETA
     -1.243f,  // F3_PHI
     -1.363f,  // F3_KNUCKLE_CURL
+#ifdef FIT_TWIST
+    -0.200f,  // F0_TWIST
+    -0.200f,  // F1_TWIST
+    -0.200f,  // F2_TWIST
+    -0.200f,  // F3_TWIST
+#endif
   };
   
   // coeff_max_limit is the maximum coefficient value before the penalty
@@ -770,6 +800,12 @@ namespace hand_fit {
     0.400f,  // F3_THETA
     0.470f,  // F3_PHI
     0.360f,  // F3_KNUCKLE_CURL
+#ifdef FIT_TWIST
+    0.200f,  // F0_TWIST
+    0.200f,  // F1_TWIST
+    0.200f,  // F2_TWIST
+    0.200f,  // F3_TWIST
+#endif
   };
 
   const uint32_t HandFit::manual_fit_order_[HAND_NUM_COEFF] = {
@@ -786,6 +822,10 @@ namespace hand_fit {
     THUMB_K1_THETA,
     THUMB_K1_PHI,
     THUMB_K2_PHI,
+    F0_TWIST,
+    F1_TWIST,
+    F2_TWIST,
+    F3_TWIST,
     F0_THETA,
     F1_THETA,
     F2_THETA,
@@ -794,10 +834,12 @@ namespace hand_fit {
     F1_PHI,
     F2_PHI,
     F3_PHI,
+#ifdef FIT_TWIST
     F0_KNUCKLE_CURL,
     F1_KNUCKLE_CURL,
     F2_KNUCKLE_CURL,
     F3_KNUCKLE_CURL,
+#endif
   };
   
   // coeff_penalty_scale_ is the exponential scale to use when penalizing coeffs
@@ -828,6 +870,12 @@ namespace hand_fit {
     100,  // F3_THETA
     100,  // F3_PHI
     100,  // F3_KNUCKLE_CURL
+#ifdef FIT_TWIST
+    100,  // F0_TWIST
+    100,  // F1_TWIST
+    100,  // F2_TWIST
+    100,  // F3_TWIST
+#endif
   };
 
   Coeff& Coeff::operator=(const Coeff &rhs) {

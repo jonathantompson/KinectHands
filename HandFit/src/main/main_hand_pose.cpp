@@ -187,16 +187,11 @@ void MousePosCB(int x, int y) {
       if (cur_coeff <= 2) {
         theta_y *= 50.0f;
       }
-      if (cur_coeff == HandCoeff::WRIST_TWIST) {
-        float scale = 1.0f - theta_y*0.1f;
-        sphere->mat()->rightMultScale(scale, scale, scale);
-      } else {
-        float coeff_val;
-        coeff_val = lhand->getCoeff(cur_coeff);
-        lhand->setCoeff(cur_coeff, coeff_val - theta_y);
-        cout << "cur_coeff " << HandCoeffToString(cur_coeff);
-        cout << " --> " << coeff_val - theta_y << endl;
-      }
+      float coeff_val;
+      coeff_val = lhand->getCoeff(cur_coeff);
+      lhand->setCoeff(cur_coeff, coeff_val - theta_y);
+      cout << "cur_coeff " << HandCoeffToString(cur_coeff);
+      cout << " --> " << coeff_val - theta_y << endl;
     } else {
       // CHANGE THE POSITION OF THE BOUNDING SPHERE
       HandGeometryMesh* geom = (HandGeometryMesh*)hand_renderer->l_hand_geom();

@@ -27,8 +27,6 @@ namespace kinect_interface {
 namespace hand_net {
 
   float HandModel::scale = HAND_MODEL_DEFAULT_SCALE;
-  float HandModel::wrist_length = 80.0f;
-  float HandModel::wrist_twist = 0.0;
 
   jtil::renderer::GeometryInstance* HandModel::lhand = NULL;
   jtil::renderer::GeometryInstance* HandModel::rhand = NULL;
@@ -68,41 +66,33 @@ namespace hand_net {
     coeff_[F3_THETA] = 0;
     coeff_[F3_PHI] = 0;
     coeff_[F3_KNUCKLE_CURL] = 0;
+    coeff_[F0_TWIST] = 0;
+    coeff_[F1_TWIST] = 0;
+    coeff_[F2_TWIST] = 0;
+    coeff_[F3_TWIST] = 0;
+    coeff_[F0_LENGTH] = 1.0f;
+    coeff_[F1_LENGTH] = 1.0f;
+    coeff_[F2_LENGTH] = 1.0f;
+    coeff_[F3_LENGTH] = 1.0f;
     local_scale_ = HAND_MODEL_DEFAULT_SCALE;
     renormalizeCoeffs(coeff_);  // Just in case
   }
     
   void HandModel::setCoeff(uint32_t index, float coeff_value) {
-    if (index < HAND_NUM_COEFF) {
+    if (index != SCALE) {
       coeff_[index] = coeff_value;
     } else {
-      switch (index) {
-      case HAND_NUM_COEFF:
-        HandModel::wrist_length = coeff_value;
-        break;
-      case HAND_NUM_COEFF+1:
-        HandModel::local_scale_ = coeff_value;
-        HandModel::scale = coeff_value;
-        break;
-      }
+      HandModel::local_scale_ = coeff_value;
+      HandModel::scale = coeff_value;
     }
     renormalizeCoeffs(coeff_);
   }
   
   const float HandModel::getCoeff(const uint32_t index) const {
-    if (index < HAND_NUM_COEFF) {
+    if (index != SCALE) {
       return coeff_[index];
     } else {
-      switch (index) {
-      case WRIST_LENGTH:
-        return HandModel::wrist_length;
-      case SCALE:
-        return HandModel::local_scale_;
-      case WRIST_TWIST:
-        return HandModel::wrist_twist;
-      default:
-        throw std::runtime_error("ERROR: coeff index is out of range");
-      }
+      return HandModel::local_scale_;
     }
   }
 
@@ -182,7 +172,10 @@ namespace hand_net {
     WrapTwoPI(coeff[F2_KNUCKLE_CURL]);
     WrapTwoPI(coeff[F3_THETA]);
     WrapTwoPI(coeff[F3_PHI]);
-    WrapTwoPI(coeff[F3_KNUCKLE_CURL]);
+    WrapTwoPI(coeff[F0_TWIST]);
+    WrapTwoPI(coeff[F1_TWIST]);
+    WrapTwoPI(coeff[F2_TWIST]);
+    WrapTwoPI(coeff[F3_TWIST]);
   }
   
   string HandCoeffToString(const uint32_t coeff) {
@@ -237,12 +230,24 @@ namespace hand_net {
         return "F3_PHI";
       case F3_KNUCKLE_CURL:
         return "F3_KNUCKLE_CURL";
-      case WRIST_LENGTH:
-        return "WRIST_LENGTH";
+      case F0_TWIST:
+        return "F0_TWIST";
+      case F1_TWIST:
+        return "F1_TWIST";
+      case F2_TWIST:
+        return "F2_TWIST";
+      case F3_TWIST:
+        return "F3_TWIST";
+      case F0_LENGTH:
+        return "F0_LENGTH";
+      case F1_LENGTH:
+        return "F1_LENGTH";
+      case F2_LENGTH:
+        return "F2_LENGTH";
+      case F3_LENGTH:
+        return "F3_LENGTH";
       case SCALE:
         return "Scale";
-      case WRIST_TWIST:
-        return "WRIST_TWIST";
       case NUM_PARAMETERS:
         return "NUM_PARAMETERS";
     }
@@ -257,9 +262,7 @@ namespace hand_net {
       throw std::runtime_error(std::string("error opening file:") + filename);
     }
     file.write(reinterpret_cast<const char*>(coeff_), 
-      HAND_NUM_COEFF * sizeof(coeff_[0]));
-    file.write(reinterpret_cast<const char*>(&wrist_length), 
-      sizeof(wrist_length));
+      (NUM_PARAMETERS-1) * sizeof(coeff_[0]));
     file.write(reinterpret_cast<const char*>(&scale), sizeof(scale));
     file.flush();
     file.close();
@@ -281,9 +284,7 @@ namespace hand_net {
     }
     
     file.write(reinterpret_cast<const char*>(blank), 
-      HAND_NUM_COEFF * sizeof(blank[0]));
-    file.write(reinterpret_cast<const char*>(&wrist_length), 
-      sizeof(wrist_length));
+      (NUM_PARAMETERS-1) * sizeof(blank[0]));
     file.write(reinterpret_cast<const char*>(&scale), sizeof(scale));
     file.flush();
     file.close();
@@ -299,106 +300,16 @@ namespace hand_net {
     file.seekg(0, std::ios::beg);
     // Make sure this isn't a blank file (indicating no hands on the screen)
     file.read(reinterpret_cast<char*>(coeff_), 
-      HAND_NUM_COEFF * sizeof(coeff_[0]));
+      (NUM_PARAMETERS-1) * sizeof(coeff_[0]));
     if (coeff_[HAND_POS_X] < EPSILON && coeff_[HAND_POS_Y] < EPSILON && 
       coeff_[HAND_POS_Z] < EPSILON) {
       resetPose();
     }
-    file.read(reinterpret_cast<char*>(&wrist_length), sizeof(wrist_length));
     file.read(reinterpret_cast<char*>(&local_scale_), sizeof(local_scale_));
     file.close();
     if (local_scale_ != HAND_MODEL_DEFAULT_SCALE) {
       scale = local_scale_;
     }
-    return true;
-  }
-
-  std::mutex temp_data_lock;
-  const Float4x4 old_rest_transform_wrist(-4.0992e-2f, 1.4916e-2f, -9.9905e-1f,
-    0.0f, -9.9912e-1f, 8.3785e-3f, 4.1120e-2f, 0.0f, 8.9838e-3f, 9.9985e-1f,
-    1.4559e-2f, 0.0f, 2.5561e0f, 6.2613e-3f,  -1.6060e-2f, 1.0f);
-  const Float4x4 old_rest_transform_palm(9.9973e-1f, 1.9035e-2f, -1.3164e-2f,
-    0.0f, -1.9968e-2f, 9.9699e-1f, -7.4869e-2f, 0.0f, 1.1699e-2f, 7.5112e-2f, 
-    9.9711e-1f, 0.0f, -7.4506e-9f, 9.7399e-1f, 1.8626e-9f, 1.0f);
-  Float4x4 root_mat;
-  Float4x4 palm_mat;
-  Float4x4 mat_tmp1;
-  Float4x4 mat_tmp2;
-  Float4x4 mat_tmp3;
-  float tmp_coeff[HAND_NUM_COEFF+1];
-
-  bool HandModel::loadOldFormatFromFile(const std::string& dir, 
-    const std::string& filename) {
-    temp_data_lock.lock();  // Just in case
-    // 1. The palm was made the root (so the orientation needs to be multiplied
-    // by the wrist matrix)
-    // 2. An offset was applied
-    // 3. The orientation changed from a quaternion to euler angles
-    // This gets *"close"* to the correct pose, but not quite.
-    string full_filename = dir + filename;
-    std::ifstream file(full_filename.c_str(), std::ios::in | std::ios::binary);
-    if (!file.is_open()) {
-      temp_data_lock.unlock();
-      return false;
-    }
-    file.seekg(0, std::ios::beg);
-    // Make sure this isn't a blank file (indicating no hands on the screen)
-    
-    file.read(reinterpret_cast<char*>(tmp_coeff), 
-      (HAND_NUM_COEFF+1) * sizeof(tmp_coeff[0]));
-    if (tmp_coeff[HAND_POS_X] < EPSILON && tmp_coeff[HAND_POS_Y] < EPSILON && 
-      tmp_coeff[HAND_POS_Z] < EPSILON) {
-      resetPose();
-    }
-    // Copy over the position
-    for (uint32_t i = 0; i <= HAND_POS_Z; i++) {
-      coeff_[i] = tmp_coeff[i];
-    }
-    // Convert quaternion to euler
-    FloatQuat cur_rot_quat(tmp_coeff[HAND_ORIENT_X], tmp_coeff[HAND_ORIENT_Y], 
-      tmp_coeff[HAND_ORIENT_Z], tmp_coeff[HAND_ORIENT_Z+1]);
-    FloatQuat::quat2Mat4x4(root_mat, cur_rot_quat);
-
-    // Old code to set the palm matrix --> Now changed, but we need the old
-    // subsequent 
-    Float4x4::rotateMatXAxis(mat_tmp1, tmp_coeff[WRIST_PHI+1]);
-    Float4x4::rotateMatZAxis(mat_tmp2, tmp_coeff[WRIST_THETA+1]);
-    Float4x4::mult(mat_tmp3, mat_tmp1, mat_tmp2);
-    Float4x4::rotateMatXAxis(mat_tmp1, HandModel::wrist_twist);
-    Float4x4::mult(mat_tmp2, mat_tmp1, mat_tmp3);
-    Float4x4::mult(palm_mat, old_rest_transform_palm, mat_tmp2);
-
-    Float4x4::mult(mat_tmp1, root_mat, palm_mat);
-    // The orientation component of mat_tmp1 is at least what we want.
-    Float4x4::extractRotation(palm_mat, mat_tmp1);
-    FloatQuat::orthMat4x42Quat(cur_rot_quat, palm_mat);
-    // There is also an offset, which is defined in the root's coordinate frame
-    // this is roughly the world offset we want at rest (71, 54.75, 127.25); 
-    Float3 offset_model(-1.53962708f, -20.5192261f, -154.297485f);
-    Float3 offset_world;
-    Float3::affineTransformVec(offset_world, root_mat, offset_model);
-    coeff_[HAND_POS_X] += offset_world[0];
-    coeff_[HAND_POS_Y] += offset_world[1];
-    coeff_[HAND_POS_Z] += offset_world[2];
-
-    FloatQuat::quat2EulerAngles(coeff_[HAND_ORIENT_X], coeff_[HAND_ORIENT_Y], 
-      coeff_[HAND_ORIENT_Z], cur_rot_quat);
-    // All other coefficients are shifted down
-    for (uint32_t i = WRIST_THETA; i < HAND_NUM_COEFF; i++) {
-      coeff_[i] = tmp_coeff[i+1];
-    }
-    file.read(reinterpret_cast<char*>(&wrist_length), sizeof(wrist_length));
-    file.read(reinterpret_cast<char*>(&local_scale_), sizeof(local_scale_));
-
-    // The wrist now hinges off the palm, so we need the negative angles
-    //coeff_[WRIST_THETA] *= -1.0f;
-    //coeff_[WRIST_PHI] *= -1.0f;
-
-    file.close();
-    if (local_scale_ != HAND_MODEL_DEFAULT_SCALE) {
-      scale = local_scale_;
-    }
-    temp_data_lock.unlock();
     return true;
   }
 
@@ -584,23 +495,28 @@ namespace hand_net {
     -0.2615f, -0.1135f, -0.3965f,  // F2_KNU3_A,
     -0.126f, -0.0245f, -0.131f,  // F2_KNU3_B,
     -0.144f, -0.00450001f, -0.0855f,  // F2_KNU2_A,
-    0.0705f, 0.00400001f, 0.1095f,  // F2_KNU2_B,
+    //0.0705f, 0.00400001f, 0.1095f,  // F2_KNU2_B, OLD VALUES 4/11
+    0.0705f, 0.00400001f, 0.03f,  // F2_KNU2_B,
     -0.3505f, -0.0275f, -0.281f,  // F2_KNU1_A,
     -0.002f, -0.0635f, -0.1945f,  // F2_KNU1_B,
     -0.157f, -0.0285f, -0.279f,  // F3_KNU3_A,
-    0.068f, 0.061f, 0.0865f,  // F3_KNU3_B,
+    //0.068f, 0.061f, 0.0865f,  // F3_KNU3_B, OLD VALUES 4/11
+    -0.0195f, 0.0375f, 0.001f,  // F3_KNU3_B,
     -0.1665f, 0.022f, -0.205f,  // F3_KNU2_A,
-    0.068f, 0.0545f, 0.008f,  // F3_KNU2_B,
+    //0.068f, 0.0545f, 0.008f,  // F3_KNU2_B, OLD VALUES 4/11
+    0.029f, 0.0545f, -0.0535f,  // F3_KNU2_B,
     -0.419f, 0.0565f, -0.044f,  // F3_KNU1_A,
     -0.0095f, 0.0005f, 0.0085f,  // F3_KNU1_B,
     -0.343f, 0.012f, -0.3445f,  // F4_KNU3_A,
-    -0.073f, 0.035f, -0.105f,  // F4_KNU3_B,
+    //-0.073f, 0.035f, -0.105f,  // F4_KNU3_B, OLD VALUES 4/11
+    -0.144f, 0.0295f, -0.189f,  // F4_KNU3_B,
     -0.2485f, 0.008f, -0.172f,  // F4_KNU2_A,
     0.0f, 0.0335f, -0.0125f,  // F4_KNU2_B,
     -0.5595f, -0.035f, -0.0315f,  // F4_KNU1_A,
     -0.0325f, -0.0405f, 0.0f,  // F4_KNU1_B,
     -0.432f, 0.0775f, -0.104f,  // TH_KNU3_A,
-    0.01f, 0.0950001f, -0.038f,  // TH_KNU3_B,
+    //0.01f, 0.0950001f, -0.038f,  // TH_KNU3_B, OLD VALUES 4/11
+    -0.066f, 0.0950001f, -0.038f,  // TH_KNU3_B,
     -0.341f, 0.017f, 0.0175f,  // TH_KNU2_A,
     -0.0335f, 0.0585f, 0.044f,  // TH_KNU2_B,
     -0.4485f, -0.343f, -0.115f,  // TH_KNU1_A,
@@ -628,13 +544,13 @@ namespace hand_net {
     0.171f,   // F2_KNU1_A,  // prev 0.19f - 3/28/2013
     0.180f,   // F2_KNU1_B,  // prev 0.20f - 3/28/2013
     0.104f,   // F3_KNU3_A,  // prev 0.115f - 3/28/2013
-    0.153f,   // F3_KNU3_B,  // prev 0.17f - 3/28/2013
+    0.133f,   // F3_KNU3_B,  // prev 0.17f - 3/28/2013
     0.162f,   // F3_KNU2_A,  // prev 0.18f - 3/28/2013
     0.180f,   // F3_KNU2_B,  // prev 0.20f - 3/28/2013
     0.180f,   // F3_KNU1_A,  // prev 0.20f - 3/28/2013
     0.189f,   // F3_KNU1_B,  // prev 0.21f - 3/28/2013
     0.095f,   // F4_KNU3_A,  // prev 0.105f - 3/28/2013
-    0.144f,   // F4_KNU3_B,  // prev 0.16f - 3/28/2013
+    0.120f,   // F4_KNU3_B,  // prev 0.16f - 3/28/2013
     0.153f,   // F4_KNU2_A,  // prev 0.17f - 3/28/2013
     0.162f,   // F4_KNU2_B,  // prev 0.18f - 3/28/2013
     0.180f,   // F4_KNU1_A,  // prev 0.20f - 3/28/2013
