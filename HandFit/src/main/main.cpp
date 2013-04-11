@@ -793,12 +793,6 @@ void renderFrame(float dt) {
     dir->set(new_dir);
   }
 
-  // Update the global HandScale with the current model version
-  if (r_hands[cur_image]->local_scale() != l_hands[cur_image]->local_scale()) {
-    throw std::wruntime_error("ERROR: HAND MODEL SCALES ARE DIFFERENT!");
-  }
-  HandModel::scale = r_hands[cur_image]->local_scale();
-
   // Move the camera
   delta_pos.set(cur_dir);
   const Float3 zeros(0, 0, 0);
@@ -858,21 +852,21 @@ void renderFrame(float dt) {
     HandModel* hands[2];
     if (fit_left && !fit_right) {
       memcpy(coeffs.data(), l_hands[cur_image]->coeff(), 
-        HAND_NUM_COEFF * sizeof(coeffs.data()[0]));
+        HandCoeff::NUM_PARAMETERS * sizeof(coeffs.data()[0]));
       hands[0] = l_hands[cur_image];
       hands[1] = NULL;
     } else if (!fit_left && fit_right) {
       memcpy(coeffs.data(), r_hands[cur_image]->coeff(), 
-        HAND_NUM_COEFF * sizeof(coeffs.data()[0]));
+        HandCoeff::NUM_PARAMETERS * sizeof(coeffs.data()[0]));
       hands[0] = r_hands[cur_image];
       hands[1] = NULL;
     } else {
-      memcpy(coeffs.block<1, HAND_NUM_COEFF>(0, 0).data(), 
+      memcpy(coeffs.block<1, HandCoeff::NUM_PARAMETERS>(0, 0).data(), 
         l_hands[cur_image]->coeff(), 
-        HAND_NUM_COEFF * sizeof(coeffs.data()[0]));
-      memcpy(coeffs.block<1, HAND_NUM_COEFF>(0, HAND_NUM_COEFF).data(), 
-        r_hands[cur_image]->coeff(), 
-        HAND_NUM_COEFF * sizeof(coeffs.data()[0]));
+        HandCoeff::NUM_PARAMETERS * sizeof(coeffs.data()[0]));
+      memcpy(coeffs.block<1, HandCoeff::NUM_PARAMETERS>(0, 
+        HandCoeff::NUM_PARAMETERS).data(), r_hands[cur_image]->coeff(), 
+        HandCoeff::NUM_PARAMETERS * sizeof(coeffs.data()[0]));
       hands[0] = l_hands[cur_image];
       hands[1] = r_hands[cur_image];
     }
@@ -1069,7 +1063,7 @@ int main(int argc, char *argv[]) {
     
     // Create the hand data and attach it to the renderer for lighting
     hand_renderer = new HandRenderer(render, fit_left, fit_right);
-    coeffs.resize(1, HAND_NUM_COEFF * num_hands);
+    coeffs.resize(1, HandCoeff::NUM_PARAMETERS * num_hands);
     fit = new HandFit(hand_renderer, num_hands);
     r_hands = new HandModel*[im_files.size()];
     l_hands = new HandModel*[im_files.size()];
@@ -1119,9 +1113,6 @@ int main(int argc, char *argv[]) {
           cout << "fitting frame " << cur_image + 1 << " of ";
           cout << im_files.size() << endl;
           cur_image++;
-          // Transfer over the current global scale
-          r_hands[cur_image]->local_scale() = HandModel::scale;
-          l_hands[cur_image]->local_scale() = HandModel::scale;
           loadCurrentImage();
           fitFrame(true);
           saveCurrentHandCoeffs();

@@ -13,8 +13,9 @@
 #include "jtil/data_str/vector.h"
 #include "kinect_interface/kinect_interface.h"  // for src_width/height
 
+//#define FIT_TWIST
 #ifdef FIT_TWIST
-  #define HAND_NUM_COEFF 29  // The num of coefficients to use when optimizing
+  #define HAND_NUM_COEFF 30  // The num of coefficients to use when optimizing
 #else
   #define HAND_NUM_COEFF 25
 #endif
@@ -69,16 +70,18 @@ namespace hand_net {
     F3_THETA          = 22,
     F3_PHI            = 23,
     F3_KNUCKLE_CURL   = 24,
-    F0_TWIST          = 25,
-    F1_TWIST          = 26,
-    F2_TWIST          = 27,
-    F3_TWIST          = 28,
-    F0_LENGTH         = 29,  // Not used in optimization
-    F1_LENGTH         = 30,  // Not used in optimization
-    F2_LENGTH         = 31,  // Not used in optimization
-    F3_LENGTH         = 32,  // Not used in optimization
-    SCALE             = 33,  // Not used in optimization
-    NUM_PARAMETERS    = 34,  // NOTE: Not to be confused with HAND_NUM_COEFF!!
+    F0_TWIST          = 25,  // Not used in optimization
+    F1_TWIST          = 26,  // Not used in optimization
+    F2_TWIST          = 27,  // Not used in optimization
+    F3_TWIST          = 28,  // Not used in optimization
+    THUMB_TWIST       = 29,  // Not used in optimization
+    F0_LENGTH         = 30,  // Not used in optimization
+    F1_LENGTH         = 31,  // Not used in optimization
+    F2_LENGTH         = 32,  // Not used in optimization
+    F3_LENGTH         = 33,  // Not used in optimization
+    THUMB_LENGTH      = 34,  // Not used in optimization
+    SCALE             = 35,  // Not used in optimization
+    NUM_PARAMETERS    = 36,  // NOTE: Not to be confused with HAND_NUM_COEFF!!
   } HandCoeff;
 
   typedef enum {
@@ -171,7 +174,6 @@ namespace hand_net {
     void setRotation(const jtil::math::Float3& euler);
     void getRotation(jtil::math::Float3& euler) const;
     void printCoeff() const;
-    float& local_scale() { return local_scale_; }
     void setCoeff(uint32_t index, float coeff_value);
     
     // FILE IO
@@ -181,12 +183,10 @@ namespace hand_net {
     bool loadFromFile(const std::string& dir, const std::string& filename);
 
     void copyCoeffFrom(const HandModel* model);
-    void copyCoeffFrom(const float* coeff);
+    void copyCoeffFrom(const float* coeff, const uint32_t ncoeffs);
 
     static void renormalizeCoeffs(float* coeff);
     void resetPose();
-    
-    static float scale;
 
     // Bounding sphere positions:
     // Bones aren't in the correct position (need offsets)
@@ -194,8 +194,7 @@ namespace hand_net {
     static const float sph_size_[NUM_BOUNDING_SPHERES];
 
   private:
-    float coeff_[NUM_PARAMETERS - 1];  // The current state
-    float local_scale_;
+    float coeff_[NUM_PARAMETERS];  // The current state
     HandType hand_type_;
 
     static jtil::renderer::GeometryInstance* lhand;

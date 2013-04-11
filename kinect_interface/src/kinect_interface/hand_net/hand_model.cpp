@@ -26,8 +26,6 @@ using namespace jtil::renderer;
 namespace kinect_interface {
 namespace hand_net {
 
-  float HandModel::scale = HAND_MODEL_DEFAULT_SCALE;
-
   jtil::renderer::GeometryInstance* HandModel::lhand = NULL;
   jtil::renderer::GeometryInstance* HandModel::rhand = NULL;
  
@@ -44,8 +42,8 @@ namespace hand_net {
     coeff_[HAND_POS_X] = 0.0f;
     coeff_[HAND_POS_Y] = 0.0f;
     coeff_[HAND_POS_Z] = 750.0f;
-    coeff_[HAND_ORIENT_X] = 0;
-    coeff_[HAND_ORIENT_Y] = -1.5707963f;  // Pi / 2
+    coeff_[HAND_ORIENT_X] = 3.141592654f;  // Pi
+    coeff_[HAND_ORIENT_Y] = -1.5707963f;  // -Pi / 2
     coeff_[HAND_ORIENT_Z] = 0;
     coeff_[WRIST_THETA] = 0;
     coeff_[WRIST_PHI] = 0;
@@ -70,30 +68,23 @@ namespace hand_net {
     coeff_[F1_TWIST] = 0;
     coeff_[F2_TWIST] = 0;
     coeff_[F3_TWIST] = 0;
+    coeff_[THUMB_TWIST] = 0;
     coeff_[F0_LENGTH] = 0;
     coeff_[F1_LENGTH] = 0;
     coeff_[F2_LENGTH] = 0;
     coeff_[F3_LENGTH] = 0;
-    local_scale_ = HAND_MODEL_DEFAULT_SCALE;
+    coeff_[THUMB_LENGTH] = 0;
+    coeff_[SCALE] = HAND_MODEL_DEFAULT_SCALE;
     renormalizeCoeffs(coeff_);  // Just in case
   }
     
   void HandModel::setCoeff(uint32_t index, float coeff_value) {
-    if (index != SCALE) {
-      coeff_[index] = coeff_value;
-    } else {
-      HandModel::local_scale_ = coeff_value;
-      HandModel::scale = coeff_value;
-    }
+    coeff_[index] = coeff_value;
     renormalizeCoeffs(coeff_);
   }
   
   const float HandModel::getCoeff(const uint32_t index) const {
-    if (index != SCALE) {
-      return coeff_[index];
-    } else {
-      return HandModel::local_scale_;
-    }
+    return coeff_[index];
   }
 
   void HandModel::setRotation(const Float3& euler) {
@@ -141,11 +132,11 @@ namespace hand_net {
   }
 
   void HandModel::copyCoeffFrom(const HandModel* model) {
-    copyCoeffFrom(model->coeff_);
+    copyCoeffFrom(model->coeff_, NUM_PARAMETERS);
   }
 
-  void HandModel::copyCoeffFrom(const float* coeff) {
-    memcpy(coeff_, coeff, sizeof(coeff_[0]) * HAND_NUM_COEFF);
+  void HandModel::copyCoeffFrom(const float* coeff, const uint32_t ncoeffs) {
+    memcpy(coeff_, coeff, sizeof(coeff_[0]) * ncoeffs);
   }
 
   FloatQuat tmp_quat_;
@@ -176,6 +167,7 @@ namespace hand_net {
     WrapTwoPI(coeff[F1_TWIST]);
     WrapTwoPI(coeff[F2_TWIST]);
     WrapTwoPI(coeff[F3_TWIST]);
+    WrapTwoPI(coeff[THUMB_TWIST]);
   }
   
   string HandCoeffToString(const uint32_t coeff) {
@@ -238,6 +230,8 @@ namespace hand_net {
         return "F2_TWIST";
       case F3_TWIST:
         return "F3_TWIST";
+      case THUMB_TWIST:
+        return "THUMB_TWIST";
       case F0_LENGTH:
         return "F0_LENGTH";
       case F1_LENGTH:
@@ -246,6 +240,8 @@ namespace hand_net {
         return "F2_LENGTH";
       case F3_LENGTH:
         return "F3_LENGTH";
+      case THUMB_LENGTH:
+        return "THUMB_LENGTH";
       case SCALE:
         return "Scale";
       case NUM_PARAMETERS:
@@ -262,8 +258,7 @@ namespace hand_net {
       throw std::runtime_error(std::string("error opening file:") + filename);
     }
     file.write(reinterpret_cast<const char*>(coeff_), 
-      (NUM_PARAMETERS-1) * sizeof(coeff_[0]));
-    file.write(reinterpret_cast<const char*>(&scale), sizeof(scale));
+      NUM_PARAMETERS * sizeof(coeff_[0]));
     file.flush();
     file.close();
   }
@@ -278,14 +273,13 @@ namespace hand_net {
 
     // Might be kinda slow to do this every time, but saving to file is pretty
     // rare, so OK for now.
-    float blank[HAND_NUM_COEFF];
-    for (uint32_t i = 0; i < HAND_NUM_COEFF; i++) {
+    float blank[NUM_PARAMETERS];
+    for (uint32_t i = 0; i < NUM_PARAMETERS; i++) {
       blank[i] = 0;
     }
     
     file.write(reinterpret_cast<const char*>(blank), 
-      (NUM_PARAMETERS-1) * sizeof(blank[0]));
-    file.write(reinterpret_cast<const char*>(&scale), sizeof(scale));
+      NUM_PARAMETERS * sizeof(blank[0]));
     file.flush();
     file.close();
   }
@@ -300,16 +294,12 @@ namespace hand_net {
     file.seekg(0, std::ios::beg);
     // Make sure this isn't a blank file (indicating no hands on the screen)
     file.read(reinterpret_cast<char*>(coeff_), 
-      (NUM_PARAMETERS-1) * sizeof(coeff_[0]));
+      NUM_PARAMETERS * sizeof(coeff_[0]));
     if (coeff_[HAND_POS_X] < EPSILON && coeff_[HAND_POS_Y] < EPSILON && 
       coeff_[HAND_POS_Z] < EPSILON) {
       resetPose();
     }
-    file.read(reinterpret_cast<char*>(&local_scale_), sizeof(local_scale_));
     file.close();
-    if (local_scale_ != HAND_MODEL_DEFAULT_SCALE) {
-      scale = local_scale_;
-    }
     return true;
   }
 
@@ -410,9 +400,9 @@ namespace hand_net {
     std::cout << "coeff = [";
     std::cout << std::setprecision(6);
     std::cout << std::fixed;
-    for (uint32_t i = 0; i < HAND_NUM_COEFF; i++) {
+    for (uint32_t i = 0; i < NUM_PARAMETERS; i++) {
       std::cout << coeff_[i];
-      if (i < HAND_NUM_COEFF - 1) {
+      if (i < NUM_PARAMETERS - 1) {
         std::cout << ", ";
       }
     }

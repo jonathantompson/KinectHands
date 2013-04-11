@@ -34,7 +34,7 @@
 #define PSO_RAD_FINGERS 0.40f  // Search radius in frac of min - max coeff - Def 0.4
 #define PSO_RAD_WRIST 0.40f
 #define PSO_RAD_THUMB 0.40f 
-#define PSO_RAD_EULER 0.30f
+#define PSO_RAD_EULER 0.40f
 #define PSO_RAD_POSITION 25  // Absolute value in mm
 #define PSO_REPEATS 1  // Default 2
 

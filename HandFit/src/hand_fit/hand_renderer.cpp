@@ -86,6 +86,7 @@ namespace hand_fit {
     bool left, bool right) {
     render_hand_ = true;
     depth_tmp_ = new float[src_dim * NTILES];
+    coeff_tmp_ = new float[HandCoeff::NUM_PARAMETERS];
     FloatQuat eye_rot; eye_rot.identity();
     Float3 eye_pos(0, 0, 0);
     camera_ = new Camera(&eye_rot, &eye_pos, src_width, 
@@ -400,11 +401,20 @@ namespace hand_fit {
 
     for (uint32_t i = 0; i < 2 && hand[i] != NULL; i++) {
       // Updates the individual nodes
+      const float* coeff_data;
       if (coeff.rows() > 1) {  // row matrix
-        hand[i]->updateMatrices(coeff.block<HAND_NUM_COEFF, 1>(i*HAND_NUM_COEFF, 0).data());  
-      } else {  // column matrix
-        hand[i]->updateMatrices(coeff.block<1, HAND_NUM_COEFF>(0, i*HAND_NUM_COEFF).data());  
+        coeff_data = coeff.block<HAND_NUM_COEFF, 1>(i*HAND_NUM_COEFF, 0).data();
+      } else {  // column matrix  --> THIS
+        coeff_data = coeff.block<1, HAND_NUM_COEFF>(0, i*HAND_NUM_COEFF).data();
       }
+      // Copy over what the PSO fits
+      memcpy(coeff_tmp_, coeff_data, sizeof(coeff_tmp_[0]) * HAND_NUM_COEFF);
+      // Copy over what the PSO doesn't fit
+      memcpy(&coeff_tmp_[HAND_NUM_COEFF], &hands[0]->coeff()[HAND_NUM_COEFF], 
+        sizeof(coeff_tmp_[0]) * (NUM_PARAMETERS - HAND_NUM_COEFF));
+
+      // Update the matricies
+      hand[i]->updateMatrices(coeff_tmp_);  
       hand[i]->updateHeirachyMatrices();
       hand[i]->fixBoundingSphereMatrices();
 

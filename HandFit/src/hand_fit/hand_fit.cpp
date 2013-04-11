@@ -108,6 +108,12 @@ namespace hand_fit {
       pso_radius_c_(F0_KNUCKLE_CURL+i*3) = (coeff_max_limit[F0_KNUCKLE_CURL+i*3] - 
         coeff_min_limit[F0_KNUCKLE_CURL+i*3]) * PSO_RAD_FINGERS;
     }
+#ifdef FIT_TWIST
+    for (uint32_t i = F0_TWIST; i <= THUMB_TWIST; i++) {  // thumb
+      pso_radius_c_(i) = (coeff_max_limit[i] - coeff_min_limit[i]) * PSO_RAD_FINGERS;
+    }
+#endif
+    // Copy the rest of the coeffs over to the second hand
     for (uint32_t i = HAND_NUM_COEFF; i < coeff_dim_; i++) {
       pso_radius_c_(i) = pso_radius_c_(i - HAND_NUM_COEFF);
     }
@@ -154,11 +160,12 @@ namespace hand_fit {
   void eigen2HandModel(HandModel* hands[2], Eigen::MatrixXf& coeff, 
     const int nhands) {
     if (nhands == 1) {
-      hands[0]->copyCoeffFrom(coeff.data());
+      hands[0]->copyCoeffFrom(coeff.data(), HAND_NUM_COEFF);
     } else {
-      hands[0]->copyCoeffFrom(coeff.block<1, HAND_NUM_COEFF>(0, 0).data());
-      hands[1]->copyCoeffFrom(coeff.block<1, 
-        HAND_NUM_COEFF>(0, HAND_NUM_COEFF).data());
+      hands[0]->copyCoeffFrom(coeff.block<1, HAND_NUM_COEFF>(0, 0).data(),
+        HAND_NUM_COEFF);
+      hands[1]->copyCoeffFrom(coeff.block<1, HAND_NUM_COEFF>(0, HAND_NUM_COEFF).data(),
+        HAND_NUM_COEFF);
     }
   }
 
@@ -627,6 +634,7 @@ namespace hand_fit {
     0.01f,  // F1_TWIST
     0.01f,  // F2_TWIST
     0.01f,  // F3_TWIST
+    0.01f,  // THUMB_TWIST
 #endif
   };
   
@@ -664,6 +672,7 @@ namespace hand_fit {
     0.01f,  // F1_TWIST
     0.01f,  // F2_TWIST
     0.01f,  // F3_TWIST
+    0.01f,  // THUMB_TWIST
 #endif
   };
   
@@ -701,6 +710,7 @@ namespace hand_fit {
     true,   // F1_TWIST
     true,   // F2_TWIST
     true,   // F3_TWIST
+    true,   // THUMB_TWIST
 #endif
     // Hand 2
     false,  // HAND_POS_X
@@ -733,6 +743,7 @@ namespace hand_fit {
     true,   // F1_TWIST
     true,   // F2_TWIST
     true,   // F3_TWIST
+    true,   // THUMB_TWIST
 #endif
   };
   
@@ -765,10 +776,11 @@ namespace hand_fit {
     -1.243f,  // F3_PHI
     -1.363f,  // F3_KNUCKLE_CURL
 #ifdef FIT_TWIST
-    -0.200f,  // F0_TWIST
-    -0.200f,  // F1_TWIST
-    -0.200f,  // F2_TWIST
-    -0.200f,  // F3_TWIST
+    -0.300f,  // F0_TWIST
+    -0.300f,  // F1_TWIST
+    -0.300f,  // F2_TWIST
+    -0.300f,  // F3_TWIST
+    -0.300f,  // THUMB_TWIST
 #endif
   };
   
@@ -801,10 +813,11 @@ namespace hand_fit {
     0.470f,  // F3_PHI
     0.360f,  // F3_KNUCKLE_CURL
 #ifdef FIT_TWIST
-    0.200f,  // F0_TWIST
-    0.200f,  // F1_TWIST
-    0.200f,  // F2_TWIST
-    0.200f,  // F3_TWIST
+    0.300f,  // F0_TWIST
+    0.300f,  // F1_TWIST
+    0.300f,  // F2_TWIST
+    0.300f,  // F3_TWIST
+    0.300f,  // THUMB_TWIST
 #endif
   };
 
@@ -822,10 +835,13 @@ namespace hand_fit {
     THUMB_K1_THETA,
     THUMB_K1_PHI,
     THUMB_K2_PHI,
+#ifdef FIT_TWIST
     F0_TWIST,
     F1_TWIST,
     F2_TWIST,
     F3_TWIST,
+    THUMB_TWIST,
+#endif
     F0_THETA,
     F1_THETA,
     F2_THETA,
@@ -834,12 +850,10 @@ namespace hand_fit {
     F1_PHI,
     F2_PHI,
     F3_PHI,
-#ifdef FIT_TWIST
     F0_KNUCKLE_CURL,
     F1_KNUCKLE_CURL,
     F2_KNUCKLE_CURL,
     F3_KNUCKLE_CURL,
-#endif
   };
   
   // coeff_penalty_scale_ is the exponential scale to use when penalizing coeffs
@@ -875,6 +889,7 @@ namespace hand_fit {
     100,  // F1_TWIST
     100,  // F2_TWIST
     100,  // F3_TWIST
+    100,  // THUMB_TWIST
 #endif
   };
 

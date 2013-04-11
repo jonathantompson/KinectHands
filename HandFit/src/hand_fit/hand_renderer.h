@@ -122,6 +122,7 @@ namespace hand_fit {
     renderer::TextureRenderable* cdepth_texture_;  // depth and color
 
     float* depth_tmp_;  // DEPTH_IMAGE_DIM * NTILES
+    float* coeff_tmp_;
 
     // Shader for rendering depth
     renderer::Shader* v_shader_depth_;
