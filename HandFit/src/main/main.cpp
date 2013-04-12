@@ -973,7 +973,7 @@ int main(int argc, char *argv[]) {
   static_cast<void>(argc); static_cast<void>(argv);
 #if defined(_DEBUG) && defined(_WIN32)
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-  // _CrtSetBreakAlloc(707);
+  _CrtSetBreakAlloc(4945);
 #endif
 
   cout << "Usage:" << endl;

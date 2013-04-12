@@ -13,7 +13,7 @@
 #include "jtil/data_str/vector.h"
 #include "kinect_interface/kinect_interface.h"  // for src_width/height
 
-//#define FIT_TWIST
+#define FIT_TWIST
 #ifdef FIT_TWIST
   #define HAND_NUM_COEFF 30  // The num of coefficients to use when optimizing
 #else

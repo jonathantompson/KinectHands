@@ -41,11 +41,12 @@ namespace math {
     vel_max_.resize(1, num_coeffs_);
 
     // Allocate space for the N probe points
-    swarm_ = new SwarmNode[swarm_size_];
+    swarm_ = new SwarmNode*[swarm_size_];
     ordered_swarm_ = new SwarmNode*[swarm_size_];
     for (uint32_t i = 0; i < swarm_size_; i++) {
-      swarm_[i].resize(num_coeffs_);
-      ordered_swarm_[i] = &swarm_[i];
+      swarm_[i] = new SwarmNode();
+      swarm_[i]->resize(num_coeffs_);
+      ordered_swarm_[i] = swarm_[i];
     }
 
     // Some default parameters
@@ -74,6 +75,9 @@ namespace math {
   }
 
   LPRPSOFittingHands::~LPRPSOFittingHands() {
+    for (uint32_t i = 0; i < swarm_size_; i++) {
+      delete swarm_[i];
+    }
     delete[] swarm_;
     delete[] ordered_swarm_;
   }
@@ -98,12 +102,12 @@ namespace math {
     c_hi_ = start_c + radius_c;
     vel_max_ = radius_c;  // According to paper (forgot title), 0.5x search space
                                  // is best for multi-modal distributions.
-    swarm_[0].pos = start_c;  // Make the 0th particle the same as the start
+    swarm_[0]->pos = start_c;  // Make the 0th particle the same as the start
     for (uint32_t j = 0; j < num_coeffs_; j++) {
       UNIFORM_REAL_DISTRIBUTION c_dist(c_lo_(j), c_hi_(j));
       for (uint32_t i = 1; i < swarm_size_; i++) {
         float uniform_rand_num = c_dist(eng);  // [c_lo_, c_hi_)
-        swarm_[i].pos(j) = uniform_rand_num;
+        swarm_[i]->pos(j) = uniform_rand_num;
       }
     }
 
@@ -111,20 +115,20 @@ namespace math {
     // position and residue for the particle x_i as it's starting position
     best_residue_global_ = std::numeric_limits<float>::infinity();
     for (uint32_t i = 0; i < swarm_size_; i++) {
-      HandModel::renormalizeCoeffs(swarm_[i].pos.data());
+      HandModel::renormalizeCoeffs(swarm_[i]->pos.data());
     }
     for (uint32_t i = 0; i < (swarm_size_ / NTILES); i++) {
       for (uint32_t j = 0; j < NTILES; j++) {
-        tiled_coeffs[j] = swarm_[i * NTILES + j].pos;
+        tiled_coeffs[j] = swarm_[i * NTILES + j]->pos;
       }
       hand_model_fit_->objectiveFuncTiled(tiled_residues, tiled_coeffs);
       for (uint32_t j = 0; j < NTILES; j++) {
-        swarm_[i * NTILES + j].residue = tiled_residues[j];
-        swarm_[i * NTILES + j].best_residue = swarm_[i * NTILES + j].residue;
-        swarm_[i * NTILES + j].best_pos = swarm_[i * NTILES + j].pos;
-        if (swarm_[i * NTILES + j].residue < best_residue_global_) {
-          best_residue_global_ = swarm_[i * NTILES + j].residue;
-          best_pos_global_ = swarm_[i * NTILES + j].pos;
+        swarm_[i * NTILES + j]->residue = tiled_residues[j];
+        swarm_[i * NTILES + j]->best_residue = swarm_[i * NTILES + j]->residue;
+        swarm_[i * NTILES + j]->best_pos = swarm_[i * NTILES + j]->pos;
+        if (swarm_[i * NTILES + j]->residue < best_residue_global_) {
+          best_residue_global_ = swarm_[i * NTILES + j]->residue;
+          best_pos_global_ = swarm_[i * NTILES + j]->pos;
         }
       }
     }
@@ -135,7 +139,7 @@ namespace math {
       UNIFORM_REAL_DISTRIBUTION c_dist(-vel_max_(j), vel_max_(j));
       for (uint32_t i = 0; i < swarm_size_; i++) {
         float uniform_rand_num = c_dist(eng);  // [-2*radius_c, 2*radius_c)
-        swarm_[i].vel(j) = uniform_rand_num;
+        swarm_[i]->vel(j) = uniform_rand_num;
       }
     }
 
@@ -145,11 +149,11 @@ namespace math {
       cur_c_min_(j) = std::numeric_limits<float>::infinity();
       cur_c_max_(j) = -std::numeric_limits<float>::infinity();
       for (uint32_t i = 0; i < swarm_size_; i++) {
-        if (cur_c_min_(j) > swarm_[i].pos(j)) {
-          cur_c_min_(j) = swarm_[i].pos(j);
+        if (cur_c_min_(j) > swarm_[i]->pos(j)) {
+          cur_c_min_(j) = swarm_[i]->pos(j);
         }
-        if (cur_c_max_(j) < swarm_[i].pos(j)) {
-          cur_c_max_(j) = swarm_[i].pos(j);
+        if (cur_c_max_(j) < swarm_[i]->pos(j)) {
+          cur_c_max_(j) = swarm_[i]->pos(j);
         }
       }
     }
@@ -158,7 +162,7 @@ namespace math {
     cout << "  --> min residue of population = " << best_residue_global_ << endl;
     cout << "  --> Agent residues: <";
     for (uint32_t i = 0; i < swarm_size_; i++) {
-      cout << swarm_[i].residue;
+      cout << swarm_[i]->residue;
       if (i != swarm_size_ - 1) { cout << ", "; }
     }
     cout << ">" << endl;
@@ -263,11 +267,11 @@ namespace math {
       // Calculate the tiled residues
       for (uint32_t i = 0; i < (swarm_size_ / NTILES); i++) {
         for (uint32_t j = 0; j < NTILES; j++) {
-          tiled_coeffs[j] = swarm_[i * NTILES + j].pos;
+          tiled_coeffs[j] = swarm_[i * NTILES + j]->pos;
         }
         hand_model_fit_->objectiveFuncTiled(tiled_residues, tiled_coeffs);
         for (uint32_t j = 0; j < NTILES; j++) {
-          SwarmNode* cur_node = &swarm_[i * NTILES + j];
+          SwarmNode* cur_node = swarm_[i * NTILES + j];
           cur_node->residue = tiled_residues[j];
           if (cur_node->residue < cur_node->best_residue) {
             cur_node->best_residue = cur_node->residue;
@@ -287,11 +291,11 @@ namespace math {
         cur_c_min_(j) = std::numeric_limits<float>::infinity();
         cur_c_max_(j) = -std::numeric_limits<float>::infinity();
         for (uint32_t i = 0; i < swarm_size_; i++) {
-          if (cur_c_min_(j) > swarm_[i].pos(j)) {
-            cur_c_min_(j) = swarm_[i].pos(j);
+          if (cur_c_min_(j) > swarm_[i]->pos(j)) {
+            cur_c_min_(j) = swarm_[i]->pos(j);
           }
-          if (cur_c_max_(j) < swarm_[i].pos(j)) {
-            cur_c_max_(j) = swarm_[i].pos(j);
+          if (cur_c_max_(j) < swarm_[i]->pos(j)) {
+            cur_c_max_(j) = swarm_[i]->pos(j);
           }
         }
       }
