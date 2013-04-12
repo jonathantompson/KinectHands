@@ -857,43 +857,43 @@ namespace hand_fit {
     -3.14159f,  // HAND_ORIENT_X
     -3.14159f,  // HAND_ORIENT_Y
     -3.14159f,  // HAND_ORIENT_Z
-    -0.503f,  // WRIST_THETA
-    -1.180f,  // WRIST_PHI
-    -0.323f,  // THUMB_THETA
-    -0.323f,  // THUMB_PHI
-    -0.433f,  // THUMB_K1_THETA
-    -1.053f,  // THUMB_K1_PHI
-    -1.533f,  // THUMB_K2_PHI
-    -0.500f,  // F0_ROOT_THETA
-    -0.500f,  // F0_ROOT_PHI
-    -0.600f,  // F0_THETA
-    -1.243f,  // F0_PHI
-    -1.600f,  // F0_KNUCKLE_MID  // Formally -1.363 4/12/2013
-    -1.600f,  // F0_KNUCKLE_END  // Formally -1.363 4/12/2013
-    -0.500f,  // F1_ROOT_THETA
-    -0.500f,  // F1_ROOT_PHI
-    -0.600f,  // F1_THETA
-    -1.243f,  // F1_PHI
-    -1.363f,  // F1_KNUCKLE_MID  // Formally -1.363 4/12/2013
-    -1.363f,  // F1_KNUCKLE_END  // Formally -1.363 4/12/2013
-    -0.500f,  // F2_ROOT_THETA
-    -0.500f,  // F2_ROOT_PHI
-    -0.600f,  // F2_THETA
-    -1.243f,  // F2_PHI
-    -1.600f,  // F2_KNUCKLE_MID  // Formally -1.363 4/12/2013
-    -1.600f,  // F2_KNUCKLE_END  // Formally -1.363 4/12/2013
-    -0.500f,  // F3_ROOT_THETA
-    -0.500f,  // F3_ROOT_PHI
-    -0.600f,  // F3_THETA
-    -1.243f,  // F3_PHI
-    -1.600f,  // F3_KNUCKLE_MID  // Formally -1.363 4/12/2013
-    -1.600f,  // F3_KNUCKLE_END  // Formally -1.363 4/12/2013
+    -0.903f,  // WRIST_THETA
+    -1.580f,  // WRIST_PHI
+    -0.523f,  // THUMB_THETA
+    -0.523f,  // THUMB_PHI
+    -0.633f,  // THUMB_K1_THETA
+    -1.253f,  // THUMB_K1_PHI
+    -1.733f,  // THUMB_K2_PHI
+    -0.700f,  // F0_ROOT_THETA
+    -0.700f,  // F0_ROOT_PHI
+    -0.800f,  // F0_THETA
+    -1.443f,  // F0_PHI
+    -1.800f,  // F0_KNUCKLE_MID  // Formally -1.363 4/12/2013
+    -1.800f,  // F0_KNUCKLE_END  // Formally -1.363 4/12/2013
+    -0.700f,  // F1_ROOT_THETA
+    -0.700f,  // F1_ROOT_PHI
+    -0.800f,  // F1_THETA
+    -1.443f,  // F1_PHI
+    -1.563f,  // F1_KNUCKLE_MID  // Formally -1.363 4/12/2013
+    -1.563f,  // F1_KNUCKLE_END  // Formally -1.363 4/12/2013
+    -0.700f,  // F2_ROOT_THETA
+    -0.700f,  // F2_ROOT_PHI
+    -0.800f,  // F2_THETA
+    -1.443f,  // F2_PHI
+    -1.800f,  // F2_KNUCKLE_MID  // Formally -1.363 4/12/2013
+    -1.800f,  // F2_KNUCKLE_END  // Formally -1.363 4/12/2013
+    -0.700f,  // F3_ROOT_THETA
+    -0.700f,  // F3_ROOT_PHI
+    -0.800f,  // F3_THETA
+    -1.443f,  // F3_PHI
+    -1.800f,  // F3_KNUCKLE_MID  // Formally -1.363 4/12/2013
+    -1.800f,  // F3_KNUCKLE_END  // Formally -1.363 4/12/2013
 #ifdef FIT_TWIST
-    -0.400f,  // F0_TWIST
-    -0.600f,  // F1_TWIST
-    -0.400f,  // F2_TWIST
-    -0.400f,  // F3_TWIST
-    -0.400f,  // THUMB_TWIST
+    -0.300f,  // F0_TWIST
+    -0.400f,  // F1_TWIST
+    -0.300f,  // F2_TWIST
+    -0.300f,  // F3_TWIST
+    -0.300f,  // THUMB_TWIST
 #endif
   };
   
@@ -906,43 +906,43 @@ namespace hand_fit {
     3.14159f,  // HAND_ORIENT_X
     3.14159f,  // HAND_ORIENT_Y
     3.14159f,  // HAND_ORIENT_Z
-    0.705f,  // WRIST_THETA
-    1.300f,  // WRIST_PHI
-    0.350f,  // THUMB_THETA
-    0.380f,  // THUMB_PHI
-    0.500f,  // THUMB_K1_THETA
-    0.550f,  // THUMB_K1_PHI
-    0.300f,  // THUMB_K2_PHI
-    0.500f,  // F0_ROOT_THETA
-    0.500f,  // F0_ROOT_PHI
-    0.400f,  // F0_THETA
-    0.470f,  // F0_PHI
-    0.360f,  // F0_KNUCKLE_MID
-    0.360f,  // F0_KNUCKLE_END
-    0.500f,  // F1_ROOT_THETA
-    0.500f,  // F1_ROOT_PHI
-    0.400f,  // F1_THETA
-    0.470f,  // F1_PHI
-    0.360f,  // F1_KNUCKLE_MID
-    0.360f,  // F1_KNUCKLE_END
-    0.500f,  // F2_ROOT_THETA
-    0.500f,  // F2_ROOT_PHI
-    0.400f,  // F2_THETA
-    0.470f,  // F2_PHI
-    0.360f,  // F2_KNUCKLE_MID
-    0.360f,  // F2_KNUCKLE_END
-    0.500f,  // F3_ROOT_THETA
-    0.500f,  // F3_ROOT_PHI
-    0.400f,  // F3_THETA
-    0.470f,  // F3_PHI
-    0.360f,  // F3_KNUCKLE_MID
-    0.360f,  // F3_KNUCKLE_END
+    0.905f,  // WRIST_THETA
+    1.580f,  // WRIST_PHI
+    0.550f,  // THUMB_THETA
+    0.580f,  // THUMB_PHI
+    0.700f,  // THUMB_K1_THETA
+    0.750f,  // THUMB_K1_PHI
+    0.500f,  // THUMB_K2_PHI
+    0.700f,  // F0_ROOT_THETA
+    0.700f,  // F0_ROOT_PHI
+    0.600f,  // F0_THETA
+    0.670f,  // F0_PHI
+    0.560f,  // F0_KNUCKLE_MID
+    0.560f,  // F0_KNUCKLE_END
+    0.700f,  // F1_ROOT_THETA
+    0.700f,  // F1_ROOT_PHI
+    0.600f,  // F1_THETA
+    0.670f,  // F1_PHI
+    0.560f,  // F1_KNUCKLE_MID
+    0.560f,  // F1_KNUCKLE_END
+    0.700f,  // F2_ROOT_THETA
+    0.700f,  // F2_ROOT_PHI
+    0.600f,  // F2_THETA
+    0.670f,  // F2_PHI
+    0.560f,  // F2_KNUCKLE_MID
+    0.560f,  // F2_KNUCKLE_END
+    0.700f,  // F3_ROOT_THETA
+    0.700f,  // F3_ROOT_PHI
+    0.600f,  // F3_THETA
+    0.670f,  // F3_PHI
+    0.560f,  // F3_KNUCKLE_MID
+    0.560f,  // F3_KNUCKLE_END
 #ifdef FIT_TWIST
-    0.400f,  // F0_TWIST
-    0.500f,  // F1_TWIST
-    0.400f,  // F2_TWIST
-    0.400f,  // F3_TWIST
-    0.400f,  // THUMB_TWIST
+    0.300f,  // F0_TWIST
+    0.300f,  // F1_TWIST
+    0.300f,  // F2_TWIST
+    0.300f,  // F3_TWIST
+    0.300f,  // THUMB_TWIST
 #endif
   };
 
