@@ -59,6 +59,7 @@
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Fit
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Fit
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Fit -> Training Data
+
 #define IM_DIR_BASE string("data/hand_depth_data/")  // Fit 
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
