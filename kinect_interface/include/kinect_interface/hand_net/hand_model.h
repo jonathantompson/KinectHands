@@ -15,11 +15,11 @@
 
 #define FIT_TWIST
 #ifdef FIT_TWIST
-  #define HAND_NUM_COEFF 30  // The num of coefficients to use when optimizing
+  #define HAND_NUM_COEFF 42  // The num of coefficients to use when optimizing
 #else
-  #define HAND_NUM_COEFF 25
+  #define HAND_NUM_COEFF 37
 #endif
-#define FINGER_NUM_COEFF 3
+#define FINGER_NUM_COEFF 6
 #define NSPH_PER_FING 6
 #define HAND_MODEL_DEFAULT_SCALE 58.0f
 #define HAND_CAMERA_VIEW_PLANE_NEAR 10.0f
@@ -58,30 +58,42 @@ namespace hand_net {
     THUMB_K1_THETA    = 10,
     THUMB_K1_PHI      = 11,
     THUMB_K2_PHI      = 12,
-    F0_THETA          = 13,
-    F0_PHI            = 14,
-    F0_KNUCKLE_CURL   = 15,
-    F1_THETA          = 16,
-    F1_PHI            = 17,
-    F1_KNUCKLE_CURL   = 18,
-    F2_THETA          = 19,
-    F2_PHI            = 20,
-    F2_KNUCKLE_CURL   = 21,
-    F3_THETA          = 22,
-    F3_PHI            = 23,
-    F3_KNUCKLE_CURL   = 24,
-    F0_TWIST          = 25,  // Not used in optimization
-    F1_TWIST          = 26,  // Not used in optimization
-    F2_TWIST          = 27,  // Not used in optimization
-    F3_TWIST          = 28,  // Not used in optimization
-    THUMB_TWIST       = 29,  // Not used in optimization
-    F0_LENGTH         = 30,  // Not used in optimization
-    F1_LENGTH         = 31,  // Not used in optimization
-    F2_LENGTH         = 32,  // Not used in optimization
-    F3_LENGTH         = 33,  // Not used in optimization
-    THUMB_LENGTH      = 34,  // Not used in optimization
-    SCALE             = 35,  // Not used in optimization
-    NUM_PARAMETERS    = 36,  // NOTE: Not to be confused with HAND_NUM_COEFF!!
+    F0_ROOT_THETA     = 13,
+    F0_ROOT_PHI       = 14,
+    F0_THETA          = 15,
+    F0_PHI            = 16,
+    F0_KNUCKLE_MID    = 17,
+    F0_KNUCKLE_END    = 18,
+    F1_ROOT_THETA     = 19,
+    F1_ROOT_PHI       = 20,
+    F1_THETA          = 21,
+    F1_PHI            = 22,
+    F1_KNUCKLE_MID    = 23,
+    F1_KNUCKLE_END    = 24,
+    F2_ROOT_THETA     = 25,
+    F2_ROOT_PHI       = 26,
+    F2_THETA          = 27,
+    F2_PHI            = 28,
+    F2_KNUCKLE_MID    = 29,
+    F2_KNUCKLE_END    = 30,
+    F3_ROOT_THETA     = 31,
+    F3_ROOT_PHI       = 32,
+    F3_THETA          = 33,
+    F3_PHI            = 34,
+    F3_KNUCKLE_MID    = 35,
+    F3_KNUCKLE_END    = 36,
+    F0_TWIST          = 37,
+    F1_TWIST          = 38,
+    F2_TWIST          = 39,
+    F3_TWIST          = 40,
+    THUMB_TWIST       = 41,
+    F0_LENGTH         = 42,  // Not used in optimization
+    F1_LENGTH         = 43,  // Not used in optimization
+    F2_LENGTH         = 44,  // Not used in optimization
+    F3_LENGTH         = 45,  // Not used in optimization
+    THUMB_LENGTH      = 46,  // Not used in optimization
+    SCALE             = 47,  // Not used in optimization
+    NUM_PARAMETERS    = 48,  // NOTE: Not to be confused with HAND_NUM_COEFF!!
   } HandCoeff;
 
   typedef enum {

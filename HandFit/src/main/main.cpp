@@ -206,9 +206,10 @@ void loadCurrentImage(bool print_to_screen = true) {
     std::cout << "cur_image = " << cur_image << " of ";
     std::cout << im_files.size() << std::endl;
   }
-  
+
   image_io->LoadCompressedImageWithRedHands(full_filename, 
     cur_depth_data, cur_label_data, cur_image_rgb, NULL);
+
 #ifdef KINECT_DATA
   DepthImagesIO::convertSingleImageToXYZ(cur_xyz_data, cur_depth_data);
 #else
@@ -475,20 +476,32 @@ void KeyboardCB(int key, int action) {
             std::cout << "copying finger " << finger;
             std::cout << " from previous frame..." << std::endl;
             if (fit_left) {
+              l_hands[cur_image]->setCoeff(HandCoeff::F0_ROOT_PHI + off, 
+                l_hands[cur_image-1]->getCoeff(HandCoeff::F0_ROOT_PHI + off));
+              l_hands[cur_image]->setCoeff(HandCoeff::F0_ROOT_THETA + off, 
+                l_hands[cur_image-1]->getCoeff(HandCoeff::F0_ROOT_THETA + off));
               l_hands[cur_image]->setCoeff(HandCoeff::F0_PHI + off, 
                 l_hands[cur_image-1]->getCoeff(HandCoeff::F0_PHI + off));
               l_hands[cur_image]->setCoeff(HandCoeff::F0_THETA + off, 
                 l_hands[cur_image-1]->getCoeff(HandCoeff::F0_THETA + off));
-              l_hands[cur_image]->setCoeff(HandCoeff::F0_KNUCKLE_CURL + off, 
-                l_hands[cur_image-1]->getCoeff(HandCoeff::F0_KNUCKLE_CURL + off));
+              l_hands[cur_image]->setCoeff(HandCoeff::F0_KNUCKLE_MID + off, 
+                l_hands[cur_image-1]->getCoeff(HandCoeff::F0_KNUCKLE_MID + off));
+              l_hands[cur_image]->setCoeff(HandCoeff::F0_KNUCKLE_END + off, 
+                l_hands[cur_image-1]->getCoeff(HandCoeff::F0_KNUCKLE_END + off));
             }
             if (fit_right) {
+              r_hands[cur_image]->setCoeff(HandCoeff::F0_ROOT_PHI + off, 
+                r_hands[cur_image-1]->getCoeff(HandCoeff::F0_ROOT_PHI + off));
+              r_hands[cur_image]->setCoeff(HandCoeff::F0_ROOT_THETA + off, 
+                r_hands[cur_image-1]->getCoeff(HandCoeff::F0_ROOT_THETA + off));
               r_hands[cur_image]->setCoeff(HandCoeff::F0_PHI + off, 
                 r_hands[cur_image-1]->getCoeff(HandCoeff::F0_PHI + off));
               r_hands[cur_image]->setCoeff(HandCoeff::F0_THETA + off, 
                 r_hands[cur_image-1]->getCoeff(HandCoeff::F0_THETA + off));
-              r_hands[cur_image]->setCoeff(HandCoeff::F0_KNUCKLE_CURL + off, 
-                r_hands[cur_image-1]->getCoeff(HandCoeff::F0_KNUCKLE_CURL + off));
+              r_hands[cur_image]->setCoeff(HandCoeff::F0_KNUCKLE_MID + off, 
+                r_hands[cur_image-1]->getCoeff(HandCoeff::F0_KNUCKLE_MID + off));
+              r_hands[cur_image]->setCoeff(HandCoeff::F0_KNUCKLE_END + off, 
+                r_hands[cur_image-1]->getCoeff(HandCoeff::F0_KNUCKLE_END + off));
             }
             break;
         }
@@ -499,6 +512,18 @@ void KeyboardCB(int key, int action) {
       if (action == RELEASED) {
         cur_image = cur_image < static_cast<uint32_t>(im_files.size())-1 ? 
           cur_image+1 : cur_image;
+        if (cur_image > 0) {
+          float penalty = 0;
+          if (fit_left) {
+            penalty += HandFit::calcDistPenalty(l_hands[cur_image]->coeff(),
+              l_hands[cur_image - 1]->coeff());
+          }
+          if (fit_right) {
+            penalty += HandFit::calcDistPenalty(r_hands[cur_image]->coeff(),
+              r_hands[cur_image - 1]->coeff());
+          }
+          std::cout << "Distance penalty = " << penalty << std::endl;
+        }
         loadCurrentImage();
         InitXYZPointsForRendering();
       }
@@ -630,20 +655,33 @@ void KeyboardCB(int key, int action) {
     case static_cast<int>('J'):
     case static_cast<int>('j'):
       if (action == RELEASED) {
+        HandModel* prev_hands[2];
         HandModel* hands[2];
+        hands[0] = NULL;
+        hands[1] = NULL;
         if (fit_left && !fit_right) {
           hands[0] = l_hands[cur_image];
-          hands[1] = NULL;
         } else if (!fit_left && fit_right) {
           hands[0] = r_hands[cur_image];
-          hands[1] = NULL;
         } else {
           hands[0] = l_hands[cur_image];
           hands[1] = r_hands[cur_image];
         }
+        prev_hands[0] = NULL;
+        prev_hands[1] = NULL;
+        if (cur_image > 0) {
+          if (fit_left && !fit_right) {
+            prev_hands[0] = l_hands[cur_image - 1];
+          } else if (!fit_left && fit_right) {
+            prev_hands[0] = r_hands[cur_image - 1];
+          } else {
+            prev_hands[0] = l_hands[cur_image - 1];
+            prev_hands[1] = r_hands[cur_image - 1];
+          }
+        }
         cout << "Objective Function: ";
         cout << fit->queryObjectiveFunction(cur_depth_data, cur_label_data,
-          hands) << endl;
+          hands, prev_hands) << endl;
       }
       break;
     case static_cast<int>('c'):
@@ -771,17 +809,30 @@ void fitFrame(bool seed_with_last_frame) {
     }
   }
   HandModel* hands[2];
+  hands[0] = NULL;
+  hands[1] = NULL;
   if (fit_left && !fit_right) {
     hands[0] = l_hands[cur_image];
-    hands[1] = NULL;
   } else if (!fit_left && fit_right) {
     hands[0] = r_hands[cur_image];
-    hands[1] = NULL;
   } else {
     hands[0] = l_hands[cur_image];
     hands[1] = r_hands[cur_image];
   }
-  fit->fitModel(cur_depth_data, cur_label_data, hands);
+  HandModel* prev_hands[2];
+  prev_hands[0] = NULL;
+  prev_hands[1] = NULL;
+  if (cur_image > 0) {
+    if (fit_left && !fit_right) {
+      prev_hands[0] = l_hands[cur_image - 1];
+    } else if (!fit_left && fit_right) {
+      prev_hands[0] = r_hands[cur_image - 1];
+    } else {
+      prev_hands[0] = l_hands[cur_image - 1];
+      prev_hands[1] = r_hands[cur_image - 1];
+    }
+  }
+  fit->fitModel(cur_depth_data, cur_label_data, hands, prev_hands);
 }
 
 void renderFrame(float dt) {
@@ -973,7 +1024,7 @@ int main(int argc, char *argv[]) {
   static_cast<void>(argc); static_cast<void>(argv);
 #if defined(_DEBUG) && defined(_WIN32)
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-  _CrtSetBreakAlloc(4945);
+  // _CrtSetBreakAlloc(4945);
 #endif
 
   cout << "Usage:" << endl;

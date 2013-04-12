@@ -15,7 +15,7 @@ void main(){
   float depth_synth = texture(synth_depth, f_texture).x;
   float depth_integ = min(abs(depth_kinect - depth_synth), max_depth);
   // float depth_integ = abs(depth_kinect - depth_synth) + 0.00000001 * max_depth;
-  // depth_integ = depth_integ * depth_integ;  
+  depth_integ = depth_integ * depth_integ;  
 
   color = vec4(depth_integ, 0, 0, 0);   
 }

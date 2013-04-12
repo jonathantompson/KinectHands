@@ -52,18 +52,30 @@ namespace hand_net {
     coeff_[THUMB_K1_THETA] = 0;
     coeff_[THUMB_K1_PHI] = 0;
     coeff_[THUMB_K2_PHI] = 0;
+    coeff_[F0_ROOT_THETA] = 0;
+    coeff_[F0_ROOT_PHI] = 0;
     coeff_[F0_THETA] = 0;
     coeff_[F0_PHI] = 0;
-    coeff_[F0_KNUCKLE_CURL] = 0;
+    coeff_[F0_KNUCKLE_MID] = 0;
+    coeff_[F0_KNUCKLE_END] = 0;
+    coeff_[F1_ROOT_THETA] = 0;
+    coeff_[F1_ROOT_PHI] = 0;
     coeff_[F1_THETA] = 0;
     coeff_[F1_PHI] = 0;
-    coeff_[F1_KNUCKLE_CURL] = 0;
+    coeff_[F1_KNUCKLE_MID] = 0;
+    coeff_[F1_KNUCKLE_END] = 0;
+    coeff_[F2_ROOT_THETA] = 0;
+    coeff_[F2_ROOT_PHI] = 0;
     coeff_[F2_THETA] = 0;
     coeff_[F2_PHI] = 0;
-    coeff_[F2_KNUCKLE_CURL] = 0;
+    coeff_[F2_KNUCKLE_MID] = 0;
+    coeff_[F2_KNUCKLE_END] = 0;
+    coeff_[F3_ROOT_THETA] = 0;
+    coeff_[F3_ROOT_PHI] = 0;
     coeff_[F3_THETA] = 0;
     coeff_[F3_PHI] = 0;
-    coeff_[F3_KNUCKLE_CURL] = 0;
+    coeff_[F3_KNUCKLE_MID] = 0;
+    coeff_[F3_KNUCKLE_END] = 0;
     coeff_[F0_TWIST] = 0;
     coeff_[F1_TWIST] = 0;
     coeff_[F2_TWIST] = 0;
@@ -142,32 +154,9 @@ namespace hand_net {
   FloatQuat tmp_quat_;
   void HandModel::renormalizeCoeffs(float* coeff) {
     // Set all angles 0 --> 2pi
-    WrapTwoPI(coeff[HAND_ORIENT_X]);
-    WrapTwoPI(coeff[HAND_ORIENT_Y]);
-    WrapTwoPI(coeff[HAND_ORIENT_Z]);
-    WrapTwoPI(coeff[WRIST_THETA]);
-    WrapTwoPI(coeff[WRIST_PHI]);
-    WrapTwoPI(coeff[THUMB_THETA]);
-    WrapTwoPI(coeff[THUMB_PHI]);
-    WrapTwoPI(coeff[THUMB_K1_THETA]);
-    WrapTwoPI(coeff[THUMB_K1_PHI]);
-    WrapTwoPI(coeff[THUMB_K2_PHI]);
-    WrapTwoPI(coeff[F0_THETA]);
-    WrapTwoPI(coeff[F0_PHI]);
-    WrapTwoPI(coeff[F0_KNUCKLE_CURL]);
-    WrapTwoPI(coeff[F1_THETA]);
-    WrapTwoPI(coeff[F1_PHI]);
-    WrapTwoPI(coeff[F1_KNUCKLE_CURL]);
-    WrapTwoPI(coeff[F2_THETA]);
-    WrapTwoPI(coeff[F2_PHI]);
-    WrapTwoPI(coeff[F2_KNUCKLE_CURL]);
-    WrapTwoPI(coeff[F3_THETA]);
-    WrapTwoPI(coeff[F3_PHI]);
-    WrapTwoPI(coeff[F0_TWIST]);
-    WrapTwoPI(coeff[F1_TWIST]);
-    WrapTwoPI(coeff[F2_TWIST]);
-    WrapTwoPI(coeff[F3_TWIST]);
-    WrapTwoPI(coeff[THUMB_TWIST]);
+    for (uint32_t i = HAND_ORIENT_X; i < HAND_NUM_COEFF; i++) {
+      WrapTwoPI(coeff[i]);
+    }
   }
   
   string HandCoeffToString(const uint32_t coeff) {
@@ -198,30 +187,54 @@ namespace hand_net {
         return "THUMB_K1_PHI";
       case THUMB_K2_PHI:
         return "THUMB_K2_PHI";
+      case F0_ROOT_THETA:
+        return "F0_ROOT_THETA";
+      case F0_ROOT_PHI:
+        return "F0_ROOT_PHI";
       case F0_THETA:
         return "F0_THETA";
       case F0_PHI:
         return "F0_PHI";
-      case F0_KNUCKLE_CURL:
-        return "F0_KNUCKLE_CURL";
+      case F0_KNUCKLE_MID:
+        return "F0_KNUCKLE_MID";
+      case F0_KNUCKLE_END:
+        return "F0_KNUCKLE_END";
+      case F1_ROOT_THETA:
+        return "F1_ROOT_THETA";
+      case F1_ROOT_PHI:
+        return "F1_ROOT_PHI";
       case F1_THETA:
         return "F1_THETA";
       case F1_PHI:
         return "F1_PHI";
-      case F1_KNUCKLE_CURL:
-        return "F1_KNUCKLE_CURL";
+      case F1_KNUCKLE_MID:
+        return "F1_KNUCKLE_MID";
+      case F1_KNUCKLE_END:
+        return "F1_KNUCKLE_END";
+      case F2_ROOT_THETA:
+        return "F2_ROOT_THETA";
+      case F2_ROOT_PHI:
+        return "F2_ROOT_PHI";
       case F2_THETA:
         return "F2_THETA";
       case F2_PHI:
         return "F2_PHI";
-      case F2_KNUCKLE_CURL:
-        return "F2_KNUCKLE_CURL";
+      case F2_KNUCKLE_MID:
+        return "F2_KNUCKLE_MID";
+      case F2_KNUCKLE_END:
+        return "F2_KNUCKLE_END";
+      case F3_ROOT_THETA:
+        return "F3_ROOT_THETA";
+      case F3_ROOT_PHI:
+        return "F3_ROOT_PHI";
       case F3_THETA:
         return "F3_THETA";
       case F3_PHI:
         return "F3_PHI";
-      case F3_KNUCKLE_CURL:
-        return "F3_KNUCKLE_CURL";
+      case F3_KNUCKLE_MID:
+        return "F3_KNUCKLE_MID";
+      case F3_KNUCKLE_END:
+        return "F3_KNUCKLE_END";
       case F0_TWIST:
         return "F0_TWIST";
       case F1_TWIST:
@@ -305,6 +318,7 @@ namespace hand_net {
 
   bool HandModel::loadOldModelFromFile(const std::string& dir, 
     const std::string& filename) {
+    /*
     string full_filename = dir + filename;
     std::ifstream file(full_filename.c_str(), std::ios::in | std::ios::binary);
     if (!file.is_open()) {
@@ -334,6 +348,9 @@ namespace hand_net {
     coeff_[SCALE] = HAND_MODEL_DEFAULT_SCALE;
 
     return true;
+    */
+    throw std::wruntime_error("HandModel::loadOldModelFromFile() - "
+      "ERROR: Needs updating!");
   }
 
   const uint8_t labelFromRGB(const float r, const float g, const float b) {
@@ -588,7 +605,7 @@ namespace hand_net {
     0.250f,   // PALM_2  // base 2
     0.280f,   // PALM_3  // top 1 (very top)
     0.280f,   // PALM_4  // top 2
-    0.300f,   // PALM_5  
+    0.300f,   // PALM_5
     0.280f,   // PALM_6
   };
 

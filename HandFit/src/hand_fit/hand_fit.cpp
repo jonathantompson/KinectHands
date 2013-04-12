@@ -50,9 +50,10 @@ namespace hand_fit {
   // Static variables
   HandFit* HandFit::cur_fit_ = NULL;
   HandModel* HandFit::cur_hand_[2] = {NULL, NULL};
+  HandModel* HandFit::prev_hand_[2] = {NULL, NULL};
   uint64_t HandFit::func_eval_count_ = 0;
   jtil::data_str::Vector<Coeff> HandFit::min_pts_;
-  bool HandFit::include_min_pts_constraints_ = true;
+  bool HandFit::include_min_pts_constraints_ = false;
   jtil::data_str::VectorManaged<Eigen::MatrixXf> HandFit::tiled_coeffs_;
   jtil::data_str::Vector<float> HandFit::tiled_residues_;
   
@@ -66,9 +67,10 @@ namespace hand_fit {
     nhands_ = num_hands;
     hand_renderer_ = hand_renderer;
 
-    coeff_dim_ = HAND_NUM_COEFF*nhands_;
+    coeff_dim_ = HAND_NUM_COEFF * nhands_;
 
     coeff_.resize(1, coeff_dim_);
+    prev_coeff_.resize(1, coeff_dim_);
     coeff_tmp_.resize(1, coeff_dim_);
     pso_radius_c_.resize(1, coeff_dim_);
     nm_coeff_step_size_.resize(1, coeff_dim_);
@@ -101,12 +103,24 @@ namespace hand_fit {
       pso_radius_c_(i) = (coeff_max_limit[i] - coeff_min_limit[i]) * PSO_RAD_THUMB;
     }
     for (uint32_t i = 0; i < 4; i++) {  // All fingers
-      pso_radius_c_(F0_THETA+i*3) = (coeff_max_limit[F0_THETA+i*3] - 
-        coeff_min_limit[F0_THETA+i*3]) * PSO_RAD_FINGERS;
-      pso_radius_c_(F0_PHI+i*3) = (coeff_max_limit[F0_PHI+i*3] - 
-        coeff_min_limit[F0_PHI+i*3]) * PSO_RAD_FINGERS;
-      pso_radius_c_(F0_KNUCKLE_CURL+i*3) = (coeff_max_limit[F0_KNUCKLE_CURL+i*3] - 
-        coeff_min_limit[F0_KNUCKLE_CURL+i*3]) * PSO_RAD_FINGERS;
+      pso_radius_c_(F0_ROOT_THETA+i*FINGER_NUM_COEFF) = 
+        (coeff_max_limit[F0_ROOT_THETA+i*FINGER_NUM_COEFF] - 
+        coeff_min_limit[F0_ROOT_THETA+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
+      pso_radius_c_(F0_ROOT_PHI+i*FINGER_NUM_COEFF) = 
+        (coeff_max_limit[F0_ROOT_PHI+i*FINGER_NUM_COEFF] - 
+        coeff_min_limit[F0_ROOT_PHI+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
+      pso_radius_c_(F0_THETA+i*FINGER_NUM_COEFF) = 
+        (coeff_max_limit[F0_THETA+i*FINGER_NUM_COEFF] - 
+        coeff_min_limit[F0_THETA+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
+      pso_radius_c_(F0_PHI+i*FINGER_NUM_COEFF) = 
+        (coeff_max_limit[F0_PHI+i*FINGER_NUM_COEFF] - 
+        coeff_min_limit[F0_PHI+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
+      pso_radius_c_(F0_KNUCKLE_MID+i*FINGER_NUM_COEFF) = 
+        (coeff_max_limit[F0_KNUCKLE_MID+i*FINGER_NUM_COEFF] - 
+        coeff_min_limit[F0_KNUCKLE_MID+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
+      pso_radius_c_(F0_KNUCKLE_END+i*FINGER_NUM_COEFF) = 
+        (coeff_max_limit[F0_KNUCKLE_END+i*FINGER_NUM_COEFF] - 
+        coeff_min_limit[F0_KNUCKLE_END+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
     }
 #ifdef FIT_TWIST
     for (uint32_t i = F0_TWIST; i <= THUMB_TWIST; i++) {  // thumb
@@ -169,11 +183,17 @@ namespace hand_fit {
     }
   }
 
-  void HandFit::fitModel(int16_t* depth, uint8_t* label, HandModel* hands[2]) {
+  void HandFit::fitModel(int16_t* depth, uint8_t* label, HandModel* hands[2],
+    HandModel* prev_hands[2]) {
     min_pts_.resize(0);
     cur_hand_[0] = hands[0];
     cur_hand_[1] = hands[1];
+    prev_hand_[0] = prev_hands[0];
+    prev_hand_[1] = prev_hands[1];
     handModel2Eigen(coeff_, hands, nhands_);
+    if (prev_hand_[0] != NULL) {
+      handModel2Eigen(prev_coeff_, prev_hands, nhands_);
+    }
     cur_fit_ = this;
     prepareKinectData(depth, label);
 
@@ -277,10 +297,15 @@ namespace hand_fit {
   }
 
   float HandFit::queryObjectiveFunction(int16_t* depth, uint8_t* label, 
-    HandModel* hands[2]) {
+    HandModel* hands[2], HandModel* prev_hands[2]) {
     cur_hand_[0] = hands[0];
     cur_hand_[1] = hands[1];
+    prev_hand_[0] = prev_hands[0];
+    prev_hand_[1] = prev_hands[1];
     handModel2Eigen(coeff_, hands, nhands_);
+    if (prev_hand_[0] != NULL) {
+      handModel2Eigen(prev_coeff_, prev_hands, nhands_);
+    }
     cur_fit_ = this;
     prepareKinectData(depth, label);
     MatrixXf x, y, f;
@@ -374,55 +399,57 @@ namespace hand_fit {
   }
 
   void HandFit::approxJacobianTiled(MatrixXf& jacob, const MatrixXf& coeff) {
-    for (uint32_t frame = 0; frame < cur_fit_->coeff_dim_ / HAND_NUM_COEFF; frame++) {
-      uint32_t c_start = frame * HAND_NUM_COEFF;
-      uint32_t c_end = (frame + 1) * HAND_NUM_COEFF;
+    throw std::wruntime_error("NEEDS UPDATING");
+    //for (uint32_t frame = 0; frame < cur_fit_->coeff_dim_ / HAND_NUM_COEFF; frame++) {
+    //  uint32_t c_start = frame * HAND_NUM_COEFF;
+    //  uint32_t c_end = (frame + 1) * HAND_NUM_COEFF;
 
-      // Fill up the coeff array for tiled rendering
-      tiled_coeffs_.resize(0);  
-      for (uint32_t i = c_start; i < c_end; i++) {
-        cur_fit_->coeff_tmp_ = coeff;
-        
-        // Positive step
-        cur_fit_->coeff_tmp_(i) = coeff(i) + delta_coeff_[i % HAND_NUM_COEFF];
-        HandModel::renormalizeCoeffs(cur_fit_->coeff_tmp_.data());
-        tiled_coeffs_.pushBack(cur_fit_->coeff_tmp_);
+    //  // Fill up the coeff array for tiled rendering
+    //  tiled_coeffs_.resize(0);  
+    //  for (uint32_t i = c_start; i < c_end; i++) {
+    //    cur_fit_->coeff_tmp_ = coeff;
+    //    
+    //    // Positive step
+    //    cur_fit_->coeff_tmp_(i) = coeff(i) + delta_coeff_[i % HAND_NUM_COEFF];
+    //    HandModel::renormalizeCoeffs(cur_fit_->coeff_tmp_.data());
+    //    tiled_coeffs_.pushBack(cur_fit_->coeff_tmp_);
 
-        // negative step
-        cur_fit_->coeff_tmp_(i) = coeff(i) - delta_coeff_[i % HAND_NUM_COEFF];
-        HandModel::renormalizeCoeffs(cur_fit_->coeff_tmp_.data());
-        tiled_coeffs_.pushBack(cur_fit_->coeff_tmp_);
-      }
+    //    // negative step
+    //    cur_fit_->coeff_tmp_(i) = coeff(i) - delta_coeff_[i % HAND_NUM_COEFF];
+    //    HandModel::renormalizeCoeffs(cur_fit_->coeff_tmp_.data());
+    //    tiled_coeffs_.pushBack(cur_fit_->coeff_tmp_);
+    //  }
 
-      // Calculate the objective function in parallel
-      objectiveFuncTiled(tiled_residues_, tiled_coeffs_);
+    //  // Calculate the objective function in parallel
+    //  objectiveFuncTiled(tiled_residues_, tiled_coeffs_);
 
-      for (uint32_t i = c_start; i < c_end; i++) {
-        jacob(i) = (tiled_residues_[2 * (i % HAND_NUM_COEFF)] - 
-          tiled_residues_[2 * (i % HAND_NUM_COEFF)+1]) / 
-          (2.0f * delta_coeff_[i % HAND_NUM_COEFF]);
-      }
-    }
+    //  for (uint32_t i = c_start; i < c_end; i++) {
+    //    jacob(i) = (tiled_residues_[2 * (i % HAND_NUM_COEFF)] - 
+    //      tiled_residues_[2 * (i % HAND_NUM_COEFF)+1]) / 
+    //      (2.0f * delta_coeff_[i % HAND_NUM_COEFF]);
+    //  }
+    //}
   }
 
   void HandFit::approxJacobian(MatrixXf& jacob, const MatrixXf& coeff) {
-    cur_fit_->coeff_tmp_ = coeff;
-    for (uint32_t i = 0; i < cur_fit_->coeff_dim_; i++) {
-      if (i > 0) {
-        cur_fit_->coeff_tmp_(i - 1) = coeff(i - 1);  // Restore the prev coefficent
-      }
-      // Positive step
-      cur_fit_->coeff_tmp_(i) = coeff(i) + delta_coeff_[i % HAND_NUM_COEFF];
-      HandModel::renormalizeCoeffs(cur_fit_->coeff_tmp_.data());
-      float f_p = objectiveFunc(cur_fit_->coeff_tmp_);
+    throw std::wruntime_error("NEEDS UPDATING");
+    //cur_fit_->coeff_tmp_ = coeff;
+    //for (uint32_t i = 0; i < cur_fit_->coeff_dim_; i++) {
+    //  if (i > 0) {
+    //    cur_fit_->coeff_tmp_(i - 1) = coeff(i - 1);  // Restore the prev coefficent
+    //  }
+    //  // Positive step
+    //  cur_fit_->coeff_tmp_(i) = coeff(i) + delta_coeff_[i % HAND_NUM_COEFF];
+    //  HandModel::renormalizeCoeffs(cur_fit_->coeff_tmp_.data());
+    //  float f_p = objectiveFunc(cur_fit_->coeff_tmp_);
 
-      // negative step
-      cur_fit_->coeff_tmp_(i) = coeff(i) - delta_coeff_[i % HAND_NUM_COEFF];
-      HandModel::renormalizeCoeffs(cur_fit_->coeff_tmp_.data());
-      float f_n = objectiveFunc(cur_fit_->coeff_tmp_);
+    //  // negative step
+    //  cur_fit_->coeff_tmp_(i) = coeff(i) - delta_coeff_[i % HAND_NUM_COEFF];
+    //  HandModel::renormalizeCoeffs(cur_fit_->coeff_tmp_.data());
+    //  float f_n = objectiveFunc(cur_fit_->coeff_tmp_);
 
-      jacob(i) = (f_p - f_n) / (2.0f * delta_coeff_[i % HAND_NUM_COEFF]);
-    }
+    //  jacob(i) = (f_p - f_n) / (2.0f * delta_coeff_[i % HAND_NUM_COEFF]);
+    //}
   }
 
   float HandFit::calcPenalty() {
@@ -463,6 +490,7 @@ namespace hand_fit {
 
     // Now add in the penalty due to marked points in the space:
     if (include_min_pts_constraints_) {
+      std::cout << "USING MIN_PT_CONSTRAINTS!!  Do you mean to?" << std::endl;
       for (uint32_t i_cur_pt = 0; i_cur_pt < min_pts_.size(); i_cur_pt++) {
         float dist_sq = 0;
         float* cur_min_pt = min_pts_[i_cur_pt].c;
@@ -483,7 +511,32 @@ namespace hand_fit {
       }
     }
 
+#ifdef PREV_FRAME_DIST_PENALTY
+    if (prev_hand_[0] != NULL) {
+      penalty += calcDistPenalty(&cur_fit_->prev_coeff_(0), &coeff(0));
+      if (cur_fit_->coeff_dim_ > HAND_NUM_COEFF) {
+        penalty += calcDistPenalty(&cur_fit_->prev_coeff_(HAND_NUM_COEFF), 
+          &coeff(HAND_NUM_COEFF));
+      }
+    }
+#endif
+
     return penalty;
+  }
+
+  float HandFit::calcDistPenalty(const float* coeff0, const float* coeff1) {
+    float dist = 0;  // Prevent NANs
+    for (uint32_t i = 0; i < HAND_NUM_COEFF; i++) {
+      if (coeff_penalty_scale_[i] > EPSILON) {
+        float delta = fabsf(coeff0[i] - coeff1[i]);
+        float err = delta - PREV_FRAME_DIST_PENALTY_THRESHOLD * 
+          (coeff_max_limit[i] - coeff_min_limit[i]);
+        if (err > 0) {
+          dist += err * err;
+        }
+      }
+    }
+    return PREV_FRAME_DIST_PENALTY_SCALE * dist;
   }
 
   float HandFit::evaluateFuncAndCalculateResidual() {
@@ -617,18 +670,30 @@ namespace hand_fit {
     0.01f,   // THUMB_K1_THETA
     0.01f,   // THUMB_K1_PHI
     0.01f,   // THUMB_K2_PHI
+    0.01f,   // F0_ROOT_THETA
+    0.01f,   // F0_ROOT_PHI
     0.01f,   // F0_THETA
     0.01f,   // F0_PHI
-    0.01f,   // F0_KNUCKLE_CURL
+    0.01f,   // F0_KNUCKLE_MID
+    0.01f,   // F0_KNUCKLE_END
+    0.01f,   // F1_ROOT_THETA
+    0.01f,   // F1_ROOT_PHI
     0.01f,   // F1_THETA
     0.01f,   // F1_PHI
-    0.01f,   // F1_KNUCKLE_CURL
+    0.01f,   // F1_KNUCKLE_MID
+    0.01f,   // F1_KNUCKLE_END
+    0.01f,   // F2_ROOT_THETA
+    0.01f,   // F2_ROOT_PHI
     0.01f,   // F2_THETA
     0.01f,   // F2_PHI
-    0.01f,   // F2_KNUCKLE_CURL
+    0.01f,   // F2_KNUCKLE_MID
+    0.01f,   // F2_KNUCKLE_END
+    0.01f,   // F3_ROOT_THETA
+    0.01f,   // F3_ROOT_PHI
     0.01f,   // F3_THETA
     0.01f,   // F3_PHI
-    0.01f,   // F3_KNUCKLE_CURL
+    0.01f,   // F3_KNUCKLE_MID
+    0.01f,   // F3_KNUCKLE_END
 #ifdef FIT_TWIST
     0.01f,  // F0_TWIST
     0.01f,  // F1_TWIST
@@ -655,18 +720,30 @@ namespace hand_fit {
     0.01f,  // THUMB_K1_THETA
     0.01f,  // THUMB_K1_PHI
     0.01f,  // THUMB_K2_PHI
+    0.01f,  // F0_ROOT_THETA
+    0.01f,  // F0_ROOT_PHI
     0.01f,  // F0_THETA
     0.01f,  // F0_PHI
-    0.01f,  // F0_KNUCKLE_CURL
+    0.01f,  // F0_KNUCKLE_MID
+    0.01f,  // F0_KNUCKLE_END
+    0.01f,  // F1_ROOT_THETA
+    0.01f,  // F1_ROOT_PHI
     0.01f,  // F1_THETA
     0.01f,  // F1_PHI
-    0.01f,  // F1_KNUCKLE_CURL
+    0.01f,  // F1_KNUCKLE_MID
+    0.01f,  // F1_KNUCKLE_END
+    0.01f,  // F2_ROOT_THETA
+    0.01f,  // F2_ROOT_PHI
     0.01f,  // F2_THETA
     0.01f,  // F2_PHI
-    0.01f,  // F2_KNUCKLE_CURL
+    0.01f,  // F2_KNUCKLE_MID
+    0.01f,  // F2_KNUCKLE_END
+    0.01f,  // F3_ROOT_THETA
+    0.01f,  // F3_ROOT_PHI
     0.01f,  // F3_THETA
     0.01f,  // F3_PHI
-    0.01f,  // F3_KNUCKLE_CURL
+    0.01f,  // F3_KNUCKLE_MID
+    0.01f,  // F3_KNUCKLE_END
 #ifdef FIT_TWIST
     0.01f,  // F0_TWIST
     0.01f,  // F1_TWIST
@@ -693,18 +770,30 @@ namespace hand_fit {
     true,   // THUMB_K1_THETA
     true,   // THUMB_K1_PHI
     true,   // THUMB_K2_PHI
+    true,   // F0_ROOT_THETA
+    true,   // F0_ROOT_PHI
     true,   // F0_THETA
     true,   // F0_PHI
-    true,   // F0_KNUCKLE_CURL
+    true,   // F0_KNUCKLE_MID
+    true,   // F0_KNUCKLE_END
+    true,   // F1_ROOT_THETA
+    true,   // F1_ROOT_PHI
     true,   // F1_THETA
     true,   // F1_PHI
-    true,   // F1_KNUCKLE_CURL
+    true,   // F1_KNUCKLE_MID
+    true,   // F1_KNUCKLE_END
+    true,   // F2_ROOT_THETA
+    true,   // F2_ROOT_PHI
     true,   // F2_THETA
     true,   // F2_PHI
-    true,   // F2_KNUCKLE_CURL
+    true,   // F2_KNUCKLE_MID
+    true,   // F2_KNUCKLE_END
+    true,   // F3_ROOT_THETA
+    true,   // F3_ROOT_PHI
     true,   // F3_THETA
     true,   // F3_PHI
-    true,   // F3_KNUCKLE_CURL
+    true,   // F3_KNUCKLE_MID
+    true,   // F3_KNUCKLE_END
 #ifdef FIT_TWIST
     true,   // F0_TWIST
     true,   // F1_TWIST
@@ -726,18 +815,30 @@ namespace hand_fit {
     true,   // THUMB_K1_THETA
     true,   // THUMB_K1_PHI
     true,   // THUMB_K2_PHI
+    true,   // F0_ROOT_THETA
+    true,   // F0_ROOT_PHI
     true,   // F0_THETA
     true,   // F0_PHI
-    true,   // F0_KNUCKLE_CURL
+    true,   // F0_KNUCKLE_MID
+    true,   // F0_KNUCKLE_END
+    true,   // F1_ROOT_THETA
+    true,   // F1_ROOT_PHI
     true,   // F1_THETA
     true,   // F1_PHI
-    true,   // F1_KNUCKLE_CURL
+    true,   // F1_KNUCKLE_MID
+    true,   // F1_KNUCKLE_END
+    true,   // F2_ROOT_THETA
+    true,   // F2_ROOT_PHI
     true,   // F2_THETA
     true,   // F2_PHI
-    true,   // F2_KNUCKLE_CURL
+    true,   // F2_KNUCKLE_MID
+    true,   // F2_KNUCKLE_END
+    true,   // F3_ROOT_THETA
+    true,   // F3_ROOT_PHI
     true,   // F3_THETA
     true,   // F3_PHI
-    true,   // F3_KNUCKLE_CURL
+    true,   // F3_KNUCKLE_MID
+    true,   // F3_KNUCKLE_END
 #ifdef FIT_TWIST
     true,   // F0_TWIST
     true,   // F1_TWIST
@@ -763,24 +864,36 @@ namespace hand_fit {
     -0.433f,  // THUMB_K1_THETA
     -1.053f,  // THUMB_K1_PHI
     -1.533f,  // THUMB_K2_PHI
+    -0.500f,  // F0_ROOT_THETA
+    -0.500f,  // F0_ROOT_PHI
     -0.600f,  // F0_THETA
     -1.243f,  // F0_PHI
-    -1.363f,  // F0_KNUCKLE_CURL
+    -1.600f,  // F0_KNUCKLE_MID  // Formally -1.363 4/12/2013
+    -1.600f,  // F0_KNUCKLE_END  // Formally -1.363 4/12/2013
+    -0.500f,  // F1_ROOT_THETA
+    -0.500f,  // F1_ROOT_PHI
     -0.600f,  // F1_THETA
     -1.243f,  // F1_PHI
-    -1.363f,  // F1_KNUCKLE_CURL
+    -1.363f,  // F1_KNUCKLE_MID  // Formally -1.363 4/12/2013
+    -1.363f,  // F1_KNUCKLE_END  // Formally -1.363 4/12/2013
+    -0.500f,  // F2_ROOT_THETA
+    -0.500f,  // F2_ROOT_PHI
     -0.600f,  // F2_THETA
     -1.243f,  // F2_PHI
-    -1.363f,  // F2_KNUCKLE_CURL
+    -1.600f,  // F2_KNUCKLE_MID  // Formally -1.363 4/12/2013
+    -1.600f,  // F2_KNUCKLE_END  // Formally -1.363 4/12/2013
+    -0.500f,  // F3_ROOT_THETA
+    -0.500f,  // F3_ROOT_PHI
     -0.600f,  // F3_THETA
     -1.243f,  // F3_PHI
-    -1.363f,  // F3_KNUCKLE_CURL
+    -1.600f,  // F3_KNUCKLE_MID  // Formally -1.363 4/12/2013
+    -1.600f,  // F3_KNUCKLE_END  // Formally -1.363 4/12/2013
 #ifdef FIT_TWIST
-    -0.300f,  // F0_TWIST
-    -0.300f,  // F1_TWIST
-    -0.300f,  // F2_TWIST
-    -0.300f,  // F3_TWIST
-    -0.300f,  // THUMB_TWIST
+    -0.400f,  // F0_TWIST
+    -0.600f,  // F1_TWIST
+    -0.400f,  // F2_TWIST
+    -0.400f,  // F3_TWIST
+    -0.400f,  // THUMB_TWIST
 #endif
   };
   
@@ -800,24 +913,36 @@ namespace hand_fit {
     0.500f,  // THUMB_K1_THETA
     0.550f,  // THUMB_K1_PHI
     0.300f,  // THUMB_K2_PHI
+    0.500f,  // F0_ROOT_THETA
+    0.500f,  // F0_ROOT_PHI
     0.400f,  // F0_THETA
-    0.470f,  // F0_PHI  // def 0.570
-    0.360f,  // F0_KNUCKLE_CURL
+    0.470f,  // F0_PHI
+    0.360f,  // F0_KNUCKLE_MID
+    0.360f,  // F0_KNUCKLE_END
+    0.500f,  // F1_ROOT_THETA
+    0.500f,  // F1_ROOT_PHI
     0.400f,  // F1_THETA
     0.470f,  // F1_PHI
-    0.360f,  // F1_KNUCKLE_CURL
+    0.360f,  // F1_KNUCKLE_MID
+    0.360f,  // F1_KNUCKLE_END
+    0.500f,  // F2_ROOT_THETA
+    0.500f,  // F2_ROOT_PHI
     0.400f,  // F2_THETA
     0.470f,  // F2_PHI
-    0.360f,  // F2_KNUCKLE_CURL
+    0.360f,  // F2_KNUCKLE_MID
+    0.360f,  // F2_KNUCKLE_END
+    0.500f,  // F3_ROOT_THETA
+    0.500f,  // F3_ROOT_PHI
     0.400f,  // F3_THETA
     0.470f,  // F3_PHI
-    0.360f,  // F3_KNUCKLE_CURL
+    0.360f,  // F3_KNUCKLE_MID
+    0.360f,  // F3_KNUCKLE_END
 #ifdef FIT_TWIST
-    0.300f,  // F0_TWIST
-    0.300f,  // F1_TWIST
-    0.300f,  // F2_TWIST
-    0.300f,  // F3_TWIST
-    0.300f,  // THUMB_TWIST
+    0.400f,  // F0_TWIST
+    0.500f,  // F1_TWIST
+    0.400f,  // F2_TWIST
+    0.400f,  // F3_TWIST
+    0.400f,  // THUMB_TWIST
 #endif
   };
 
@@ -842,6 +967,14 @@ namespace hand_fit {
     F3_TWIST,
     THUMB_TWIST,
 #endif
+    F0_ROOT_THETA,
+    F1_ROOT_THETA,
+    F2_ROOT_THETA,
+    F3_ROOT_THETA,
+    F0_ROOT_PHI,
+    F1_ROOT_PHI,
+    F2_ROOT_PHI,
+    F3_ROOT_PHI,
     F0_THETA,
     F1_THETA,
     F2_THETA,
@@ -850,10 +983,14 @@ namespace hand_fit {
     F1_PHI,
     F2_PHI,
     F3_PHI,
-    F0_KNUCKLE_CURL,
-    F1_KNUCKLE_CURL,
-    F2_KNUCKLE_CURL,
-    F3_KNUCKLE_CURL,
+    F0_KNUCKLE_MID,
+    F1_KNUCKLE_MID,
+    F2_KNUCKLE_MID,
+    F3_KNUCKLE_MID,
+    F0_KNUCKLE_END,
+    F1_KNUCKLE_END,
+    F2_KNUCKLE_END,
+    F3_KNUCKLE_END,
   };
   
   // coeff_penalty_scale_ is the exponential scale to use when penalizing coeffs
@@ -872,18 +1009,30 @@ namespace hand_fit {
     100,  // THUMB_K1_THETA
     100,  // THUMB_K1_PHI
     100,  // THUMB_K2_PHI
+    100,  // F0_ROOT_THETA
+    100,  // F0_ROOT_PHI
     100,  // F0_THETA
     100,  // F0_PHI
-    100,  // F0_KNUCKLE_CURL
+    100,  // F0_KNUCKLE_MID
+    100,  // F0_KNUCKLE_END
+    100,  // F1_ROOT_THETA
+    100,  // F1_ROOT_PHI
     100,  // F1_THETA
     100,  // F1_PHI
-    100,  // F1_KNUCKLE_CURL
+    100,  // F1_KNUCKLE_MID
+    100,  // F1_KNUCKLE_END
+    100,  // F2_ROOT_THETA
+    100,  // F2_ROOT_PHI
     100,  // F2_THETA
     100,  // F2_PHI
-    100,  // F2_KNUCKLE_CURL
+    100,  // F2_KNUCKLE_MID
+    100,  // F2_KNUCKLE_END
+    100,  // F3_ROOT_THETA
+    100,  // F3_ROOT_PHI
     100,  // F3_THETA
     100,  // F3_PHI
-    100,  // F3_KNUCKLE_CURL
+    100,  // F3_KNUCKLE_MID
+    100,  // F3_KNUCKLE_END
 #ifdef FIT_TWIST
     100,  // F0_TWIST
     100,  // F1_TWIST

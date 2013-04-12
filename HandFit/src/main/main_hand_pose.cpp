@@ -610,16 +610,22 @@ int main(int argc, char *argv[]) {
         for (uint32_t i = 0; i < 4; i++) {
           // Knuckle curl
           // noise = [0, 1]
-          float noise = (0.5f*
-            (hand_frames[HandCoeff::F0_KNUCKLE_CURL + i*3]->sample((float)t_animation) + 1.0f));
-          float min = HandFit::coeff_min_limit[HandCoeff::F0_KNUCKLE_CURL + i*3];
-          float max = HandFit::coeff_max_limit[HandCoeff::F0_KNUCKLE_CURL + i*3];
-          lhand->setCoeff(HandCoeff::F0_KNUCKLE_CURL + i*3, min + noise * (max-min));
+          float noise = (0.5f* (hand_frames[HandCoeff::F0_KNUCKLE_MID + 
+            i*FINGER_NUM_COEFF]->sample((float)t_animation) + 1.0f));
+          float min = HandFit::coeff_min_limit[HandCoeff::F0_KNUCKLE_MID + 
+            i*FINGER_NUM_COEFF];
+          float max = HandFit::coeff_max_limit[HandCoeff::F0_KNUCKLE_MID + 
+            i*FINGER_NUM_COEFF];
+          lhand->setCoeff(HandCoeff::F0_KNUCKLE_MID + i*FINGER_NUM_COEFF, 
+            min + noise * (max-min));
+          // finger bend
+          lhand->setCoeff(HandCoeff::F0_KNUCKLE_END + i*FINGER_NUM_COEFF, 
+            min + noise * (max-min));
           // finger bend
           noise = (0.5f * 
-            (hand_frames[HandCoeff::F0_PHI + i*3]->sample((float)t_animation) + 1.0f));
-          min = HandFit::coeff_min_limit[HandCoeff::F0_PHI + i*3];
-          max = HandFit::coeff_max_limit[HandCoeff::F0_PHI + i*3];
+            (hand_frames[HandCoeff::F0_PHI + i*FINGER_NUM_COEFF]->sample((float)t_animation) + 1.0f));
+          min = HandFit::coeff_min_limit[HandCoeff::F0_PHI + i*FINGER_NUM_COEFF];
+          max = HandFit::coeff_max_limit[HandCoeff::F0_PHI + i*FINGER_NUM_COEFF];
         }
       }
 

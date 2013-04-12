@@ -33,7 +33,7 @@
 #define PSO_SWARM_SIZE 64  // Default 128 or 64
 #define PSO_RAD_FINGERS 0.40f  // Search radius in frac of min - max coeff - Def 0.4
 #define PSO_RAD_WRIST 0.40f
-#define PSO_RAD_THUMB 0.40f 
+#define PSO_RAD_THUMB 0.40f
 #define PSO_RAD_EULER 0.40f
 #define PSO_RAD_POSITION 25  // Absolute value in mm
 #define PSO_REPEATS 1  // Default 2
@@ -54,6 +54,9 @@
 #define DESCENT_PENALTY_SIZE 0.1f 
  
 #define DEPTH_ONLY_RESIDUE_FUNC  // Faster but less accurate
+// #define PREV_FRAME_DIST_PENALTY  // Distance from last frame penalty
+#define PREV_FRAME_DIST_PENALTY_SCALE  0.001f
+#define PREV_FRAME_DIST_PENALTY_THRESHOLD  0.3f  // % of total range
 #define MAX_DEPTH_IN_RESIDUE 30.0f  // default 40 (from paper) but 30 works better
 #define DATA_TERM_LAMBDA 0.2f  // default 0.0025f  (higher values = depth difference is more important)
 #define INTERPENETRATION_ALLOWENCE 2.0f  // Let them intepenetrate a little bit
@@ -94,9 +97,11 @@ namespace hand_fit {
     // hands[0] = left_hand    --> or if num_hands = 1, then right_hand
     // hands[1] = right_hand   --> or if num_hands = 1, then NULL
     void fitModel(int16_t* depth, uint8_t* label, 
-      kinect_interface::hand_net::HandModel* hands[2]);
+      kinect_interface::hand_net::HandModel* hands[2],
+      kinect_interface::hand_net::HandModel* prev_hands[2]);
     float queryObjectiveFunction(int16_t* depth, uint8_t* label, 
-      kinect_interface::hand_net::HandModel* hands[2]);
+      kinect_interface::hand_net::HandModel* hands[2],
+      kinect_interface::hand_net::HandModel* prev_hands[2]);
 
     inline void resetFuncEvalCount() { func_eval_count_ = 0; }
     inline uint64_t func_eval_count() { return func_eval_count_; }
@@ -108,16 +113,21 @@ namespace hand_fit {
 
     static const float coeff_min_limit[HAND_NUM_COEFF];
     static const float coeff_max_limit[HAND_NUM_COEFF];
+    static const float coeff_penalty_scale_[HAND_NUM_COEFF];
+
+    static float calcDistPenalty(const float* coeff0, const float* coeff1);
 
   private:
     uint32_t coeff_dim_;  // Either HAND_NUM_COEFF or 2*HAND_NUM_COEFF
     uint32_t nhands_;
     static HandFit* cur_fit_;
     static kinect_interface::hand_net::HandModel* cur_hand_[2];
+    static kinect_interface::hand_net::HandModel* prev_hand_[2];
     static uint64_t func_eval_count_;
 
     HandRenderer* hand_renderer_;
     Eigen::MatrixXf coeff_;
+    Eigen::MatrixXf prev_coeff_;
 
     jtil::math::NMFitting* nm_fitting_;
     jtil::math::LPRPSOFittingHands* lprpso_fitting_;
@@ -130,7 +140,6 @@ namespace hand_fit {
     static const float delta_coeff_[HAND_NUM_COEFF];
     static const float preturb_coeff_[HAND_NUM_COEFF];
     static const bool angle_coeffs[HAND_NUM_COEFF*2];
-    static const float coeff_penalty_scale_[HAND_NUM_COEFF];
     static const float finger_crossover_penalty_threshold;
     static const uint32_t manual_fit_order_[HAND_NUM_COEFF];
     static jtil::data_str::Vector<Coeff> min_pts_;
