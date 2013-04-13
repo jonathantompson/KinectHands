@@ -70,7 +70,7 @@ namespace hand_detector {
     SAFE_DELETE_ARR(depth_downsampled_);
     SAFE_DELETE(thread_cbs_);
     SAFE_DELETE_ARR(thread_cbs_);
-    SAFE_DELETE(pixel_on_queue_);
+    SAFE_DELETE_ARR(pixel_on_queue_);
   }
 
   void HandDetector::init(const uint32_t im_width, const uint32_t im_height,

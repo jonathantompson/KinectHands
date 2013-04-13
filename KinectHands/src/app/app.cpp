@@ -58,6 +58,8 @@ namespace app {
     rand_norm_ = new NORM_DIST<float>(0.0f, 1.0f);
     rand_uni_ = new UNIF_DIST<float>(-1.0f, 1.0f);
     kinect_frame_number_ = MAX_UINT64;
+    convnet_background_tex_ = NULL;
+    background_tex_ = NULL;
   }
 
   App::~App() {
@@ -68,6 +70,8 @@ namespace app {
     SAFE_DELETE(clk_);
     SAFE_DELETE(rand_norm_);
     SAFE_DELETE(rand_uni_);
+    SAFE_DELETE(convnet_background_tex_);
+    SAFE_DELETE(background_tex_);
     SAFE_DELETE_ARR(disk_im_);
     SAFE_DELETE_ARR(disk_im_compressed_);
     Renderer::ShutdownRenderer();
@@ -223,25 +227,55 @@ namespace app {
         update_tex = true;
       }
 
+      if (kinect_output == OUTPUT_CONVNET_DEPTH) {
+        memset(convnet_depth_, 0, sizeof(convnet_depth_[0]) * src_dim);
+        const float* src_depth = (float*)kinect_->hand_net()->hpf_hand_image();
+        float min = std::numeric_limits<float>::infinity();
+        float max = -std::numeric_limits<float>::infinity();
+        for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
+          for (uint32_t u = 0; u < HN_IM_SIZE; u++) {
+            const float src_val = src_depth[v * HN_IM_SIZE + u];
+            convnet_depth_[v * HN_IM_SIZE + u] = src_val;
+            min = std::min<float>(min, src_val);
+            max = std::max<float>(max, src_val);
+          }
+        }
+        // Rescale convnet depth 0-->1
+        const float range = max - min;
+        for (uint32_t i = 0; i < HN_IM_SIZE * HN_IM_SIZE; i++) {
+          convnet_depth_[i] = (convnet_depth_[i] - min) / range;
+        }
+      }
+
       if (update_tex) {
+        uint16_t* cur_depth;
         switch (kinect_output) {
         case OUTPUT_RGB:
           memcpy(im_, rgb_, sizeof(im_[0]) * src_dim * 3);
           break;
         case OUTPUT_DEPTH:
+        case OUTPUT_HAND_DETECTOR_DEPTH:
+          switch (kinect_output) {
+            case OUTPUT_DEPTH:
+              cur_depth = (uint16_t*)depth_;
+              break;
+            case OUTPUT_HAND_DETECTOR_DEPTH:
+              cur_depth = hand_detector_depth_;
+              break;
+          }
           for (uint32_t i = 0; i < src_dim; i++) {
-            uint8_t val = (depth_[i] * 2) % 255;
+            const uint8_t val = (cur_depth[i] * 2) % 255;
             im_[i*3] = val;
             im_[i*3+1] = val;
             im_[i*3+2] = val;
           }
           break;
-        case OUTPUT_HAND_DETECTOR_DEPTH:
-          for (uint32_t i = 0; i < src_dim; i++) {
-            uint8_t val = (hand_detector_depth_[i] * 2) % 255;
-            im_[i*3] = val;
-            im_[i*3+1] = val;
-            im_[i*3+2] = val;
+        case OUTPUT_CONVNET_DEPTH:
+          for (uint32_t i = 0; i < HN_IM_SIZE * HN_IM_SIZE; i++) {
+            const uint8_t val = (uint8_t)(convnet_depth_[i] * 255.0f);
+            convnet_im_[i*3] = val;
+            convnet_im_[i*3+1] = val;
+            convnet_im_[i*3+2] = val;
           }
           break;
         default:
@@ -249,33 +283,52 @@ namespace app {
             "not recognized!");
         }
 
-        bool render_hand_labels;
-        GET_SETTING("render_hand_labels", bool, render_hand_labels);
-        if (render_hand_labels) {
-          // Make hand points red
-          for (uint32_t i = 0; i < src_dim; i++) {
-            if (render_labels_[i] == 1) {
-              im_[i*3] = (uint8_t)std::max<int16_t>(0, 
-                (int16_t)im_[i*3] - 100);
-              im_[i*3 + 1] = (uint8_t)std::min<int16_t>(255, 
-                (int16_t)im_[i*3] + 100);
-              im_[i*3 + 2] = (uint8_t)std::max<int16_t>(0, 
-                (int16_t)im_[i*3] - 100);
+        if (kinect_output != OUTPUT_CONVNET_DEPTH) {
+          bool render_hand_labels;
+          GET_SETTING("render_hand_labels", bool, render_hand_labels);
+          if (render_hand_labels) {
+            // Make hand points red
+            for (uint32_t i = 0; i < src_dim; i++) {
+              if (render_labels_[i] == 1) {
+                im_[i*3] = (uint8_t)std::max<int16_t>(0, 
+                  (int16_t)im_[i*3] - 100);
+                im_[i*3 + 1] = (uint8_t)std::min<int16_t>(255, 
+                  (int16_t)im_[i*3] + 100);
+                im_[i*3 + 2] = (uint8_t)std::max<int16_t>(0, 
+                  (int16_t)im_[i*3] - 100);
+              }
             }
           }
         }
 
-        FlipImage<uint8_t>(im_flipped_, im_, src_width, src_height, 3);
+        if (kinect_output == OUTPUT_CONVNET_DEPTH) {
+          FlipImage<uint8_t>(convnet_im_flipped_, convnet_im_, 
+            HN_IM_SIZE, HN_IM_SIZE, 3);
+        } else {
+          FlipImage<uint8_t>(im_flipped_, im_, src_width, src_height, 3);
+        }
 
         bool render_convnet_points, detect_pose;
         GET_SETTING("detect_pose", bool, detect_pose);
         GET_SETTING("render_convnet_points", bool, render_convnet_points);
         if (render_convnet_points && detect_pose) {
-          kinect_->hand_net()->image_generator()->annotateFeatsToKinectImage(
-            im_flipped_, kinect_->hand_net()->coeff_convnet());
+          if (kinect_output == OUTPUT_CONVNET_DEPTH) {
+            kinect_->hand_net()->image_generator()->annotateFeatsToHandImage(
+              convnet_im_flipped_, kinect_->hand_net()->coeff_convnet());
+          } else {
+            kinect_->hand_net()->image_generator()->annotateFeatsToKinectImage(
+              im_flipped_, kinect_->hand_net()->coeff_convnet());
+          }
         }
 
-        background_tex_->flagDirty();
+        if (kinect_output == OUTPUT_CONVNET_DEPTH) {
+          convnet_background_tex_->flagDirty();
+          Renderer::g_renderer()->setBackgroundTexture(convnet_background_tex_);
+        } else {
+          background_tex_->flagDirty();
+          Renderer::g_renderer()->setBackgroundTexture(background_tex_);
+        }
+
       }
 
       // Update camera based on real-time inputs
@@ -327,6 +380,10 @@ namespace app {
       GL_UNSIGNED_BYTE, (unsigned char*)im_flipped_, false,
       TextureWrapMode::TEXTURE_CLAMP, TextureFilterMode::TEXTURE_LINEAR, 
       false);
+    convnet_background_tex_ = new Texture(GL_RGB, HN_IM_SIZE, HN_IM_SIZE, 
+      GL_RGB, GL_UNSIGNED_BYTE, (unsigned char*)convnet_im_flipped_, false,
+      TextureWrapMode::TEXTURE_CLAMP, TextureFilterMode::TEXTURE_NEAREST, 
+      false);
 
     // Transfer ownership of the texture to the renderer
     Renderer::g_renderer()->setBackgroundTexture(background_tex_);
@@ -339,6 +396,8 @@ namespace app {
       ui::UIEnumVal(OUTPUT_DEPTH, "Depth"));
     ui->addSelectboxItem("kinect_output", 
       ui::UIEnumVal(OUTPUT_HAND_DETECTOR_DEPTH, "Hand Detector Depth"));
+    ui->addSelectboxItem("kinect_output", 
+      ui::UIEnumVal(OUTPUT_CONVNET_DEPTH, "Convnet Depth"));
     ui->addCheckbox("render_kinect_fps", "Render Kinect FPS");
     ui->addCheckbox("crop_depth_to_rgb", "Crop depth to RGB");
     ui->addCheckbox("continuous_snapshot", "Save continuous video stream");

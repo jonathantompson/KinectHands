@@ -10,6 +10,7 @@
 #include "kinect_interface/open_ni_funcs.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"  // for GDT_MAX_DIST
 #include "kinect_interface/hand_net/spatial_contrastive_normalization.h"
+#include "kinect_interface/hand_net/spatial_subtractive_normalization.h"
 #include "kinect_interface/hand_net/float_tensor.h"
 #include "jtil/image_util/image_util.h"
 #include "jtil/renderer/colors/colors.h"
@@ -46,8 +47,8 @@ namespace hand_net {
     im_temp2_ = NULL;
     im_temp_double_ = NULL;
     num_banks_ = num_banks;
-    contrast_norm_module_ = NULL;
-    contrast_norm_module_input_ = NULL;
+    norm_module_ = NULL;
+    norm_module_input_ = NULL;
     initHandImageData();
   }
 
@@ -61,18 +62,18 @@ namespace hand_net {
     SAFE_DELETE_ARR(im_temp1_);
     SAFE_DELETE_ARR(im_temp2_);
     SAFE_DELETE_ARR(im_temp_double_);
-    if (contrast_norm_module_) {
+    if (norm_module_) {
       for (int32_t i = 0; i < num_banks_; i++) {
-        SAFE_DELETE(contrast_norm_module_[i]);
+        SAFE_DELETE(norm_module_[i]);
       }
     }
-    SAFE_DELETE_ARR(contrast_norm_module_);
-    if (contrast_norm_module_input_) {
+    SAFE_DELETE_ARR(norm_module_);
+    if (norm_module_input_) {
       for (int32_t i = 0; i < num_banks_; i++) {
-        SAFE_DELETE(contrast_norm_module_input_[i]);
+        SAFE_DELETE(norm_module_input_[i]);
       }
     }
-    SAFE_DELETE_ARR(contrast_norm_module_input_);
+    SAFE_DELETE_ARR(norm_module_input_);
   }
 
   void HandImageGenerator::initHandImageData() {
@@ -102,15 +103,15 @@ namespace hand_net {
     }
 #endif
 
-    contrast_norm_module_ = new SpatialContrastiveNormalization*[num_banks_];
-    contrast_norm_module_input_ = new FloatTensor*[num_banks_];
+    norm_module_ = new TorchStage*[num_banks_];
+    norm_module_input_ = new FloatTensor*[num_banks_];
     im_sizeu = HN_IM_SIZE;
     im_sizev = HN_IM_SIZE;
     for (int32_t i = 0; i < num_banks_; i++) {
       FloatTensor* kernel = FloatTensor::ones1D(HN_RECT_KERNEL_SIZE);
-      contrast_norm_module_input_[i] = 
+      norm_module_input_[i] = 
         new FloatTensor(Int4(im_sizeu, im_sizev, 1, 1));
-      contrast_norm_module_[i] = new SpatialContrastiveNormalization(kernel);
+      norm_module_[i] = new SpatialSubtractiveNormalization(*kernel);
       delete kernel;
       im_sizeu /= 2;
       im_sizev /= 2;
@@ -238,12 +239,29 @@ namespace hand_net {
     float* src = hand_image_;
     for (int32_t i = 0; i < num_banks_; i++) {
       // Apply local contrast normalization
-      memcpy(contrast_norm_module_input_[i]->data(), src, 
-        w * h * sizeof(contrast_norm_module_input_[i]->data()[0]));
-      contrast_norm_module_[i]->forwardProp(*contrast_norm_module_input_[i], 
+      memcpy(norm_module_input_[i]->data(), src, 
+        w * h * sizeof(norm_module_input_[i]->data()[0]));
+      norm_module_[i]->forwardProp(*norm_module_input_[i], 
         *tp);
-      memcpy(dst, ((FloatTensor*)contrast_norm_module_[i]->output)->data(), 
+      memcpy(dst, ((FloatTensor*)norm_module_[i]->output)->data(), 
         w * h * sizeof(dst[0]));
+
+      // Now subtract by the GLOBAL std
+      float sum = 0;
+      float sum_sqs = 0;
+      for (int32_t j = 0; j < w * h; j++) {
+        sum += dst[j];
+        sum_sqs += dst[j] * dst[j];
+      }
+      // Normalize
+      sum *= (1.0f / (float)(w * h));
+      sum_sqs *= (1.0f / (float)(w * h));
+      float var = sqrtf(sum_sqs - sum*sum);
+      float scale_fact = 1.0f / var;
+      for (int32_t j = 0; j < w * h; j++) {
+        dst[j] *= scale_fact;
+      }
+
       if (i < (num_banks_ - 1)) {
         // Iterate the dst, coeff and src pointers
         src = &src[w * h];

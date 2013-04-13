@@ -267,6 +267,8 @@ namespace kinect_interface {
 
     checkOpenNIRC(device_->setDepthColorSyncEnabled(true),
       "Failed to set depth/color sync");
+
+    std::cout << "Finished initializaing OpenNI device" << std::endl;
   }
 
   openni::VideoMode KinectInterface::findMaxResYFPSMode(

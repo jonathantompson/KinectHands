@@ -251,8 +251,6 @@ namespace hand_fit {
       bspheres_.pushBack(cur_sphere);
     }
   }
-  
-  const float finger_twist[4] = {-0.1f, -0.5f, 0.0f, -0.1f};
 
   void HandGeometryMesh::updateMatrices(const float* coeff) {
     FloatQuat cur_rot_quat;
@@ -278,17 +276,26 @@ namespace hand_fit {
 
     // Set the finger bones
     for (uint32_t i = 0; i < 4; i++) {
+      float theta, phi, psi;
+      // Root
+      theta = coeff[F0_ROOT_THETA + i * FINGER_NUM_COEFF];
+      phi = coeff[F0_ROOT_PHI + i * FINGER_NUM_COEFF];
+      psi = 0;
+      mat = bones_in_file_->bones[bone_finger_1_index_[i]]->getNode()->mat();
+      Float4x4::euler2RotMat(mat_tmp3, psi, theta, phi);
+      Float4x4::mult(*mat, rest_transforms_[bone_finger_1_index_[i]], mat_tmp3);
+
       // K1 base
-      float theta = coeff[F0_THETA + i * FINGER_NUM_COEFF];
-      float phi = coeff[F0_PHI + i * FINGER_NUM_COEFF];
-      float psi = coeff[F0_TWIST + i];
+      theta = coeff[F0_THETA + i * FINGER_NUM_COEFF];
+      phi = coeff[F0_PHI + i * FINGER_NUM_COEFF];
+      psi = coeff[F0_TWIST + i];
       mat = bones_in_file_->bones[bone_finger_2_index_[i]]->getNode()->mat();
       Float4x4::euler2RotMat(mat_tmp3, psi, theta, phi);
       Float4x4::mult(*mat, rest_transforms_[bone_finger_2_index_[i]], mat_tmp3);
       mat->rightMultScale(1.0f, 1.0f + coeff[F0_LENGTH + i], 1.0f);  // Scale this node
 
       mat = bones_in_file_->bones[bone_finger_3_index_[i]]->getNode()->mat();
-      float k2_theta = coeff[F0_KNUCKLE_CURL + i * FINGER_NUM_COEFF];
+      float k2_theta = coeff[F0_KNUCKLE_MID + i * FINGER_NUM_COEFF];
       Float4x4::rotateMatXAxis(mat_tmp1, k2_theta);
       const Float4x4& bone_mid = rest_transforms_[bone_finger_3_index_[i]];
       Float3 bone_mid_pos;
@@ -302,6 +309,8 @@ namespace hand_fit {
       mat->rightMultScale(1.0f, 1.0f + coeff[F0_LENGTH + i], 1.0f);  // Scale this node
 
       mat = bones_in_file_->bones[bone_finger_4_index_[i]]->getNode()->mat();
+      float k3_theta = coeff[F0_KNUCKLE_END + i * FINGER_NUM_COEFF];
+      Float4x4::rotateMatXAxis(mat_tmp1, k3_theta);
       const Float4x4& bone_tip = rest_transforms_[bone_finger_4_index_[i]];
       Float3 bone_tip_pos;
       Float4x4::getTranslation(bone_tip_pos, bone_tip);

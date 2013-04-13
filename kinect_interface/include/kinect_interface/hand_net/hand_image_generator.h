@@ -32,6 +32,7 @@ namespace hand_net {
 
   class FloatTensor;
   class SpatialContrastiveNormalization;
+  class SpatialSubtractiveNormalization;
   
   class HandImageGenerator {
   public:
@@ -71,8 +72,8 @@ namespace hand_net {
     float* im_temp1_;  // TO DO: Do we need all this temporary data?
     float* im_temp2_;
     double* im_temp_double_;
-    SpatialContrastiveNormalization** contrast_norm_module_;  // One per bank
-    FloatTensor** contrast_norm_module_input_;
+    TorchStage** norm_module_;  // One per bank
+    FloatTensor** norm_module_input_;
 
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in, 
       const float* synthetic_depth = NULL);

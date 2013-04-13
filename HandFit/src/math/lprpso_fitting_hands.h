@@ -81,7 +81,7 @@ namespace math {
     data_str::VectorManaged<Eigen::MatrixXf> tiled_coeffs;  // size = 8 x 8
     data_str::Vector<float> tiled_residues;  // size = 8 x 8
 
-    SwarmNode* swarm_;
+    SwarmNode** swarm_;
     SwarmNode** ordered_swarm_;
 
     static MERSINE_TWISTER_ENG eng;

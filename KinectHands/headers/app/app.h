@@ -12,6 +12,7 @@
 #include <random>
 #include "jtil/jtil.h"
 #include "kinect_interface/kinect_interface.h"
+#include "kinect_interface/hand_net/hand_image_generator.h"  // for HN_IM_SIZE
 #include "kinect_interface/hand_net/hand_net.h"  // for HandCoeffConvnet
 
 #define NUM_PT_LIGHTS 128
@@ -32,7 +33,8 @@ namespace app {
   typedef enum {
     OUTPUT_RGB = 0,
     OUTPUT_DEPTH = 1,
-    OUTPUT_HAND_DETECTOR_DEPTH = 2
+    OUTPUT_HAND_DETECTOR_DEPTH = 2,
+    OUTPUT_CONVNET_DEPTH = 3,
   } KinectOutput;
 
   typedef enum {
@@ -88,14 +90,18 @@ namespace app {
     NORM_DIST<float>* rand_norm_;
     UNIF_DIST<float>* rand_uni_;
 
-    jtil::renderer::Texture* background_tex_;  // not owned here
+    jtil::renderer::Texture* background_tex_;
+    jtil::renderer::Texture* convnet_background_tex_;  // smaller dimension
     uint8_t rgb_[src_dim * 3];
     uint8_t labels_[src_dim];
     uint8_t render_labels_[src_dim];
     int16_t depth_[src_dim];
     uint16_t hand_detector_depth_[src_dim];
+    float convnet_depth_[HN_IM_SIZE * HN_IM_SIZE];
     uint8_t im_[src_dim * 3];
     uint8_t im_flipped_[src_dim * 3];
+    uint8_t convnet_im_[HN_IM_SIZE * HN_IM_SIZE * 3];
+    uint8_t convnet_im_flipped_[HN_IM_SIZE * HN_IM_SIZE * 3];
     float coeff_convnet_[kinect_interface::hand_net::HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
     jtil::math::Int4 hand_pos_wh_;  // From hand image generator
     uint8_t* disk_im_;  // Used when saving video stream to disk

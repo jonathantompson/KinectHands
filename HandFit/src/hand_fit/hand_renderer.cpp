@@ -976,9 +976,21 @@ namespace hand_fit {
     Float3 vec;
     for (uint32_t i = 0; i < num_spheres; i++) {
       for (uint32_t j = i+1; j < num_spheres; j++) {
-        uint32_t objA_finger = i / NSPH_PER_FING;
+        uint32_t objA_finger = i / NSPH_PER_FING;  // Which finger
         uint32_t objB_finger = j / NSPH_PER_FING;
-        if (objA_finger != objB_finger) {
+        uint32_t objA_sphere = i % NSPH_PER_FING;  // which sphere on the finger
+        uint32_t objB_sphere = j % NSPH_PER_FING;
+        // ignore penetration within the same finger
+        bool perform_test = objA_finger != objB_finger; 
+        if (objA_finger == 5) {  // Palm
+          // Ignore interpenetrations with the base finger and any palm sphere
+          perform_test = perform_test && (objB_sphere != 5);
+        }
+        if (objB_finger == 5) {  // Palm
+          // Ignore interpenetrations with the base finger and any palm sphere
+          perform_test = perform_test && (objA_sphere != 5);
+        }
+        if (perform_test) {
           BoundingSphere* objA = bsph_[i];
           BoundingSphere* objB = bsph_[j];
           Float3::sub(vec, *objA->transformed_center(), *objB->transformed_center());

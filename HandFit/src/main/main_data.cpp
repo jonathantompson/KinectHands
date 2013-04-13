@@ -51,35 +51,40 @@
 // *************************************************************
 // ******************* CHANGEABLE PARAMETERS *******************
 // *************************************************************
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Added
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")  // Added
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")  // Added
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")  // Added
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")  // Added
-#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Added
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Added
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Added
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Added *
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")  // Added *
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")  // Added *
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")  // Added *
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")  // Added *
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Added *
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Added *
+#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Added
 
-#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN_synthetic/") 
+#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN_test_synthetic/") 
+
+#define LOAD_OLD_MODEL  // Predates primesense 1.09 data --> Using Kinect
 
 // #define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
 #define SAVE_FILES  // Only enabled when we're not loading processed images
 #define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
                               // HandForests, but save synthetic data (only 
-                              // takes effect when not loading processed images
+                              // takes effect when not loading processed images)
+
+//#define SAVE_DEPTH_IMAGES  // Save the regular depth files --> Only when SAVE_FILES defined
 #define SAVE_HPF_IMAGES  // Save the hpf files --> Only when SAVE_FILES defined
+
 #if !defined(LOAD_PROCESSED_IMAGES) && defined(SAVE_FILES)
   #define DESIRED_PLAYBACK_FPS 100000.0f
 #else
   #define DESIRED_PLAYBACK_FPS 30.0f  // fps
 #endif
-#define FRAME_TIME (1.0f / DESIRED_PLAYBACK_FPS)
 #define NUM_WORKER_THREADS 6
 #define DISPLAY_HPF_IMAGE
 // *************************************************************
 // *************** END OF CHANGEABLE PARAMETERS ****************
 // *************************************************************
 
+#define FRAME_TIME (1.0f / DESIRED_PLAYBACK_FPS)
 // Some image defines, you shouldn't have to change these
 #if defined(__APPLE__)
 #define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
@@ -129,7 +134,7 @@ bool is_running = true;
 bool continuous_playback = false;
 bool found_hand = false;
 
-// Hand model
+// Hand modelNUM_PARAMETERS
 HandModel* l_hand = NULL;  // Not using this yet
 HandModel* r_hand = NULL;
 HandRenderer* hand_renderer = NULL;
@@ -149,8 +154,6 @@ int32_t cur_image = 0;
 GeometryColoredPoints* geometry_points= NULL;
 bool render_depth = true;
 int playback_step = 1;
-float r_modified_coeff[HAND_NUM_COEFF];
-float l_modified_coeff[HAND_NUM_COEFF];
 Texture* tex = NULL;
 uint8_t tex_data_hpf[HN_IM_SIZE * HN_IM_SIZE * 3];
 uint8_t tex_data_depth[HN_IM_SIZE * HN_IM_SIZE * 3];
@@ -224,7 +227,11 @@ void loadCurrentImage() {
   // Load in the image
   image_io->LoadCompressedImage(full_filename, 
     cur_depth_data, cur_label_data, cur_image_rgb);
+#ifdef LOAD_OLD_MODEL
+  DepthImagesIO::convertKinectSingleImageToXYZ(cur_xyz_data, cur_depth_data);
+#else 
   DepthImagesIO::convertSingleImageToXYZ(cur_xyz_data, cur_depth_data);
+#endif
   found_hand = hand_detect->findHandLabels(cur_depth_data, 
     cur_xyz_data, HDLabelMethod::HDFloodfill, label);
 
@@ -233,10 +240,11 @@ void loadCurrentImage() {
 #ifdef LOAD_PROCESSED_IMAGES
   src_file = src_file.substr(10, src_file.length());
 #endif
+#ifdef LOAD_OLD_MODEL
+  r_hand->loadOldModelFromFile(DIR, string("coeffr_") + src_file);
+#else
   r_hand->loadFromFile(DIR, string("coeffr_") + src_file);
-  // Don't bother loading it, it eats into our disk IO anyway.
-  //l_hand->loadFromFile(DIR, string("coeffl_") + src_file);
-  HandModel::scale = r_hand->local_scale();
+#endif
   if (cur_image % 100 == 0) {
     cout << "loaded image " << cur_image+1 << " of " << im_files.size() << endl;
   }
@@ -258,7 +266,7 @@ void loadCurrentImage() {
 #ifdef SAVE_SYNTHETIC_IMAGE
   HandModel* hands[2];
   memcpy(coeffs.data(), r_hand->coeff(), 
-    HAND_NUM_COEFF * sizeof(coeffs.data()[0]));
+    NUM_PARAMETERS * sizeof(coeffs.data()[0]));
   hands[0] = r_hand;
   hands[1] = NULL;
   hand_renderer->drawDepthMap(coeffs, hands, num_hands);
@@ -296,12 +304,14 @@ void saveFrame() {
 
   if (found_hand) {
     // Save the cropped image to file:
+#if defined(SAVE_DEPTH_IMAGES)
     jtil::file_io::SaveArrayToFile<float>(hand_image_generator_->hand_image(),
       hand_image_generator_->size_images(), DST_IM_DIR + 
       string("processed_") + im_files[cur_image]);
+#endif
 
     // Save the HPF images to file:
-#if defined SAVE_HPF_IMAGES
+#if defined(SAVE_HPF_IMAGES)
     jtil::file_io::SaveArrayToFile<float>(hand_image_generator_->hpf_hand_image(),
       hand_image_generator_->size_images(), DST_IM_DIR + std::string("hpf_processed_") + 
       im_files[cur_image]);
@@ -561,7 +571,7 @@ int main(int argc, char *argv[]) {
     }
     hand_renderer = new HandRenderer(render, fit_left, fit_right);
     fit = new HandFit(hand_renderer, num_hands);
-    coeffs.resize(1, HAND_NUM_COEFF * num_hands);
+    coeffs.resize(1, NUM_PARAMETERS * num_hands);
     r_hand = new HandModel(HandType::RIGHT);
     l_hand = new HandModel(HandType::LEFT);
 
@@ -569,7 +579,7 @@ int main(int argc, char *argv[]) {
     std::cout << std::endl << "Final image size after processing is ";
     std::cout << (HN_IM_SIZE) << std::endl;
 
-    hand_detect = new HandDetector();
+    hand_detect = new HandDetector(tp);
     hand_detect->init(src_width, src_height, KINECT_HANDS_ROOT +
       FOREST_DATA_FILENAME);
     hand_image_generator_ = new HandImageGenerator(HN_DEFAULT_NUM_CONV_BANKS);
