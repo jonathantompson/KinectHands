@@ -170,7 +170,7 @@ namespace hand_net {
     const float* hpf_hand_image() const;
     const float* coeff_convnet() const { return coeff_convnet_; }
     float* coeff_convnet() { return coeff_convnet_; }
-    const HandImageGenerator* image_generator() const { return image_generator_; }
+    HandImageGenerator* image_generator() const { return image_generator_; }
     const float* hand_image() const;
     const int32_t size_images() const;
     const jtil::math::Float3& uvd_com() const;

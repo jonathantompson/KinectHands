@@ -54,6 +54,7 @@ namespace kinect_interface {
     void findDevices(jtil::data_str::VectorManaged<char*>& devices);
     
     const uint8_t* rgb() const;  // NOT THREAD SAFE!  Use lockData()
+    const float* xyz() const;  // NOT THREAD SAFE!  Use lockData()
     const uint16_t* depth() const;  // NOT THREAD SAFE!  Use lockData()
     const uint8_t* labels() const { return labels_; }  // NOT THREAD SAFE!  Use lockData()
     const float* coeff_convnet() const;  // NOT THREAD SAFE!  Use lockData()

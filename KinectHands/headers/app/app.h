@@ -35,6 +35,7 @@ namespace app {
     OUTPUT_DEPTH = 1,
     OUTPUT_HAND_DETECTOR_DEPTH = 2,
     OUTPUT_CONVNET_DEPTH = 3,
+    OUTPUT_HAND_NORMALS = 4,
   } KinectOutput;
 
   typedef enum {
@@ -96,6 +97,7 @@ namespace app {
     uint8_t labels_[src_dim];
     uint8_t render_labels_[src_dim];
     int16_t depth_[src_dim];
+    float normals_xyz_[src_dim * 3];
     uint16_t hand_detector_depth_[src_dim];
     float convnet_depth_[HN_IM_SIZE * HN_IM_SIZE];
     uint8_t im_[src_dim * 3];

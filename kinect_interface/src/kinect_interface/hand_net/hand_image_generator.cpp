@@ -39,7 +39,8 @@ using namespace jtil::data_str;
 namespace kinect_interface {
 namespace hand_net {
  
-  HandImageGenerator::HandImageGenerator(const int32_t num_banks) {
+  HandImageGenerator::HandImageGenerator(const int32_t num_banks) : 
+    norm_method_(SimpleNormalApproximation){
     hpf_hand_image_ = NULL;
     size_images_ = 0;
     hand_image_ = NULL;
@@ -49,6 +50,8 @@ namespace hand_net {
     num_banks_ = num_banks;
     norm_module_ = NULL;
     norm_module_input_ = NULL;
+    hand_mesh_normals_.capacity(src_dim);
+    hand_mesh_vertices_.capacity(src_dim);
     initHandImageData();
   }
 
@@ -331,6 +334,193 @@ namespace hand_net {
         im[dst_index * 3+1] = g;
         im[dst_index * 3+2] = b;
       }
+    }
+  }
+
+  void HandImageGenerator::createHandMeshVertices(const float* xyz) {
+    hand_mesh_vertices_.resize(src_dim);
+    for (uint32_t i = 0; i < src_dim; i++) {
+      hand_mesh_vertices_[i].set(xyz[i*3], xyz[i*3 + 1], xyz[i*3 + 2]);
+    }
+  }
+
+  void HandImageGenerator::createHandMeshIndices(const uint8_t* labels) {
+    hand_mesh_indices_.resize(0);  // Set the size to zero without deallocation
+    uint32_t verts_case;
+    uint32_t p0, p1, p2, p3;
+  
+    // Populate the mesh data with faces
+    // Step through the UV map examining each quad of 4 neighbouring vertices.
+    // If 3 or more of those vertices are part of the hand, then add the
+    // corresponding face.
+    for (uint32_t v = 0; v < (src_height-1); v++) {
+      for (uint32_t u = 0; u < (src_width-1); u++) {
+        p0 = v*src_width + u;          // top left
+        p1 = v*src_width + (u+1);      // top right
+        p2 = (v+1)*src_width + u;      // bottom left
+        p3 = (v+1)*src_width + (u+1);  // bottom right
+      
+        // Early out for a large number of quads
+        if (labels[p0] == 0 && labels[p1] == 0) {
+          continue;
+        }
+      
+        // For each box of 4 vertices, if 3 of them have valid points, add
+        // a triangle, if 4 of them have vertices add 4 triangles
+        verts_case = 0;
+        if (labels[p0] != 0) {
+          verts_case = verts_case | 1;
+        }
+        if (labels[p1] != 0) {
+          verts_case = verts_case | 2;
+        }
+        if (labels[p2] != 0) {
+          verts_case = verts_case | 4;
+        }
+        if (labels[p3] != 0) {
+          verts_case = verts_case | 8;
+        } 
+      
+        // Recall: Front face is counter-clockwise
+        switch(verts_case) { 
+          case 7:  // 0111 = p2 & p1 & p0
+            hand_mesh_indices_.pushBack(p0);
+            hand_mesh_indices_.pushBack(p2);
+            hand_mesh_indices_.pushBack(p1);
+            break;
+          case 11:  // 1011 = p3 & p1 & p0
+            hand_mesh_indices_.pushBack(p0);
+            hand_mesh_indices_.pushBack(p3);
+            hand_mesh_indices_.pushBack(p1);              
+            break;
+          case 13:  // 1101 = p3 & p2 & p0
+            hand_mesh_indices_.pushBack(p0);
+            hand_mesh_indices_.pushBack(p2);
+            hand_mesh_indices_.pushBack(p3);               
+            break;      
+          case 14:  // 1110 = p3 & p2 & p1
+            hand_mesh_indices_.pushBack(p1);
+            hand_mesh_indices_.pushBack(p2);
+            hand_mesh_indices_.pushBack(p3);                
+            break;   
+          case 15:  // 1111 = p3 & p2 & p1 & p0
+            // THIS METHOD JUST SPLITS EVERY QUAD DOWN THE SAME DIAGONAL
+            hand_mesh_indices_.pushBack(p0);
+            hand_mesh_indices_.pushBack(p2);
+            hand_mesh_indices_.pushBack(p1);
+            hand_mesh_indices_.pushBack(p2);
+            hand_mesh_indices_.pushBack(p3);
+            hand_mesh_indices_.pushBack(p1);         
+            break;
+          
+        }
+      }
+    }
+
+#if defined(DEBUG) || defined(_DEBUG)
+    if (hand_mesh_indices_.size() % 3 != 0) {
+      printf("ERROR: sizeof(indices) must be a multiple of 3\n");
+      exit(-1);
+    }
+#endif 
+  }
+
+  void HandImageGenerator::createHandMeshNormals() {
+    hand_mesh_normals_.resize(src_dim);
+    
+    // Set all the normals as 0
+    for (uint32_t i = 0; i < hand_mesh_normals_.size(); i++) {
+      hand_mesh_normals_[i].zeros();
+    }
+    
+    // For each face in the index array, calculate its normal and add it to the
+    // normal accumulation
+    Float3 cur_normal;
+    for (uint32_t i = 0; i < hand_mesh_indices_.size(); i+=3) {
+      uint32_t v1 = hand_mesh_indices_[i];
+      uint32_t v2 = hand_mesh_indices_[i+1];
+      uint32_t v3 = hand_mesh_indices_[i+2];
+      
+      switch (norm_method_) {
+      case SimpleNormalApproximation:
+        // METHOD 1 --> FAST
+        // If you sum the normal weighted by the tri area, then you get a better
+        // average normal.  More importantly, if you calculate the normal by 
+        // cross product then you get a normal whos lenght is 2 x the triangle 
+        // area, so summing these gives us the correct weights.
+        calcNormalUnNormalized(cur_normal, hand_mesh_vertices_[v1], 
+          hand_mesh_vertices_[v2], hand_mesh_vertices_[v3]);
+        Float3::add(hand_mesh_normals_[v1], hand_mesh_normals_[v1], cur_normal);
+        Float3::add(hand_mesh_normals_[v2], hand_mesh_normals_[v2], cur_normal);
+        Float3::add(hand_mesh_normals_[v3], hand_mesh_normals_[v3], cur_normal);
+        break;
+      case RobustNormalApproximation:
+        // METHOD 2 --> EXPENSIVE
+        // Weight the normals by the angle they form at the vertex.
+        calcNormalUnNormalized(cur_normal, hand_mesh_vertices_[v1], 
+          hand_mesh_vertices_[v2], hand_mesh_vertices_[v3]);
+        // V2 Angle
+        float angle = calcAngleSafe(hand_mesh_vertices_[v1], 
+          hand_mesh_vertices_[v2], hand_mesh_vertices_[v3]);
+        Float3* norm = hand_mesh_normals_.at(v2);
+        norm->m[0] += (cur_normal[0] * angle);
+        norm->m[1] += (cur_normal[1] * angle);
+        norm->m[2] += (cur_normal[2] * angle);
+        // V1 Angle
+        angle = calcAngleSafe(hand_mesh_vertices_[v3], hand_mesh_vertices_[v1], 
+          hand_mesh_vertices_[v2]);
+        norm = hand_mesh_normals_.at(v1);
+        norm->m[0] += (cur_normal[0] * angle);
+        norm->m[1] += (cur_normal[1] * angle);
+        norm->m[2] += (cur_normal[2] * angle);
+        // V3 Angle
+        angle = calcAngleSafe(hand_mesh_vertices_[v2], hand_mesh_vertices_[v3], 
+          hand_mesh_vertices_[v1]);
+        norm = hand_mesh_normals_.at(v3);
+        norm->m[0] += (cur_normal[0] * angle);
+        norm->m[1] += (cur_normal[1] * angle);
+        norm->m[2] += (cur_normal[2] * angle);
+        break;
+      }
+    }
+    
+    for (uint32_t i = 0; i < hand_mesh_normals_.size(); i++) { 
+      // No need to divide by the number of faces...  Just normalize
+      hand_mesh_normals_[i].normalize();
+    }
+  }
+
+  void HandImageGenerator::calcNormalUnNormalized(jtil::math::Float3& normal, 
+    const jtil::math::Float3& pt0, const jtil::math::Float3& pt1, 
+    const jtil::math::Float3& pt2) {
+    Float3 tmp1_, tmp2_;
+    Float3::sub(tmp1_, pt0, pt1);
+    Float3::sub(tmp2_, pt2, pt1);
+    Float3::cross(normal, tmp1_, tmp2_);
+  }
+
+  float HandImageGenerator::calcAngleSafe(const Float3& pt0, const Float3& pt1, 
+    const Float3& pt2)  {
+    Float3 tmp1_, tmp2_;
+    Float3::sub(tmp1_, pt0, pt1);
+    Float3::sub(tmp2_, pt2, pt1);
+    tmp1_.normalize();
+    tmp2_.normalize();
+    float dot = Float3::dot(tmp1_, tmp2_);
+    dot = dot > 1 ? 1 : dot;
+    dot = dot < -1 ? -1 : dot;
+    return acosf(dot);
+  }
+
+  void HandImageGenerator::calcNormalImage(float* normals_xyz,
+    const float* xyz, const uint8_t* labels) {
+    createHandMeshVertices(xyz);
+    createHandMeshIndices(labels);
+    createHandMeshNormals();
+    for (uint32_t i = 0; i < src_dim; i++) {
+      normals_xyz[i*3] = hand_mesh_normals_[i][0];
+      normals_xyz[i*3 + 1] = hand_mesh_normals_[i][1];
+      normals_xyz[i*3 + 2] = hand_mesh_normals_[i][2];
     }
   }
 

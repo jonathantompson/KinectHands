@@ -14,6 +14,7 @@
 #include "kinect_interface/depth_images_io.h"  // for src_dim
 #include "kinect_interface/hand_net/hand_net.h"  // for src_dim
 #include "jtil/threading/callback.h"
+#include "jtil/data_str/vector.h"
 
 #define HN_SRC_IM_SIZE 256  // U, V size (before downsampling)
 #define HN_IM_SIZE 96  // Size after downsampling
@@ -26,6 +27,7 @@
 #define HN_USE_RECT_LPF_KERNEL  // Otherwise use gaussian --> Clemont recommends rect.
 
 namespace jtil { namespace threading { class ThreadPool; } }
+namespace jtil { namespace data_str { template <typename T> class Vector; } }
 
 namespace kinect_interface {
 namespace hand_net {
@@ -33,6 +35,11 @@ namespace hand_net {
   class FloatTensor;
   class SpatialContrastiveNormalization;
   class SpatialSubtractiveNormalization;
+
+  typedef enum {
+    SimpleNormalApproximation,  // average normals around vert weighted by area
+    RobustNormalApproximation,  // average normals weighted by angle at the vert
+  } NormalApproximationMethod;
   
   class HandImageGenerator {
   public:
@@ -49,10 +56,13 @@ namespace hand_net {
       const bool create_hpf_image, jtil::threading::ThreadPool* tp, 
       const float* synthetic_depth = NULL);
 
-    void HandImageGenerator::annotateFeatsToKinectImage(uint8_t* im, 
+    void annotateFeatsToKinectImage(uint8_t* im,
       const float* coeff_convnet) const;  // 640 x 480
-    void HandImageGenerator::annotateFeatsToHandImage(uint8_t* im, 
+    void annotateFeatsToHandImage(uint8_t* im, 
       const float* coeff_convnet) const;  // 96 x 96
+
+    void calcNormalImage(float* normals_xyz, const float* xyz, 
+      const uint8_t* labels);
 
     // Getter methods
     const float* hpf_hand_image() { return hpf_hand_image_; }
@@ -74,6 +84,10 @@ namespace hand_net {
     double* im_temp_double_;
     TorchStage** norm_module_;  // One per bank
     FloatTensor** norm_module_input_;
+    jtil::data_str::Vector<int32_t> hand_mesh_indices_;
+    jtil::data_str::Vector<jtil::math::Float3> hand_mesh_vertices_;
+    jtil::data_str::Vector<jtil::math::Float3> hand_mesh_normals_;
+    const NormalApproximationMethod norm_method_;
 
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in, 
       const float* synthetic_depth = NULL);
@@ -83,6 +97,16 @@ namespace hand_net {
     void renderCrossToImageArr(const float* uv, uint8_t* im, const int32_t w, 
       const int32_t h, const int32_t rad, const int32_t color_ind,
       const jtil::math::Int4& hand_pos_wh) const;
+    void calcNormalUnNormalized(jtil::math::Float3& normal, 
+      const jtil::math::Float3& pt0, const jtil::math::Float3& pt1, 
+      const jtil::math::Float3& pt2);
+    float calcAngleSafe(const jtil::math::Float3& pt0, 
+      const jtil::math::Float3& pt1, const jtil::math::Float3& pt2);
+
+    // Create hand geometry from xyz + label data
+    void createHandMeshVertices(const float* xyz);  // Step 1
+    void createHandMeshIndices(const uint8_t* labels);  // Step 2
+    void createHandMeshNormals();  // Step 3
 
     // Non-copyable, non-assignable.
     HandImageGenerator(HandImageGenerator&);

@@ -868,26 +868,26 @@ namespace hand_fit {
     -0.700f,  // F0_ROOT_PHI
     -0.800f,  // F0_THETA
     -1.443f,  // F0_PHI
-    -1.800f,  // F0_KNUCKLE_MID  // Formally -1.363 4/12/2013
-    -1.800f,  // F0_KNUCKLE_END  // Formally -1.363 4/12/2013
+    -1.400f,  // F0_KNUCKLE_MID  // Formally -1.363 4/12/2013
+    -1.500f,  // F0_KNUCKLE_END  // Formally -1.363 4/12/2013
     -0.700f,  // F1_ROOT_THETA
     -0.700f,  // F1_ROOT_PHI
     -0.800f,  // F1_THETA
     -1.443f,  // F1_PHI
-    -1.563f,  // F1_KNUCKLE_MID  // Formally -1.363 4/12/2013
-    -1.563f,  // F1_KNUCKLE_END  // Formally -1.363 4/12/2013
+    -1.400f,  // F1_KNUCKLE_MID  // Formally -1.363 4/12/2013
+    -1.500f,  // F1_KNUCKLE_END  // Formally -1.363 4/12/2013
     -0.700f,  // F2_ROOT_THETA
     -0.700f,  // F2_ROOT_PHI
     -0.800f,  // F2_THETA
     -1.443f,  // F2_PHI
-    -1.800f,  // F2_KNUCKLE_MID  // Formally -1.363 4/12/2013
-    -1.800f,  // F2_KNUCKLE_END  // Formally -1.363 4/12/2013
+    -1.400f,  // F2_KNUCKLE_MID  // Formally -1.363 4/12/2013
+    -1.500f,  // F2_KNUCKLE_END  // Formally -1.363 4/12/2013
     -0.700f,  // F3_ROOT_THETA
     -0.700f,  // F3_ROOT_PHI
     -0.800f,  // F3_THETA
     -1.443f,  // F3_PHI
-    -1.800f,  // F3_KNUCKLE_MID  // Formally -1.363 4/12/2013
-    -1.800f,  // F3_KNUCKLE_END  // Formally -1.363 4/12/2013
+    -1.400f,  // F3_KNUCKLE_MID  // Formally -1.363 4/12/2013
+    -1.500f,  // F3_KNUCKLE_END  // Formally -1.363 4/12/2013
 #ifdef FIT_TWIST
     -0.300f,  // F0_TWIST
     -0.400f,  // F1_TWIST

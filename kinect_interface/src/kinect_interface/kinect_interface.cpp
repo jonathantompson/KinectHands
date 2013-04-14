@@ -517,6 +517,10 @@ namespace kinect_interface {
     return (uint8_t*)frames_[RGB]->getData(); 
   } 
 
+  const float* KinectInterface::xyz() const {
+    return pts_world_;
+  }
+
   const uint16_t* KinectInterface::depth() const { 
     return (uint16_t*)frames_[DEPTH]->getData(); 
   }

@@ -965,8 +965,8 @@ namespace hand_fit {
         Float3::sub(&vec, objA->transformed_center(), objB->transformed_center());
         float center_dist = vec.length();
         float min_dist = objA->transformed_radius() + objB->transformed_radius();
-        float sep_dist = center_dist - min_dist + INTERPENETRATION_ALLOWENCE;
-        if (sep_dist < 0) {
+        float sep_dist = center_dist - min_dist;
+        if (sep_dist < -INTERPENETRATION_ALLOWENCE) {
           total_penetration_distance += -sep_dist;
         }
       }
@@ -996,8 +996,8 @@ namespace hand_fit {
           Float3::sub(vec, *objA->transformed_center(), *objB->transformed_center());
           float center_dist = vec.length();
           float min_dist = objA->transformed_radius() + objB->transformed_radius();
-          float sep_dist = center_dist - min_dist + INTERPENETRATION_ALLOWENCE;
-          if (sep_dist < 0) {
+          float sep_dist = center_dist - min_dist;
+          if (sep_dist < -INTERPENETRATION_ALLOWENCE) {
             total_penetration_distance += -sep_dist;
           }
         }

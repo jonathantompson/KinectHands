@@ -186,6 +186,11 @@ namespace app {
             DT_DOWNSAMPLE);
         }
 
+        if (kinect_output == OUTPUT_HAND_NORMALS) {
+          kinect_->hand_net()->image_generator()->calcNormalImage(normals_xyz_,
+            kinect_->xyz(), kinect_->labels());
+        }
+
         memcpy(labels_, kinect_->labels(), sizeof(labels_[0]) * src_dim);
 
         int label_type_enum;
@@ -276,6 +281,13 @@ namespace app {
             convnet_im_[i*3] = val;
             convnet_im_[i*3+1] = val;
             convnet_im_[i*3+2] = val;
+          }
+          break;
+        case OUTPUT_HAND_NORMALS:
+          for (uint32_t i = 0; i < src_dim; i++) {
+            im_[i*3] = (uint8_t)(((normals_xyz_[i*3] + 1.0f) * 0.5f) * 255.0f);
+            im_[i*3+1] = (uint8_t)(((normals_xyz_[i*3+1] + 1.0f) * 0.5f) * 255.0f);
+            im_[i*3+2] = (uint8_t)(((normals_xyz_[i*3+2] + 1.0f) * 0.5f) * 255.0f);
           }
           break;
         default:
@@ -398,6 +410,8 @@ namespace app {
       ui::UIEnumVal(OUTPUT_HAND_DETECTOR_DEPTH, "Hand Detector Depth"));
     ui->addSelectboxItem("kinect_output", 
       ui::UIEnumVal(OUTPUT_CONVNET_DEPTH, "Convnet Depth"));
+    ui->addSelectboxItem("kinect_output",
+      ui::UIEnumVal(OUTPUT_HAND_NORMALS, "Hand Normals"));
     ui->addCheckbox("render_kinect_fps", "Render Kinect FPS");
     ui->addCheckbox("crop_depth_to_rgb", "Crop depth to RGB");
     ui->addCheckbox("continuous_snapshot", "Save continuous video stream");
