@@ -306,9 +306,12 @@ namespace app {
           break;
         case OUTPUT_HAND_NORMALS:
           for (uint32_t i = 0; i < src_dim; i++) {
-            im_[i*3] = (uint8_t)(((normals_xyz_[i*3] + 1.0f) * 0.5f) * 255.0f);
-            im_[i*3+1] = (uint8_t)(((normals_xyz_[i*3+1] + 1.0f) * 0.5f) * 255.0f);
-            im_[i*3+2] = (uint8_t)(((normals_xyz_[i*3+2] + 1.0f) * 0.5f) * 255.0f);
+            im_[i*3] = (uint8_t)(std::max<float>(0, normals_xyz_[i*3]) * 255.0f);
+            im_[i*3+1] = (uint8_t)(std::max<float>(0, normals_xyz_[i*3+1]) * 255.0f);
+            im_[i*3+2] = (uint8_t)(std::max<float>(0, -normals_xyz_[i*3+2]) * 255.0f);
+            //im_[i*3] = (uint8_t)(((normals_xyz_[i*3] + 1.0f) * 0.5f) * 255.0f);
+            //im_[i*3+1] = (uint8_t)(((normals_xyz_[i*3+1] + 1.0f) * 0.5f) * 255.0f);
+            //im_[i*3+2] = (uint8_t)(((normals_xyz_[i*3+2] + 1.0f) * 0.5f) * 255.0f);
           }
           break;
         case OUTPUT_HAND_FINGER_DETECTOR_IMAGE:

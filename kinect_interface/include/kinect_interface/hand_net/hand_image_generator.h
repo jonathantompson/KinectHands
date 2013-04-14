@@ -37,6 +37,7 @@ namespace hand_net {
   class SpatialSubtractiveNormalization;
 
   typedef enum {
+    BasicNormalApproximation,  // average normals (no weighting)
     SimpleNormalApproximation,  // average normals around vert weighted by area
     RobustNormalApproximation,  // average normals weighted by angle at the vert
   } NormalApproximationMethod;
@@ -84,7 +85,7 @@ namespace hand_net {
     double* im_temp_double_;
     TorchStage** norm_module_;  // One per bank
     FloatTensor** norm_module_input_;
-    jtil::data_str::Vector<int32_t> hand_mesh_indices_;
+    jtil::data_str::Vector<jtil::math::Int3> hand_mesh_indices_;
     jtil::data_str::Vector<jtil::math::Float3> hand_mesh_vertices_;
     jtil::data_str::Vector<jtil::math::Float3> hand_mesh_normals_;
     const NormalApproximationMethod norm_method_;
@@ -100,6 +101,8 @@ namespace hand_net {
     void calcNormalUnNormalized(jtil::math::Float3& normal, 
       const jtil::math::Float3& pt0, const jtil::math::Float3& pt1, 
       const jtil::math::Float3& pt2);
+    void calcNormal(jtil::math::Float3& normal, const jtil::math::Float3& pt0,
+      const jtil::math::Float3& pt1, const jtil::math::Float3& pt2);
     float calcAngleSafe(const jtil::math::Float3& pt0, 
       const jtil::math::Float3& pt1, const jtil::math::Float3& pt2);
 
