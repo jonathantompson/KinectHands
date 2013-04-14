@@ -10,9 +10,13 @@ function round(num)
   end
 end
 
-function VisualizeData(x, plot_labels)
-  local n_images = math.min(x.size(), 196)  -- 12 x 12
-  for j=1,num_hpf_banks do
+function VisualizeData(x, plot_labels, num_banks, n_tiles, zoom_factor)
+  plot_labels = plot_labels or 1
+  n_tiles = n_tiles or 10
+  num_banks = num_banks or 3
+  local n_images = math.min(x.size(), n_tiles * n_tiles)
+  zoom_factor = zoom_factor or 1
+  for j=1,num_banks do
     local im = {
       data = x.data[j][{{1,n_images}, {}, {}, {}}],
       labels = x.labels[{{1,n_images}, {}}]
@@ -46,6 +50,7 @@ function VisualizeData(x, plot_labels)
         end
       end
     end
-    image.display{image=im.data, padding=2, nrow=math.floor(math.sqrt(n_images)), zoom=(1*math.pow(2,j-1)), scaleeach=false}
+    image.display{image=im.data, padding=2, nrow=math.floor(math.sqrt(n_images)), 
+      zoom=zoom_factor*(1*math.pow(2,j-1)), scaleeach=false}
   end
 end
