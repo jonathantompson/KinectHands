@@ -8,6 +8,7 @@
 #include "app/app.h"
 #include "jtil/ui/ui.h"
 #include "kinect_interface/kinect_interface.h"
+#include "kinect_interface/open_ni_funcs.h"
 #include "kinect_interface/hand_detector/hand_detector.h"
 #include "kinect_interface/hand_net/hand_image_generator.h"
 #include "kinect_interface/hand_net/hand_model.h"  // for camera parameters
@@ -178,17 +179,13 @@ namespace app {
       bool update_tex = false;
       if (kinect_frame_number_ != kinect_->frame_number()) {
         memcpy(rgb_, kinect_->rgb(), sizeof(rgb_[0]) * src_dim * 3);
+        memcpy(xyz_, kinect_->xyz(), sizeof(xyz_[0]) * src_dim * 3);
         memcpy(depth_, kinect_->depth(), sizeof(depth_[0]) * src_dim);
         if (kinect_output == OUTPUT_HAND_DETECTOR_DEPTH) {
           image_util::UpsampleNoFiltering<uint16_t>(hand_detector_depth_, 
             (uint16_t*)kinect_->hand_detector()->depth_downsampled(), 
             src_width / DT_DOWNSAMPLE, src_height / DT_DOWNSAMPLE, 
             DT_DOWNSAMPLE);
-        }
-
-        if (kinect_output == OUTPUT_HAND_NORMALS) {
-          kinect_->hand_net()->image_generator()->calcNormalImage(normals_xyz_,
-            kinect_->xyz(), kinect_->labels());
         }
 
         memcpy(labels_, kinect_->labels(), sizeof(labels_[0]) * src_dim);
@@ -224,6 +221,30 @@ namespace app {
           kinect_fps_str_);
       }
       kinect_->unlockData();
+
+      if (kinect_output == OUTPUT_HAND_NORMALS || 
+        kinect_output == OUTPUT_HAND_FINGER_DETECTOR_IMAGE) {
+        kinect_->hand_net()->image_generator()->calcNormalImage(normals_xyz_,
+          xyz_, labels_);
+      }
+
+      if (kinect_output == OUTPUT_HAND_FINGER_DETECTOR_IMAGE) {
+        float new_pt[3];
+        const float finger_radius = 20.0f;
+        for (uint32_t i = 0; i < src_dim; i++) {
+          if (labels_[i] == 0) {
+            xyz_finger_center_[i*3] = 0;
+            xyz_finger_center_[i*3 + 1] = 0;
+            xyz_finger_center_[i*3 + 2] = 0;
+          } else {
+            xyz_finger_center_[i*3] = xyz_[i*3] - normals_xyz_[i*3] * finger_radius;
+            xyz_finger_center_[i*3+1] = xyz_[i*3+1] - normals_xyz_[i*3+1] * finger_radius;
+            xyz_finger_center_[i*3+2] = xyz_[i*3+2] - normals_xyz_[i*3+2] * finger_radius;
+          }
+        }
+        kinect_->openni_funcs()->convertWorldToDepthCoordinates(
+          xyz_finger_center_, uvd_finger_center_, src_dim);
+      }
 
       bool detect_pose;
       GET_SETTING("detect_pose", bool, detect_pose);
@@ -288,6 +309,19 @@ namespace app {
             im_[i*3] = (uint8_t)(((normals_xyz_[i*3] + 1.0f) * 0.5f) * 255.0f);
             im_[i*3+1] = (uint8_t)(((normals_xyz_[i*3+1] + 1.0f) * 0.5f) * 255.0f);
             im_[i*3+2] = (uint8_t)(((normals_xyz_[i*3+2] + 1.0f) * 0.5f) * 255.0f);
+          }
+          break;
+        case OUTPUT_HAND_FINGER_DETECTOR_IMAGE:
+          memcpy(im_, rgb_, sizeof(im_[0]) * src_dim * 3);
+          for (uint32_t i = 0; i < src_dim; i++) {
+            if (uvd_finger_center_[i*3+2] > EPSILON) {
+              float u =  uvd_finger_center_[i*3];
+              float v =  uvd_finger_center_[i*3+1];
+              uint32_t index = ((uint32_t)v) * src_width + ((uint32_t)u);
+              im_[index*3] = 255;
+              im_[index*3+1] = 255;
+              im_[index*3+2] = 255;
+            }
           }
           break;
         default:
@@ -412,6 +446,8 @@ namespace app {
       ui::UIEnumVal(OUTPUT_CONVNET_DEPTH, "Convnet Depth"));
     ui->addSelectboxItem("kinect_output",
       ui::UIEnumVal(OUTPUT_HAND_NORMALS, "Hand Normals"));
+    ui->addSelectboxItem("kinect_output",
+      ui::UIEnumVal(OUTPUT_HAND_FINGER_DETECTOR_IMAGE, "Hand Finger Image"));
     ui->addCheckbox("render_kinect_fps", "Render Kinect FPS");
     ui->addCheckbox("crop_depth_to_rgb", "Crop depth to RGB");
     ui->addCheckbox("continuous_snapshot", "Save continuous video stream");
@@ -419,7 +455,7 @@ namespace app {
     ui->addHeadingText("Hand Detection:");
     ui->addCheckbox("detect_hands", "Enable Hand Detection");
     ui->addCheckbox("detect_pose", "Enable Pose Detection");
-    ui->addCheckbox("render_hand_labels", "Mark Hand Pixels");
+    ui->addCheckbox("render_hand_labels", "Mark Hand Pixels"); 
 
     ui->addSelectbox("label_type_enum", "Hand label type");
     ui->addSelectboxItem("label_type_enum", 

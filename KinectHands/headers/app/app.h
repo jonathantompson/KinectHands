@@ -36,6 +36,7 @@ namespace app {
     OUTPUT_HAND_DETECTOR_DEPTH = 2,
     OUTPUT_CONVNET_DEPTH = 3,
     OUTPUT_HAND_NORMALS = 4,
+    OUTPUT_HAND_FINGER_DETECTOR_IMAGE = 5,  // Ken's idea
   } KinectOutput;
 
   typedef enum {
@@ -94,6 +95,7 @@ namespace app {
     jtil::renderer::Texture* background_tex_;
     jtil::renderer::Texture* convnet_background_tex_;  // smaller dimension
     uint8_t rgb_[src_dim * 3];
+    float xyz_[src_dim * 3];
     uint8_t labels_[src_dim];
     uint8_t render_labels_[src_dim];
     int16_t depth_[src_dim];
@@ -109,6 +111,10 @@ namespace app {
     uint8_t* disk_im_;  // Used when saving video stream to disk
     uint8_t* disk_im_compressed_;
     uint32_t disk_im_size_;
+
+    // Ken's finger detector image idea:
+    float xyz_finger_center_[src_dim * 3];
+    float uvd_finger_center_[src_dim * 3];
 
     void run();
     void init();
