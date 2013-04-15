@@ -48,34 +48,15 @@ if (visualize_data == 1) then
   VisualizeData(testData)
 end
 
-trainDataRotated = {
-  data = { },
-  labels = trainData.labels:clone(),
-  size = function() return trsize end
-}
-for i=1,num_hpf_banks do
-  table.insert(trainDataRotated.data, trainData.data[i]:clone())
-end
+dofile('preturb.lua')
+trainDataRotated = preturb(trainData)
 
--- Try a single image rotation
-dofile("rotate_data.lua")
-im = trainDataRotated.data[1][{1,{},{},{}}]
-labels = trainDataRotated.labels[{1,{}}]
-im_rot, labels_rot = rotateData(im, labels)
-image.display{image=im, zoom=6}
-image.display{image=im_rot, zoom=6}
-
--- Try to rotate the database
-for j=1,trainDataRotated.size() do
-  rotation = 0.6
-  for i=1,num_hpf_banks do
-    trainDataRotated.data[i][{j,{},{},{}}] = 
-      image.rotate(trainDataRotated.data[i][{j,{},{},{}}], 0.6)
-  end
-end
-
-VisualizeData(trainData, 0, 1, 1, 5)
-VisualizeData(trainDataRotated, 0, 1, 1, 5)
+plot_labels = 1
+num_banks = 3
+n_tiles = 6
+zoom_factor = 1
+VisualizeData(trainData, plot_labels, num_banks, n_tiles, zoom_factor)
+VisualizeData(trainDataRotated, plot_labels, num_banks, n_tiles, zoom_factor)
 
 
 

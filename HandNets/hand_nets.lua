@@ -10,6 +10,7 @@ require 'cutorch'
 require 'optim'
 require 'sys'
 require 'xlua'
+require 'parallel'
 -- require 'debugger'
 
 dofile("pbar.lua")
@@ -36,7 +37,7 @@ width = 96
 height = 96
 num_hpf_banks = 3
 dim = width * height
-num_coeff = 40
+num_coeff = 16
 num_coeff_per_feature = 2  -- UV = 2, UVD = 3
 frame_stride = 1  -- Only 1 works for now
 perform_training = 1
@@ -110,6 +111,9 @@ if (perform_training == 1) then
 
   -- ************************* Test function **************************
   dofile('test.lua')
+
+  -- ********************* Database manipulation **********************
+  dofile('preturb.lua')
  
   -- ************************ Saving settings *************************
   dofile('save_settings.lua')
@@ -118,8 +122,21 @@ if (perform_training == 1) then
   print '==> training!'
   test()
   for i = 1,max_num_epochs do
-     train()
+     -- Generate training data for the NEXT iteration
+     -- TO DO: PUT THIS IN A SEPERATE THREAD!!
+     print '==> creating new training data!'
+     new_training_data = preturb(trainData)
+
+     if (i == 1) then
+       current_training_data = trainData
+     end
+
+     train(current_training_data)
      test()
+
+     current_training_data = nil -- remove the reference
+     current_training_data = new_training_data
+     new_training_data = nil  -- remove the reference
   end
 
 else  -- if perform_training

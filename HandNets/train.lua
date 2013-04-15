@@ -1,5 +1,5 @@
 print '==> defining training procedure'
-function train()
+function train(data)
 
   -- epoch tracker
   epoch = epoch or 1
@@ -21,17 +21,17 @@ function train()
   local ave_err = 0
   local nsamples = 0
   local next_progress = 50
-  for t = 1,trainData:size(),batch_size do
+  for t = 1,data:size(),batch_size do
     -- disp progress
-    if (t >= next_progress or t == trainData:size()) then
-      progress(t, trainData:size())
+    if (t >= next_progress or t == data:size()) then
+      progress(t, data:size())
       next_progress = next_progress + 50
     end
 
     -- create mini batch
     local t_minibatch = sys.clock()
     local cur_batch_start = t
-    local cur_batch_end = math.min(t + batch_size - 1, trainData:size())
+    local cur_batch_end = math.min(t + batch_size - 1, data:size())
     local cur_batch_size = cur_batch_end - cur_batch_start + 1
     local batchData = {
       files = {},
@@ -47,9 +47,9 @@ function train()
       -- Collect the current image and put it into the data slot
       local cur_i = shuffle[i]
       for j=1,num_hpf_banks do
-        batchData.data[j][{out_i,{},{},{}}] = trainData.data[j][{cur_i,{},{},{}}]
+        batchData.data[j][{out_i,{},{},{}}] = data.data[j][{cur_i,{},{},{}}]
       end
-      batchData.labels[{out_i,{}}] = trainData.labels[cur_i]
+      batchData.labels[{out_i,{}}] = data.labels[cur_i]
       out_i = out_i + 1
     end
     for j=1,num_hpf_banks do
@@ -116,11 +116,11 @@ function train()
   end
 
   -- Finish the progress bar
-  progress(trainData:size(), trainData:size())
+  progress(data:size(), data:size())
 
   -- time taken
   time = sys.clock() - time
-  time = time / trainData:size()
+  time = time / data:size()
   print("\n==> time to learn 1 sample = " .. (time*1000) .. 'ms')
   print("==> total time spent creating minibatch = " ..
     total_t_minibatch .. 's')

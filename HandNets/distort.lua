@@ -10,7 +10,8 @@ flow,flow1,flow2,flow3,result
 -- With probabilities, distort will flip, scale and rotate the image
 -- The rotation angle is a random value between:
 --   -deg_rot_bounds --> deg_rot_bounds
-function distort(i, prob_flip, prob_scale, prob_rot, deg_rot_bounds)
+-- To force a certain rotation, set deg_rot to some non-nil value
+function distort(i, prob_flip, prob_scale, prob_rot, deg_rot_bounds, deg_rot)
    deg_rot_bounds = deg_rot_bounds or 10
    -- size:
    local height,width = i:size(2),i:size(3)
@@ -24,6 +25,7 @@ function distort(i, prob_flip, prob_scale, prob_rot, deg_rot_bounds)
    flow:zero()
 
    local rot_angle
+   local rotmat
 
    -- flip
    if 1 == torch.bernoulli(prob_flip) then
@@ -54,9 +56,8 @@ function distort(i, prob_flip, prob_scale, prob_rot, deg_rot_bounds)
                                   {math.sin(r), math.cos(r)}}
       end
       
-      -- rot_angle = torch.uniform(-deg_rot_bounds,deg_rot_bounds)
-      rot_angle = 60
-      local rotmat = rmat(rot_angle)
+      rot_angle = deg_rot or torch.uniform(-deg_rot_bounds,deg_rot_bounds)
+      rotmat = rmat(rot_angle)
       flow3r = torch.mm(rotmat, view)
       flow3 = flow3 - flow3r:reshape( 2, height, width )
       flow:add(flow3)
@@ -64,7 +65,7 @@ function distort(i, prob_flip, prob_scale, prob_rot, deg_rot_bounds)
 
    -- apply field
    image.warp(result,i,flow,'bilinear')
-   return result, rot_angle
+   return result, rot_angle, rotmat
 end
 
 -- local function test()
