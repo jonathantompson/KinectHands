@@ -42,8 +42,10 @@ num_coeff_per_feature = 2  -- UV = 2, UVD = 3
 frame_stride = 1  -- Only 1 works for now
 perform_training = 1
 model_filename = 'handmodel.net'
-im_dir = "../data/hand_depth_data_processed_for_CN_synthetic/"
-test_im_dir = "../data/hand_depth_data_processed_for_CN_test_synthetic/"
+-- im_dir = "../data/hand_depth_data_processed_for_CN_synthetic/"
+-- test_im_dir = "../data/hand_depth_data_processed_for_CN_test_synthetic/"
+im_dir = "../data/hand_depth_data_processed_for_CN/"
+test_im_dir = "../data/hand_depth_data_processed_for_CN_test/"
 test_data_rate = 20  -- this means 1 / 20 FROM THE TRAINING SET will be test
 use_hpf_depth = 1
 learning_rate = 3e-1  -- Default 1e-1
@@ -121,23 +123,39 @@ if (perform_training == 1) then
   -- ********************* Perform training loop **********************
   print '==> training!'
   test()
-  for i = 1,max_num_epochs do
-     -- Generate training data for the NEXT iteration
-     -- TO DO: PUT THIS IN A SEPERATE THREAD!!
-     print '==> creating new training data!'
-     new_training_data = preturb(trainData)
 
-     if (i == 1) then
-       current_training_data = trainData
-     end
+  function trainLoop()  
+    c = parallel.fork()  -- Spawn a new thread for database manipulation
+    c:exec(preturbThread)
 
-     train(current_training_data)
-     test()
+    -- Send the training set to the preturb thread
+    packet = { database = trainData, size = trainData:size(), num_coeff = num_coeff }
+    c:send(packet)
 
-     current_training_data = nil -- remove the reference
-     current_training_data = new_training_data
-     new_training_data = nil  -- remove the reference
+    for i = 1,max_num_epochs do
+      -- tell the training set generator to create a new set in the background:
+      c:join()
+
+      if (i == 1) then
+        current_training_data = trainData
+      end
+
+      train(current_training_data)
+      test()
+      
+      -- Recieve the new training data from the background thread
+      current_training_data = c:receive()
+    end
+
+    -- Tell the preturb thread that we're all done
+    c:join('break')
   end
+
+  -- protected execution:
+  ok,err = pcall(trainLoop)
+  if not ok then print(err) end
+
+  parallel.close()
 
 else  -- if perform_training
   -- *************** Calculate performance statistics *****************

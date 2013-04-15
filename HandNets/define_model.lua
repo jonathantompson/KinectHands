@@ -65,11 +65,11 @@ end
 
 -- Now join the banks together!
 -- Parallel applies ith member module to the ith input, and outpus a table
-parallel = nn.ParallelTable()
+parallel_stages = nn.ParallelTable()
 for j=1,num_hpf_banks do
-  parallel:add(banks[j])
+  parallel_stages:add(banks[j])
 end
-model:add(parallel)
+model:add(parallel_stages)
 -- If we're doing mini-batches then we need to join along dim=2
 -- otherwise we need to join along dim=1
 model:add(nn.JoinTable(2))  -- Take the table of tensors and concat them
