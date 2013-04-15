@@ -69,6 +69,7 @@ namespace kinect_interface {
     hands_[0] = NULL;
     hands_[1] = NULL;
     image_io_ = NULL;
+    depth_1mm_ = NULL;
     openni_funcs_ = NULL;
     clk_ = NULL;
     depth_dim_.zeros();
@@ -105,6 +106,9 @@ namespace kinect_interface {
     SAFE_DELETE(tp_);
 
     // Clean up
+    if (depth_format_100um_) {
+      SAFE_DELETE_ARR(depth_1mm_);
+    }
     SAFE_DELETE(clk_);
     SAFE_DELETE(hand_detector_);
     SAFE_DELETE(image_io_);
@@ -358,6 +362,7 @@ namespace kinect_interface {
       throw std::wruntime_error("KinectInterface::init() - ERROR: "
         "Depth stream is not a 16 bit grayscale format!");
     }
+    depth_format_100um_ = false;
     depth_dim_.set(depth_mode.getResolutionX(), depth_mode.getResolutionY());
     frames_[DEPTH] = new openni::VideoFrameRef();
 
@@ -365,6 +370,10 @@ namespace kinect_interface {
     openni_funcs_ = new OpenNIFuncs(depth_dim_[0], depth_dim_[1],
       streams_[DEPTH]->getHorizontalFieldOfView(), 
       streams_[DEPTH]->getVerticalFieldOfView());
+
+    if (depth_format_100um_) {
+      depth_1mm_ = new uint16_t[depth_dim_[0] * depth_dim_[1]];
+    }
   }
 
   void KinectInterface::initRGB() {
@@ -438,12 +447,21 @@ namespace kinect_interface {
         streams_[i]->readFrame(frames_[i]);
       }
 
+      if (depth_format_100um_) {
+        uint16_t* depth_src = (uint16_t*)frames_[DEPTH]->getData(); 
+        for (int32_t i = 0; i < depth_dim_[0] * depth_dim_[1]; i++) {
+          depth_1mm_[i] = depth_src[i] / 10;
+        }
+      } else {
+        depth_1mm_ = (uint16_t*)frames_[DEPTH]->getData(); 
+      }
+
       convertDepthToWorld();
 
       bool detect_hands, found_hand;
       GET_SETTING("detect_hands", bool, detect_hands);
       if (detect_hands) {
-        found_hand = hand_detector_->findHandLabels((int16_t*)depth(), 
+        found_hand = hand_detector_->findHandLabels((int16_t*)depth_1mm_, 
           pts_world_, HDLabelMethod::HDFloodfill, labels_);
         if (!found_hand) {
           memset(labels_, 0, sizeof(labels_[0]) * src_dim);
@@ -474,6 +492,11 @@ namespace kinect_interface {
 
   void KinectInterface::convertDepthToWorld() {
     openni_funcs_->ConvertDepthImageToProjective(depth(), pts_uvd_);
+    if (depth_format_100um_) {
+      for (int32_t i = 2; i < 3 * depth_dim_[0] * depth_dim_[1]; i+=3) {
+        pts_uvd_[i] /= 10.0f;
+      }
+    }
 
     threads_finished_ = 0;
     for (uint32_t i = 0; i < pts_world_thread_cbs_->size(); i++) {
@@ -500,11 +523,12 @@ namespace kinect_interface {
     openni_funcs_->convertDepthToWorldCoordinates(pts_uvd_start, 
       pts_world_start, count);
 
-    //for (uint32_t i = 0; i <= end; i++) {
+    //const uint16_t* d = depth();
+    //for (uint32_t i = start; i <= end; i++) {
     //  uint32_t u = i % depth_dim_[0];
     //  uint32_t v = i / depth_dim_[0];
     //  openni::CoordinateConverter::convertDepthToWorld(*streams_[DEPTH], u, v, 
-    //    depth[i], &pts_world_[i*3], &pts_world_[i*3+1], &pts_world_[i*3+2]);
+    //    d[i], &pts_world_[i*3], &pts_world_[i*3+1], &pts_world_[i*3+2]);
     //}
 
     std::unique_lock<std::mutex> ul(thread_update_lock_);
@@ -523,6 +547,10 @@ namespace kinect_interface {
 
   const uint16_t* KinectInterface::depth() const { 
     return (uint16_t*)frames_[DEPTH]->getData(); 
+  }
+
+  const uint16_t* KinectInterface::depth1mm() const { 
+    return depth_1mm_; 
   }
 
   void KinectInterface::shutdownKinect() {

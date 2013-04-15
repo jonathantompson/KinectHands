@@ -64,8 +64,8 @@ namespace hand_net {
     SAFE_DELETE_ARR(cropped_hand_image_);
     SAFE_DELETE_ARR(im_temp_double_);
     if (norm_module_) {
-      for (int32_t i = 0; i < num_banks_; i++) {
-        SAFE_DELETE(norm_module_[i]);
+      for (int32_t j = 0; j < num_banks_; j++) {
+        SAFE_DELETE(norm_module_[j]);
       }
     }
     SAFE_DELETE_ARR(norm_module_);
@@ -111,7 +111,11 @@ namespace hand_net {
       FloatTensor* kernel = FloatTensor::ones1D(HN_RECT_KERNEL_SIZE);
       norm_module_input_[i] = 
         new FloatTensor(Int4(im_sizeu, im_sizev, 1, 1));
+#ifdef HN_LOCAL_CONTRAST_NORM
+      norm_module_[i] = new SpatialContrastiveNormalization(kernel);
+#else
       norm_module_[i] = new SpatialSubtractiveNormalization(*kernel);
+#endif
       delete kernel;
       im_sizeu /= 2;
       im_sizev /= 2;
@@ -191,14 +195,7 @@ namespace hand_net {
       }
     }
 
-    //// Remove any outliers
-    //for (int32_t v = 0; v < HN_SRC_IM_SIZE; v++) {
-    //  for (int32_t u = 0; u < HN_SRC_IM_SIZE; u++) {
-
-    //  }
-    //}
-
-    // Now in a texture of 256x256 we have a hand image.  This needs to be
+    // Now in a texture of 384x384 we have a hand image.  This needs to be
     // scaled based on the average depth value
     // The further away the less it is downsampled
     cur_downsample_scale_ = ((float)HN_NOM_DIST * 
@@ -248,6 +245,7 @@ namespace hand_net {
       memcpy(dst, ((FloatTensor*)norm_module_[i]->output)->data(), 
         w * h * sizeof(dst[0]));
 
+#ifndef HN_LOCAL_CONTRAST_NORM
       // Now subtract by the GLOBAL std
       float sum = 0;
       float sum_sqs = 0;
@@ -263,6 +261,7 @@ namespace hand_net {
       for (int32_t j = 0; j < w * h; j++) {
         dst[j] *= scale_fact;
       }
+#endif
 
       if (i < (num_banks_ - 1)) {
         // Iterate the dst, coeff and src pointers
@@ -429,9 +428,22 @@ namespace hand_net {
         // area, so summing these gives us the correct weights.
         calcNormal(cur_normal, hand_mesh_vertices_[v1], 
           hand_mesh_vertices_[v2], hand_mesh_vertices_[v3]);
-        Float3::add(hand_mesh_normals_[v1], hand_mesh_normals_[v1], cur_normal);
-        Float3::add(hand_mesh_normals_[v2], hand_mesh_normals_[v2], cur_normal);
-        Float3::add(hand_mesh_normals_[v3], hand_mesh_normals_[v3], cur_normal);
+
+        hand_mesh_normals_[v1][0] += cur_normal[0];
+        hand_mesh_normals_[v1][1] += cur_normal[1];
+        hand_mesh_normals_[v1][2] += cur_normal[2];
+
+        hand_mesh_normals_[v2][0] += cur_normal[0];
+        hand_mesh_normals_[v2][1] += cur_normal[1];
+        hand_mesh_normals_[v2][2] += cur_normal[2];
+
+        hand_mesh_normals_[v3][0] += cur_normal[0];
+        hand_mesh_normals_[v3][1] += cur_normal[1];
+        hand_mesh_normals_[v3][2] += cur_normal[2];
+
+        //Float3::add(hand_mesh_normals_[v1], hand_mesh_normals_[v1], cur_normal);
+        //Float3::add(hand_mesh_normals_[v2], hand_mesh_normals_[v2], cur_normal);
+        //Float3::add(hand_mesh_normals_[v3], hand_mesh_normals_[v3], cur_normal);
         break;
       case SimpleNormalApproximation:
         // METHOD 1 --> FAST

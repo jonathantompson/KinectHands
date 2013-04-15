@@ -52,24 +52,24 @@
 // ******************* CHANGEABLE PARAMETERS *******************
 // *************************************************************
 // OLD MODEL FORMAT:
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Added *
+#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Added *
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")  // Added *
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")  // Added *
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")  // Added *
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")  // Added *
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Added *
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Added *
-#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Added
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Added *
 
-#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN_test_synthetic/") 
+#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN/") 
 
 #define LOAD_OLD_MODEL  // Predates primesense 1.09 data --> Using Kinect
 
-// #define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
+#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
 #define SAVE_FILES  // Only enabled when we're not loading processed images
-#define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
-                              // HandForests, but save synthetic data (only 
-                              // takes effect when not loading processed images)
+//#define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
+//                              // HandForests, but save synthetic data (only 
+//                              // takes effect when not loading processed images)
 
 #define SAVE_DEPTH_IMAGES  // Save the regular depth files --> Only when SAVE_FILES defined
 #define SAVE_HPF_IMAGES  // Save the hpf files --> Only when SAVE_FILES defined
@@ -207,10 +207,15 @@ void loadCurrentImage() {
   //std::cout << "loading image: " << full_filename << std::endl;
 
 #ifdef LOAD_PROCESSED_IMAGES
+  string full_hpf_im_filename = DIR + std::string("hpf_") + im_files[cur_image];
+
   // Just load the processed image directly
   const float* im = hand_image_generator_->hand_image();
   jtil::file_io::LoadArrayFromFile<float>(const_cast<float*>(im),
     HN_IM_SIZE * HN_IM_SIZE, full_filename);
+  im = hand_image_generator_->hpf_hand_image();
+  jtil::file_io::LoadArrayFromFile<float>(const_cast<float*>(im),
+    HN_IM_SIZE * HN_IM_SIZE, full_hpf_im_filename);
   memset(cur_depth_data, 0, src_dim * sizeof(cur_depth_data[0]));
   memset(cur_label_data, 0, src_dim * sizeof(cur_label_data[0]));
   memset(cur_image_rgb, 0, 3 * src_dim * sizeof(cur_image_rgb[0]));

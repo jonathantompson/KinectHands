@@ -22,7 +22,8 @@
 #define HN_HAND_SIZE 300.0f
 #define HN_DEFAULT_NUM_CONV_BANKS 3
 #define HN_HPF_GAIN 2.0f
-#define HN_RECT_KERNEL_SIZE 5  // Clemont recommends 5x5 (aggressive), must be odd
+#define HN_RECT_KERNEL_SIZE 7  // Clemont recommends 5x5 (aggressive), must be odd
+// #define HN_LOCAL_CONTRAST_NORM  // Otherwise subtractive local, divisive global
 
 #define HN_USE_RECT_LPF_KERNEL  // Otherwise use gaussian --> Clemont recommends rect.
 

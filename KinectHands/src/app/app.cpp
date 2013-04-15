@@ -285,17 +285,16 @@ namespace app {
           memcpy(im_, rgb_, sizeof(im_[0]) * src_dim * 3);
           break;
         case OUTPUT_DEPTH:
-        case OUTPUT_HAND_DETECTOR_DEPTH:
-          switch (kinect_output) {
-            case OUTPUT_DEPTH:
-              cur_depth = (uint16_t*)depth_;
-              break;
-            case OUTPUT_HAND_DETECTOR_DEPTH:
-              cur_depth = hand_detector_depth_;
-              break;
-          }
           for (uint32_t i = 0; i < src_dim; i++) {
-            const uint8_t val = (cur_depth[i] * 2) % 255;
+            const uint8_t val = (depth_[i] / 5) % 255;
+            im_[i*3] = val;
+            im_[i*3+1] = val;
+            im_[i*3+2] = val;
+          }
+          break;
+        case OUTPUT_HAND_DETECTOR_DEPTH:
+          for (uint32_t i = 0; i < src_dim; i++) {
+            const uint8_t val = (hand_detector_depth_[i] * 2) % 255;
             im_[i*3] = val;
             im_[i*3+1] = val;
             im_[i*3+2] = val;
@@ -318,6 +317,11 @@ namespace app {
           }
           break;
         case OUTPUT_HAND_NORMALS:
+          //for (uint32_t i = 0; i < src_dim; i++) {
+          //  im_[i*3] = (uint8_t)(std::max<float>(0, normals_xyz_[i*3]) * 255.0f);
+          //  im_[i*3+1] = (uint8_t)(std::max<float>(0, normals_xyz_[i*3+1]) * 255.0f);
+          //  im_[i*3+2] = (uint8_t)(std::max<float>(0, -normals_xyz_[i*3+2]) * 255.0f);
+          //}
           for (uint32_t i = 0; i < src_dim; i++) {
             im_[i*3] = (uint8_t)(std::max<float>(0, normals_xyz_[i*3]) * 255.0f);
             im_[i*3+1] = (uint8_t)(std::max<float>(0, normals_xyz_[i*3+1]) * 255.0f);
