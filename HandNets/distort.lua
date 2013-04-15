@@ -27,6 +27,7 @@ function distort(i, prob_flip, prob_scale, prob_rot, deg_rot_bounds, deg_rot)
    local rot_angle
    local rotmat
 
+   --[[
    -- flip
    if 1 == torch.bernoulli(prob_flip) then
       flow1:resize(2,height,width)
@@ -62,6 +63,22 @@ function distort(i, prob_flip, prob_scale, prob_rot, deg_rot_bounds, deg_rot)
       flow3 = flow3 - flow3r:reshape( 2, height, width )
       flow:add(flow3)
    end
+   --]]
+   flow3:resize(2,height,width)
+   flow3[1] = grid_y * ((height-1)/2) * -1
+   flow3[2] = grid_x * ((width-1)/2) * -1
+   local view = flow3:reshape(2,height*width)
+   local function rmat(deg)
+   local r = deg/180*math.pi
+   return torch.FloatTensor{{math.cos(r), -math.sin(r)}, 
+                                  {math.sin(r), math.cos(r)}}
+   end
+      
+   rot_angle = deg_rot or torch.uniform(-deg_rot_bounds,deg_rot_bounds)
+   rotmat = rmat(rot_angle)
+   flow3r = torch.mm(rotmat, view)
+   flow3 = flow3 - flow3r:reshape( 2, height, width )
+   flow:add(flow3)
 
    -- apply field
    image.warp(result,i,flow,'bilinear')

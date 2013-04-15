@@ -281,7 +281,9 @@ if false then
     trainData.data[k] = trainData.data[k]:cuda()
   end
 end
-print '==> Converting label data to cudaTensor'
-trainData.labels = trainData.labels:cuda()
-testData.labels = testData.labels:cuda()
+if false then
+  print '==> Converting label data to cudaTensor'
+  trainData.labels = trainData.labels:cuda()
+  testData.labels = testData.labels:cuda()
+end
 
