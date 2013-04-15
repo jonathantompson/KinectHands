@@ -44,8 +44,7 @@ namespace hand_net {
     hpf_hand_image_ = NULL;
     size_images_ = 0;
     hand_image_ = NULL;
-    im_temp1_ = NULL;
-    im_temp2_ = NULL;
+    cropped_hand_image_ = NULL;
     im_temp_double_ = NULL;
     num_banks_ = num_banks;
     norm_module_ = NULL;
@@ -62,8 +61,7 @@ namespace hand_net {
   void HandImageGenerator::releaseData() {
     SAFE_DELETE_ARR(hpf_hand_image_);
     SAFE_DELETE_ARR(hand_image_);
-    SAFE_DELETE_ARR(im_temp1_);
-    SAFE_DELETE_ARR(im_temp2_);
+    SAFE_DELETE_ARR(cropped_hand_image_);
     SAFE_DELETE_ARR(im_temp_double_);
     if (norm_module_) {
       for (int32_t i = 0; i < num_banks_; i++) {
@@ -94,8 +92,7 @@ namespace hand_net {
     int32_t datasize = std::max<int32_t>(size_images_, 
       HN_SRC_IM_SIZE * HN_SRC_IM_SIZE);
     hand_image_ = new float [datasize];
-    im_temp1_ = new float[datasize];
-    im_temp2_ = new float[datasize];
+    cropped_hand_image_ = new float[HN_SRC_IM_SIZE * HN_SRC_IM_SIZE];
     im_temp_double_ = new double[HN_SRC_IM_SIZE * HN_SRC_IM_SIZE];
 
     hpf_hand_image_ = new float[datasize];
@@ -174,25 +171,32 @@ namespace hand_net {
           int32_t src_index = v * src_width + u;
           if (!use_synthetic) {
             if (label_in[src_index] == 1) {
-              hand_image_[dst_index] = ((float)depth_in[src_index] - dmin) / 
-                HN_HAND_SIZE;
+              cropped_hand_image_[dst_index] = 
+                ((float)depth_in[src_index] - dmin) / HN_HAND_SIZE;
             } else {
-              hand_image_[dst_index] = background;
+              cropped_hand_image_[dst_index] = background;
             }
           } else {
             if (synthetic_depth[src_index] > EPSILON) {
-              hand_image_[dst_index] = (synthetic_depth[src_index] - dmin) / 
-                HN_HAND_SIZE;
+              cropped_hand_image_[dst_index] = 
+                (synthetic_depth[src_index] - dmin) / HN_HAND_SIZE;
             } else {
-              hand_image_[dst_index] = background;
+              cropped_hand_image_[dst_index] = background;
             }
           }
         } else {
           // Going off the screen
-          hand_image_[dst_index] = background;
+          cropped_hand_image_[dst_index] = background;
         }
       }
     }
+
+    //// Remove any outliers
+    //for (int32_t v = 0; v < HN_SRC_IM_SIZE; v++) {
+    //  for (int32_t u = 0; u < HN_SRC_IM_SIZE; u++) {
+
+    //  }
+    //}
 
     // Now in a texture of 256x256 we have a hand image.  This needs to be
     // scaled based on the average depth value
@@ -207,19 +211,14 @@ namespace hand_net {
     int32_t srch = srcw;
     int32_t srcx = (HN_SRC_IM_SIZE - srcw) / 2;
     int32_t srcy = (HN_SRC_IM_SIZE - srch) / 2;
-    cur_downsample_scale_ = (float)srcw /  (float)HN_IM_SIZE;
     // Note FracDownsampleImageSAT destroys the origional source image
-    FracDownsampleImageSAT<float>(im_temp1_, 0, 0, HN_IM_SIZE, HN_IM_SIZE,
-      HN_IM_SIZE, hand_image_, srcx, srcy, srcw, srch, HN_SRC_IM_SIZE, 
+    FracDownsampleImageSAT<float>(hand_image_, 0, 0, HN_IM_SIZE, HN_IM_SIZE,
+      HN_IM_SIZE, cropped_hand_image_, srcx, srcy, srcw, srch, HN_SRC_IM_SIZE, 
       HN_SRC_IM_SIZE, im_temp_double_);
-    // Now ping-pong buffers
-    float* tmp = im_temp1_;
-    im_temp1_ = hand_image_;
-    hand_image_ = tmp;
 
     // Save the lower left corner and the width / height
-    hand_pos_wh_[0] = ((int32_t)uvd_com_[0] - (HN_SRC_IM_SIZE / 2)) + srcx;
-    hand_pos_wh_[1] = ((int32_t)uvd_com_[1] - (HN_SRC_IM_SIZE / 2)) + srcy;
+    hand_pos_wh_[0] = u_start + srcx;
+    hand_pos_wh_[1] = v_start + srcy;
     hand_pos_wh_[2] = srcw;
     hand_pos_wh_[3] = srch;
 

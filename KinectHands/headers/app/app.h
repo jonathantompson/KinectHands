@@ -35,8 +35,9 @@ namespace app {
     OUTPUT_DEPTH = 1,
     OUTPUT_HAND_DETECTOR_DEPTH = 2,
     OUTPUT_CONVNET_DEPTH = 3,
-    OUTPUT_HAND_NORMALS = 4,
-    OUTPUT_HAND_FINGER_DETECTOR_IMAGE = 5,  // Ken's idea
+    OUTPUT_CONVNET_SRC_DEPTH = 4,
+    OUTPUT_HAND_NORMALS = 5,
+    OUTPUT_HAND_FINGER_DETECTOR_IMAGE = 6,  // Ken's idea
   } KinectOutput;
 
   typedef enum {
@@ -94,6 +95,7 @@ namespace app {
 
     jtil::renderer::Texture* background_tex_;
     jtil::renderer::Texture* convnet_background_tex_;  // smaller dimension
+    jtil::renderer::Texture* convnet_src_background_tex_;  // smaller dimension
     uint8_t rgb_[src_dim * 3];
     float xyz_[src_dim * 3];
     uint8_t labels_[src_dim];
@@ -101,11 +103,13 @@ namespace app {
     int16_t depth_[src_dim];
     float normals_xyz_[src_dim * 3];
     uint16_t hand_detector_depth_[src_dim];
-    float convnet_depth_[HN_IM_SIZE * HN_IM_SIZE];
+    float convnet_depth_[HN_SRC_IM_SIZE * HN_SRC_IM_SIZE];
     uint8_t im_[src_dim * 3];
     uint8_t im_flipped_[src_dim * 3];
     uint8_t convnet_im_[HN_IM_SIZE * HN_IM_SIZE * 3];
     uint8_t convnet_im_flipped_[HN_IM_SIZE * HN_IM_SIZE * 3];
+    uint8_t convnet_src_im_[HN_SRC_IM_SIZE * HN_SRC_IM_SIZE * 3];
+    uint8_t convnet_src_im_flipped_[HN_SRC_IM_SIZE * HN_SRC_IM_SIZE * 3];
     float coeff_convnet_[kinect_interface::hand_net::HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
     jtil::math::Int4 hand_pos_wh_;  // From hand image generator
     uint8_t* disk_im_;  // Used when saving video stream to disk
