@@ -318,7 +318,7 @@ namespace hand_net {
 
   bool HandModel::loadOldModelFromFile(const std::string& dir, 
     const std::string& filename) {
-    /*
+
     string full_filename = dir + filename;
     std::ifstream file(full_filename.c_str(), std::ios::in | std::ios::binary);
     if (!file.is_open()) {
@@ -326,15 +326,58 @@ namespace hand_net {
     }
     file.seekg(0, std::ios::beg);
     // Make sure this isn't a blank file (indicating no hands on the screen)
-    file.read(reinterpret_cast<char*>(coeff_), 
-      (F3_KNUCKLE_CURL+1) * sizeof(coeff_[0]));
-    if (coeff_[HAND_POS_X] < EPSILON && coeff_[HAND_POS_Y] < EPSILON && 
-      coeff_[HAND_POS_Z] < EPSILON) {
+    float coeff_old[OLD_F3_KNUCKLE_CURL+1];
+    file.read(reinterpret_cast<char*>(coeff_old), 
+      (OLD_F3_KNUCKLE_CURL+1) * sizeof(coeff_old[0]));
+    float wrist_length;
+    file.read(reinterpret_cast<char*>(&wrist_length), sizeof(wrist_length));
+    float local_scale;
+    file.read(reinterpret_cast<char*>(&local_scale), sizeof(local_scale));
+
+    if (coeff_[OLD_HAND_POS_X] < EPSILON && coeff_[OLD_HAND_POS_Y] < EPSILON && 
+      coeff_[OLD_HAND_POS_Z] < EPSILON) {
       resetPose();
     }
 
     file.close();
 
+    coeff_[HAND_POS_X] = coeff_old[OLD_HAND_POS_X];
+    coeff_[HAND_POS_Y] = coeff_old[OLD_HAND_POS_Y];
+    coeff_[HAND_POS_Z] = coeff_old[OLD_HAND_POS_Z];
+    coeff_[HAND_ORIENT_X] = coeff_old[OLD_HAND_ORIENT_X];
+    coeff_[HAND_ORIENT_Y] = coeff_old[OLD_HAND_ORIENT_Y];
+    coeff_[HAND_ORIENT_Z] = coeff_old[OLD_HAND_ORIENT_Z];
+    coeff_[WRIST_THETA] = coeff_old[OLD_WRIST_THETA];
+    coeff_[WRIST_PHI] = coeff_old[OLD_WRIST_PHI];
+    coeff_[THUMB_THETA] = coeff_old[OLD_THUMB_THETA];
+    coeff_[THUMB_PHI] = coeff_old[OLD_THUMB_PHI];
+    coeff_[THUMB_K1_THETA] = coeff_old[OLD_THUMB_K1_THETA];
+    coeff_[THUMB_K1_PHI] = coeff_old[OLD_THUMB_K1_PHI];
+    coeff_[THUMB_K2_PHI] = coeff_old[OLD_THUMB_K2_PHI];
+    coeff_[F0_ROOT_THETA] = 0;
+    coeff_[F0_ROOT_PHI] = 0;
+    coeff_[F0_THETA] = coeff_old[OLD_F0_THETA];
+    coeff_[F0_PHI] = coeff_old[OLD_F0_PHI];
+    coeff_[F0_KNUCKLE_MID] = coeff_old[OLD_F0_KNUCKLE_CURL];
+    coeff_[F0_KNUCKLE_END] = coeff_old[OLD_F0_KNUCKLE_CURL];
+    coeff_[F1_ROOT_THETA] = 0;
+    coeff_[F1_ROOT_PHI] = 0;
+    coeff_[F1_THETA] = coeff_old[OLD_F1_THETA];
+    coeff_[F1_PHI] = coeff_old[OLD_F1_PHI];
+    coeff_[F1_KNUCKLE_MID] = coeff_old[OLD_F1_KNUCKLE_CURL];
+    coeff_[F1_KNUCKLE_END] = coeff_old[OLD_F1_KNUCKLE_CURL];
+    coeff_[F2_ROOT_THETA] = 0;
+    coeff_[F2_ROOT_PHI] = 0;
+    coeff_[F2_THETA] = coeff_old[OLD_F2_THETA];
+    coeff_[F2_PHI] = coeff_old[OLD_F2_PHI];
+    coeff_[F2_KNUCKLE_MID] = coeff_old[OLD_F2_KNUCKLE_CURL];
+    coeff_[F2_KNUCKLE_END] = coeff_old[OLD_F2_KNUCKLE_CURL];
+    coeff_[F3_ROOT_THETA] = 0;
+    coeff_[F3_ROOT_PHI] = 0;
+    coeff_[F3_THETA] = coeff_old[OLD_F3_THETA];
+    coeff_[F3_PHI] = coeff_old[OLD_F3_PHI];
+    coeff_[F3_KNUCKLE_MID] = coeff_old[OLD_F3_KNUCKLE_CURL];
+    coeff_[F3_KNUCKLE_END] = coeff_old[OLD_F3_KNUCKLE_CURL];
     coeff_[F0_TWIST] = 0;
     coeff_[F1_TWIST] = 0;
     coeff_[F2_TWIST] = 0;
@@ -345,12 +388,9 @@ namespace hand_net {
     coeff_[F2_LENGTH] = 0;
     coeff_[F3_LENGTH] = 0;
     coeff_[THUMB_LENGTH] = 0;
-    coeff_[SCALE] = HAND_MODEL_DEFAULT_SCALE;
+    coeff_[SCALE] = local_scale;
 
     return true;
-    */
-    throw std::wruntime_error("HandModel::loadOldModelFromFile() - "
-      "ERROR: Needs updating!");
   }
 
   const uint8_t labelFromRGB(const float r, const float g, const float b) {

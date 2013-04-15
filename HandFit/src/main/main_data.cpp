@@ -51,6 +51,7 @@
 // *************************************************************
 // ******************* CHANGEABLE PARAMETERS *******************
 // *************************************************************
+// OLD MODEL FORMAT:
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Added *
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")  // Added *
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")  // Added *
@@ -70,7 +71,7 @@
                               // HandForests, but save synthetic data (only 
                               // takes effect when not loading processed images)
 
-//#define SAVE_DEPTH_IMAGES  // Save the regular depth files --> Only when SAVE_FILES defined
+#define SAVE_DEPTH_IMAGES  // Save the regular depth files --> Only when SAVE_FILES defined
 #define SAVE_HPF_IMAGES  // Save the hpf files --> Only when SAVE_FILES defined
 
 #if !defined(LOAD_PROCESSED_IMAGES) && defined(SAVE_FILES)
