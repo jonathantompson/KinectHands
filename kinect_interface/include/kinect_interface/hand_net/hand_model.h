@@ -96,6 +96,40 @@ namespace hand_net {
     NUM_PARAMETERS    = 48,  // NOTE: Not to be confused with HAND_NUM_COEFF!!
   } HandCoeff;
 
+  // The old version before adding in seperable finger joints, finger root
+  // nodes, finger twist and lengths.
+  typedef enum {
+    OLD_HAND_POS_X        = 0, 
+    OLD_HAND_POS_Y        = 1,
+    OLD_HAND_POS_Z        = 2,
+    OLD_HAND_ORIENT_X     = 3,
+    OLD_HAND_ORIENT_Y     = 4,
+    OLD_HAND_ORIENT_Z     = 5,
+    OLD_WRIST_THETA       = 6,
+    OLD_WRIST_PHI         = 7,
+    OLD_THUMB_THETA       = 8,
+    OLD_THUMB_PHI         = 9,
+    OLD_THUMB_K1_THETA    = 10,
+    OLD_THUMB_K1_PHI      = 11,
+    OLD_THUMB_K2_PHI      = 12,
+    OLD_F0_THETA          = 13,
+    OLD_F0_PHI            = 14,
+    OLD_F0_KNUCKLE_CURL   = 15,
+    OLD_F1_THETA          = 16,
+    OLD_F1_PHI            = 17,
+    OLD_F1_KNUCKLE_CURL   = 18,
+    OLD_F2_THETA          = 19,
+    OLD_F2_PHI            = 20,
+    OLD_F2_KNUCKLE_CURL   = 21,
+    OLD_F3_THETA          = 22,
+    OLD_F3_PHI            = 23,
+    OLD_F3_KNUCKLE_CURL   = 24,
+    OLD_WRIST_LENGTH      = 25,  // Not used in optimization
+    OLD_SCALE             = 26,  // Not used in optimization
+    OLD_WRIST_TWIST       = 27,  // Not used in optimization
+    OLD_NUM_PARAMETERS    = 28,  // NOTE: Not to be confused with HAND_NUM_COEFF!!
+  } HandCoeffOld;
+
   typedef enum {
     WRIST             = 0, 
     PALM_FRONT        = 1,
