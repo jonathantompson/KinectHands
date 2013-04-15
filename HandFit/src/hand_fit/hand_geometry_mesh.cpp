@@ -258,7 +258,7 @@ namespace hand_fit {
 
     // Set the root matrix:
     mat = scene_graph_->mat();
-    Float4x4::euler2RotMat(*mat, coeff[HAND_ORIENT_X], coeff[HAND_ORIENT_Y],
+    euler2RotMatGM(*mat, coeff[HAND_ORIENT_X], coeff[HAND_ORIENT_Y],
       coeff[HAND_ORIENT_Z]);
     mat->leftMultTranslation(coeff[HAND_POS_X],
                              coeff[HAND_POS_Y],
@@ -267,10 +267,10 @@ namespace hand_fit {
 
     // Set the palm bone (depending on wrist angle)
     mat = bones_in_file_->bones[bone_wrist_index_]->getNode()->mat();
-    Float4x4::rotateMatXAxis(mat_tmp1, coeff[WRIST_PHI]);
-    Float4x4::rotateMatZAxis(mat_tmp2, coeff[WRIST_THETA]);
+    rotateMatXAxisGM(mat_tmp1, coeff[WRIST_PHI]);
+    rotateMatZAxisGM(mat_tmp2, coeff[WRIST_THETA]);
     Float4x4::mult(mat_tmp3, mat_tmp1, mat_tmp2);
-    // Float4x4::rotateMatXAxis(mat_tmp1, HandModel::wrist_twist);
+    // rotateMatXAxis(mat_tmp1, HandModel::wrist_twist);
     // Float4x4::mult(mat_tmp2, mat_tmp1, mat_tmp3);
     Float4x4::mult(*mat, rest_transforms_[bone_wrist_index_], mat_tmp3);
 
@@ -282,7 +282,7 @@ namespace hand_fit {
       phi = coeff[F0_ROOT_PHI + i * FINGER_NUM_COEFF];
       psi = 0;
       mat = bones_in_file_->bones[bone_finger_1_index_[i]]->getNode()->mat();
-      Float4x4::euler2RotMat(mat_tmp3, psi, theta, phi);
+      euler2RotMatGM(mat_tmp3, psi, theta, phi);
       Float4x4::mult(*mat, rest_transforms_[bone_finger_1_index_[i]], mat_tmp3);
 
       // K1 base
@@ -290,13 +290,13 @@ namespace hand_fit {
       phi = coeff[F0_PHI + i * FINGER_NUM_COEFF];
       psi = coeff[F0_TWIST + i];
       mat = bones_in_file_->bones[bone_finger_2_index_[i]]->getNode()->mat();
-      Float4x4::euler2RotMat(mat_tmp3, psi, theta, phi);
+      euler2RotMatGM(mat_tmp3, psi, theta, phi);
       Float4x4::mult(*mat, rest_transforms_[bone_finger_2_index_[i]], mat_tmp3);
       mat->rightMultScale(1.0f, 1.0f + coeff[F0_LENGTH + i], 1.0f);  // Scale this node
 
       mat = bones_in_file_->bones[bone_finger_3_index_[i]]->getNode()->mat();
       float k2_theta = coeff[F0_KNUCKLE_MID + i * FINGER_NUM_COEFF];
-      Float4x4::rotateMatXAxis(mat_tmp1, k2_theta);
+      rotateMatXAxisGM(mat_tmp1, k2_theta);
       const Float4x4& bone_mid = rest_transforms_[bone_finger_3_index_[i]];
       Float3 bone_mid_pos;
       Float4x4::getTranslation(bone_mid_pos, bone_mid);
@@ -310,7 +310,7 @@ namespace hand_fit {
 
       mat = bones_in_file_->bones[bone_finger_4_index_[i]]->getNode()->mat();
       float k3_theta = coeff[F0_KNUCKLE_END + i * FINGER_NUM_COEFF];
-      Float4x4::rotateMatXAxis(mat_tmp1, k3_theta);
+      rotateMatXAxisGM(mat_tmp1, k3_theta);
       const Float4x4& bone_tip = rest_transforms_[bone_finger_4_index_[i]];
       Float3 bone_tip_pos;
       Float4x4::getTranslation(bone_tip_pos, bone_tip);
@@ -329,7 +329,7 @@ namespace hand_fit {
     float phi = coeff[THUMB_PHI];
     float psi = coeff[THUMB_TWIST];
     mat = bones_in_file_->bones[bone_thumb_1_index_]->getNode()->mat();
-    Float4x4::euler2RotMat(mat_tmp3, psi, theta, phi);
+    euler2RotMatGM(mat_tmp3, psi, theta, phi);
     Float4x4::mult(*mat, rest_transforms_[bone_thumb_1_index_], mat_tmp3);
 
 #ifdef SCALE_THUMB_BASE
@@ -339,8 +339,8 @@ namespace hand_fit {
     theta = coeff[THUMB_K1_THETA];
     phi = coeff[THUMB_K1_PHI];
     mat = bones_in_file_->bones[bone_thumb_2_index_]->getNode()->mat();
-    Float4x4::rotateMatZAxis(mat_tmp1, theta);
-    Float4x4::rotateMatXAxis(mat_tmp2, phi);
+    rotateMatZAxisGM(mat_tmp1, theta);
+    rotateMatXAxisGM(mat_tmp2, phi);
     Float4x4::mult(mat_tmp3, mat_tmp1, mat_tmp2);
 
     const Float4x4& bone_mid = rest_transforms_[bone_thumb_2_index_];
@@ -362,7 +362,7 @@ namespace hand_fit {
 
     phi = coeff[THUMB_K2_PHI];
     mat = bones_in_file_->bones[bone_thumb_3_index_]->getNode()->mat();
-    Float4x4::rotateMatXAxis(mat_tmp1, phi);
+    rotateMatXAxisGM(mat_tmp1, phi);
     const Float4x4& bone_tip = rest_transforms_[bone_thumb_3_index_];
     Float3 bone_tip_pos;
     Float4x4::getTranslation(bone_tip_pos, bone_tip);
@@ -434,5 +434,176 @@ namespace hand_fit {
       }
     }
   }
+
+  // These 
+  void HandGeometryMesh::euler2RotMatGM(Float4x4& a, const float x_angle, 
+    const float y_angle, const float z_angle) {
+    // http://www.euclideanspace.com/maths/geometry/rotations/conversions/eulerToMatrix/index.htm
+    float c1 = cosf(x_angle);
+    float s1 = sinf(x_angle);
+    float c2 = cosf(y_angle);
+    float s2 = sinf(y_angle);
+    float c3 = cosf(z_angle);
+    float s3 = sinf(z_angle);
+#ifdef COLUMN_MAJOR
+    a.m[0] = c1*c2;
+    a.m[4] = -c1*s2*c3 + s1*s3;
+    a.m[8] = c1*s2*s3 + s1*c3;
+    a.m[12] = 0;
+    a.m[1] = s2;
+    a.m[5] = c2*c3;
+    a.m[9] = -c2*s3;
+    a.m[13] = 0;
+    a.m[2] = -s1*c2;
+    a.m[6] = s1*s2*c3 + c1*s3;
+    a.m[10] = -s1*s2*s3 + c1*c3;
+    a.m[14] = 0;
+    a.m[3] = 0;
+    a.m[7] = 0;
+    a.m[11] = 0;
+    a.m[15] = 1;
+#endif
+#ifdef ROW_MAJOR
+    a.m[0] = c1*c2;
+    a.m[1] = -c1*s2*c3 + s1*s3;
+    a.m[2] = c1*s2*s3 + s1*c3;
+    a.m[3] = 0;
+    a.m[4] = s2;
+    a.m[5] = c2*c3;
+    a.m[6] = -c2*s3;
+    a.m[7] = 0;
+    a.m[8] = -s1*c2;
+    a.m[9] = s1*s2*c3 + c1*s3;
+    a.m[10] = -s1*s2*s3 + c1*c3;
+    a.m[11] = 0;
+    a.m[12] = 0;
+    a.m[13] = 0;
+    a.m[14] = 0;
+    a.m[15] = 1;
+#endif
+  }
+
+  void HandGeometryMesh::rotateMatZAxisGM(Float4x4& ret, const float angle) {
+    float cos_angle = cosf(angle);
+    float sin_angle = sinf(angle);
+#ifdef ROW_MAJOR
+    ret.m[0] = cos_angle;
+    ret.m[1] = -sin_angle;
+    ret.m[2] = 0;
+    ret.m[3] = 0;
+    ret.m[4] = sin_angle;
+    ret.m[5] = cos_angle;
+    ret.m[6] = 0;
+    ret.m[7] = 0;
+    ret.m[8] = 0;
+    ret.m[9] = 0;
+    ret.m[10] = 1;
+    ret.m[11] = 0;
+    ret.m[12] = 0;
+    ret.m[13] = 0;
+    ret.m[14] = 0;
+    ret.m[15] = 1;
+#endif
+#ifdef COLUMN_MAJOR
+    ret.m[0] = cos_angle;
+    ret.m[1] = sin_angle;
+    ret.m[2] = 0;
+    ret.m[3] = 0;
+    ret.m[4] = -sin_angle;
+    ret.m[5] = cos_angle;
+    ret.m[6] = 0;
+    ret.m[7] = 0;
+    ret.m[8] = 0;
+    ret.m[9] = 0;
+    ret.m[10] = 1;
+    ret.m[11] = 0;
+    ret.m[12] = 0;
+    ret.m[13] = 0;
+    ret.m[14] = 0;
+    ret.m[15] = 1;
+#endif
+  };
+
+  void HandGeometryMesh::rotateMatYAxisGM(Float4x4& ret, const float angle) {
+    float cos_angle = cosf(angle);
+    float sin_angle = sinf(angle);
+#ifdef ROW_MAJOR
+    ret.m[0] = cos_angle;
+    ret.m[1] = 0;
+    ret.m[2] = sin_angle;
+    ret.m[3] = 0;
+    ret.m[4] = 0;
+    ret.m[5] = 1;
+    ret.m[6] = 0;
+    ret.m[7] = 0;
+    ret.m[8] = -sin_angle;
+    ret.m[9] = 0;
+    ret.m[10] = cos_angle;
+    ret.m[11] = 0;
+    ret.m[12] = 0;
+    ret.m[13] = 0;
+    ret.m[14] = 0;
+    ret.m[15] = 1;
+#endif
+#ifdef COLUMN_MAJOR
+    ret.m[0] = cos_angle;
+    ret.m[1] = 0;
+    ret.m[2] = -sin_angle;
+    ret.m[3] = 0;
+    ret.m[4] = 0;
+    ret.m[5] = 1;
+    ret.m[6] = 0;
+    ret.m[7] = 0;
+    ret.m[8] = sin_angle;
+    ret.m[9] = 0;
+    ret.m[10] = cos_angle;
+    ret.m[11] = 0;
+    ret.m[12] = 0;
+    ret.m[13] = 0;
+    ret.m[14] = 0;
+    ret.m[15] = 1;
+#endif
+  };
+
+  void HandGeometryMesh::rotateMatXAxisGM(Float4x4& ret, const float angle) {
+    float cos_angle = cosf(angle);
+    float sin_angle = sinf(angle);
+#ifdef ROW_MAJOR
+    ret.m[0] = 1;
+    ret.m[1] = 0;
+    ret.m[2] = 0;
+    ret.m[3] = 0;
+    ret.m[4] = 0;
+    ret.m[5] = cos_angle;
+    ret.m[6] = -sin_angle;
+    ret.m[7] = 0;
+    ret.m[8] = 0;
+    ret.m[9] = sin_angle;
+    ret.m[10] = cos_angle;
+    ret.m[11] = 0;
+    ret.m[12] = 0;
+    ret.m[13] = 0;
+    ret.m[14] = 0;
+    ret.m[15] = 1;
+#endif
+#ifdef COLUMN_MAJOR
+    ret.m[0] = 1;
+    ret.m[1] = 0;
+    ret.m[2] = 0;
+    ret.m[3] = 0;
+    ret.m[4] = 0;
+    ret.m[5] = cos_angle;
+    ret.m[6] = sin_angle;
+    ret.m[7] = 0;
+    ret.m[8] = 0;
+    ret.m[9] = -sin_angle;
+    ret.m[10] = cos_angle;
+    ret.m[11] = 0;
+    ret.m[12] = 0;
+    ret.m[13] = 0;
+    ret.m[14] = 0;
+    ret.m[15] = 1;
+#endif
+  };
 
 }  // namespace hand_fit

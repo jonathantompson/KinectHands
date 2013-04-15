@@ -68,7 +68,6 @@ namespace renderer {
     // GL_COLOR_ATTACHMENT0 attachment point.
     //GLState::glsReadBuffer(GL_COLOR_ATTACHMENT0);
     glReadBuffer(GL_COLOR_ATTACHMENT0);
-    glFlush();
     glReadPixels(0, 0, w_, h_, format_, type_, data);
     //GLState::glsReadPixels(0, 0, w_, h_, format_, type_, data);
     GLState::glsBindFramebuffer(GL_READ_FRAMEBUFFER, 0);

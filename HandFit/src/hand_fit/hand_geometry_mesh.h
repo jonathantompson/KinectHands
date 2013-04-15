@@ -78,6 +78,12 @@ namespace hand_fit {
     // them and keep the renderer seperate.
     jtil::data_str::Vector<renderer::Geometry*> render_stack_;
 
+  void euler2RotMatGM(jtil::math::Float4x4& a, const float x_angle, 
+    const float y_angle, const float z_angle);
+  void rotateMatZAxisGM(jtil::math::Float4x4& ret, const float angle);
+  void rotateMatYAxisGM(jtil::math::Float4x4& ret, const float angle);
+  void rotateMatXAxisGM(jtil::math::Float4x4& ret, const float angle);
+
     // Non-copyable, non-assignable.
     HandGeometryMesh(HandGeometryMesh&);
     HandGeometryMesh& operator=(const HandGeometryMesh&);

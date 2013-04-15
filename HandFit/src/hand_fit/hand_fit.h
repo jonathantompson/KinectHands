@@ -59,13 +59,7 @@
 #define PREV_FRAME_DIST_PENALTY_THRESHOLD  0.3f  // % of total range
 #define MAX_DEPTH_IN_RESIDUE 30.0f  // default 40 (from paper) but 30 works better
 #define DATA_TERM_LAMBDA 0.2f  // default 0.0025f  (higher values = depth difference is more important)
-#define INTERPENETRATION_ALLOWENCE 2.0f  // Let them intepenetrate a little bit
-#define LINEAR_INTERPENETRATION_PENALTY  // otherwise quadratic
-#ifdef LINEAR_INTERPENETRATION_PENALTY
-  #define INTERPENETRATION_CONSTANT 0.32f
-#else
-  #define INTERPENETRATION_CONSTANT 0.1f
-#endif
+#define INTERPENETRATION_CONSTANT 0.1f
 
 namespace jtil {
   namespace math {

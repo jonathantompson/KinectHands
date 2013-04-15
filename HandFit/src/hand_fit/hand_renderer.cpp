@@ -587,7 +587,6 @@ namespace hand_fit {
 
     // Now we need to finish the rest of the integration on the CPU since the 
     // resolution is now 4 x 3
-    glFlush();
     residue_texture_160_->getTexture0Data<float>(depth_tmp_);
 
 #ifdef DEPTH_ONLY_RESIDUE_FUNC
@@ -681,7 +680,6 @@ namespace hand_fit {
 
     // Now we need to finish the rest of the integration on the CPU since the 
     // tile resolution is now 4 x 3
-    glFlush();
     residue_texture_20_->getTexture0Data<float>(depth_tmp_);
 
     const int decimation = 4 * 4 * 5 * 2;
@@ -994,23 +992,18 @@ namespace hand_fit {
           BoundingSphere* objA = bsph_[i];
           BoundingSphere* objB = bsph_[j];
           Float3::sub(vec, *objA->transformed_center(), *objB->transformed_center());
-          float center_dist = vec.length();
+          float center_dist_sq = Float3::dot(vec, vec);
           float min_dist = objA->transformed_radius() + objB->transformed_radius();
-          float sep_dist = center_dist - min_dist;
-          if (sep_dist < -INTERPENETRATION_ALLOWENCE) {
-            total_penetration_distance += -sep_dist;
+          float min_dist_sq = min_dist * min_dist;
+          float sep_dist_sq = center_dist_sq - min_dist_sq;
+          if (sep_dist_sq < 0) {
+            total_penetration_distance += -sep_dist_sq;
           }
         }
       }
     }
 #endif
-
-#ifdef LINEAR_INTERPENETRATION_PENALTY
     return 1.0f + INTERPENETRATION_CONSTANT * total_penetration_distance;
-#else
-    return 1.0f + INTERPENETRATION_CONSTANT * total_penetration_distance * 
-      total_penetration_distance;
-#endif
   }
 
   void HandRenderer::insertionSortAxisExtents(uint32_t* arr,
