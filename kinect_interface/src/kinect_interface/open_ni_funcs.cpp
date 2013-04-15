@@ -141,7 +141,7 @@ namespace kinect_interface {
   }
 
   // From OniStream.cpp (and edited)
-  // https://github.com/OpenNI/OpenNI2/blob/master/Source/Core/OniStream.cpp
+  //h ttps://github.com/OpenNI/OpenNI2/blob/master/Source/Core/OniStream.cpp
   void OpenNIFuncs::convertDepthToWorldCoordinates(const float* uvd, float* xyz, 
     const uint32_t nCount) {
     for (uint32_t i = 0; i < nCount; i++) {

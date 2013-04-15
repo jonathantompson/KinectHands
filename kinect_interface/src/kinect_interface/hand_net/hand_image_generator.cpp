@@ -44,8 +44,7 @@ namespace hand_net {
     hpf_hand_image_ = NULL;
     size_images_ = 0;
     hand_image_ = NULL;
-    im_temp1_ = NULL;
-    im_temp2_ = NULL;
+    cropped_hand_image_ = NULL;
     im_temp_double_ = NULL;
     num_banks_ = num_banks;
     norm_module_ = NULL;
@@ -62,12 +61,11 @@ namespace hand_net {
   void HandImageGenerator::releaseData() {
     SAFE_DELETE_ARR(hpf_hand_image_);
     SAFE_DELETE_ARR(hand_image_);
-    SAFE_DELETE_ARR(im_temp1_);
-    SAFE_DELETE_ARR(im_temp2_);
+    SAFE_DELETE_ARR(cropped_hand_image_);
     SAFE_DELETE_ARR(im_temp_double_);
     if (norm_module_) {
-      for (int32_t i = 0; i < num_banks_; i++) {
-        SAFE_DELETE(norm_module_[i]);
+      for (int32_t j = 0; j < num_banks_; j++) {
+        SAFE_DELETE(norm_module_[j]);
       }
     }
     SAFE_DELETE_ARR(norm_module_);
@@ -94,8 +92,7 @@ namespace hand_net {
     int32_t datasize = std::max<int32_t>(size_images_, 
       HN_SRC_IM_SIZE * HN_SRC_IM_SIZE);
     hand_image_ = new float [datasize];
-    im_temp1_ = new float[datasize];
-    im_temp2_ = new float[datasize];
+    cropped_hand_image_ = new float[HN_SRC_IM_SIZE * HN_SRC_IM_SIZE];
     im_temp_double_ = new double[HN_SRC_IM_SIZE * HN_SRC_IM_SIZE];
 
     hpf_hand_image_ = new float[datasize];
@@ -114,7 +111,11 @@ namespace hand_net {
       FloatTensor* kernel = FloatTensor::ones1D(HN_RECT_KERNEL_SIZE);
       norm_module_input_[i] = 
         new FloatTensor(Int4(im_sizeu, im_sizev, 1, 1));
+#ifdef HN_LOCAL_CONTRAST_NORM
+      norm_module_[i] = new SpatialContrastiveNormalization(kernel);
+#else
       norm_module_[i] = new SpatialSubtractiveNormalization(*kernel);
+#endif
       delete kernel;
       im_sizeu /= 2;
       im_sizev /= 2;
@@ -174,27 +175,27 @@ namespace hand_net {
           int32_t src_index = v * src_width + u;
           if (!use_synthetic) {
             if (label_in[src_index] == 1) {
-              hand_image_[dst_index] = ((float)depth_in[src_index] - dmin) / 
-                HN_HAND_SIZE;
+              cropped_hand_image_[dst_index] = 
+                ((float)depth_in[src_index] - dmin) / HN_HAND_SIZE;
             } else {
-              hand_image_[dst_index] = background;
+              cropped_hand_image_[dst_index] = background;
             }
           } else {
             if (synthetic_depth[src_index] > EPSILON) {
-              hand_image_[dst_index] = (synthetic_depth[src_index] - dmin) / 
-                HN_HAND_SIZE;
+              cropped_hand_image_[dst_index] = 
+                (synthetic_depth[src_index] - dmin) / HN_HAND_SIZE;
             } else {
-              hand_image_[dst_index] = background;
+              cropped_hand_image_[dst_index] = background;
             }
           }
         } else {
           // Going off the screen
-          hand_image_[dst_index] = background;
+          cropped_hand_image_[dst_index] = background;
         }
       }
     }
 
-    // Now in a texture of 256x256 we have a hand image.  This needs to be
+    // Now in a texture of 384x384 we have a hand image.  This needs to be
     // scaled based on the average depth value
     // The further away the less it is downsampled
     cur_downsample_scale_ = ((float)HN_NOM_DIST * 
@@ -207,19 +208,14 @@ namespace hand_net {
     int32_t srch = srcw;
     int32_t srcx = (HN_SRC_IM_SIZE - srcw) / 2;
     int32_t srcy = (HN_SRC_IM_SIZE - srch) / 2;
-    cur_downsample_scale_ = (float)srcw /  (float)HN_IM_SIZE;
     // Note FracDownsampleImageSAT destroys the origional source image
-    FracDownsampleImageSAT<float>(im_temp1_, 0, 0, HN_IM_SIZE, HN_IM_SIZE,
-      HN_IM_SIZE, hand_image_, srcx, srcy, srcw, srch, HN_SRC_IM_SIZE, 
+    FracDownsampleImageSAT<float>(hand_image_, 0, 0, HN_IM_SIZE, HN_IM_SIZE,
+      HN_IM_SIZE, cropped_hand_image_, srcx, srcy, srcw, srch, HN_SRC_IM_SIZE, 
       HN_SRC_IM_SIZE, im_temp_double_);
-    // Now ping-pong buffers
-    float* tmp = im_temp1_;
-    im_temp1_ = hand_image_;
-    hand_image_ = tmp;
 
     // Save the lower left corner and the width / height
-    hand_pos_wh_[0] = ((int32_t)uvd_com_[0] - (HN_SRC_IM_SIZE / 2)) + srcx;
-    hand_pos_wh_[1] = ((int32_t)uvd_com_[1] - (HN_SRC_IM_SIZE / 2)) + srcy;
+    hand_pos_wh_[0] = u_start + srcx;
+    hand_pos_wh_[1] = v_start + srcy;
     hand_pos_wh_[2] = srcw;
     hand_pos_wh_[3] = srch;
 
@@ -249,6 +245,7 @@ namespace hand_net {
       memcpy(dst, ((FloatTensor*)norm_module_[i]->output)->data(), 
         w * h * sizeof(dst[0]));
 
+#ifndef HN_LOCAL_CONTRAST_NORM
       // Now subtract by the GLOBAL std
       float sum = 0;
       float sum_sqs = 0;
@@ -264,6 +261,7 @@ namespace hand_net {
       for (int32_t j = 0; j < w * h; j++) {
         dst[j] *= scale_fact;
       }
+#endif
 
       if (i < (num_banks_ - 1)) {
         // Iterate the dst, coeff and src pointers
@@ -430,9 +428,22 @@ namespace hand_net {
         // area, so summing these gives us the correct weights.
         calcNormal(cur_normal, hand_mesh_vertices_[v1], 
           hand_mesh_vertices_[v2], hand_mesh_vertices_[v3]);
-        Float3::add(hand_mesh_normals_[v1], hand_mesh_normals_[v1], cur_normal);
-        Float3::add(hand_mesh_normals_[v2], hand_mesh_normals_[v2], cur_normal);
-        Float3::add(hand_mesh_normals_[v3], hand_mesh_normals_[v3], cur_normal);
+
+        hand_mesh_normals_[v1][0] += cur_normal[0];
+        hand_mesh_normals_[v1][1] += cur_normal[1];
+        hand_mesh_normals_[v1][2] += cur_normal[2];
+
+        hand_mesh_normals_[v2][0] += cur_normal[0];
+        hand_mesh_normals_[v2][1] += cur_normal[1];
+        hand_mesh_normals_[v2][2] += cur_normal[2];
+
+        hand_mesh_normals_[v3][0] += cur_normal[0];
+        hand_mesh_normals_[v3][1] += cur_normal[1];
+        hand_mesh_normals_[v3][2] += cur_normal[2];
+
+        //Float3::add(hand_mesh_normals_[v1], hand_mesh_normals_[v1], cur_normal);
+        //Float3::add(hand_mesh_normals_[v2], hand_mesh_normals_[v2], cur_normal);
+        //Float3::add(hand_mesh_normals_[v3], hand_mesh_normals_[v3], cur_normal);
         break;
       case SimpleNormalApproximation:
         // METHOD 1 --> FAST
