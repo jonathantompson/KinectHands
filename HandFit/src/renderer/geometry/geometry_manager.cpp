@@ -531,8 +531,7 @@ namespace renderer {
   Geometry* GeometryManager::renderStackPop() {
     Geometry* ret = NULL;
     if (render_stack_.size() > 0) {
-      ret = render_stack_[render_stack_.size()-1];
-      render_stack_.popBack();  // Remove the last element
+      render_stack_.popBackUnsafe(ret);  // Remove the last element
 
       // Now add the children to the geometry stack
       for (uint32_t i = 0; i < ret->numChildren(); i ++) {
@@ -734,8 +733,8 @@ namespace renderer {
       // Annoying O(16) copy, but making bone_offset float[16] is much easier
       // for saving it to disk (windows vs mac os x template size is different)
       bone_offset.set(cur_bone->bone_offset);  
-      Float4x4::mult(tmp, *cur_bone->getNode()->mat_hierarchy(), bone_offset);
-      Float4x4::mult(*cur_bone_final_trans, global_inverse_transform, tmp);
+      Float4x4::multSIMD(tmp, *cur_bone->getNode()->mat_hierarchy(), bone_offset);
+      Float4x4::multSIMD(*cur_bone_final_trans, global_inverse_transform, tmp);
 
 #ifndef LINEAR_BLEND_SKINNING
       // FloatQuat::decompose(&bones_[i].final_trans, &trans, &rot, &scale);

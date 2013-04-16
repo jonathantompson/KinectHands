@@ -9,4 +9,4 @@ struct DirectionalLight {
     vec3 direction_view;
 }; 
 
-const int MAX_BONE_COUNT = 128;
+const int MAX_BONE_COUNT = 32;

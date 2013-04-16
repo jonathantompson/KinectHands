@@ -44,10 +44,10 @@ namespace renderer {
     reinterpret_cast<const void*>(offsetof(struct ColoredBonedMeshVertex, bone_data.ids_03));
   const void* ColoredBonedMeshVertex::bone_weights_03_offset = 
     reinterpret_cast<const void*>(offsetof(struct ColoredBonedMeshVertex, bone_data.weights_03));
-  const void* ColoredBonedMeshVertex::bone_ids_47_offset = 
-    reinterpret_cast<const void*>(offsetof(struct ColoredBonedMeshVertex, bone_data.ids_47));
-  const void* ColoredBonedMeshVertex::bone_weights_47_offset = 
-    reinterpret_cast<const void*>(offsetof(struct ColoredBonedMeshVertex, bone_data.weights_47));
+  //const void* ColoredBonedMeshVertex::bone_ids_47_offset = 
+  //  reinterpret_cast<const void*>(offsetof(struct ColoredBonedMeshVertex, bone_data.ids_47));
+  //const void* ColoredBonedMeshVertex::bone_weights_47_offset = 
+  //  reinterpret_cast<const void*>(offsetof(struct ColoredBonedMeshVertex, bone_data.weights_47));
 
   GeometryColoredBonedMesh::GeometryColoredBonedMesh() :
   Geometry() {
@@ -128,8 +128,8 @@ namespace renderer {
       for (uint32_t j = 0; j < 4; j++) {
         ptr[i].bone_data.ids_03[j] = vertex_bone_data_[i].ids_03[j];
         ptr[i].bone_data.weights_03[j] = vertex_bone_data_[i].weights_03[j];
-        ptr[i].bone_data.ids_47[j] = vertex_bone_data_[i].ids_47[j];
-        ptr[i].bone_data.weights_47[j] = vertex_bone_data_[i].weights_47[j];
+        //ptr[i].bone_data.ids_47[j] = vertex_bone_data_[i].ids_47[j];
+        //ptr[i].bone_data.weights_47[j] = vertex_bone_data_[i].weights_47[j];
       }
     }
     GLState::glsUnmapBuffer(GL_ARRAY_BUFFER);
@@ -145,11 +145,11 @@ namespace renderer {
     setVertexAttribPointer(VERTEX_BONE_WEIGHTS_03_LOC, 4, GL_FLOAT,
       false, sizeof(struct ColoredBonedMeshVertex), 
       ColoredBonedMeshVertex::bone_weights_03_offset);
-    setVertexAttribIPointer(VERTEX_BONE_IDS_47_LOC, 4, GL_INT,
-      sizeof(struct ColoredBonedMeshVertex), ColoredBonedMeshVertex::bone_ids_47_offset);
-    setVertexAttribPointer(VERTEX_BONE_WEIGHTS_47_LOC, 4, GL_FLOAT,
-      false, sizeof(struct ColoredBonedMeshVertex), 
-      ColoredBonedMeshVertex::bone_weights_47_offset);
+    //setVertexAttribIPointer(VERTEX_BONE_IDS_47_LOC, 4, GL_INT,
+    //  sizeof(struct ColoredBonedMeshVertex), ColoredBonedMeshVertex::bone_ids_47_offset);
+    //setVertexAttribPointer(VERTEX_BONE_WEIGHTS_47_LOC, 4, GL_FLOAT,
+    //  false, sizeof(struct ColoredBonedMeshVertex), 
+    //  ColoredBonedMeshVertex::bone_weights_47_offset);
 
     // Allocate an index buffer if we're using it
     if (indices_.size() != 0) {
@@ -280,8 +280,8 @@ namespace renderer {
       for (uint32_t j = 0; j < 4; j++) {
         geom->vertex_bone_data_[i].ids_03[j] = 0;
         geom->vertex_bone_data_[i].weights_03[j] = 0.0f;
-        geom->vertex_bone_data_[i].ids_47[j] = 0;
-        geom->vertex_bone_data_[i].weights_47[j] = 0.0f;
+        //geom->vertex_bone_data_[i].ids_47[j] = 0;
+        //geom->vertex_bone_data_[i].weights_47[j] = 0.0f;
       }
     }
 
@@ -399,9 +399,9 @@ namespace renderer {
         (VertexBoneData*)(&bone_data[BONE_VERTEX_DATA_FILE_DATA_SIZE * i]);
       for (uint32_t j = 0; j < 4; j++) {
         cur_bone_data->ids_03[j] = vertex_bone_data_[i].ids_03[j];
-        cur_bone_data->ids_47[j] = vertex_bone_data_[i].ids_47[j];
+        //cur_bone_data->ids_47[j] = vertex_bone_data_[i].ids_47[j];
         cur_bone_data->weights_03[j] = vertex_bone_data_[i].weights_03[j];
-        cur_bone_data->weights_47[j] = vertex_bone_data_[i].weights_47[j];
+        //cur_bone_data->weights_47[j] = vertex_bone_data_[i].weights_47[j];
       }
     }
 
@@ -464,9 +464,9 @@ namespace renderer {
         (VertexBoneData*)(&bone_data[BONE_VERTEX_DATA_FILE_DATA_SIZE * i]);
       for (uint32_t j = 0; j < 4; j++) {
         vertex_bone_data_[i].ids_03[j] = cur_bone_data->ids_03[j];
-        vertex_bone_data_[i].ids_47[j] = cur_bone_data->ids_47[j];
+        //vertex_bone_data_[i].ids_47[j] = cur_bone_data->ids_47[j];
         vertex_bone_data_[i].weights_03[j] = cur_bone_data->weights_03[j];
-        vertex_bone_data_[i].weights_47[j] = cur_bone_data->weights_47[j];
+        //vertex_bone_data_[i].weights_47[j] = cur_bone_data->weights_47[j];
       }
     }
 

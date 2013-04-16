@@ -82,9 +82,9 @@ namespace renderer {
     static const ShaderLocationNamePair col;
     static const ShaderLocationNamePair tex;
     static const ShaderLocationNamePair bone_ids_03;
-    static const ShaderLocationNamePair bone_ids_47;
+    //static const ShaderLocationNamePair bone_ids_47;
     static const ShaderLocationNamePair bone_weights_03;
-    static const ShaderLocationNamePair bone_weights_47;
+    //static const ShaderLocationNamePair bone_weights_47;
 
     bool wireframe;
     bool render_bounding_spheres;

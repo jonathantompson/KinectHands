@@ -315,11 +315,11 @@ namespace math {
       }
       cout << endl << "  --> bounding_area = " << bounding_area << endl;
 #else
-      if (((num_iterations-1) % 100) == 0) {
-        cout << "Iteration " << num_iterations << ":" << endl;
-        cout << "  --> min residue of population = " << best_residue_global_ << endl;
-        cout << "  --> delta_coeff = " << delta_coeff << endl;
-      }
+      //if (((num_iterations-1) % 100) == 0) {
+      //  cout << "Iteration " << num_iterations << ":" << endl;
+      //  cout << "  --> min residue of population = " << best_residue_global_ << endl;
+      //  cout << "  --> delta_coeff = " << delta_coeff << endl;
+      //}
 #endif
     } while (num_iterations <= max_iterations && 
              delta_coeff >= delta_coeff_termination);

@@ -48,8 +48,8 @@ namespace renderer {
   const ShaderLocationNamePair Renderer::tex(VERTEX_TEX_LOC, "v_texture");
   const ShaderLocationNamePair Renderer::bone_ids_03(VERTEX_BONE_IDS_03_LOC, "v_bone_ids_03");
   const ShaderLocationNamePair Renderer::bone_weights_03(VERTEX_BONE_WEIGHTS_03_LOC, "v_bone_weights_03");
-  const ShaderLocationNamePair Renderer::bone_ids_47(VERTEX_BONE_IDS_47_LOC, "v_bone_ids_47");
-  const ShaderLocationNamePair Renderer::bone_weights_47(VERTEX_BONE_WEIGHTS_47_LOC, "v_bone_weights_47");
+  //const ShaderLocationNamePair Renderer::bone_ids_47(VERTEX_BONE_IDS_47_LOC, "v_bone_ids_47");
+  //const ShaderLocationNamePair Renderer::bone_weights_47(VERTEX_BONE_WEIGHTS_47_LOC, "v_bone_weights_47");
 
   Renderer::Renderer() {
     camera_ = NULL;
@@ -222,8 +222,8 @@ namespace renderer {
     sp_cmesh_bone_dlight_->bindVertShaderInputLocation(Renderer::col);
     sp_cmesh_bone_dlight_->bindVertShaderInputLocation(Renderer::bone_ids_03);
     sp_cmesh_bone_dlight_->bindVertShaderInputLocation(Renderer::bone_weights_03);
-    sp_cmesh_bone_dlight_->bindVertShaderInputLocation(Renderer::bone_ids_47);
-    sp_cmesh_bone_dlight_->bindVertShaderInputLocation(Renderer::bone_weights_47);
+    //sp_cmesh_bone_dlight_->bindVertShaderInputLocation(Renderer::bone_ids_47);
+    //sp_cmesh_bone_dlight_->bindVertShaderInputLocation(Renderer::bone_weights_47);
     sp_cmesh_bone_dlight_->link();
     h_sp_cmesh_bone_dlight_ = new LightDirHandles();
     h_sp_cmesh_bone_dlight_->getHandles(sp_cmesh_bone_dlight_);
@@ -282,8 +282,8 @@ namespace renderer {
     sp_tmesh_bone_dlight_->bindVertShaderInputLocation(Renderer::tex);
     sp_tmesh_bone_dlight_->bindVertShaderInputLocation(Renderer::bone_ids_03);
     sp_tmesh_bone_dlight_->bindVertShaderInputLocation(Renderer::bone_weights_03);
-    sp_tmesh_bone_dlight_->bindVertShaderInputLocation(Renderer::bone_ids_47);
-    sp_tmesh_bone_dlight_->bindVertShaderInputLocation(Renderer::bone_weights_47);
+    //sp_tmesh_bone_dlight_->bindVertShaderInputLocation(Renderer::bone_ids_47);
+    //sp_tmesh_bone_dlight_->bindVertShaderInputLocation(Renderer::bone_weights_47);
     sp_tmesh_bone_dlight_->link();
     h_sp_tmesh_bone_dlight_ = new LightDirHandles();
     h_sp_tmesh_bone_dlight_->getHandles(sp_tmesh_bone_dlight_);

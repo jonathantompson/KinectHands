@@ -3,9 +3,9 @@
 
 in vec3 v_position;
 in ivec4 v_bone_ids_03;
-in ivec4 v_bone_ids_47;
+//in ivec4 v_bone_ids_47;
 in vec4 v_bone_weights_03;
-in vec4 v_bone_weights_47;
+//in vec4 v_bone_weights_47;
 
 uniform mat4 PVW_mat;
 uniform mat4 VW_mat;
@@ -20,33 +20,33 @@ void main(void) {
   mat2x4 dq2 = bone_trans[v_bone_ids_03[2]];
   mat2x4 dq3 = bone_trans[v_bone_ids_03[3]];
 
-  mat2x4 dq4 = bone_trans[v_bone_ids_47[0]];
-  mat2x4 dq5 = bone_trans[v_bone_ids_47[1]];
-  mat2x4 dq6 = bone_trans[v_bone_ids_47[2]];
-  mat2x4 dq7 = bone_trans[v_bone_ids_47[3]];
+  //mat2x4 dq4 = bone_trans[v_bone_ids_47[0]];
+  //mat2x4 dq5 = bone_trans[v_bone_ids_47[1]];
+  //mat2x4 dq6 = bone_trans[v_bone_ids_47[2]];
+  //mat2x4 dq7 = bone_trans[v_bone_ids_47[3]];
 
   vec4 bone_weights_03 = v_bone_weights_03;
-  vec4 bone_weights_47 = v_bone_weights_47;
+  //vec4 bone_weights_47 = v_bone_weights_47;
 
   // Antipodality checks:
   if (dot(dq0[0], dq1[0]) < 0.0) bone_weights_03.y *= -1.0;
   if (dot(dq0[0], dq2[0]) < 0.0) bone_weights_03.z *= -1.0;
   if (dot(dq0[0], dq3[0]) < 0.0) bone_weights_03.w *= -1.0;
 
-  if (dot(dq0[0], dq4[0]) < 0.0) bone_weights_47.y *= -1.0;
-  if (dot(dq0[0], dq5[0]) < 0.0) bone_weights_47.z *= -1.0;
-  if (dot(dq0[0], dq6[0]) < 0.0) bone_weights_47.w *= -1.0;
-  if (dot(dq0[0], dq7[0]) < 0.0) bone_weights_47.y *= -1.0;
+  //if (dot(dq0[0], dq4[0]) < 0.0) bone_weights_47.y *= -1.0;
+  //if (dot(dq0[0], dq5[0]) < 0.0) bone_weights_47.z *= -1.0;
+  //if (dot(dq0[0], dq6[0]) < 0.0) bone_weights_47.w *= -1.0;
+  //if (dot(dq0[0], dq7[0]) < 0.0) bone_weights_47.y *= -1.0;
 
   mat2x4 blendDQ =
          bone_weights_03.x * dq0 +
          bone_weights_03.y * dq1 +
          bone_weights_03.z * dq2 +
-         bone_weights_03.w * dq3 +
+         bone_weights_03.w * dq3 /*+
 		 bone_weights_47.x * dq4 +
          bone_weights_47.y * dq5 +
          bone_weights_47.z * dq6 +
-         bone_weights_47.w * dq7;
+         bone_weights_47.w * dq7*/;
 
   // Fast dual quaternion blend skinning:
   float length = sqrt(blendDQ[0].w * blendDQ[0].w + blendDQ[0].x * blendDQ[0].x + blendDQ[0].y * blendDQ[0].y + blendDQ[0].z * blendDQ[0].z);

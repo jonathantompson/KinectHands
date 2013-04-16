@@ -38,9 +38,9 @@ namespace renderer {
     static const void* norm_offset;
     static const void* tex_offset;
     static const void* bone_ids_03_offset;
-    static const void* bone_ids_47_offset;
+    //static const void* bone_ids_47_offset;
     static const void* bone_weights_03_offset;
-    static const void* bone_weights_47_offset;
+    //static const void* bone_weights_47_offset;
   };
 
   struct TexturedBonedMeshFileData {

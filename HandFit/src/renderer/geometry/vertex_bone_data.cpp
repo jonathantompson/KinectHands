@@ -12,14 +12,14 @@ namespace renderer {
           ids_03[i] = bone_index;
           return;
         }
-      }
+      }/*
       else if (i < 8) {
         if (weights_47[i-4] == 0.0) {
           weights_47[i-4] = weight;
           ids_47[i-4] = bone_index;
           return;
         }
-      }
+      }*/
     }
   }
 
@@ -29,8 +29,8 @@ namespace renderer {
       for (uint32_t i = 0; i < 4; i++) {
         ids_03[i] = rhs.ids_03[i];
         weights_03[i] = rhs.weights_03[i];
-        ids_47[i] = rhs.ids_47[i];
-        weights_47[i] = rhs.weights_47[i];
+        //ids_47[i] = rhs.ids_47[i];
+        //weights_47[i] = rhs.weights_47[i];
       }
     }
     return *this;

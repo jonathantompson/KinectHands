@@ -9,9 +9,9 @@ in vec3 v_position;
 in vec2 v_texture;
 in vec3 v_normal;
 in ivec4 v_bone_ids_03;
-in ivec4 v_bone_ids_47;
+//in ivec4 v_bone_ids_47;
 in vec4 v_bone_weights_03;
-in vec4 v_bone_weights_47;
+//in vec4 v_bone_weights_47;
 
 uniform mat4 PVW_mat;
 uniform mat4 VW_mat;
@@ -29,10 +29,10 @@ void main(void) {
   bone_transform     += bone_trans[v_bone_ids_03[2]] * v_bone_weights_03[2];
   bone_transform     += bone_trans[v_bone_ids_03[3]] * v_bone_weights_03[3];
 
-  bone_transform     += bone_trans[v_bone_ids_47[0]] * v_bone_weights_47[0];
-  bone_transform     += bone_trans[v_bone_ids_47[1]] * v_bone_weights_47[1];
-  bone_transform     += bone_trans[v_bone_ids_47[2]] * v_bone_weights_47[2];
-  bone_transform     += bone_trans[v_bone_ids_47[3]] * v_bone_weights_47[3];
+  //bone_transform     += bone_trans[v_bone_ids_47[0]] * v_bone_weights_47[0];
+  //bone_transform     += bone_trans[v_bone_ids_47[1]] * v_bone_weights_47[1];
+  //bone_transform     += bone_trans[v_bone_ids_47[2]] * v_bone_weights_47[2];
+  //bone_transform     += bone_trans[v_bone_ids_47[3]] * v_bone_weights_47[3];
 
   vec4 pos = bone_transform * vec4(v_position, 1.0);
   vec3 nor = (bone_transform * vec4(v_normal, 0.0)).xyz;

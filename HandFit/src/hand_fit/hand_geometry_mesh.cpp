@@ -283,7 +283,7 @@ namespace hand_fit {
       psi = 0;
       mat = bones_in_file_->bones[bone_finger_1_index_[i]]->getNode()->mat();
       euler2RotMatGM(mat_tmp3, psi, theta, phi);
-      Float4x4::mult(*mat, rest_transforms_[bone_finger_1_index_[i]], mat_tmp3);
+      Float4x4::multSIMD(*mat, rest_transforms_[bone_finger_1_index_[i]], mat_tmp3);
 
       // K1 base
       theta = coeff[F0_THETA + i * FINGER_NUM_COEFF];
@@ -291,7 +291,7 @@ namespace hand_fit {
       psi = coeff[F0_TWIST + i];
       mat = bones_in_file_->bones[bone_finger_2_index_[i]]->getNode()->mat();
       euler2RotMatGM(mat_tmp3, psi, theta, phi);
-      Float4x4::mult(*mat, rest_transforms_[bone_finger_2_index_[i]], mat_tmp3);
+      Float4x4::multSIMD(*mat, rest_transforms_[bone_finger_2_index_[i]], mat_tmp3);
       mat->rightMultScale(1.0f, 1.0f + coeff[F0_LENGTH + i], 1.0f);  // Scale this node
 
       mat = bones_in_file_->bones[bone_finger_3_index_[i]]->getNode()->mat();
@@ -304,7 +304,7 @@ namespace hand_fit {
       mat_tmp2.set(bone_mid);
       // Move bone by fraction of the bone length:
       mat_tmp2.leftMultTranslation(0, bone_base_length * coeff[F0_LENGTH + i], 0);  
-      Float4x4::mult(*mat, mat_tmp2, mat_tmp1);
+      Float4x4::multSIMD(*mat, mat_tmp2, mat_tmp1);
       mat->leftMultScale(1.0f, 1.0f / (1.0f + coeff[F0_LENGTH + i]), 1.0f);  // Undo parent scale
       mat->rightMultScale(1.0f, 1.0f + coeff[F0_LENGTH + i], 1.0f);  // Scale this node
 
@@ -318,7 +318,7 @@ namespace hand_fit {
       mat_tmp2.set(bone_tip);
       // Move bone by fraction of the bone length:
       mat_tmp2.leftMultTranslation(0, bone_mid_length * coeff[F0_LENGTH + i], 0);
-      Float4x4::mult(*mat, mat_tmp2, mat_tmp1);
+      Float4x4::multSIMD(*mat, mat_tmp2, mat_tmp1);
 
       mat->leftMultScale(1.0f, 1.0f / (1.0f + coeff[F0_LENGTH + i]), 1.0f);  // Undo parent scale
       mat->rightMultScale(1.0f, 1.0f + coeff[F0_LENGTH + i], 1.0f);  // Scale this node
@@ -330,34 +330,18 @@ namespace hand_fit {
     float psi = coeff[THUMB_TWIST];
     mat = bones_in_file_->bones[bone_thumb_1_index_]->getNode()->mat();
     euler2RotMatGM(mat_tmp3, psi, theta, phi);
-    Float4x4::mult(*mat, rest_transforms_[bone_thumb_1_index_], mat_tmp3);
-
-#ifdef SCALE_THUMB_BASE
-    mat->rightMultScale(1.0f, 1.0f + coeff[THUMB_LENGTH], 1.0f);  // Scale this node
-#endif
+    Float4x4::multSIMD(*mat, rest_transforms_[bone_thumb_1_index_], mat_tmp3);
 
     theta = coeff[THUMB_K1_THETA];
     phi = coeff[THUMB_K1_PHI];
     mat = bones_in_file_->bones[bone_thumb_2_index_]->getNode()->mat();
     rotateMatZAxisGM(mat_tmp1, theta);
     rotateMatXAxisGM(mat_tmp2, phi);
-    Float4x4::mult(mat_tmp3, mat_tmp1, mat_tmp2);
+    Float4x4::multSIMD(mat_tmp3, mat_tmp1, mat_tmp2);
 
     const Float4x4& bone_mid = rest_transforms_[bone_thumb_2_index_];
-#ifdef SCALE_THUMB_BASE
-    Float3 bone_mid_pos;
-    Float4x4::getTranslation(bone_mid_pos, bone_mid);
-    float bone_base_length = bone_mid_pos.length();
-#endif
     mat_tmp2.set(bone_mid);
-#ifdef SCALE_THUMB_BASE
-    // Move bone by fraction of the bone length:
-    mat_tmp2.leftMultTranslation(0, bone_base_length * coeff[THUMB_LENGTH], 0);  
-#endif
-    Float4x4::mult(*mat, mat_tmp2, mat_tmp3);
-#ifdef SCALE_THUMB_BASE
-    mat->leftMultScale(1.0f, 1.0f / (1.0f + coeff[THUMB_LENGTH]), 1.0f);  // Undo parent scale
-#endif
+    Float4x4::multSIMD(*mat, mat_tmp2, mat_tmp3);
     mat->rightMultScale(1.0f, 1.0f + coeff[THUMB_LENGTH], 1.0f);  // Scale this node
 
     phi = coeff[THUMB_K2_PHI];
@@ -370,7 +354,7 @@ namespace hand_fit {
     mat_tmp2.set(bone_tip);
     // Move bone by fraction of the bone length:
     mat_tmp2.leftMultTranslation(0, bone_mid_length * coeff[THUMB_LENGTH], 0);
-    Float4x4::mult(*mat, mat_tmp2, mat_tmp1);
+    Float4x4::multSIMD(*mat, mat_tmp2, mat_tmp1);
     mat->leftMultScale(1.0f, 1.0f / (1.0f + coeff[THUMB_LENGTH]), 1.0f);  // Undo parent scale
     mat->rightMultScale(1.0f, 1.0f + coeff[THUMB_LENGTH], 1.0f);  // Scale this node
 
@@ -385,8 +369,7 @@ namespace hand_fit {
   Geometry* HandGeometryMesh::renderStackPop() {
     Geometry* ret = NULL;
     if (render_stack_.size() > 0) {
-      ret = render_stack_[render_stack_.size()-1];
-      render_stack_.popBack();  // Remove the last element
+      render_stack_.popBackUnsafe(ret);  // Remove the last element
 
       // Now add the children to the geometry stack
       for (uint32_t i = 0; i < ret->numChildren(); i ++) {
@@ -406,7 +389,7 @@ namespace hand_fit {
       Geometry* cur_geom = renderStackPop();
       // Update the render matrix based on our parents position
       if (cur_geom->parent() != NULL) {
-        Float4x4::mult(*cur_geom->mat_hierarchy(),
+        Float4x4::multSIMD(*cur_geom->mat_hierarchy(),
           *cur_geom->parent()->mat_hierarchy(), *cur_geom->mat());
 
       } else {
@@ -429,8 +412,8 @@ namespace hand_fit {
         // transform (by left multiplying by its inverse).
         // Then we have to left multiply by the mesh node's transform
         BoundingSphere* sphere = reinterpret_cast<BoundingSphere*>(cur_geom);
-        Float4x4::mult(tmp, root_inverse, *sphere->mat_hierarchy());
-        Float4x4::mult(*sphere->mat_hierarchy(), *sphere->mesh_node()->mat_hierarchy(), tmp);
+        Float4x4::multSIMD(tmp, root_inverse, *sphere->mat_hierarchy());
+        Float4x4::multSIMD(*sphere->mat_hierarchy(), *sphere->mesh_node()->mat_hierarchy(), tmp);
       }
     }
   }

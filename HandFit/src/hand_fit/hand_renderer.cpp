@@ -146,8 +146,8 @@ namespace hand_fit {
     sp_depth_skinned_->bindVertShaderInputLocation(Renderer::pos);
     sp_depth_skinned_->bindVertShaderInputLocation(Renderer::bone_ids_03);
     sp_depth_skinned_->bindVertShaderInputLocation(Renderer::bone_weights_03);
-    sp_depth_skinned_->bindVertShaderInputLocation(Renderer::bone_ids_47);
-    sp_depth_skinned_->bindVertShaderInputLocation(Renderer::bone_weights_47);
+    //sp_depth_skinned_->bindVertShaderInputLocation(Renderer::bone_ids_47);
+    //sp_depth_skinned_->bindVertShaderInputLocation(Renderer::bone_weights_47);
     sp_depth_skinned_->link();
     h_PVW_mat_sp_depth_skinned_ = sp_depth_skinned_->getUniformLocation("PVW_mat");
     h_VW_mat_sp_depth_skinned_ = sp_depth_skinned_->getUniformLocation("VW_mat");
@@ -171,8 +171,8 @@ namespace hand_fit {
     sp_cdepth_skinned_->bindVertShaderInputLocation(Renderer::col);
     sp_cdepth_skinned_->bindVertShaderInputLocation(Renderer::bone_ids_03);
     sp_cdepth_skinned_->bindVertShaderInputLocation(Renderer::bone_weights_03);
-    sp_cdepth_skinned_->bindVertShaderInputLocation(Renderer::bone_ids_47);
-    sp_cdepth_skinned_->bindVertShaderInputLocation(Renderer::bone_weights_47);
+    //sp_cdepth_skinned_->bindVertShaderInputLocation(Renderer::bone_ids_47);
+    //sp_cdepth_skinned_->bindVertShaderInputLocation(Renderer::bone_weights_47);
     sp_cdepth_skinned_->link();
     h_PVW_mat_sp_cdepth_skinned_ = sp_cdepth_skinned_->getUniformLocation("PVW_mat");
     h_VW_mat_sp_cdepth_skinned_ = sp_cdepth_skinned_->getUniformLocation("VW_mat");

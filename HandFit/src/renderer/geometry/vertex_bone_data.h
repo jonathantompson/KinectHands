@@ -19,9 +19,9 @@ namespace renderer {
 
     struct VertexBoneData { 
     uint32_t ids_03[4];  // Vertex attributes can only be length 4!
-    uint32_t ids_47[4];
+    //uint32_t ids_47[4];
     float weights_03[4];
-    float weights_47[4];
+    //float weights_47[4];
     VertexBoneData& operator=(const VertexBoneData &rhs);
     void attachBone(uint32_t bone_index, float weight);
   };
