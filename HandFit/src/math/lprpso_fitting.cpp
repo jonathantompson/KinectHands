@@ -279,15 +279,15 @@ namespace math {
     const float b, const float c, bool angle) {
     float interp;
     if (angle) {
-      float real_a = cos(a);
-      float imag_a = sin(a);
-      float real_b = cos(b);
-      float imag_b = sin(b);
-      float real_c = cos(c);
-      float imag_c = sin(c);
+      float real_a = cosf(a);
+      float imag_a = sinf(a);
+      float real_b = cosf(b);
+      float imag_b = sinf(b);
+      float real_c = cosf(c);
+      float imag_c = sinf(c);
       float real_interp = real_a + interp_val * (real_b - real_c);
       float imag_interp = imag_a + interp_val * (imag_b - imag_c);
-      interp = atan2(imag_interp, real_interp);
+      interp = atan2f(imag_interp, real_interp);
     } else {
       interp = a + interp_val * (b - c);
     }
