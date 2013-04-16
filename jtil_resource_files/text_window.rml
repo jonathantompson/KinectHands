@@ -1,0 +1,11 @@
+<template name="text_window" content="content">
+<title>text</title>
+<head>
+	<link type="text/rcss" href="rkt.rcss"/>
+	<link type="text/rcss" href="fps.rcss"/>
+</head>
+<body class="window">
+		<div id="content">
+		</div>
+</body>
+</template>

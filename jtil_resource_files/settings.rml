@@ -1,0 +1,31 @@
+<rml>
+	<head>
+	  <title>Settings</title>
+	  <link type="text/template" href="settings_window.rml" />
+      <style>
+		body
+		{
+		width: 300px;
+		height: 610px;
+
+		top: 55px;
+		left: 10x;
+		}
+
+		div#title_bar div#icon
+		{
+		display: none;
+		}
+		
+		div#content
+		{
+		  text-align: left;
+		}
+		  
+      </style>
+	</head>
+	<body template="settings_window">
+      <handle id="size_handle" size_target="#document" />
+    </body>
+  
+</rml>

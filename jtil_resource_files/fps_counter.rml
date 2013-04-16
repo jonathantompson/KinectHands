@@ -1,0 +1,23 @@
+<rml>
+	<head>
+		<title>FPS</title>
+		<link type="text/template" href="fps_window.rml" />
+		<style>
+			body
+			{
+				width: 400px;
+				height: 50px;
+
+				top: 0px;
+				left: 0px;
+			}
+			div#content
+			{
+				text-align: left;
+			}
+		</style>
+	</head>
+	<body template="fps_window">
+
+	</body>
+</rml>
