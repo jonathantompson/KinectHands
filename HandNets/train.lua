@@ -49,7 +49,7 @@ function train(data)
       for j=1,num_hpf_banks do
         batchData.data[j][{out_i,{},{},{}}] = data.data[j][{cur_i,{},{},{}}]
       end
-      batchData.labels[{out_i,{}}] = data.labels[cur_i]:clone():cuda()
+      batchData.labels[{out_i,{}}] = data.labels[cur_i]:cuda()
       out_i = out_i + 1
     end
     for j=1,num_hpf_banks do
