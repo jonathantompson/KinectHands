@@ -39,13 +39,17 @@ num_hpf_banks = 3
 dim = width * height
 num_coeff = 16
 num_coeff_per_feature = 2  -- UV = 2, UVD = 3
+num_features = num_coeff / num_coeff_per_feature
 frame_stride = 1  -- Only 1 works for now
 perform_training = 1
+use_heat_maps = 1
+regenerate_heat_maps = 0  -- otherwise it will load them from file (SLOW)
 model_filename = 'handmodel.net'
 -- im_dir = "../data/hand_depth_data_processed_for_CN_synthetic/"
 -- test_im_dir = "../data/hand_depth_data_processed_for_CN_test_synthetic/"
 im_dir = "../data/hand_depth_data_processed_for_CN/"
 test_im_dir = "../data/hand_depth_data_processed_for_CN_test/"
+heatmap_dir = "../data/heatmaps/"
 test_data_rate = 20  -- this means 1 / 20 FROM THE TRAINING SET will be test
 use_hpf_depth = 1
 learning_rate = 3e-1  -- Default 1e-1
