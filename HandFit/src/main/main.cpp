@@ -64,7 +64,8 @@
 // PRIMESENSE DATA
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_04_16_1/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_04_16_2/")
-#define IM_DIR_BASE string("data/hand_depth_data_2013_04_16_3/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_04_16_3/")
+#define IM_DIR_BASE string("data/hand_depth_data_2013_04_16_4/")
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
 
