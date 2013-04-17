@@ -489,6 +489,7 @@ namespace app {
     ui->addCheckbox("render_kinect_fps", "Render Kinect FPS");
     ui->addCheckbox("crop_depth_to_rgb", "Crop depth to RGB");
     ui->addCheckbox("continuous_snapshot", "Save continuous video stream");
+	ui->addCheckbox("flip_image", "Flip Kinect Image");
 
     ui->addHeadingText("Hand Detection:");
     ui->addCheckbox("detect_hands", "Enable Hand Detection");

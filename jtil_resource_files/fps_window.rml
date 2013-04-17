@@ -1,0 +1,10 @@
+<template name="fps_window" content="content">
+<head>
+	<link type="text/rcss" href="rkt.rcss"/>
+	<link type="text/rcss" href="fps.rcss"/>
+</head>
+<body class="window">
+		<div id="content">
+		</div>
+</body>
+</template>

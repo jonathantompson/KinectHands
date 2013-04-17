@@ -419,6 +419,13 @@ namespace kinect_interface {
     double time_accum = 0;
     uint64_t last_frame_number = 0;
 
+	bool flip_image;
+	GET_SETTING("flip_image", bool, flip_image);
+	bool prev_flip_image = flip_image;
+	for (uint32_t i = 0; i < NUM_STREAMS; i++) {
+      streams_[i]->setMirroringEnabled(flip_image);
+	}
+
     while (kinect_running_) {
       data_lock_.lock();
 
@@ -442,6 +449,14 @@ namespace kinect_interface {
       } else {
         device_->setImageRegistrationMode(openni::IMAGE_REGISTRATION_OFF);
       }
+
+	  GET_SETTING("flip_image", bool, flip_image);
+	  if (prev_flip_image != flip_image) {
+		for (uint32_t i = 0; i < NUM_STREAMS; i++) {
+		  streams_[i]->setMirroringEnabled(flip_image);
+	    }
+		prev_flip_image = flip_image;
+	  }
 
       for (uint32_t i = 0; i < NUM_STREAMS; i++) {
         streams_[i]->readFrame(frames_[i]);
