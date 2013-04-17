@@ -51,6 +51,7 @@
   #define snprintf _snprintf_s
 #endif
 
+// KINECT DATA
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Fit
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")  // Fit
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")  // Fit
@@ -60,7 +61,10 @@
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Fit
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Fit -> Training Data
 
-#define IM_DIR_BASE string("data/hand_depth_data/")  // Fit 
+// PRIMESENSE DATA
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_04_16_1/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_04_16_2/")
+#define IM_DIR_BASE string("data/hand_depth_data_2013_04_16_3/")
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
 

@@ -12,6 +12,7 @@
 #include <fstream>
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector_managed.h"
+#include "jtil/data_str/pair.h"
 #include "kinect_interface/depth_image_data.h"
 
 #define src_width 640

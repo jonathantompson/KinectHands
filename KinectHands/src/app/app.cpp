@@ -427,7 +427,6 @@ namespace app {
       }
 
       Renderer::g_renderer()->renderFrame();
-
       // Save the frame to file if we have been asked to:
       bool continuous_snapshot;
       GET_SETTING("continuous_snapshot", bool, continuous_snapshot);

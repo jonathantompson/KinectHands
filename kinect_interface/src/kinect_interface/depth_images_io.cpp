@@ -16,6 +16,9 @@
 #endif
 #include <cstring>
 #include <stdexcept>
+#include <vector>
+#include <algorithm>
+#include <functional>
 #include "kinect_interface/depth_images_io.h"
 #include "kinect_interface/open_ni_funcs.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
@@ -30,7 +33,7 @@ using std::string;
 using std::cout;
 using std::endl;
 using std::wruntime_error;
-using jtil::data_str::VectorManaged;
+using namespace jtil::data_str;
 using namespace jtil::image_util;
 
 #define SAFE_FREE(x) do { if (x != NULL) { free(x); x = NULL; } } while (0); 
@@ -528,6 +531,7 @@ namespace kinect_interface {
   uint32_t DepthImagesIO::GetFilesInDirectory(
     jtil::data_str::VectorManaged<char*>& files_in_directory, 
     const string& directory, const bool load_processed_images) {
+    std::vector<Pair<char*, int64_t>> files;
 #if defined(WIN32) || defined(_WIN32)
     // Prepare string for use with FindFile functions.  First, copy the
     // string to a buffer, then append '\*' to the directory name.
@@ -555,51 +559,80 @@ namespace kinect_interface {
           jtil::string_util::ToNarrowString(std::wstring(ffd.cFileName));
         char* name = new char[cur_filename.length() + 1];
         strcpy(name, cur_filename.c_str());
-        files_in_directory.pushBack(name);
+        files.push_back(Pair<char*, int64_t>(name, -1));
       }
     } while (FindNextFile(hFind, &ffd) != 0);
     FindClose(hFind);
+
 #else
-      string name_preamble;
-      uint32_t preamble_length;
-      if (!load_processed_images) {
-        name_preamble = string("hands_");
-        preamble_length = 6;
-      } else {
-        name_preamble = string("processed_hands_");
-        preamble_length = 16;
-      }
-      static unsigned char isFile =0x8;
-      static unsigned char isFolder =0x4;
-      struct dirent *dp;
-      DIR *dfd = opendir(directory.c_str());
-      if(dfd != NULL) {
-        while((dp = readdir(dfd)) != NULL) {
-          std::string cur_name = string(dp->d_name);
-          if (dp->d_type == isFile) {
-            if (cur_name.length() > 10) {
-              if (cur_name.substr(0,preamble_length) == name_preamble && 
-                cur_name.substr(cur_name.length()-4,4) == string(".bin")) {
-                  char* name = new char[cur_name.length() + 1];
-                  strcpy(name, cur_name.c_str());
-                  files_in_directory.pushBack(name);
-              }
+    string name_preamble;
+    uint32_t preamble_length;
+    if (!load_processed_images) {
+      name_preamble = string("hands_");
+      preamble_length = 6;
+    } else {
+      name_preamble = string("processed_hands_");
+      preamble_length = 16;
+    }
+    static unsigned char isFile =0x8;
+    static unsigned char isFolder =0x4;
+    struct dirent *dp;
+    DIR *dfd = opendir(directory.c_str());
+    if(dfd != NULL) {
+      while((dp = readdir(dfd)) != NULL) {
+        std::string cur_name = string(dp->d_name);
+        if (dp->d_type == isFile) {
+          if (cur_name.length() > 10) {
+            if (cur_name.substr(0,preamble_length) == name_preamble && 
+              cur_name.substr(cur_name.length()-4,4) == string(".bin")) {
+                char* name = new char[cur_name.length() + 1];
+                strcpy(name, cur_name.c_str());
+                files.push_back(Pair<char*, int64_t>(name, -1));
             }
-          } else if (dp->d_type == isFolder) {
-            std::string cur_foldername = string(dp->d_name);
-            // std::cout << "Folder in directory: " << cur_foldername << std::endl;
           }
+        } else if (dp->d_type == isFolder) {
+          std::string cur_foldername = string(dp->d_name);
+          // std::cout << "Folder in directory: " << cur_foldername << std::endl;
         }
-        closedir(dfd);
-      } else {
-        std::stringstream ss;
-        ss << "GetFilesInDirectory error getting dir info for dir: ";
-        ss << directory << std::endl;
-        throw std::wruntime_error(ss.str());
       }
+      closedir(dfd);
+    } else {
+      std::stringstream ss;
+      ss << "GetFilesInDirectory error getting dir info for dir: ";
+      ss << directory << std::endl;
+      throw std::wruntime_error(ss.str());
+    }
 
 #endif
-      return files_in_directory.size();
+    // Now Parse the filenames and get their unique ID number
+    for (uint32_t i = 0; i < files.size(); i++) {
+      std::string str = files.at(i).first;
+      size_t i1 = str.find_first_of("0123456789");
+      if (i1 == string::npos) {
+        throw std::wruntime_error("DepthImagesIO::GetFilesInDirectory() - "
+          "ERROR: Couldn't parse filename!");
+      }
+      size_t i2 = (uint32_t)str.find_first_not_of("0123456789", i1);
+      if (i2 == string::npos) {
+        throw std::wruntime_error("DepthImagesIO::GetFilesInDirectory() - "
+          "ERROR: Couldn't parse filename!");
+      }
+      std::string num_str = str.substr(i1, i2-i1);
+      int64_t num = jtil::string_util::Str2Num<int64_t>(num_str);  // Potentially slow
+      files.at(i).second = num;
+    }
+
+    // Now sort the files by their unique id
+    // Third argument is an inline lambda expression (comparison function)
+    std::sort(files.begin(), files.end(), [](Pair<char*, int64_t>& a,
+      Pair<char*, int64_t>& b) { return b.second >= a.second; });
+
+    // And finally, copy the sorted files into the output vector
+    for (uint32_t i = 0; i < files.size(); i++) {
+      files_in_directory.pushBack(files.at(i).first);
+    }
+
+    return files_in_directory.size();
   };
 
   // testRedPixel - Single "red-test" of a hsv+rgb pixel (for debugging only)
