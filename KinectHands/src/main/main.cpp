@@ -55,6 +55,7 @@ int main(int argc, const char* argv[]) {
       App::killApp();
     } catch (const std::runtime_error &e) {
       // Do nothing for the recursive runtime error
+      static_cast<void>(e);
     }
     NativeErrorBox(e.errorMsg().c_str());
     std::cout << e.what() << std::endl;

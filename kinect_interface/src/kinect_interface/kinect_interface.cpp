@@ -553,7 +553,6 @@ namespace kinect_interface {
 
     }  // end while (app::App::app_running)
     cout << "kinectUpdateThread shutting down..." << endl;
-
   }
 
   void KinectInterface::convertDepthToWorld() {
@@ -620,10 +619,10 @@ namespace kinect_interface {
   }
 
   void KinectInterface::shutdownKinect() {
-    cout << "kinectUpdateThread shutdown requested..." << endl;
     data_lock_.lock();
     kinect_running_ = false;
     data_lock_.unlock();
+    cout << "kinectUpdateThread shutdown requested..." << endl;
     kinect_thread_.join();
   }
 

@@ -13,7 +13,6 @@
 #include "kinect_interface/hand_net/hand_image_generator.h"
 #include "kinect_interface/hand_net/hand_model.h"  // for camera parameters
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
-#include "jtil/glew/glew.h"
 #include "jtil/image_util/image_util.h"
 #include "jtil/fastlz/fastlz.h"
 
@@ -31,15 +30,8 @@
 
 using std::wruntime_error;
 using namespace jtil;
-using namespace jtil::data_str;
-using namespace jtil::clk;
-using namespace jtil::renderer;
 using namespace jtil::settings;
 using namespace jtil::math;
-using namespace jtil::settings;
-using namespace kinect_interface;
-using namespace kinect_interface::hand_net;
-using namespace jtil::renderer;
 using namespace jtil::image_util;
 
 namespace app {
@@ -65,7 +57,6 @@ namespace app {
   FrameData::~FrameData() {
     SAFE_DELETE_ARR(disk_im_);
     SAFE_DELETE_ARR(disk_im_compressed_);
-    Renderer::ShutdownRenderer();
   }
 
   bool FrameData::syncWithKinect(kinect_interface::KinectInterface* kinect,
@@ -87,8 +78,6 @@ namespace app {
 
       snprintf(kinect_fps_str, 255, "Kinect FPS: %.2f", 
         (float)kinect->fps());
-      Renderer::g_renderer()->ui()->setTextWindowString("kinect_fps_wnd",
-        kinect_fps_str);
 
       if (render_labels != NULL) {
         int label_type_enum;

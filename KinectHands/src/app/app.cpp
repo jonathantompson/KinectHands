@@ -72,8 +72,9 @@ namespace app {
   App::~App() {
     for (uint32_t i = 0; i < MAX_NUM_KINECTS; i++) {
       if (kinect_[i]) {
-        kinect_[i]->shutdownKinect();
+        kinect_[i]->shutdownKinect(); 
       }
+      SAFE_DELETE(kinect_[i]);
       SAFE_DELETE(kdata_[i]);
     }
     SAFE_DELETE(hand_net_);
@@ -545,10 +546,16 @@ namespace app {
   }
 
   void App::saveKinectData(const uint32_t index) {
-    std::stringstream ss;
-    uint64_t time = (uint64_t)(clk_->getTime() * 1e9);
-    ss << "hands" << index << "_" << time << ".bin";
-    kdata_[index]->saveSensorData(ss.str());
+    if (kdata_[index]->saved_frame_number != kdata_[index]->frame_number) {
+      std::stringstream ss;
+      uint64_t time = (uint64_t)(clk_->getTime() * 1e9);
+      if (index > 0) {
+        ss << "hands" << index << "_" << time << ".bin";
+      } else {
+        ss << "hands_" << time << ".bin";
+      }
+      kdata_[index]->saveSensorData(ss.str());
+    }
 
     // Signal that we're done
     std::unique_lock<std::mutex> ul(thread_update_lock_);
