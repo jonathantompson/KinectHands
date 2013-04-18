@@ -21,6 +21,8 @@
 #include "kinect_interface/hand_net/hand_net.h"  // for HandCoeffConvnet
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
 
+#define RGB_DEPTH_DATA_SIZE_BYTES ((1 * src_dim * 3) + (2 * src_dim))
+
 namespace app {
 
   struct FrameData {
@@ -30,7 +32,7 @@ namespace app {
 
     // syncWithKinect: Return true if a new frame was updated
     bool syncWithKinect(kinect_interface::KinectInterface* kinect,
-      uint8_t* render_labels = NULL);
+      const bool sync_depth_hand_detector, uint8_t* render_labels = NULL);
     // saveSensorData: Return true if a new datafile was created (false usually
     // indicates that the frame has already been saved to disk).
     bool saveSensorData(const std::string& filename);
@@ -39,21 +41,18 @@ namespace app {
     uint64_t saved_frame_number;
     char kinect_fps_str[256];
 
-    uint8_t rgb[src_dim * 3];
+    uint8_t* rgb;  // A ptr into rgb_depth_data_
     float xyz[src_dim * 3];
     uint8_t labels[src_dim];
-    uint8_t labels_hd_evaluated[src_dim / (DT_DOWNSAMPLE*DT_DOWNSAMPLE)];
-    uint8_t labels_hd_filtered[src_dim / (DT_DOWNSAMPLE*DT_DOWNSAMPLE)];
-    int16_t depth[src_dim];
+    int16_t* depth;  // A ptr into rgb_depth_data_
     int16_t depth_hand_detector[src_dim / (DT_DOWNSAMPLE*DT_DOWNSAMPLE)];
     float normals_xyz[src_dim * 3];
     uint16_t hand_detector_depth[src_dim];
     float convnet_depth[HN_SRC_IM_SIZE * HN_SRC_IM_SIZE];
 
   private:
-    uint8_t* disk_im_;  // Used when saving video stream to disk
-    uint8_t* disk_im_compressed_;
-    uint32_t disk_im_size_;
+    uint8_t depth_rgb_data_[RGB_DEPTH_DATA_SIZE_BYTES]; 
+    uint8_t depth_rgb_data_compressed_[RGB_DEPTH_DATA_SIZE_BYTES*2];
 
     // Non-copyable, non-assignable.
     FrameData(FrameData&);

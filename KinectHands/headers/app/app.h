@@ -40,9 +40,10 @@ namespace app {
   } KinectOutput;
 
   typedef enum {
-    OUTPUT_UNFILTERED_LABELS = 0,
-    OUTPUT_FILTERED_LABELS = 1,
-    OUTPUT_FLOODFILL_LABELS = 2
+    OUTPUT_NO_LABELS = 0,
+    OUTPUT_UNFILTERED_LABELS = 1,
+    OUTPUT_FILTERED_LABELS = 2,
+    OUTPUT_FLOODFILL_LABELS = 3
   } LabelType;
 
   class App {

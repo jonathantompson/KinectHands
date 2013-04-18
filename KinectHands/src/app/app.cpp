@@ -111,14 +111,6 @@ namespace app {
     Renderer::InitRenderer();
     registerNewRenderer();
 
-    tp_ = new ThreadPool(NUM_APP_WORKER_THREADS);
-    kinect_update_cbs_ = new VectorManaged<Callback<void>*>(MAX_NUM_KINECTS);
-    data_save_cbs_ = new VectorManaged<Callback<void>*>(MAX_NUM_KINECTS);
-    for (uint32_t i = 0; i < MAX_NUM_KINECTS; i++) {
-      kinect_update_cbs_->pushBack(MakeCallableMany(&App::syncKinectData, this, i));
-      data_save_cbs_->pushBack(MakeCallableMany(&App::saveKinectData, this, i));
-    }
-
     hand_net_ = new HandNet();
     hand_net_->loadFromFile("./data/handmodel.net.convnet");
 
@@ -141,6 +133,15 @@ namespace app {
     if (cur_kinect >= (int)kinect_uris_.size()) {
       cur_kinect = 0;
       SET_SETTING("cur_kinect", int, cur_kinect);
+    }
+
+    // Initialize data handling and multithreading
+    tp_ = new ThreadPool(kinect_uris_.size());
+    kinect_update_cbs_ = new VectorManaged<Callback<void>*>(kinect_uris_.size());
+    data_save_cbs_ = new VectorManaged<Callback<void>*>(kinect_uris_.size());
+    for (uint32_t i = 0; i < kinect_uris_.size(); i++) {
+      kinect_update_cbs_->pushBack(MakeCallableMany(&App::syncKinectData, this, i));
+      data_save_cbs_->pushBack(MakeCallableMany(&App::saveKinectData, this, i));
     }
 
     // We have lots of hard-coded dimension values (check that they are
@@ -195,9 +196,10 @@ namespace app {
       frame_time_ = clk_->getTime();
       double dt = frame_time_ - frame_time_prev_;
 
-      int kinect_output, cur_kinect;
+      int kinect_output, cur_kinect, label_type_enum;
       GET_SETTING("cur_kinect", int, cur_kinect);
       GET_SETTING("kinect_output", int, kinect_output);
+      GET_SETTING("label_type_enum", int, label_type_enum);
 
       // Copy over the data from all the kinect threads
       executeThreadCallbacks(tp_, kinect_update_cbs_);
@@ -299,9 +301,7 @@ namespace app {
 
         if (kinect_output != OUTPUT_CONVNET_DEPTH && 
           kinect_output != OUTPUT_CONVNET_SRC_DEPTH) {
-          bool render_hand_labels;
-          GET_SETTING("render_hand_labels", bool, render_hand_labels);
-          if (render_hand_labels) {
+          if (label_type_enum != OUTPUT_NO_LABELS) {
             // Make hand points red
             for (uint32_t i = 0; i < src_dim; i++) {
               if (render_labels_[i] == 1) {
@@ -455,9 +455,10 @@ namespace app {
     ui->addHeadingText("Hand Detection:");
     ui->addCheckbox("detect_hands", "Enable Hand Detection");
     ui->addCheckbox("detect_pose", "Enable Pose Detection");
-    ui->addCheckbox("render_hand_labels", "Mark Hand Pixels"); 
 
     ui->addSelectbox("label_type_enum", "Hand label type");
+    ui->addSelectboxItem("label_type_enum", 
+      ui::UIEnumVal(OUTPUT_NO_LABELS, "Labels off"));
     ui->addSelectboxItem("label_type_enum", 
       ui::UIEnumVal(OUTPUT_UNFILTERED_LABELS, "Unfiltered DF"));
     ui->addSelectboxItem("label_type_enum", 
@@ -530,12 +531,15 @@ namespace app {
   }
 
   void App::syncKinectData(const uint32_t index) {
-    int cur_kinect;
+    int cur_kinect, kinect_output;
     GET_SETTING("cur_kinect", int, cur_kinect);
+    GET_SETTING("kinect_output", int, kinect_output);
     if (index == cur_kinect) {
-      new_data_ = kdata_[index]->syncWithKinect(kinect_[index], render_labels_);
+      new_data_ = kdata_[index]->syncWithKinect(kinect_[index],
+        kinect_output == OUTPUT_HAND_DETECTOR_DEPTH, render_labels_);
     } else {
-      kdata_[index]->syncWithKinect(kinect_[index]);
+      kdata_[index]->syncWithKinect(kinect_[index], 
+        kinect_output == OUTPUT_HAND_DETECTOR_DEPTH);
     }
 
     // Signal that we're done

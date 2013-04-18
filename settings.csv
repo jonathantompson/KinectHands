@@ -9,10 +9,9 @@
 //, *********** SETTINGS ***********
 //, APPLICATION SPECIFIC
 track_openni_skeleton,            bool,      0
-kinect_output,                    int,       1
+kinect_output,                    int,       0
 detect_hands,                     bool,      0
 detect_pose,                      bool,      0
-render_hand_labels,               bool,      0
 label_type_enum,                  int,       0
 render_convnet_points,            bool,      0
 render_kinect_fps,                bool,      1
@@ -20,8 +19,8 @@ show_hand_model,                  bool,      0
 crop_depth_to_rgb,                bool,      1
 continuous_snapshot,              bool,      0
 flip_image,                       bool,      1
-depth_color_sync,                 bool,      1
-cur_kinect,                       int,       1
+depth_color_sync,                 bool,      0
+cur_kinect,                       int,       0
 
 //, RENDERER
 screen_resolution_enum,           int,       8
