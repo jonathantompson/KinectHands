@@ -16,6 +16,8 @@
 #include "jtil/glew/glew.h"
 #include "jtil/image_util/image_util.h"
 #include "jtil/fastlz/fastlz.h"
+#include "jtil/threading/thread_pool.h"
+#include "jtil/threading/thread.h"
 
 #ifndef NULL
 #define NULL 0
@@ -41,6 +43,7 @@ using namespace kinect_interface;
 using namespace kinect_interface::hand_net;
 using namespace jtil::renderer;
 using namespace jtil::image_util;
+using namespace jtil::threading;
 
 namespace app {
 
@@ -53,30 +56,33 @@ namespace app {
   App::App() {
     app_running_ = false;
     clk_ = NULL;
-    kinect_ = NULL;
-    disk_im_ = NULL;
-    disk_im_compressed_ = NULL;
-    rand_norm_ = new NORM_DIST<float>(0.0f, 1.0f);
-    rand_uni_ = new UNIF_DIST<float>(-1.0f, 1.0f);
-    kinect_frame_number_ = MAX_UINT64;
+    for (uint32_t i = 0; i < MAX_NUM_KINECTS; i++) {
+      kinect_[i] = NULL;
+      kdata_[i] = NULL;
+    }
+   
     convnet_background_tex_ = NULL;
     convnet_src_background_tex_ = NULL;
     background_tex_ = NULL;
+    hand_net_ = NULL;
+    hands_[0] = NULL;
+    hands_[1] = NULL;
   }
 
   App::~App() {
-    if (kinect_) {
-      kinect_->shutdownKinect();
+    for (uint32_t i = 0; i < MAX_NUM_KINECTS; i++) {
+      if (kinect_[i]) {
+        kinect_[i]->shutdownKinect();
+      }
+      SAFE_DELETE(kdata_[i]);
     }
-    SAFE_DELETE(kinect_);
+    SAFE_DELETE(hand_net_);
     SAFE_DELETE(clk_);
-    SAFE_DELETE(rand_norm_);
-    SAFE_DELETE(rand_uni_);
     SAFE_DELETE(convnet_background_tex_);
     SAFE_DELETE(convnet_src_background_tex_);
     SAFE_DELETE(background_tex_);
-    SAFE_DELETE_ARR(disk_im_);
-    SAFE_DELETE_ARR(disk_im_compressed_);
+    SAFE_DELETE(kinect_update_cbs_);
+    SAFE_DELETE(data_save_cbs_);
     Renderer::ShutdownRenderer();
   }
 
@@ -104,30 +110,46 @@ namespace app {
     Renderer::InitRenderer();
     registerNewRenderer();
 
+    tp_ = new ThreadPool(NUM_APP_WORKER_THREADS);
+    kinect_update_cbs_ = new VectorManaged<Callback<void>*>(MAX_NUM_KINECTS);
+    data_save_cbs_ = new VectorManaged<Callback<void>*>(MAX_NUM_KINECTS);
+    for (uint32_t i = 0; i < MAX_NUM_KINECTS; i++) {
+      kinect_update_cbs_->pushBack(MakeCallableMany(&App::syncKinectData, this, i));
+      data_save_cbs_->pushBack(MakeCallableMany(&App::saveKinectData, this, i));
+    }
+
+    hand_net_ = new HandNet();
+    hand_net_->loadFromFile("./data/handmodel.net.convnet");
+
     clk_ = new Clk();
     frame_time_ = clk_->getTime();
     app_running_ = true;
 
-    kinect_ = new KinectInterface(NULL);
+    // Initialize the space to store the app local kinect data
+    for (uint32_t i = 0; i < MAX_NUM_KINECTS; i++) {
+      kdata_[i] = new FrameData();
+    }
+
+    // Find and initialize all kinects up to MAX_NUM_KINECTS
+    KinectInterface::findDevices(kinect_uris_);
+    for (uint32_t i = 0; i < kinect_uris_.size() && i < MAX_NUM_KINECTS; i++) {
+      kinect_[i] = new KinectInterface(kinect_uris_[i]);
+    }
+    int cur_kinect;
+    GET_SETTING("cur_kinect", int, cur_kinect);
+    if (cur_kinect >= (int)kinect_uris_.size()) {
+      cur_kinect = 0;
+      SET_SETTING("cur_kinect", int, cur_kinect);
+    }
 
     // We have lots of hard-coded dimension values (check that they are
     // consistent).
     Int2 expected_dim(src_width, src_height);
-    if (!Int2::equal(kinect_->depth_dim(), expected_dim) ||
-      !Int2::equal(kinect_->rgb_dim(), expected_dim)) {
+    if (!Int2::equal(kinect_[0]->depth_dim(), expected_dim) ||
+      !Int2::equal(kinect_[0]->rgb_dim(), expected_dim)) {
       throw std::wruntime_error("App::newApp() - ERROR: Sensor image "
         "dimensions don't match our hard-coded values!");
     }
-
-    uint16_t dummy_16;
-    uint8_t dummy_8;
-    static_cast<void>(dummy_8);
-    static_cast<void>(dummy_16);
-    disk_im_size_ = src_dim * sizeof(dummy_16) + 
-      src_dim * 3 * sizeof(dummy_8);
-    disk_im_ = new uint8_t[disk_im_size_];
-    // Compressed image could be 5% + overhead larger! Just allocate 2x space
-    disk_im_compressed_ = new uint8_t[disk_im_size_*2];  
   }
 
   void App::killApp() {
@@ -172,129 +194,72 @@ namespace app {
       frame_time_ = clk_->getTime();
       double dt = frame_time_ - frame_time_prev_;
 
-      int kinect_output;
+      int kinect_output, cur_kinect;
+      GET_SETTING("cur_kinect", int, cur_kinect);
       GET_SETTING("kinect_output", int, kinect_output);
 
-      // Grab the kinect data
-      kinect_->lockData();
+      // Copy over the data from all the kinect threads
+      executeThreadCallbacks(tp_, kinect_update_cbs_);
 
-      bool update_tex = false;
-      if (kinect_frame_number_ != kinect_->frame_number()) {
-        memcpy(rgb_, kinect_->rgb(), sizeof(rgb_[0]) * src_dim * 3);
-        memcpy(xyz_, kinect_->xyz(), sizeof(xyz_[0]) * src_dim * 3);
-        memcpy(depth_, kinect_->depth(), sizeof(depth_[0]) * src_dim);
-        if (kinect_output == OUTPUT_HAND_DETECTOR_DEPTH) {
-          image_util::UpsampleNoFiltering<uint16_t>(hand_detector_depth_, 
-            (uint16_t*)kinect_->hand_detector()->depth_downsampled(), 
-            src_width / DT_DOWNSAMPLE, src_height / DT_DOWNSAMPLE, 
-            DT_DOWNSAMPLE);
-        }
-
-        memcpy(labels_, kinect_->labels(), sizeof(labels_[0]) * src_dim);
-
-        int label_type_enum;
-        GET_SETTING("label_type_enum", int, label_type_enum);
-        switch ((LabelType)label_type_enum) {
-        case OUTPUT_UNFILTERED_LABELS:
-          UpsampleNoFiltering<uint8_t>(render_labels_, 
-            kinect_->hand_detector()->labels_evaluated(), 
-            src_width / DT_DOWNSAMPLE, src_height / DT_DOWNSAMPLE, DT_DOWNSAMPLE);
-          break;
-        case OUTPUT_FILTERED_LABELS:
-          image_util::UpsampleNoFiltering<uint8_t>(render_labels_, 
-            kinect_->filteredDecisionForestLabels(), src_width / DT_DOWNSAMPLE,
-            src_height / DT_DOWNSAMPLE, DT_DOWNSAMPLE);
-          break;
-        case OUTPUT_FLOODFILL_LABELS:
-          memcpy(render_labels_, labels_, sizeof(render_labels_[0]) * src_dim);
-          break;
-        default:
-          throw std::wruntime_error("App::run() - ERROR - label_type_enum "
-            "invalid enumerant!");
-        }
-        hand_pos_wh_.set(kinect_->hand_net()->image_generator()->hand_pos_wh());
-
-        kinect_frame_number_ = kinect_->frame_number();
-        update_tex = true;
-
-        snprintf(kinect_fps_str_, 255, "Kinect FPS: %.2f", 
-          (float)kinect_->fps());
+      if (new_data_) {
         Renderer::g_renderer()->ui()->setTextWindowString("kinect_fps_wnd",
-          kinect_fps_str_);
-      }
-      kinect_->unlockData();
+          kdata_[cur_kinect]->kinect_fps_str);
 
-      if (kinect_output == OUTPUT_HAND_NORMALS || 
-        kinect_output == OUTPUT_HAND_FINGER_DETECTOR_IMAGE) {
-        kinect_->hand_net()->image_generator()->calcNormalImage(normals_xyz_,
-          xyz_, labels_);
-      } 
-
-      if (kinect_output == OUTPUT_HAND_FINGER_DETECTOR_IMAGE) {
-        const float finger_radius = 20.0f;
-        for (uint32_t i = 0; i < src_dim; i++) {
-          if (labels_[i] == 0) {
-            xyz_finger_center_[i*3] = 0;
-            xyz_finger_center_[i*3 + 1] = 0;
-            xyz_finger_center_[i*3 + 2] = 0;
-          } else {
-            xyz_finger_center_[i*3] = xyz_[i*3] - normals_xyz_[i*3] * finger_radius;
-            xyz_finger_center_[i*3+1] = xyz_[i*3+1] - normals_xyz_[i*3+1] * finger_radius;
-            xyz_finger_center_[i*3+2] = xyz_[i*3+2] - normals_xyz_[i*3+2] * finger_radius;
-          }
+        if (kinect_output == OUTPUT_HAND_NORMALS) {
+            hand_net_->image_generator()->calcNormalImage(
+              kdata_[cur_kinect]->normals_xyz, kdata_[cur_kinect]->xyz, 
+              kdata_[cur_kinect]->labels);
+        } 
+        bool detect_pose;
+        GET_SETTING("detect_pose", bool, detect_pose);
+        if (detect_pose) {
+          hand_net_->calcHandCoeffConvnet(kdata_[cur_kinect]->depth, 
+            kdata_[cur_kinect]->labels);
         }
-        kinect_->openni_funcs()->convertWorldToDepthCoordinates(
-          xyz_finger_center_, uvd_finger_center_, src_dim);
-      }
-
-      bool detect_pose;
-      GET_SETTING("detect_pose", bool, detect_pose);
-      if (detect_pose) {
-        kinect_->detectPose(depth_, labels_);
-        update_tex = true;
-      }
+      }  // if (new_data_)
 
       if (kinect_output == OUTPUT_CONVNET_DEPTH) {
-        memset(convnet_depth_, 0, sizeof(convnet_depth_[0]) * src_dim);
-        const float* src_depth = (float*)kinect_->hand_net()->hpf_hand_image();
+        const float* src_depth = hand_net_->hpf_hand_image();
         float min = std::numeric_limits<float>::infinity();
         float max = -std::numeric_limits<float>::infinity();
         for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
           for (uint32_t u = 0; u < HN_IM_SIZE; u++) {
-            const float src_val = src_depth[v * HN_IM_SIZE + u];
-            convnet_depth_[v * HN_IM_SIZE + u] = src_val;
-            min = std::min<float>(min, src_val);
-            max = std::max<float>(max, src_val);
+            min = std::min<float>(min, src_depth[v * HN_IM_SIZE + u]);
+            max = std::max<float>(max, src_depth[v * HN_IM_SIZE + u]);
           }
         }
         // Rescale convnet depth 0-->1
         const float range = max - min;
         for (uint32_t i = 0; i < HN_IM_SIZE * HN_IM_SIZE; i++) {
-          convnet_depth_[i] = (convnet_depth_[i] - min) / range;
+          depth_tmp_[i] = (uint16_t)(255.0f * (src_depth[i] - min) / range);
         }
       } else if (kinect_output == OUTPUT_CONVNET_SRC_DEPTH) {
-        memcpy(convnet_depth_, 
-          kinect_->hand_net()->image_generator()->cropped_hand_image(),
-          sizeof(convnet_depth_[0]) * HN_SRC_IM_SIZE * HN_SRC_IM_SIZE);
+        const float* src_depth = hand_net_->image_generator()->cropped_hand_image();
+        for (uint32_t i = 0; i < HN_SRC_IM_SIZE * HN_SRC_IM_SIZE; i++) {
+          depth_tmp_[i] = (uint16_t)src_depth[i];
+        }
       }
 
-      if (update_tex) {
-        uint16_t* cur_depth;
+      if (new_data_) {
         switch (kinect_output) {
         case OUTPUT_RGB:
-          memcpy(im_, rgb_, sizeof(im_[0]) * src_dim * 3);
+          memcpy(im_, kdata_[cur_kinect]->rgb, sizeof(im_[0]) * src_dim * 3);
           break;
         case OUTPUT_DEPTH:
           for (uint32_t i = 0; i < src_dim; i++) {
-            const uint8_t val = (depth_[i] / 5) % 255;
+            const uint8_t val = (kdata_[cur_kinect]->depth[i] / 5) % 255;
             im_[i*3] = val;
             im_[i*3+1] = val;
             im_[i*3+2] = val;
           }
           break;
         case OUTPUT_HAND_DETECTOR_DEPTH:
+          image_util::UpsampleNoFiltering<uint16_t>(depth_tmp_, 
+            (uint16_t*)kdata_[cur_kinect]->depth_hand_detector, 
+            src_width / DT_DOWNSAMPLE, src_height / DT_DOWNSAMPLE, 
+            DT_DOWNSAMPLE);
           for (uint32_t i = 0; i < src_dim; i++) {
-            const uint8_t val = (hand_detector_depth_[i] * 2) % 255;
+            const uint8_t val = (depth_tmp_[i] * 2) % 255;
             im_[i*3] = val;
             im_[i*3+1] = val;
             im_[i*3+2] = val;
@@ -302,7 +267,7 @@ namespace app {
           break;
         case OUTPUT_CONVNET_DEPTH:
           for (uint32_t i = 0; i < HN_IM_SIZE * HN_IM_SIZE; i++) {
-            const uint8_t val = (uint8_t)(convnet_depth_[i] * 255.0f);
+            const uint8_t val = (uint8_t)(depth_tmp_[i]);
             convnet_im_[i*3] = val;
             convnet_im_[i*3+1] = val;
             convnet_im_[i*3+2] = val;
@@ -310,35 +275,20 @@ namespace app {
           break;
         case OUTPUT_CONVNET_SRC_DEPTH:
           for (uint32_t i = 0; i < HN_SRC_IM_SIZE * HN_SRC_IM_SIZE; i++) {
-            const uint8_t val = (uint8_t)(convnet_depth_[i] * 255.0f);
+            const uint8_t val = (uint8_t)(depth_tmp_[i] * 255.0f);
             convnet_src_im_[i*3] = val;
             convnet_src_im_[i*3+1] = val;
             convnet_src_im_[i*3+2] = val;
           }
           break;
         case OUTPUT_HAND_NORMALS:
-          //for (uint32_t i = 0; i < src_dim; i++) {
-          //  im_[i*3] = (uint8_t)(std::max<float>(0, normals_xyz_[i*3]) * 255.0f);
-          //  im_[i*3+1] = (uint8_t)(std::max<float>(0, normals_xyz_[i*3+1]) * 255.0f);
-          //  im_[i*3+2] = (uint8_t)(std::max<float>(0, -normals_xyz_[i*3+2]) * 255.0f);
-          //}
           for (uint32_t i = 0; i < src_dim; i++) {
-            im_[i*3] = (uint8_t)(std::max<float>(0, normals_xyz_[i*3]) * 255.0f);
-            im_[i*3+1] = (uint8_t)(std::max<float>(0, normals_xyz_[i*3+1]) * 255.0f);
-            im_[i*3+2] = (uint8_t)(std::max<float>(0, -normals_xyz_[i*3+2]) * 255.0f);
-          }
-          break;
-        case OUTPUT_HAND_FINGER_DETECTOR_IMAGE:
-          memcpy(im_, rgb_, sizeof(im_[0]) * src_dim * 3);
-          for (uint32_t i = 0; i < src_dim; i++) {
-            if (uvd_finger_center_[i*3+2] > EPSILON) {
-              float u =  uvd_finger_center_[i*3];
-              float v =  uvd_finger_center_[i*3+1];
-              uint32_t index = ((uint32_t)v) * src_width + ((uint32_t)u);
-              im_[index*3] = 255;
-              im_[index*3+1] = 255;
-              im_[index*3+2] = 255;
-            }
+            im_[i*3] = (uint8_t)(std::max<float>(0, 
+              kdata_[cur_kinect]->normals_xyz[i*3]) * 255.0f);
+            im_[i*3+1] = (uint8_t)(std::max<float>(0, 
+              kdata_[cur_kinect]->normals_xyz[i*3+1]) * 255.0f);
+            im_[i*3+2] = (uint8_t)(std::max<float>(0, 
+              -kdata_[cur_kinect]->normals_xyz[i*3+2]) * 255.0f);
           }
           break;
         default:
@@ -384,11 +334,11 @@ namespace app {
         GET_SETTING("render_convnet_points", bool, render_convnet_points);
         if (render_convnet_points && detect_pose) {
           if (kinect_output == OUTPUT_CONVNET_DEPTH) {
-            kinect_->hand_net()->image_generator()->annotateFeatsToHandImage(
-              convnet_im_flipped_, kinect_->hand_net()->coeff_convnet());
+            hand_net_->image_generator()->annotateFeatsToHandImage(
+              convnet_im_flipped_, hand_net_->coeff_convnet());
           } else if (kinect_output != OUTPUT_CONVNET_SRC_DEPTH) {
-            kinect_->hand_net()->image_generator()->annotateFeatsToKinectImage(
-              im_flipped_, kinect_->hand_net()->coeff_convnet());
+            hand_net_->image_generator()->annotateFeatsToKinectImage(
+              im_flipped_, hand_net_->coeff_convnet());
           }
         }
 
@@ -406,7 +356,7 @@ namespace app {
           Renderer::g_renderer()->setBackgroundTexture(background_tex_);
           break;
         }
-      }
+      }  // if (new_data_)
 
       // Update camera based on real-time inputs
       if (!Renderer::ui()->mouse_over_ui()) {
@@ -422,19 +372,17 @@ namespace app {
       HandModel::setHandModelVisibility(show_hand_model);
       if (show_hand_model) {
         HandModel::setHandModelPose(HandType::RIGHT, 
-          kinect_->hand_net()->image_generator(), 
-          kinect_->hand_net()->coeff_convnet());
+          hand_net_->image_generator(), 
+          hand_net_->coeff_convnet());
       }
 
       Renderer::g_renderer()->renderFrame();
+
       // Save the frame to file if we have been asked to:
       bool continuous_snapshot;
       GET_SETTING("continuous_snapshot", bool, continuous_snapshot);
       if (continuous_snapshot) {
-        std::stringstream ss;
-        uint64_t time = (uint64_t)(clk_->getTime() * 1e9);
-        ss << "hands_" << time << ".bin";
-        saveSensorData(ss.str());
+        executeThreadCallbacks(tp_, data_save_cbs_);
       }
 
       // Give OS the opportunity to deschedule
@@ -444,6 +392,20 @@ namespace app {
 
   void App::moveCamera(double dt) {
 
+  }
+
+  void App::executeThreadCallbacks(jtil::threading::ThreadPool* tp, 
+    jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* cbs) {
+    threads_finished_ = 0;
+    for (uint32_t i = 0; i < cbs->size(); i++) {
+      tp_->addTask((*cbs)[i]);
+    }
+    // Wait for all threads to finish
+    std::unique_lock<std::mutex> ul(thread_update_lock_);  // Get lock
+    while (threads_finished_ != cbs->size()) {
+      not_finished_.wait(ul);
+    }
+    ul.unlock();  // Release lock
   }
 
   void App::moveStuff(const double dt) {
@@ -483,12 +445,11 @@ namespace app {
       ui::UIEnumVal(OUTPUT_CONVNET_SRC_DEPTH, "Convnet Source Depth"));
     ui->addSelectboxItem("kinect_output",
       ui::UIEnumVal(OUTPUT_HAND_NORMALS, "Hand Normals"));
-    ui->addSelectboxItem("kinect_output",
-      ui::UIEnumVal(OUTPUT_HAND_FINGER_DETECTOR_IMAGE, "Hand Finger Image"));
     ui->addCheckbox("render_kinect_fps", "Render Kinect FPS");
     ui->addCheckbox("crop_depth_to_rgb", "Crop depth to RGB");
     ui->addCheckbox("continuous_snapshot", "Save continuous video stream");
-	ui->addCheckbox("flip_image", "Flip Kinect Image");
+    ui->addCheckbox("flip_image", "Flip Kinect Image");
+    ui->addCheckbox("depth_color_sync", "Depth Color Sync Enabled"); 
 
     ui->addHeadingText("Hand Detection:");
     ui->addCheckbox("detect_hands", "Enable Hand Detection");
@@ -505,8 +466,15 @@ namespace app {
     ui->addCheckbox("render_convnet_points", 
       "Render Convnet salient points");
     ui->addCheckbox("show_hand_model", "Show hand model");
+    ui->addSelectbox("cur_kinect", "Current Kinect");
+    std::stringstream ss;
+    for (uint32_t i = 0; i < MAX_NUM_KINECTS; i++) {
+      ss.str("");
+      ss << "device " << i;
+      ui->addSelectboxItem("cur_kinect", ui::UIEnumVal(i, ss.str().c_str()));
+    }
 
-    ui->createTextWindow("kinect_fps_wnd", kinect_fps_str_);
+    ui->createTextWindow("kinect_fps_wnd", " ");
     jtil::math::Int2 pos(400, 0);
     ui->setTextWindowPos("kinect_fps_wnd", pos);
 
@@ -539,15 +507,6 @@ namespace app {
         requestShutdown();
       }
       break;
-    case KEY_SPACE:
-      if (action == PRESSED) {
-        bool pause_physics;
-        GET_SETTING("pause_physics", bool, pause_physics);
-        SET_SETTING("pause_physics", bool, !pause_physics);
-        Renderer::g_renderer()->ui()->setCheckboxVal("pause_physics",
-          !pause_physics);
-      }
-      break;
     default:
       break;
     }
@@ -569,55 +528,33 @@ namespace app {
 
   }
 
-  void App::saveSensorData(const std::string& filename) {
-    // Now copy over the depth image and also flag the user pixels (which for
-    // now are just pixels less than some threshold):
-    uint16_t* depth_dst = (uint16_t*)disk_im_;
-    memcpy(depth_dst, depth_, src_dim * sizeof(depth_dst[0]));
-    for (int i = 0; i < src_width * src_height; i++) {
-      if (depth_[i] < GDT_INNER_DIST) {
-        depth_dst[i] |= 0x8000;  // Mark the second MSB
-      }
+  void App::syncKinectData(const uint32_t index) {
+    int cur_kinect;
+    GET_SETTING("cur_kinect", int, cur_kinect);
+    if (index == cur_kinect) {
+      new_data_ = kdata_[index]->syncWithKinect(kinect_[index], render_labels_);
+    } else {
+      kdata_[index]->syncWithKinect(kinect_[index]);
     }
-    
-    // Now copy over the rgb image
-    uint8_t* rgb_dst = (uint8_t*)&depth_dst[src_dim];
-    memcpy(rgb_dst, rgb_, 3 * src_dim * sizeof(rgb_dst[0]));
 
-    // Compress the array
-    static const int compression_level = 1;  // 1 fast, 2 better compression
-    int compressed_length = fastlz_compress_level(compression_level,
-      (void*)disk_im_, disk_im_size_, (void*)disk_im_compressed_);
+    // Signal that we're done
+    std::unique_lock<std::mutex> ul(thread_update_lock_);
+    threads_finished_++;
+    not_finished_.notify_all();  // Signify that all threads might have finished
+    ul.unlock();
+  }
 
-    // Now save the array to file
-#ifdef _WIN32
-    _mkdir("./data/hand_depth_data/");  // Silently fails if dir exists
-    std::string full_filename = "./data/hand_depth_data/" + filename;
-#endif
-#ifdef __APPLE__
-    std::string full_path = file_io::GetHomePath() +
-      std::string("Desktop/data/hand_depth_data/");
-    struct stat st;
-    if (stat(full_path.c_str(), &st) != 0) {
-      if (mkdir(full_path.c_str(), S_IRWXU|S_IRWXG) != 0) {
-        printf("Error creating directory %s: %s\n", full_path.c_str(),
-               strerror(errno));
-        return false;
-      } else {
-        printf("%s created\n", full_path.c_str());
-      }
-    }
-    std::string full_filename = full_path + filename;
-#endif
-    
-    // Save the file compressed
-    std::ofstream file(full_filename.c_str(), std::ios::out | std::ios::binary);
-    if (!file.is_open()) {
-      throw std::runtime_error(std::string("error opening file:") + filename);
-    }
-    file.write((const char*)disk_im_compressed_, compressed_length);
-    file.flush();
-    file.close();
+  void App::saveKinectData(const uint32_t index) {
+    std::stringstream ss;
+    uint64_t time = (uint64_t)(clk_->getTime() * 1e9);
+    ss << "hands" << index << "_" << time << ".bin";
+    kdata_[index]->saveSensorData(ss.str());
+
+    // Signal that we're done
+    std::unique_lock<std::mutex> ul(thread_update_lock_);
+    threads_finished_++;
+    not_finished_.notify_all();  // Signify that all threads might have finished
+    ul.unlock();
   }
 
 }  // namespace app

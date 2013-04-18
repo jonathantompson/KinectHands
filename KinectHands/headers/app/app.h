@@ -10,25 +10,25 @@
 #include <thread>
 #include <string>
 #include <random>
+#include "app/frame_data.h"
 #include "jtil/jtil.h"
 #include "kinect_interface/kinect_interface.h"
 #include "kinect_interface/hand_net/hand_image_generator.h"  // for HN_IM_SIZE
 #include "kinect_interface/hand_net/hand_net.h"  // for HandCoeffConvnet
 
-#define NUM_PT_LIGHTS 128
-#define PT_LIGHT_ANIM_XDIM 15.0f
-#define PT_LIGHT_ANIM_YDIM 15.0f
-#define PT_LIGHT_ANIM_ZDIM 10.0f
-#define PT_LIGHT_START_VEL 10.0f
-#define PT_LIGHT_MAX_VEL 20.0f
+#define MAX_NUM_KINECTS 4
+#define NUM_APP_WORKER_THREADS 4
 
 #if defined(_WIN32)
 class DebugBuf;
 #endif
 
 namespace kinect_interface { class KinectInterface; }
+namespace kinect_interface { namespace hand_net { class HandNet; } }
+namespace kinect_interface { namespace hand_net { class HandModel; } }
 
 namespace app {
+  struct FrameData;
 
   typedef enum {
     OUTPUT_RGB = 0,
@@ -37,7 +37,6 @@ namespace app {
     OUTPUT_CONVNET_DEPTH = 3,
     OUTPUT_CONVNET_SRC_DEPTH = 4,
     OUTPUT_HAND_NORMALS = 5,
-    OUTPUT_HAND_FINGER_DETECTOR_IMAGE = 6,  // Ken's idea
   } KinectOutput;
 
   typedef enum {
@@ -77,9 +76,14 @@ namespace app {
     bool app_running_;
 
     // Kinect data
-    kinect_interface::KinectInterface* kinect_;
-    uint64_t kinect_frame_number_;
-    char kinect_fps_str_[256];
+    jtil::data_str::VectorManaged<char*> kinect_uris_;
+    kinect_interface::KinectInterface* kinect_[MAX_NUM_KINECTS];
+    FrameData* kdata_[MAX_NUM_KINECTS];
+    bool new_data_;
+
+    // Convolutional Neural Network
+    kinect_interface::hand_net::HandNet* hand_net_;
+    kinect_interface::hand_net::HandModel* hands_[2];
 
     jtil::clk::Clk* clk_;
     jtil::math::Int2 mouse_pos_;
@@ -87,38 +91,18 @@ namespace app {
     double frame_time_;
     double frame_time_prev_;
 
-    // Light animation data
-    jtil::math::Float3 light_vel_[NUM_PT_LIGHTS];
-    RAND_ENGINE rand_eng_;
-    NORM_DIST<float>* rand_norm_;
-    UNIF_DIST<float>* rand_uni_;
-
     jtil::renderer::Texture* background_tex_;
     jtil::renderer::Texture* convnet_background_tex_;  // smaller dimension
     jtil::renderer::Texture* convnet_src_background_tex_;  // smaller dimension
-    uint8_t rgb_[src_dim * 3];
-    float xyz_[src_dim * 3];
-    uint8_t labels_[src_dim];
     uint8_t render_labels_[src_dim];
-    int16_t depth_[src_dim];
-    float normals_xyz_[src_dim * 3];
-    uint16_t hand_detector_depth_[src_dim];
-    float convnet_depth_[HN_SRC_IM_SIZE * HN_SRC_IM_SIZE];
     uint8_t im_[src_dim * 3];
+    uint16_t depth_tmp_[src_dim];
     uint8_t im_flipped_[src_dim * 3];
     uint8_t convnet_im_[HN_IM_SIZE * HN_IM_SIZE * 3];
     uint8_t convnet_im_flipped_[HN_IM_SIZE * HN_IM_SIZE * 3];
     uint8_t convnet_src_im_[HN_SRC_IM_SIZE * HN_SRC_IM_SIZE * 3];
     uint8_t convnet_src_im_flipped_[HN_SRC_IM_SIZE * HN_SRC_IM_SIZE * 3];
     float coeff_convnet_[kinect_interface::hand_net::HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
-    jtil::math::Int4 hand_pos_wh_;  // From hand image generator
-    uint8_t* disk_im_;  // Used when saving video stream to disk
-    uint8_t* disk_im_compressed_;
-    uint32_t disk_im_size_;
-
-    // Ken's finger detector image idea:
-    float xyz_finger_center_[src_dim * 3];
-    float uvd_finger_center_[src_dim * 3];
 
     void run();
     void init();
@@ -128,7 +112,18 @@ namespace app {
     void moveStuff(const double dt);  // Temporary: just to play with renderer
     void addStuff();
     void registerNewRenderer();
-    void saveSensorData(const std::string& file);
+
+    // Thread pool to get the KinectData from the kinects in parallel
+    jtil::threading::ThreadPool* tp_;
+    int32_t threads_finished_;
+    std::mutex thread_update_lock_;
+    std::condition_variable not_finished_;
+    jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* kinect_update_cbs_; 
+    jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* data_save_cbs_; 
+    void syncKinectData(const uint32_t index);
+    void saveKinectData(const uint32_t index);
+    void executeThreadCallbacks(jtil::threading::ThreadPool* tp, 
+      jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* cbs);
 
     // Non-copyable, non-assignable.
     App(App&);
@@ -137,4 +132,4 @@ namespace app {
 
 };  // namespace app
 
-#endif  // NAMESPACE_CLASS_TEMPLATE_HEADER
+#endif  // APP_APP_HEADER

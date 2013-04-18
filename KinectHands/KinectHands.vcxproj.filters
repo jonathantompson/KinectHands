@@ -26,9 +26,15 @@
     <ClCompile Include="src\main\main.cpp">
       <Filter>Source Files\main</Filter>
     </ClCompile>
+    <ClCompile Include="src\app\frame_data.cpp">
+      <Filter>Source Files\app</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\app\app.h">
+      <Filter>Header Files\app</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\app\frame_data.h">
       <Filter>Header Files\app</Filter>
     </ClInclude>
   </ItemGroup>

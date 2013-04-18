@@ -51,9 +51,13 @@ int main(int argc, const char* argv[]) {
   } catch(const std::wruntime_error &e) {
     // Try closing the window.  
     // --> In fullscreen the error message might be hidden from view.
-    App::killApp();
+    try {
+      App::killApp();
+    } catch (const std::runtime_error &e) {
+      // Do nothing for the recursive runtime error
+    }
     NativeErrorBox(e.errorMsg().c_str());
-    printf("%s", e.what());
+    std::cout << e.what() << std::endl;
     return -1;
   }
 

@@ -51,27 +51,22 @@ namespace kinect_interface {
     ~KinectInterface();  // Must not be called until thread is joined
     void shutdownKinect();  // Blocking until the kinect thread has shut down
 
-    void findDevices(jtil::data_str::VectorManaged<char*>& devices);
-    
+    static void findDevices(jtil::data_str::VectorManaged<char*>& devices);
+
     const uint8_t* rgb() const;  // NOT THREAD SAFE!  Use lockData()
     const float* xyz() const;  // NOT THREAD SAFE!  Use lockData()
     const uint16_t* depth() const;  // NOT THREAD SAFE!  Use lockData()
     const uint16_t* depth1mm() const;  // NOT THREAD SAFE!  Use lockData()
     const uint8_t* labels() const { return labels_; }  // NOT THREAD SAFE!  Use lockData()
-    const float* coeff_convnet() const;  // NOT THREAD SAFE!  Use lockData()
     const uint8_t* filteredDecisionForestLabels() const;  // NOT THREAD SAFE!  Use lockData()
     const uint8_t* rawDecisionForestLabels() const;  // NOT THREAD SAFE!  Use lockData()
-    const jtil::math::Float3& uvd_com() const;
     hand_detector::HandDetector* hand_detector() { return hand_detector_; }
-    hand_net::HandNet* hand_net() { return hand_net_; }
     OpenNIFuncs* openni_funcs() { return openni_funcs_; };
 
     inline void lockData() { data_lock_.lock(); };
     inline void unlockData() { data_lock_.unlock(); };
     
     char* getStatusMessage();
-
-    void detectPose(const int16_t* depth, const uint8_t* labels);
 
     const double fps() const { return fps_; }
     const uint64_t frame_number() const { return frame_number_; }
@@ -86,6 +81,10 @@ namespace kinect_interface {
     static bool openni_init_;
     static std::mutex openni_static_lock_;
     static uint32_t openni_devices_open_;
+    bool device_initialized_;
+    bool crop_depth_to_rgb_;
+    bool flip_image_;
+    bool depth_color_sync_;
    
     // Multi-threading
     uint32_t threads_finished_;
@@ -113,10 +112,6 @@ namespace kinect_interface {
     
     // Hand data and data collection for machine learning
     hand_detector::HandDetector* hand_detector_;
-
-    // Convolutional Neural Network
-    hand_net::HandNet* hand_net_;
-    hand_net::HandModel* hands_[2];
 
     // Depth image IO (mostly for loading the debug image)
     DepthImagesIO* image_io_;
@@ -146,6 +141,9 @@ namespace kinect_interface {
     static std::string formatToString(const int mode);
     static void printMode(const openni::VideoMode& mode);
     inline bool kinect_running() const { return kinect_running_; }
+    void setCropDepthToRGB(const bool crop_depth_to_rgb);  // internal use only
+    void setFlipImage(const bool flip_image);  // internal use only
+    void setDepthColorSync(const bool depth_color_sync);  // internal use only
   };
   
 #ifndef EPSILON

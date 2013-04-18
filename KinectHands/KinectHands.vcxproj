@@ -12,10 +12,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\app\app.cpp" />
+    <ClCompile Include="src\app\frame_data.cpp" />
     <ClCompile Include="src\main\main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\app\app.h" />
+    <ClInclude Include="headers\app\frame_data.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\TO_DO.txt" />

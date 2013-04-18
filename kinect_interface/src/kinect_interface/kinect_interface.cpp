@@ -60,14 +60,12 @@ namespace kinect_interface {
   uint32_t KinectInterface::openni_devices_open_ = 0;
 
   KinectInterface::KinectInterface(const char* device_uri) {
+    device_initialized_ = false;
     device_ = NULL;
     pts_world_ = NULL;
     pts_uvd_ = NULL;
     labels_ = NULL;
     hand_detector_ = NULL;
-    hand_net_ = NULL;
-    hands_[0] = NULL;
-    hands_[1] = NULL;
     image_io_ = NULL;
     depth_1mm_ = NULL;
     openni_funcs_ = NULL;
@@ -78,7 +76,7 @@ namespace kinect_interface {
       streams_[i] = NULL;
       frames_[i] = NULL;
     }
-    
+
     frame_number_ = 0;
     fps_ = 0;
     tp_ = NULL;
@@ -91,18 +89,32 @@ namespace kinect_interface {
     Callback<void>* threadBody = MakeCallableOnce(
       &KinectInterface::kinectUpdateThread, this);
     kinect_thread_ = MakeThread(threadBody);
+
+    device_initialized_ = true;
+    // Increment the devices counter
+    openni_static_lock_.lock();
+    openni_devices_open_++;
+    openni_static_lock_.unlock();
   }
 
   KinectInterface::~KinectInterface() {
     // Stop the openNI device
     for (uint32_t i = 0; i < NUM_STREAMS; i++) {
-      frames_[i]->release();
-      streams_[i]->stop();
-      streams_[i]->destroy();
+      if (frames_[i]) {
+        frames_[i]->release();
+      }
+      if (streams_[i]) {
+        streams_[i]->stop();
+        streams_[i]->destroy();
+      }
     }
-    device_->close();
+    if (device_) {
+      device_->close();
+    }
 
-    tp_->stop();
+    if (tp_) {
+      tp_->stop();
+    }
     SAFE_DELETE(tp_);
 
     // Clean up
@@ -112,7 +124,6 @@ namespace kinect_interface {
     SAFE_DELETE(clk_);
     SAFE_DELETE(hand_detector_);
     SAFE_DELETE(image_io_);
-    SAFE_DELETE(hand_net_);
     SAFE_DELETE_ARR(pts_uvd_);
     SAFE_DELETE_ARR(pts_world_);
     SAFE_DELETE_ARR(labels_);
@@ -122,12 +133,16 @@ namespace kinect_interface {
       SAFE_DELETE(streams_[i]);
     }
     SAFE_DELETE(device_);
-    openni_static_lock_.lock();
-    openni_devices_open_--;
-    if (openni_devices_open_ == 0) {
-      shutdownOpenNIStatic();
+
+    // Decrement the devices counter
+    if (device_initialized_) {
+      openni_static_lock_.lock();
+      openni_devices_open_--;
+      openni_static_lock_.unlock();
     }
-    openni_static_lock_.unlock();
+
+    // Request a shutdown of the openNI framework
+    shutdownOpenNIStatic();
   }
 
   // ************************************************************
@@ -156,7 +171,11 @@ namespace kinect_interface {
 
   void KinectInterface::shutdownOpenNIStatic() {
     openni_static_lock_.lock();
-    openni::OpenNI::shutdown();
+    if (openni_devices_open_ == 0) {
+      // Only shutdown if there aren't any devices left open
+      std::cout << "Shutting down the OpenNI framework..." << std::endl;
+      openni::OpenNI::shutdown();
+    }
     openni_static_lock_.unlock();
   }
 
@@ -224,9 +243,6 @@ namespace kinect_interface {
     hand_detector_ = new HandDetector(tp_);
     hand_detector_->init(depth_dim_[0], depth_dim_[1]);
 
-    hand_net_ = new HandNet();
-    hand_net_->loadFromFile("./data/handmodel.net.convnet");
-
     image_io_ = new DepthImagesIO();
 
     if (device_uri) {
@@ -264,12 +280,25 @@ namespace kinect_interface {
     // Open a connection to the device's rgb channel
     initRGB();
 
+    GET_SETTING("crop_depth_to_rgb", bool, crop_depth_to_rgb_);
+    GET_SETTING("flip_image", bool, flip_image_);
+    if (crop_depth_to_rgb_) {
+      device_->setImageRegistrationMode(openni::IMAGE_REGISTRATION_DEPTH_TO_COLOR);
+    } else {
+      device_->setImageRegistrationMode(openni::IMAGE_REGISTRATION_OFF);
+    }
+
+    for (uint32_t i = 0; i < NUM_STREAMS; i++) {
+      streams_[i]->setMirroringEnabled(flip_image_);
+    }
+
     // Now update all the frames so they're initialized at least once:
     for (uint32_t i = 0; i < NUM_STREAMS; i++) {
       streams_[i]->readFrame(frames_[i]);
     }
 
-    checkOpenNIRC(device_->setDepthColorSyncEnabled(true),
+    GET_SETTING("depth_color_sync", bool, depth_color_sync_);
+    checkOpenNIRC(device_->setDepthColorSyncEnabled(depth_color_sync_),
       "Failed to set depth/color sync");
 
     std::cout << "Finished initializaing OpenNI device" << std::endl;
@@ -277,59 +306,76 @@ namespace kinect_interface {
 
   openni::VideoMode KinectInterface::findMaxResYFPSMode(
     const openni::SensorInfo& sensor, const int required_format) const {
-    const openni::Array<openni::VideoMode>& modes = 
-      sensor.getSupportedVideoModes();
-    int ibest = -1;
-    std::cout << "Supported Modes:" << std::endl;
-    for (int i = 0; i < modes.getSize(); i++) {
-      const openni::VideoMode& mode = modes[i];
-      printMode(mode);
-      PixelFormat format = mode.getPixelFormat();
-      int res_x = mode.getResolutionX();
-      int res_y = mode.getResolutionY();
-      int fps = mode.getFps();
-      if (format == required_format) {
-        if (ibest == -1 || res_y > modes[ibest].getResolutionY()) {
-          ibest = i;
-        } else if (res_y == modes[ibest].getResolutionY() && 
-          fps > modes[ibest].getFps()){
-          ibest = i;
+      const openni::Array<openni::VideoMode>& modes = 
+        sensor.getSupportedVideoModes();
+      int ibest = -1;
+      std::cout << "Supported Modes:" << std::endl;
+      for (int i = 0; i < modes.getSize(); i++) {
+        const openni::VideoMode& mode = modes[i];
+        printMode(mode);
+        PixelFormat format = mode.getPixelFormat();
+        int res_x = mode.getResolutionX();
+        int res_y = mode.getResolutionY();
+        int fps = mode.getFps();
+        if (format == required_format) {
+          if (ibest == -1 || res_y > modes[ibest].getResolutionY()) {
+            ibest = i;
+          } else if (res_y == modes[ibest].getResolutionY() && 
+            fps > modes[ibest].getFps()){
+              ibest = i;
+          }
         }
       }
-    }
-    if (ibest == -1) {
-      shutdownOpenNIStatic();
-      throw std::wruntime_error("KinectInterface::findMaxResYFPSMode() - "
-        "ERROR: Couldn't find a good format!");
-    }
-    return modes[ibest];
+      if (ibest == -1) {
+        shutdownOpenNIStatic();
+        throw std::wruntime_error("KinectInterface::findMaxResYFPSMode() - "
+          "ERROR: Couldn't find a good format!");
+      }
+      return modes[ibest];
   }
+
+  void KinectInterface::findDevices(VectorManaged<char*>& devices) {
+    initOpenNIStatic();
+    openni::Array<openni::DeviceInfo> deviceInfoList;
+    openni::OpenNI::enumerateDevices(&deviceInfoList);
+    std::cout << "KinectInterface::findDevices(): Connected devices: ";
+    std::cout << std::endl;
+    for (int32_t i = 0; i < deviceInfoList.getSize(); i++) {
+      std::cout << "    " << i << ": name = " << deviceInfoList[i].getName();
+      std::cout << ", uri = " << deviceInfoList[i].getUri() << std::endl;
+      const char* cur_uri_src = deviceInfoList[i].getUri();
+      char* cur_uri_dst = new char[strlen(cur_uri_src) + 1];
+      strncpy(cur_uri_dst, cur_uri_src, strlen(cur_uri_src) + 1);
+      devices.pushBack(cur_uri_dst);
+    }
+  }
+
 
   openni::VideoMode KinectInterface::findMatchingMode(
     const openni::SensorInfo& sensor, const jtil::math::Int2& dim, 
     const int fps, const int format) const {
-    const openni::Array<openni::VideoMode>& modes = 
-      sensor.getSupportedVideoModes();
-    int ibest = -1;
-    std::cout << "Supported Modes:" << std::endl;
-    for (int i = 0; i < modes.getSize(); i++) {
-      const openni::VideoMode& mode = modes[i];
-      printMode(mode);
-      PixelFormat cur_format = mode.getPixelFormat();
-      int res_x = mode.getResolutionX();
-      int res_y = mode.getResolutionY();
-      int cur_fps = mode.getFps();
-      if (cur_format == format && res_x == dim[0] && res_y == dim[1] &&
-        fps == fps) {
-        ibest = i;
+      const openni::Array<openni::VideoMode>& modes = 
+        sensor.getSupportedVideoModes();
+      int ibest = -1;
+      std::cout << "Supported Modes:" << std::endl;
+      for (int i = 0; i < modes.getSize(); i++) {
+        const openni::VideoMode& mode = modes[i];
+        printMode(mode);
+        PixelFormat cur_format = mode.getPixelFormat();
+        int res_x = mode.getResolutionX();
+        int res_y = mode.getResolutionY();
+        int cur_fps = mode.getFps();
+        if (cur_format == format && res_x == dim[0] && res_y == dim[1] &&
+          fps == fps) {
+            ibest = i;
+        }
       }
-    }
-    if (ibest == -1) {
-      shutdownOpenNIStatic();
-      throw std::wruntime_error("KinectInterface::findMatchingMode() - "
-        "ERROR: Couldn't find a matching format!");
-    }
-    return modes[ibest];
+      if (ibest == -1) {
+        shutdownOpenNIStatic();
+        throw std::wruntime_error("KinectInterface::findMatchingMode() - "
+          "ERROR: Couldn't find a matching format!");
+      }
+      return modes[ibest];
   }
 
   void KinectInterface::initDepth() {
@@ -414,49 +460,54 @@ namespace kinect_interface {
     return status_str_;
   }
 
+  void KinectInterface::setCropDepthToRGB(const bool crop_depth_to_rgb) {
+    if (crop_depth_to_rgb_ != crop_depth_to_rgb) {
+      crop_depth_to_rgb_ = crop_depth_to_rgb;
+      if (crop_depth_to_rgb_) {
+        device_->setImageRegistrationMode(openni::IMAGE_REGISTRATION_DEPTH_TO_COLOR);
+      } else {
+        device_->setImageRegistrationMode(openni::IMAGE_REGISTRATION_OFF);
+      }
+    }
+  }
+
+  void KinectInterface::setFlipImage(const bool flip_image) {
+    if (flip_image_ != flip_image) {
+      flip_image_ = flip_image;
+      for (uint32_t i = 0; i < NUM_STREAMS; i++) {
+        streams_[i]->setMirroringEnabled(flip_image_);
+      }
+    } 
+  }
+
+  void KinectInterface::setDepthColorSync(const bool depth_color_sync) {
+    if (depth_color_sync_ != depth_color_sync) {
+      depth_color_sync_ = depth_color_sync;
+      checkOpenNIRC(device_->setDepthColorSyncEnabled(depth_color_sync_),
+        "Failed to set depth/color sync");
+    }
+  }
+
   void KinectInterface::kinectUpdateThread() {
     double last_frame_time = clk_->getTime();
     double time_accum = 0;
     uint64_t last_frame_number = 0;
 
-	bool flip_image;
-	GET_SETTING("flip_image", bool, flip_image);
-	bool prev_flip_image = flip_image;
-	for (uint32_t i = 0; i < NUM_STREAMS; i++) {
-      streams_[i]->setMirroringEnabled(flip_image);
-	}
-
     while (kinect_running_) {
       data_lock_.lock();
-
-      //int changed_index;
-      //openni::Status rc = openni::OpenNI::waitForAnyStream(streams_,
-      //  NUM_STREAMS, &changed_index);
-      //checkOpenNIRC(rc, "waitForAnyStream() failed");
-
-      //if (changed_index != DEPTH && changed_index != RGB) {
-      //  shutdownOpenNIStatic();
-      //  throw std::wruntime_error("waitForAnyStream() failed");
-      //}
-    
-      //streams_[changed_index]->readFrame(frames_[changed_index]);
-      //std::cout << "changed_index = " << changed_index << std::cout;
-
-      bool crop_depth_to_rgb;
-      GET_SETTING("crop_depth_to_rgb", bool, crop_depth_to_rgb);
-      if (crop_depth_to_rgb) {
-        device_->setImageRegistrationMode(openni::IMAGE_REGISTRATION_DEPTH_TO_COLOR);
-      } else {
-        device_->setImageRegistrationMode(openni::IMAGE_REGISTRATION_OFF);
+      // Check if we're running again.  Someone may have shut down the thread
+      if (!kinect_running_) {
+        data_lock_.unlock();
+        break;
       }
 
-	  GET_SETTING("flip_image", bool, flip_image);
-	  if (prev_flip_image != flip_image) {
-		for (uint32_t i = 0; i < NUM_STREAMS; i++) {
-		  streams_[i]->setMirroringEnabled(flip_image);
-	    }
-		prev_flip_image = flip_image;
-	  }
+      bool crop_depth_to_rgb, flip_image, depth_color_sync;
+      GET_SETTING("crop_depth_to_rgb", bool, crop_depth_to_rgb);
+      GET_SETTING("flip_image", bool, flip_image);
+      GET_SETTING("depth_color_sync", bool, depth_color_sync);
+      setFlipImage(flip_image);
+      setCropDepthToRGB(crop_depth_to_rgb);
+      setDepthColorSync(depth_color_sync);
 
       for (uint32_t i = 0; i < NUM_STREAMS; i++) {
         streams_[i]->readFrame(frames_[i]);
@@ -482,7 +533,7 @@ namespace kinect_interface {
           memset(labels_, 0, sizeof(labels_[0]) * src_dim);
         }
       }
-      
+
       if (!detect_hands || !found_hand) {
         memset(labels_, 0, sizeof(labels_[0]) * src_dim);
       }
@@ -528,28 +579,28 @@ namespace kinect_interface {
 
   void KinectInterface::convertDepthToWorldThread(const uint32_t start, 
     const uint32_t end) {
-    // There are two ways to do this: one is with the 
-    // openni::CoordinateConverter class, but looking through the source on
-    // github it looks expensive.  The other is digging into the c src directly
-    // and defining our own version.
-    float* pts_uvd_start = &pts_uvd_[start*3];
-    float* pts_world_start = &pts_world_[start*3];
-    const uint32_t count = end - start + 1;
-    openni_funcs_->convertDepthToWorldCoordinates(pts_uvd_start, 
-      pts_world_start, count);
+      // There are two ways to do this: one is with the 
+      // openni::CoordinateConverter class, but looking through the source on
+      // github it looks expensive.  The other is digging into the c src directly
+      // and defining our own version.
+      float* pts_uvd_start = &pts_uvd_[start*3];
+      float* pts_world_start = &pts_world_[start*3];
+      const uint32_t count = end - start + 1;
+      openni_funcs_->convertDepthToWorldCoordinates(pts_uvd_start, 
+        pts_world_start, count);
 
-    //const uint16_t* d = depth();
-    //for (uint32_t i = start; i <= end; i++) {
-    //  uint32_t u = i % depth_dim_[0];
-    //  uint32_t v = i / depth_dim_[0];
-    //  openni::CoordinateConverter::convertDepthToWorld(*streams_[DEPTH], u, v, 
-    //    d[i], &pts_world_[i*3], &pts_world_[i*3+1], &pts_world_[i*3+2]);
-    //}
+      //const uint16_t* d = depth();
+      //for (uint32_t i = start; i <= end; i++) {
+      //  uint32_t u = i % depth_dim_[0];
+      //  uint32_t v = i / depth_dim_[0];
+      //  openni::CoordinateConverter::convertDepthToWorld(*streams_[DEPTH], u, v, 
+      //    d[i], &pts_world_[i*3], &pts_world_[i*3+1], &pts_world_[i*3+2]);
+      //}
 
-    std::unique_lock<std::mutex> ul(thread_update_lock_);
-    threads_finished_++;
-    not_finished_.notify_all();  // Signify that all threads might have finished
-    ul.unlock();
+      std::unique_lock<std::mutex> ul(thread_update_lock_);
+      threads_finished_++;
+      not_finished_.notify_all();  // Signify that all threads might have finished
+      ul.unlock();
   }
 
   const uint8_t* KinectInterface::rgb() const { 
@@ -570,13 +621,10 @@ namespace kinect_interface {
 
   void KinectInterface::shutdownKinect() {
     cout << "kinectUpdateThread shutdown requested..." << endl;
+    data_lock_.lock();
     kinect_running_ = false;
+    data_lock_.unlock();
     kinect_thread_.join();
-  }
-
-  void KinectInterface::detectPose(const int16_t* depth, 
-    const uint8_t* labels) {
-    hand_net_->calcHandCoeffConvnet(depth, labels);
   }
 
   const uint8_t* KinectInterface::filteredDecisionForestLabels() const {
@@ -585,15 +633,6 @@ namespace kinect_interface {
 
   const uint8_t* KinectInterface::rawDecisionForestLabels() const {
     return hand_detector_->labels_evaluated();
-  }
-
-
-  const float* KinectInterface::coeff_convnet() const {
-    return hand_net_->coeff_convnet();
-  }
-
-  const jtil::math::Float3& KinectInterface::uvd_com() const {
-    return hand_net_->uvd_com();
   }
 
 }  // namespace kinect
