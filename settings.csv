@@ -10,8 +10,8 @@
 //, APPLICATION SPECIFIC
 track_openni_skeleton,            bool,      0
 kinect_output,                    int,       0
-detect_hands,                     bool,      1
-detect_pose,                      bool,      1
+detect_hands,                     bool,      0
+detect_pose,                      bool,      0
 label_type_enum,                  int,       0
 render_convnet_points,            bool,      1
 render_kinect_fps,                bool,      1
@@ -19,7 +19,7 @@ show_hand_model,                  bool,      0
 crop_depth_to_rgb,                bool,      1
 continuous_snapshot,              bool,      0
 flip_image,                       bool,      1
-depth_color_sync,                 bool,      0
+depth_color_sync,                 bool,      1
 cur_kinect,                       int,       1
 
 //, RENDERER
@@ -48,8 +48,8 @@ ssao_number_sample_enum,          int,       0
 ssao_blur_on,                     bool,      1
 global_ambient,                   float,     0.28
 directional_lights,               bool,      0
-spot_lights,                      bool,      1
-point_lights,                     bool,      1
+spot_lights,                      bool,      0
+point_lights,                     bool,      0
 render_light_volumes,             bool,      0
 render_light_sources,             bool,      0
 dof_on,                           bool,      0
