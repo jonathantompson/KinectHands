@@ -13,22 +13,12 @@
 #include "jtil/data_str/vector.h"
 #include "kinect_interface/kinect_interface.h"  // for src_width/height
 
-#define FIT_TWIST
-#ifdef FIT_TWIST
-  #define HAND_NUM_COEFF 42  // The num of coefficients to use when optimizing
-#else
-  #define HAND_NUM_COEFF 37
-#endif
+#define HAND_NUM_COEFF 42  // The num of coefficients to use when optimizing
 #define FINGER_NUM_COEFF 6
-#define NSPH_PER_FING 6
 #define HAND_MODEL_DEFAULT_SCALE 58.0f
-#define HAND_CAMERA_VIEW_PLANE_NEAR 10.0f
-#define HAND_CAMERA_VIEW_PLANE_FAR 3000.0f
-// http://www.ros.org/wiki/kinect_calibration/technical
-#define HAND_CAMERA_FOV_HOR 57.8f  // Kinect focal length is 585pix (640pix width)
-                                   // RGB FOV is 62.7
-// #define HAND_CAMERA_FOV 43.35f  // Actual value
-#define HAND_CAMERA_FOV 45.25f  // This value works better
+#define HAND_MODEL_CAMERA_VIEW_PLANE_NEAR 10.0f
+#define HAND_MODEL_CAMERA_VIEW_PLANE_FAR 3000.0f
+//#define HAND_CAMERA_FOV 45.25f  // OLD Kinect VALUE! --> Now use OpenNIFuncs
 #define LOAD_JBIN_FILES
 
 namespace jtil {

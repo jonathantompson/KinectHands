@@ -16,15 +16,15 @@ namespace kinect_interface {
   // Kinect constants FROM: XnOpenNI.cpp (and slightly edited)
   const double OpenNIFuncs::fHFOV_kinect_ = 1.0144686707507438;
   const double OpenNIFuncs::fVFOV_kinect_ = 0.78980943449644714;
-  const float OpenNIFuncs::fHFOV_primesense_109_ = 1.01707470f;
-  const float OpenNIFuncs::fVFOV_primesense_109_ = 0.791987565f;
+  const float OpenNIFuncs::fHFOV_primesense_109 = 1.01707470f;
+  const float OpenNIFuncs::fVFOV_primesense_109 = 0.791987565f;
   const double OpenNIFuncs::m_fRealWorldXtoZ_kinect_ = tan(OpenNIFuncs::fHFOV_kinect_/2)*2;
   const double OpenNIFuncs::m_fRealWorldYtoZ_kinect_ = tan(OpenNIFuncs::fVFOV_kinect_/2)*2;
   const uint32_t OpenNIFuncs::nXRes_kinect_ = 640;
   const uint32_t OpenNIFuncs::nYRes_kinect_ = 480;
   const uint32_t OpenNIFuncs::nFPS_kinect_ = 30;
-  const uint32_t OpenNIFuncs::nXRes_primesense_109_ = 640;
-  const uint32_t OpenNIFuncs::nYRes_primesense_109_ = 480;
+  const uint32_t OpenNIFuncs::nXRes_primesense_109 = 640;
+  const uint32_t OpenNIFuncs::nYRes_primesense_109 = 480;
 
   OpenNIFuncs::OpenNIFuncs(const uint32_t nXRes, const uint32_t nYRes, 
       const float hFOV, const float vFOV) {
@@ -41,10 +41,10 @@ namespace kinect_interface {
   }
 
   OpenNIFuncs::OpenNIFuncs() {
-    nXRes_ = (float)nXRes_primesense_109_;
-    nYRes_ = (float)nYRes_primesense_109_;
-    fHFOV_ = fHFOV_primesense_109_;
-    fVFOV_ = fVFOV_primesense_109_;
+    nXRes_ = (float)nXRes_primesense_109;
+    nYRes_ = (float)nYRes_primesense_109;
+    fHFOV_ = fHFOV_primesense_109;
+    fVFOV_ = fVFOV_primesense_109;
     xzFactor_ = tan(fHFOV_ / 2.0f) * 2.0f;
 	  yzFactor_ = tan(fVFOV_ / 2.0f) * 2.0f;
     halfResX_ = nXRes_ / 2.0f;

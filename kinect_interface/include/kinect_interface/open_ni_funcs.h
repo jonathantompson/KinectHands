@@ -40,6 +40,11 @@ namespace kinect_interface {
     // Primesense 1.09 constants
     void update109Constants();
 
+    static const float fHFOV_primesense_109;
+    static const float fVFOV_primesense_109;
+    static const uint32_t nXRes_primesense_109;
+    static const uint32_t nYRes_primesense_109;
+
   private:
     // Kinect constants
     static const double m_fRealWorldXtoZ_kinect_;
@@ -49,11 +54,6 @@ namespace kinect_interface {
     static const uint32_t nXRes_kinect_;
     static const uint32_t nYRes_kinect_;
     static const uint32_t nFPS_kinect_;
-
-    static const float fHFOV_primesense_109_;
-    static const float fVFOV_primesense_109_;
-    static const uint32_t nXRes_primesense_109_;
-    static const uint32_t nYRes_primesense_109_;
 
     float nXRes_;
     float nYRes_;

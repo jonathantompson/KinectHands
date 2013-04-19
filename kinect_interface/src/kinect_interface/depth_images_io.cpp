@@ -46,7 +46,7 @@ namespace kinect_interface {
   float DepthImagesIO::adjacency_gamma = 25.0f;
   float DepthImagesIO::adjacency_beta = 0.25f;
 
-  //// Values for HandFit from 2013_03_04
+  //// Values for ModelFit from 2013_03_04
   //int32_t DepthImagesIO::red_hue_threshold = 15;
   //int32_t DepthImagesIO::red_sat_threshold = 41; 
   //int32_t DepthImagesIO::red_val_threshold = 73; 
@@ -61,7 +61,7 @@ namespace kinect_interface {
   //int32_t DepthImagesIO::red_med_filter_rad = 4;
   //int32_t DepthImagesIO::hand_pts_grow_rad_iterations = 6;
 
-  //// Values for HandFit from 2013_01_11
+  //// Values for ModelFit from 2013_01_11
   //int32_t DepthImagesIO::red_hue_threshold = 27;
   //int32_t DepthImagesIO::red_sat_threshold = 48; 
   //int32_t DepthImagesIO::red_val_threshold = 79;
