@@ -494,13 +494,6 @@ namespace kinect_interface {
     uint64_t last_frame_number = 0;
 
     while (kinect_running_) {
-      data_lock_.lock();
-      // Check if we're running again.  Someone may have shut down the thread
-      if (!kinect_running_) {
-        data_lock_.unlock();
-        break;
-      }
-
       bool crop_depth_to_rgb, flip_image, depth_color_sync;
       GET_SETTING("crop_depth_to_rgb", bool, crop_depth_to_rgb);
       GET_SETTING("flip_image", bool, flip_image);
@@ -509,8 +502,31 @@ namespace kinect_interface {
       setCropDepthToRGB(crop_depth_to_rgb);
       setDepthColorSync(depth_color_sync);
 
+      // Wait for all streams individually.  We need Depth and RGB frames to be
+      // consistent in time so we should for both rather than process each one
+      // independantly
+      for (uint32_t i = 0; i < NUM_STREAMS; i++) {
+        int changedIndex;
+	      checkOpenNIRC(openni::OpenNI::waitForAnyStream(&streams_[i], 1, 
+          &changedIndex, OPENNI_WAIT_TIMEOUT), 
+          "kinectUpdateThread() - ERROR: waitForAnyStream failed!");
+        if (changedIndex != 0) {
+          throw std::wruntime_error("KinectInterface::kinectUpdateThread() - "
+          "ERROR: waitForAnyStream failed!");
+        }
+      }
+
+      data_lock_.lock();
+
       for (uint32_t i = 0; i < NUM_STREAMS; i++) {
         streams_[i]->readFrame(frames_[i]);
+      }
+
+      // Check if we're running again.  Someone may have shut down the thread
+      // while we were waiting on the OpenNI library
+      if (!kinect_running_) {
+        data_lock_.unlock();
+        break;
       }
 
       if (depth_format_100um_) {
