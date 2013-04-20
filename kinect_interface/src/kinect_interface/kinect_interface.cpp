@@ -269,6 +269,10 @@ namespace kinect_interface {
     device_ = new openni::Device();
     checkOpenNIRC(device_->open(deviceURI), "Failed to connect to device");
 
+    GET_SETTING("depth_color_sync", bool, depth_color_sync_);
+    checkOpenNIRC(device_->setDepthColorSyncEnabled(depth_color_sync_),
+      "Failed to set depth/color sync");
+
     // Open a connection to the device's depth channel
     initDepth();
 
@@ -281,25 +285,16 @@ namespace kinect_interface {
     initRGB();
 
     GET_SETTING("crop_depth_to_rgb", bool, crop_depth_to_rgb_);
-    GET_SETTING("flip_image", bool, flip_image_);
     if (crop_depth_to_rgb_) {
       device_->setImageRegistrationMode(openni::IMAGE_REGISTRATION_DEPTH_TO_COLOR);
     } else {
       device_->setImageRegistrationMode(openni::IMAGE_REGISTRATION_OFF);
-    }
+    } 
 
+    GET_SETTING("flip_image", bool, flip_image_);
     for (uint32_t i = 0; i < NUM_STREAMS; i++) {
       streams_[i]->setMirroringEnabled(flip_image_);
     }
-
-    // Now update all the frames so they're initialized at least once:
-    for (uint32_t i = 0; i < NUM_STREAMS; i++) {
-      streams_[i]->readFrame(frames_[i]);
-    }
-
-    GET_SETTING("depth_color_sync", bool, depth_color_sync_);
-    checkOpenNIRC(device_->setDepthColorSyncEnabled(depth_color_sync_),
-      "Failed to set depth/color sync");
 
     std::cout << "Finished initializaing OpenNI device" << std::endl;
   }

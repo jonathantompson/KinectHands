@@ -37,8 +37,8 @@ using namespace jtil::image_util;
 namespace app {
 
   FrameData::FrameData() {
-    frame_number = MAX_UINT64;
-    saved_frame_number = MAX_UINT64;
+    frame_number = 0;
+    saved_frame_number = 0;
 
     depth = (int16_t*)depth_rgb_data_;
     rgb = (uint8_t*)(&depth[src_dim]);
