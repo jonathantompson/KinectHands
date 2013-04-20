@@ -41,6 +41,9 @@ using windowing::Window;
   }
 
 namespace renderer {
+
+  Renderer* Renderer::g_renderer_;
+
   // These are vertex shader positions
   const ShaderLocationNamePair Renderer::pos(VERTEX_POS_LOC, "v_position");
   const ShaderLocationNamePair Renderer::col(VERTEX_COL_LOC, "v_color");
@@ -52,6 +55,11 @@ namespace renderer {
   //const ShaderLocationNamePair Renderer::bone_weights_47(VERTEX_BONE_WEIGHTS_47_LOC, "v_bone_weights_47");
 
   Renderer::Renderer() {
+    if (g_renderer_ != NULL) {
+      throw std::wruntime_error("ERROR: g_renderer_ does not equal NULL!");
+    }
+    g_renderer_ = this;
+
     camera_ = NULL;
 
     sp_cmesh_dlight_ = NULL;

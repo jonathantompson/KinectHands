@@ -29,7 +29,7 @@
     <ClCompile Include="src\kinect_interface\hand_net\join_table.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\table.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\hand_image_generator.cpp" />
-    <ClCompile Include="src\kinect_interface\hand_net\hand_model.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_net\hand_model_coeff.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\hand_net.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\linear.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\OLD_conv_stage.cpp">
@@ -76,7 +76,7 @@
     <ClInclude Include="include\kinect_interface\hand_net\join_table.h" />
     <ClInclude Include="include\kinect_interface\hand_net\table.h" />
     <ClInclude Include="include\kinect_interface\hand_net\hand_image_generator.h" />
-    <ClInclude Include="include\kinect_interface\hand_net\hand_model.h" />
+    <ClInclude Include="include\kinect_interface\hand_net\hand_model_coeff.h" />
     <ClInclude Include="include\kinect_interface\hand_net\hand_net.h" />
     <ClInclude Include="include\kinect_interface\hand_net\linear.h" />
     <ClInclude Include="include\kinect_interface\hand_net\OLD_conv_stage.h">

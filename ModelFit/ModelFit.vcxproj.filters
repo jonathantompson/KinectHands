@@ -38,9 +38,6 @@
     <Filter Include="shaders">
       <UniqueIdentifier>{85e2da50-ebe2-4a02-aded-017e44bef53e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\src\math">
-      <UniqueIdentifier>{ec4e69b6-de46-4a39-adac-98ef1c8381a2}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\src\model_fit">
       <UniqueIdentifier>{b3376c1f-f7e9-4abf-8dfd-ef1122eb4592}</UniqueIdentifier>
     </Filter>
@@ -130,12 +127,6 @@
     <ClCompile Include="src\renderer\gl_state.cpp">
       <Filter>Source Files\src\renderer</Filter>
     </ClCompile>
-    <ClCompile Include="src\math\optimization_test_functions.cpp">
-      <Filter>Source Files\src\math</Filter>
-    </ClCompile>
-    <ClCompile Include="src\math\common_fitting.cpp">
-      <Filter>Source Files\src\math</Filter>
-    </ClCompile>
     <ClCompile Include="src\model_fit\bounding_sphere.cpp">
       <Filter>Source Files\src\model_fit</Filter>
     </ClCompile>
@@ -148,8 +139,8 @@
     <ClCompile Include="src\model_fit\model_renderer.cpp">
       <Filter>Source Files\src\model_fit</Filter>
     </ClCompile>
-    <ClCompile Include="src\math\lprpso_tiled.cpp">
-      <Filter>Source Files\src\math</Filter>
+    <ClCompile Include="src\model_fit\pose_model.cpp">
+      <Filter>Source Files\src\model_fit</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -243,12 +234,6 @@
     <ClInclude Include="src\renderer\gl_state.h">
       <Filter>Source Files\src\renderer</Filter>
     </ClInclude>
-    <ClInclude Include="src\math\optimization_test_functions.h">
-      <Filter>Source Files\src\math</Filter>
-    </ClInclude>
-    <ClInclude Include="src\math\common_fitting.h">
-      <Filter>Source Files\src\math</Filter>
-    </ClInclude>
     <ClInclude Include="src\model_fit\bounding_sphere.h">
       <Filter>Source Files\src\model_fit</Filter>
     </ClInclude>
@@ -263,9 +248,6 @@
     </ClInclude>
     <ClInclude Include="src\model_fit\model_renderer.h">
       <Filter>Source Files\src\model_fit</Filter>
-    </ClInclude>
-    <ClInclude Include="src\math\lprpso_tiled.h">
-      <Filter>Source Files\src\math</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

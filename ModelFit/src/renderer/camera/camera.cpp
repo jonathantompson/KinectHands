@@ -58,13 +58,6 @@ namespace renderer {
     // Before updating projection, record the old value
     proj_prev_frame_.set(proj_);
 
-    // Calculate tangent of the field of view --> Used for unprojecting view
-    // space depth in shaders.
-    float aspect = screen_size_[0] / screen_size_[1];
-    float tanFovY = tanf(field_of_view_ / 2.0f);
-    tangent_fov_[0] = tanFovY * aspect;
-    tangent_fov_[1] = tanFovY;
-
     // Recall: OpenGL convention is to look down the negative Z axis,
     //         therefore, more negative values are actually further away.
     proj_.glProjection(-near_far_[0], -near_far_[1], field_of_view_,

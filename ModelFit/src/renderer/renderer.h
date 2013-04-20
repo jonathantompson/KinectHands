@@ -21,7 +21,7 @@
 #define DIR_LIGHT_DIFFUSE_INTENSITY 0.7f
 
 namespace windowing { class Window; }
-namespace kinect_interface { namespace hand_net { class HandModel; } }
+namespace kinect_interface { namespace hand_net { class HandModelCoeff; } }
 
 namespace renderer {
 
@@ -44,9 +44,9 @@ namespace renderer {
 
   class Renderer {
   public:
-    friend kinect_interface::hand_net::HandModel;  // TEMP CODE!
+    friend kinect_interface::hand_net::HandModelCoeff;  // TEMP CODE!
     // Constructor / Destructor
-    Renderer();
+    Renderer();  // NOT THREAD SAFE!  Only call it once, from one thread!
     ~Renderer();
 
     // Top level functions
@@ -54,6 +54,7 @@ namespace renderer {
       int screen_height, float znear, float zfar, float field_of_view);
     void renderFrame(float dt);
     void resize(uint32_t width, uint32_t height);
+    static Renderer* g_renderer() { return g_renderer_; }
     
     // getter methods
     inline Camera* camera() { return camera_; }
@@ -106,6 +107,7 @@ namespace renderer {
     void downsample5IntegTexture(TextureRenderable* dst, TextureRenderable* src);
 
   private:
+    static Renderer* g_renderer_;
     int screen_width_, screen_height_;
     float field_of_view_;
 

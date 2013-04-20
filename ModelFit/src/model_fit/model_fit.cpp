@@ -1,15 +1,10 @@
-//
-//  hand_model_fit.h
-//
-//  Created by Jonathan Tompson on 8/17/12.
-//
-
 #include <random>
 #include <thread>
 #include <iostream>
 #include <stdexcept>
 #include "model_fit/model_fit.h"
 #include "model_fit/model_renderer.h"
+#include "model_fit/pose_model.h"
 #include "jtil/data_str/vector_managed.h"
 #include "jtil/string_util/string_util.h"
 #include "jtil/math/pso_parallel.h"
@@ -17,16 +12,13 @@
 #include "jtil/file_io/csv_handle_write.h"
 #include "renderer/gl_state.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
+#include "kinect_interface/depth_images_io.h"
 
-#define SAFE_DELETE(target) \
-  if (target != NULL) { \
-    delete target; \
-    target = NULL; \
-  }
+#define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
+#define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
-using Eigen::Matrix;
-using Eigen::MatrixXf;
 using namespace jtil::math;
+using namespace jtil::data_str;
 using std::string;
 using std::runtime_error;
 using std::cout;
@@ -39,35 +31,36 @@ namespace model_fit {
   
   // Static variables
   ModelFit* ModelFit::cur_fit_ = NULL;
-  const float* ModelFit::coeff_min_limit = NULL;
-  const float* ModelFit::coeff_max_limit = NULL;
-  const float* ModelFit::coeff_penalty_scale = NULL;
-  const bool* ModelFit::angle_coeffs = NULL;
   uint64_t ModelFit::func_eval_count_ = 0;
  
-  ModelFit::ModelFit(uint32_t num_models, uint32_t coeff_size_per_model,
-    float* pso_radius_c, CoeffUpdateFuncPtr renormalize_coeff_func) {
+  ModelFit::ModelFit(uint32_t num_models, uint32_t coeff_dim_per_model) {
+    if (num_models == 0 || coeff_dim_per_model == 0) {
+      throw std::wruntime_error("ModelFit::ModelFit() - ERROR: check inputs!");
+    }
     num_models_ = num_models;
-    coeff_dim_ = coeff_size_per_model * num_models;
-    pso_radius_c_ = pso_radius_c;
+    coeff_dim_per_model_ = coeff_dim_per_model;
+    coeff_dim_ = coeff_dim_per_model_ * num_models_;
 
-    coeff_ = new float[coeff_dim_];
-    prev_coeff_ = new float[coeff_dim_];
+    coeff_optim_prev_ = new float[coeff_dim_];
+    coeff_optim_ = new float[coeff_dim_];
     coeff_tmp_ = new float[coeff_dim_];
 
-    lprpso_ = new jtil::math::PSOParallel(coeff_dim_, PSO_SWARM_SIZE,
-      this, renormalize_coeff_func);
-    lprpso_->max_iterations = PSO_MAX_ITERATIONS;
-    lprpso_->delta_coeff_termination = PSO_DELTA_C_TERMINATION;
+    pso_ = new PSOParallel(coeff_dim_, PSO_SWARM_SIZE);
+    pso_->max_iterations = PSO_MAX_ITERATIONS;
+    pso_->delta_coeff_termination = PSO_DELTA_C_TERMINATION;
 
     kinect_depth_masked_ = new int16_t[src_dim];
 
-    model_renderer_ = new ModelRenderer(
+    model_renderer_ = new ModelRenderer();
   }
 
   ModelFit::~ModelFit() {
-    SAFE_DELETE(lprpso_);
+    SAFE_DELETE(pso_);
     SAFE_DELETE_ARR(kinect_depth_masked_);
+    SAFE_DELETE_ARR(coeff_optim_);
+    SAFE_DELETE_ARR(coeff_optim_prev_);
+    SAFE_DELETE_ARR(coeff_tmp_);
+    SAFE_DELETE(model_renderer_);
   }
 
   void ModelFit::prepareKinectData(int16_t* depth, uint8_t* label) {
@@ -82,84 +75,87 @@ namespace model_fit {
       }
     }
 #endif
-    hand_renderer_->uploadKinectDepth(kinect_depth_masked_);
+    model_renderer_->uploadDepthDepth(kinect_depth_masked_);
   }
 
-  void handModel2Eigen(Eigen::MatrixXf& coeff, HandModel* hands[2], 
-    const int nhands) {
-    memcpy(coeff.block<1, HAND_NUM_COEFF>(0, 0).data(), hands[0]->coeff(),
-      HAND_NUM_COEFF * sizeof(hands[0]->coeff()[0]));
-    if (nhands > 1) {
-      memcpy(coeff.block<1, HAND_NUM_COEFF>(0, HAND_NUM_COEFF).data(), 
-        hands[1]->coeff(), HAND_NUM_COEFF * sizeof(hands[1]->coeff()[0]));
-    }
-  }
-
-  void eigen2HandModel(HandModel* hands[2], Eigen::MatrixXf& coeff, 
-    const int nhands) {
-    if (nhands == 1) {
-      hands[0]->copyCoeffFrom(coeff.data(), HAND_NUM_COEFF);
-    } else {
-      hands[0]->copyCoeffFrom(coeff.block<1, HAND_NUM_COEFF>(0, 0).data(),
-        HAND_NUM_COEFF);
-      hands[1]->copyCoeffFrom(coeff.block<1, HAND_NUM_COEFF>(0, HAND_NUM_COEFF).data(),
-        HAND_NUM_COEFF);
-    }
-  }
-
-  void ModelFit::fitModel(int16_t* depth, uint8_t* label, HandModel* hands[2],
-    HandModel* prev_hands[2]) {
-    min_pts_.resize(0);
-    cur_hand_[0] = hands[0];
-    cur_hand_[1] = hands[1];
-    prev_hand_[0] = prev_hands[0];
-    prev_hand_[1] = prev_hands[1];
-    handModel2Eigen(coeff_, hands, nhands_);
-    if (prev_hand_[0] != NULL) {
-      handModel2Eigen(prev_coeff_, prev_hands, nhands_);
-    }
-    cur_fit_ = this;
-    prepareKinectData(depth, label);
-
-    hand_renderer_->preBindUniforms(); 
-
-    // All matrices are empty!  This is because all the evaluation is done
-    // on the GPU.  Therefore the optimizer doesn't actually need the values.
-    MatrixXf x, y, f;
+  void ModelFit::fitModel(int16_t* depth, uint8_t* label, PoseModel** models, 
+    float** coeffs, float** prev_coeffs,
+    CoeffUpdateFuncPtr coeff_update_func) {
+    Vector<bool> old_attachement_vals(num_models_);
+    prepareOptimization(depth, label, models, coeffs, prev_coeffs,
+      old_attachement_vals);
 
     // This is a hack: There's something wrong with the first iteration using
     // tiled rendering --> Doing one regular render pass helps.
-    float start_func_val = objectiveFunc(coeff_);
+    float start_func_val = objectiveFunc(coeff_optim_);
     cout << "Starting objective function value = " << start_func_val << endl;
     
-    // PrPSO fitting --> Supposedly deals better with multi-modal funcs
-    float rad = 1.0f;
+    // PSO fitting
     for (uint32_t i = 0; i < PSO_REPEATS; i++) {
-      Eigen::MatrixXf cur_pso_radius_c_ = pso_radius_c_ * rad;
-      coeff_ = lprpso_fitting_->fitModel(coeff_, cur_pso_radius_c_, angle_coeffs);
-      // manualFit();
-      rad = rad * 0.5f;
+      pso_->minimize(coeff_tmp_, coeff_optim_, models_[0]->pso_radius_c(),
+         models_[0]->angle_coeffs(), objectiveFuncTiled, coeff_update_func);
+      // Now copy back the new coeff values
+      memcpy(coeff_optim_, coeff_tmp_, sizeof(coeff_optim_[0]) * coeff_dim_);
     }
 
-    // Copy back fitted coefficients
-    eigen2HandModel(cur_hand_, coeff_, nhands_);
+    // Copy the local coeff values back into the return value
+    for (uint32_t i = 0; i < num_models_; i++) {
+      memcpy(coeffs[i], &coeff_optim_[i * coeff_dim_per_model_], 
+        sizeof(coeffs[i][0]) * coeff_dim_per_model_);
+    }
+
+    for (uint32_t i = 0; i < num_models_; i++) {
+      models_[i]->setRendererAttachement(old_attachement_vals[i]);
+    }
   }
 
-  float ModelFit::queryObjectiveFunction(int16_t* depth, uint8_t* label, 
-    HandModel* hands[2], HandModel* prev_hands[2]) {
-    cur_hand_[0] = hands[0];
-    cur_hand_[1] = hands[1];
-    prev_hand_[0] = prev_hands[0];
-    prev_hand_[1] = prev_hands[1];
-    handModel2Eigen(coeff_, hands, nhands_);
-    if (prev_hand_[0] != NULL) {
-      handModel2Eigen(prev_coeff_, prev_hands, nhands_);
+
+  void ModelFit::prepareOptimization(int16_t* depth, uint8_t* label, 
+    PoseModel** models, float** coeffs, float** prev_coeffs,
+    Vector<bool>& old_attachement_vals) {
+    models_ = models;
+    
+    // Detach the models from the global renderer so that there aren't issues
+    // with scene graph parent transformation inheritance.
+    for (uint32_t i = 0; i < num_models_; i++) {
+      old_attachement_vals.pushBack(models_[i]->getRendererAttachement());
+      models_[i]->setRendererAttachement(false);
     }
+
+    for (uint32_t i = 0; i < num_models_; i++) {
+      memcpy(&coeff_optim_[i * coeff_dim_per_model_], coeffs[i], 
+        sizeof(coeff_optim_[0]) * coeff_dim_per_model_);
+    }
+    if (prev_coeffs != NULL) {
+      for (uint32_t i = 0; i < num_models_; i++) {
+        memcpy(&coeff_optim_prev_[i * coeff_dim_per_model_], prev_coeffs[i], 
+          sizeof(coeff_optim_prev_[0]) * coeff_dim_per_model_);
+      }
+    } else {
+      memcpy(coeff_optim_prev_, coeff_optim_, 
+        sizeof(coeff_optim_prev_[0]) * coeff_dim_);
+    }
+
     cur_fit_ = this;
     prepareKinectData(depth, label);
-    MatrixXf x, y, f;
-    evalFunc(f, coeff_, x);
-    return calculateResidual(y, f, coeff_);
+  }
+
+  float ModelFit::queryObjFunc(int16_t* depth, uint8_t* label, 
+    PoseModel** models, float** coeffs) {
+    Vector<bool> old_attachement_vals(num_models_);
+    prepareOptimization(depth, label, models, coeffs, NULL,
+      old_attachement_vals);
+
+    // This is a hack: There's something wrong with the first iteration using
+    // tiled rendering --> Doing one regular render pass helps.
+    float start_func_val = objectiveFunc(coeff_optim_);
+    cout << "objective function value = " << start_func_val << endl;
+
+    for (uint32_t i = 0; i < num_models_; i++) {
+      models_[i]->setRendererAttachement(old_attachement_vals[i]);
+    }
+
+    return start_func_val;
   }
 
   char* float2CStr(float val) {
@@ -168,17 +164,6 @@ namespace model_fit {
     std::copy(str.begin(), str.end(), c_str);
     c_str[str.size()] = '\0';
     return c_str;
-  }
-  
-  void ModelFit::evalFunc(Eigen::MatrixXf& f_val, const Eigen::MatrixXf& coeff, 
-    const Eigen::MatrixXf& x) {
-    static_cast<void>(x);
-    static_cast<void>(f_val);
-
-    cur_fit_->hand_renderer_->drawDepthMap(coeff, cur_hand_, cur_fit_->nhands_);
-
-    func_eval_count_++;
-    glFlush();
   }
   
   // modulu - similar to matlab's mod()
@@ -210,22 +195,12 @@ namespace model_fit {
   std::normal_distribution<float> dist;
 #endif
 
-  void ModelFit::preturbCoeffs(Eigen::MatrixXf& coeff) {
-    for (uint32_t i = 0; i < HAND_NUM_COEFF; i++) {
-      float norm_rand_num_ = dist(eng);
-      coeff(i) = coeff(i) + norm_rand_num_ * preturb_coeff_[i];
-    }
-    HandModel::renormalizeCoeffs(coeff.data());
-  }
-
-  float ModelFit::calculateResidual(const Eigen::MatrixXf& y, 
-    const Eigen::MatrixXf& f_x, const Eigen::MatrixXf& coeff) {
-    static_cast<void>(coeff);
-
+  float ModelFit::calculateResidual(const float* coeff) {
     // Residue is calculated on the GPU
-    float data_term = cur_fit_->hand_renderer_->calculateResidualDataTerm();
+    float data_term = cur_fit_->model_renderer_->calculateResidualDataTerm();
+    const uint32_t max_groups = cur_fit_->models_[0]->max_bsphere_groups();
     float interpen_term = 
-      cur_fit_->hand_renderer_->calcInterpenetrationTerm();
+      cur_fit_->model_renderer_->calcInterpenetrationTerm(max_groups);
 
     // Now calculate the penalty terms:
     float penalty_term = calcPenalty(coeff);  // formally scaled by 0.1
@@ -234,11 +209,11 @@ namespace model_fit {
     return penalty_term * data_term * interpen_term;
   }
 
-  void ModelFit::calculateResidualTiled(jtil::data_str::Vector<float>& residues, 
-    jtil::data_str::VectorManaged<Eigen::MatrixXf>& coeffs) {
+  void ModelFit::calculateResidualTiled(Vector<float>& residues, 
+    Vector<float*>& coeffs) {
     // Note: at this point interpenetration term is already calculated and is
     // sitting in residues[i]
-    cur_fit_->hand_renderer_->calculateResidualDataTermTiled(residues);
+    cur_fit_->model_renderer_->calculateResidualDataTermTiled(residues);
 
     // Now calculate the penalty terms:
     for (uint32_t i = 0; i < coeffs.size(); i++) {
@@ -247,69 +222,46 @@ namespace model_fit {
     }
   }
 
-  float ModelFit::calcPenalty(const Eigen::MatrixXf& coeff) {
+  float ModelFit::calcPenalty(const float* coeff) {
     float penalty = 1.0f;
-    for (uint32_t i = 0; i < cur_fit_->coeff_dim_; i++) {
-      if (coeff_penalty_scale_[i % HAND_NUM_COEFF] > EPSILON) {
-        float cur_coeff_val = coeff(i);
+    const uint32_t coeff_dim = cur_fit_->coeff_dim_;
+    const uint32_t coeff_dim_per_model = cur_fit_->coeff_dim_per_model_;
+    const float* penalty_scale = cur_fit_->models_[0]->coeff_penalty_scale();
+    const float* max_limit = cur_fit_->models_[0]->coeff_max_limit();
+    const float* min_limit = cur_fit_->models_[0]->coeff_min_limit();
+
+    for (uint32_t i = 0; i < coeff_dim; i++) {
+      if (penalty_scale[i % coeff_dim_per_model] > EPSILON) {
+        float cur_coeff_val = coeff[i];
 
 #ifdef LINEAR_PENALTY
         // Linear penalty
-        if (cur_coeff_val > coeff_max_limit[i%HAND_NUM_COEFF]) {
-          penalty += coeff_penalty_scale_[i%HAND_NUM_COEFF] * 
-            fabsf(cur_coeff_val - coeff_max_limit[i%HAND_NUM_COEFF]) / 10.0f;
+        if (cur_coeff_val > max_limit[i % coeff_dim_per_model]) {
+          penalty += penalty_scale[i % coeff_dim_per_model] * 
+            fabsf(cur_coeff_val - max_limit[i % coeff_dim_per_model]) / 10.0f;
         }
-        if (cur_coeff_val < coeff_min_limit[i%HAND_NUM_COEFF]) { 
-          penalty += coeff_penalty_scale_[i%HAND_NUM_COEFF] * 
-            fabsf(coeff_min_limit[i%HAND_NUM_COEFF] - cur_coeff_val) / 10.0f;
+        if (cur_coeff_val < min_limit[i % coeff_dim_per_model]) { 
+          penalty += penalty_scale[i % coeff_dim_per_model] * 
+            fabsf(min_limit[i % coeff_dim_per_model] - cur_coeff_val) / 10.0f;
         }
 #else
-        // Quadra penalty
-        if (cur_coeff_val > coeff_max_limit[i%HAND_NUM_COEFF]) {
-          float cur_penalty = coeff_penalty_scale_[i%HAND_NUM_COEFF] * 
-            fabsf(cur_coeff_val - coeff_max_limit[i%HAND_NUM_COEFF]) / 2.0f;
+        // Quadratic penalty
+        if (cur_coeff_val > max_limit[i % coeff_dim_per_model]) {
+          float cur_penalty = penalty_scale[i % coeff_dim_per_model] * 
+            fabsf(cur_coeff_val - max_limit[i % coeff_dim_per_model]) / 2.0f;
           penalty += (cur_penalty * cur_penalty);
         }
-        if (cur_coeff_val < coeff_min_limit[i%HAND_NUM_COEFF]) { 
-          float cur_penalty = coeff_penalty_scale_[i%HAND_NUM_COEFF] * 
-            fabsf(coeff_min_limit[i%HAND_NUM_COEFF] - cur_coeff_val) / 2.0f;
+        if (cur_coeff_val < min_limit[i % coeff_dim_per_model]) { 
+          float cur_penalty = penalty_scale[i % coeff_dim_per_model] * 
+            fabsf(min_limit[i % coeff_dim_per_model] - cur_coeff_val) / 2.0f;
           penalty += (cur_penalty * cur_penalty);
         }
-#endif
-      }
-    }
-
-    // Now add in the penalty due to marked points in the space:
-    if (include_min_pts_constraints_) {
-      std::cout << "USING MIN_PT_CONSTRAINTS!!  Do you mean to?" << std::endl;
-      for (uint32_t i_cur_pt = 0; i_cur_pt < min_pts_.size(); i_cur_pt++) {
-        float dist_sq = 0;
-        float* cur_min_pt = min_pts_[i_cur_pt].c;
-        for (uint32_t j = 0; j < cur_fit_->coeff_dim_; j++) {
-          float cur_delta = cur_min_pt[j] - coeff(j);
-          if ((j % HAND_NUM_COEFF) < HAND_POS_Z) {
-            // Position coeff
-            cur_delta /= 10;  // Pretend 1cm is roughly full range
-          }
-          dist_sq += (cur_delta * cur_delta);
-        }
-        float cur_penalty = DESCENT_PENALTY_SIZE * (1.0f / sqrtf(dist_sq));
-#if defined(WIN32) || defined(_WIN32)
-        penalty += min(cur_penalty, 1000000);  // Limit the penalty (don't want singularity)
-#else
-        penalty += std::min<float>(cur_penalty, 1000000);
 #endif
       }
     }
 
 #ifdef PREV_FRAME_DIST_PENALTY
-    if (prev_hand_[0] != NULL) {
-      penalty += calcDistPenalty(&cur_fit_->prev_coeff_(0), &coeff(0));
-      if (cur_fit_->coeff_dim_ > HAND_NUM_COEFF) {
-        penalty += calcDistPenalty(&cur_fit_->prev_coeff_(HAND_NUM_COEFF), 
-          &coeff(HAND_NUM_COEFF));
-      }
-    }
+      penalty += calcDistPenalty(cur_fit_->coeff_optim_prev_, coeff);
 #endif
 
     return penalty;
@@ -317,11 +269,15 @@ namespace model_fit {
 
   float ModelFit::calcDistPenalty(const float* coeff0, const float* coeff1) {
     float dist = 0;  // Prevent NANs
-    for (uint32_t i = 0; i < HAND_NUM_COEFF; i++) {
-      if (coeff_penalty_scale_[i] > EPSILON) {
+    const uint32_t coeff_dim_per_model = cur_fit_->coeff_dim_per_model_;
+    const float* penalty_scale = cur_fit_->models_[0]->coeff_penalty_scale();
+    const float* max_limit = cur_fit_->models_[0]->coeff_max_limit();
+    const float* min_limit = cur_fit_->models_[0]->coeff_min_limit();
+    for (uint32_t i = 0; i < cur_fit_->coeff_dim_; i++) {
+      if (penalty_scale[i % coeff_dim_per_model] > EPSILON) {
         float delta = fabsf(coeff0[i] - coeff1[i]);
         float err = delta - PREV_FRAME_DIST_PENALTY_THRESHOLD * 
-          (coeff_max_limit[i] - coeff_min_limit[i]);
+          (max_limit[i] - min_limit[i]);
         if (err > 0) {
           dist += err * err;
         }
@@ -330,24 +286,14 @@ namespace model_fit {
     return PREV_FRAME_DIST_PENALTY_SCALE * dist;
   }
 
-  float ModelFit::evaluateFuncAndCalculateResidual() {
-    MatrixXf x;
-    MatrixXf y;
-    MatrixXf f;
-    evalFunc(f, coeff_, x);
-    return calculateResidual(y, f, coeff_);
+  float ModelFit::objectiveFunc(const float* coeff) {
+    cur_fit_->model_renderer_->drawDepthMap(coeff, 
+      cur_fit_->coeff_dim_per_model_, cur_fit_->models_, cur_fit_->num_models_);
+    return calculateResidual(coeff);
   }
 
-  float ModelFit::objectiveFunc(const MatrixXf& coeff) {
-    MatrixXf x;
-    MatrixXf y;
-    MatrixXf f;
-    evalFunc(f, coeff, x);
-    return calculateResidual(y, f, coeff);
-  }
-
-  void ModelFit::objectiveFuncTiled(jtil::data_str::Vector<float>& residues, 
-    jtil::data_str::VectorManaged<Eigen::MatrixXf>& coeffs) {
+  void ModelFit::objectiveFuncTiled(Vector<float>& residues, 
+    Vector<float*>& coeffs) {
     if (coeffs.size() > NTILES) {
       throw runtime_error("objectiveFuncTiled() - coeffs.size() > NTILES");
     }
@@ -358,8 +304,9 @@ namespace model_fit {
     for (uint32_t i = 0; i < coeffs.size(); i++) {
       residues.pushBack(0);
     }
-    cur_fit_->hand_renderer_->drawDepthMapTiled(residues, coeffs, cur_hand_, 
-      cur_fit_->nhands_);
+    cur_fit_->model_renderer_->drawDepthMapTiled(coeffs, 
+      cur_fit_->coeff_dim_per_model_, cur_fit_->models_, cur_fit_->num_models_, 
+      true, residues, cur_fit_->models_[0]->max_bsphere_groups());
     func_eval_count_ += NTILES;
     calculateResidualTiled(residues, coeffs);
 
@@ -374,26 +321,6 @@ namespace model_fit {
       }
     }
 #endif
-  }
-
-  Coeff& Coeff::operator=(const Coeff &rhs) {
-    // Only do assignment if RHS is a different object from this.
-    if (this != &rhs) {
-      memcpy(this->c, rhs.c, HAND_NUM_COEFF*2*sizeof(this->c[0]));
-    }
-    return *this;
-  }
-
-  void Coeff::copyFromEigen(const Eigen::MatrixXf &c) {
-    for (int32_t i = 0; i < c.cols() || i < c.rows(); i++) {
-      this->c[i] = c(i);
-    }
-  }
-
-  void Coeff::copyToEigen(Eigen::MatrixXf &c) {
-    for (int32_t i = 0; i < c.cols() || i < c.rows(); i++) {
-      c(i) = this->c[i];
-    }
   }
 
 }  // namespace hand_fit

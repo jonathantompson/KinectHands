@@ -26,7 +26,7 @@
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector.h"
 #include "jtil/string_util/string_util.h"
-#include "kinect_interface/hand_net/hand_model.h"
+#include "kinect_interface/hand_net/hand_model_coeff.h"
 #include "model_fit/model_fit.h"
 #include "model_fit/model_renderer.h"
 #include "model_fit/hand_geometry.h"
@@ -86,9 +86,9 @@ bool shift_down = false;
 uint64_t cur_frame = 0;
 
 // Hand model
-HandModel* rhand = NULL;
-HandModel* lhand = NULL;
-HandModel* rhand_rest_pose = NULL;
+HandModelCoeff* rhand = NULL;
+HandModelCoeff* lhand = NULL;
+HandModelCoeff* rhand_rest_pose = NULL;
 ModelRenderer* hand_renderer = NULL;
 uint32_t cur_coeff = 0;
 uint32_t cur_sphere = 0;
@@ -571,10 +571,10 @@ int main(int argc, char *argv[]) {
     wnd->registerCharacterInputCB(NULL);
 
     hand_renderer = new ModelRenderer(render, true, true);
-    rhand = new HandModel(HandType::RIGHT);
-    lhand = new HandModel(HandType::LEFT);
+    rhand = new HandModelCoeff(HandType::RIGHT);
+    lhand = new HandModelCoeff(HandType::LEFT);
     lhand->setCoeff(HandCoeff::HAND_POS_X, -150);
-    rhand_rest_pose = new HandModel(HandType::RIGHT);
+    rhand_rest_pose = new HandModelCoeff(HandType::RIGHT);
     coeffs.resize(1, HAND_NUM_COEFF * 2);
 
     // Main render loop
@@ -649,7 +649,7 @@ int main(int argc, char *argv[]) {
       memcpy(coeffs.block<1, HAND_NUM_COEFF>(0, HAND_NUM_COEFF).data(), 
         rhand->coeff(), sizeof(rhand->coeff()[0]) * HAND_NUM_COEFF);
       
-      HandModel* hands[2];
+      HandModelCoeff* hands[2];
       hands[0] = lhand;
       hands[1] = rhand;
       float interpenetration;

@@ -29,7 +29,6 @@ namespace renderer {
     inline jtil::math::Float4x4* proj() { return &proj_; }
     inline jtil::math::Float2* near_far() { return &near_far_; }
     inline void near_far(jtil::math::Float2* set_val) { near_far_.set(*set_val); }
-    inline jtil::math::Float2* tangent_fov() { return &tangent_fov_; }
     inline jtil::math::Float2* cur_screen_size() { return &screen_size_; }
     inline void field_of_view(float set_val) { field_of_view_ = set_val; }
     inline void screen_width(float set_val) { screen_size_[0] = set_val; }
@@ -43,7 +42,6 @@ namespace renderer {
     float x_axis_rot_;
     float y_axis_rot_;
     jtil::math::Float2 near_far_;
-    jtil::math::Float2 tangent_fov_;
     jtil::math::Float2 screen_size_;
     float field_of_view_;
 

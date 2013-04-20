@@ -2,6 +2,7 @@
 #include <thread>
 #include <iostream>
 #include <stdexcept>
+#include <sstream>
 #include "model_fit/model_renderer.h"
 #include "model_fit/model_fit.h"
 #include "model_fit/bounding_sphere.h"
@@ -44,23 +45,18 @@ using namespace renderer;
 
 namespace model_fit {
   
-  ModelRenderer::ModelRenderer(PoseModel** models, const uint32_t num_models) {
+  ModelRenderer::ModelRenderer() {
     depth_tmp_ = new float[src_dim * NTILES];
     FloatQuat eye_rot; eye_rot.identity();
     Float3 eye_pos(0, 0, 0);
-    float fov_vert_deg = 
-      360.0f * OpenNIFuncs::fVFOV_primesense_109 / (2.0f * (float)M_PI);
+    float fov_vert_deg = 360.0f * OpenNIFuncs::fVFOV_primesense_109 / 
+      (2.0f * (float)M_PI);
     camera_ = new Camera(&eye_rot, &eye_pos, src_width, src_height, 
       fov_vert_deg, -10.0f, -3000.0f);
     camera_->updateView();
     camera_->updateProjection();
-
-    models_ = new PoseModel*[num_models];
-    for (uint32_t i = 0; i < num_models; i++) {
-      models_[i] = models[i];
-    }
     
-    g_renderer_ = g_renderer;  // Not owned here.
+    g_renderer_ = Renderer::g_renderer();  // Not owned here.
     
     // Renderable texture
     depth_texture_ = new TextureRenderable(GL_R32F, src_width,
@@ -201,7 +197,6 @@ namespace model_fit {
   ModelRenderer::~ModelRenderer() {
     SAFE_DELETE(depth_tmp_);
     SAFE_DELETE(camera_);
-    SAFE_DELETE_ARR(models_);
     SAFE_DELETE(depth_texture_);
     SAFE_DELETE(depth_texture_tiled_);
     SAFE_DELETE(residue_texture_1_);
@@ -246,7 +241,7 @@ namespace model_fit {
       false);
   }
 
-  void ModelRenderer::drawDepthMapTiled(VectorManaged<float*>& coeff, 
+  void ModelRenderer::drawDepthMapTiled(Vector<float*>& coeff, 
     const uint32_t num_coeff_per_model, PoseModel** models, 
     const uint32_t num_models, const bool calcInterpenetration,
     jtil::data_str::Vector<float>& interpenetration, 
@@ -448,13 +443,11 @@ namespace model_fit {
     // Render to the dst texture
     residue_texture_1_->begin();
     sp_residue_calc_->useProgram();
-
     
     depth_texture_->bind(0, GL_TEXTURE0, h_residue_calc_synth_depth_);
     kinect_depth_texture_->bind(GL_TEXTURE1, h_residue_calc_kinect_depth_);
+
     g_renderer_->bindFloat1(MAX_DEPTH_IN_RESIDUE, h_residue_calc_max_depth_);
-    //math::Float2 texel_dim(1.0f / depth_texture_->w(), 1.0f / depth_texture_->h());
-    //g_renderer_->bindFloat2(&texel_dim, h_residue_calc_texel_dim_);
     
     GLState::glsDisable(GL_DEPTH_TEST);
     GLState::glsEnable(GL_CULL_FACE);
@@ -464,6 +457,11 @@ namespace model_fit {
     g_renderer_->quad()->draw();
 
     residue_texture_1_->end();
+
+    // TEMP CODE:
+    residue_texture_1_->getTexture0Data<float>(depth_tmp_);
+    jtil::file_io::SaveArrayToFile<float>(depth_tmp_, src_dim, "depth_texture.bin");
+    // END TEMP CODE
 
     // Now downsample and integrate to 1/160 the size in each dimension
     g_renderer_->downsample4IntegTexture(residue_texture_4_, residue_texture_1_);
@@ -716,11 +714,12 @@ namespace model_fit {
   }
 
   float ModelRenderer::calcInterpenetrationTerm(const uint32_t max_groups) {
-    const uint32_t num_spheres = bsph_.size();
+    jtil::data_str::Vector<BoundingSphere*>& bsph = PoseModel::g_b_spheres;
+    const uint32_t num_spheres = bsph.size();
     // Assume bounding sphere matrices have been updated (they should be)!
     // For each bounding sphere transform the center and the radius:
     for (uint32_t i = 0; i < num_spheres; i++) {
-      bsph_[i]->transform();
+      bsph[i]->transform();
     }
 
     float total_penetration_distance = 0;
@@ -737,12 +736,13 @@ namespace model_fit {
         // ignore penetration within the same finger
         if (objA_group != objB_group && objA_group < max_groups && 
           objB_group < max_groups) {
-          BoundingSphere* objA = bsph_[i];
-          BoundingSphere* objB = bsph_[j];
+          BoundingSphere* objA = bsph[i];
+          BoundingSphere* objB = bsph[j];
           Float3::sub(vec, *objA->transformed_center(), *objB->transformed_center());
           float center_dist_sq = Float3::dot(vec, vec);
           float min_dist = objA->transformed_radius() + objB->transformed_radius();
-          float sep_dist_sq = center_dist_sq - (min_dist*min_dist);
+          float min_dist_sq = min_dist * min_dist;
+          float sep_dist_sq = center_dist_sq - min_dist_sq;
           if (sep_dist_sq < 0) {
             total_penetration_distance += -sep_dist_sq;
           }
@@ -751,10 +751,6 @@ namespace model_fit {
     }
 
     return 1.0f + INTERPENETRATION_CONSTANT * total_penetration_distance;
-  }
-
-  void ModelRenderer::addBSphere(renderer::BoundingSphere* sph) {
-    bsph_.pushBack(sph);
   }
 
 }  // namespace model_fit

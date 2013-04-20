@@ -24,7 +24,7 @@
 
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector.h"
-#include "math/common_fitting.h"  // For CoeffUpdateFuncPtr
+#include "jtil/math/common_optimization.h"  // For CoeffUpdateFuncPtr
 
 // Particle-Swarm optimizer settings
 #define PSO_MAX_ITERATIONS 300  // Default 501
@@ -43,70 +43,64 @@ namespace jtil { namespace math { class PSOParallel; } }
  
 namespace model_fit {
   class ModelRenderer;
+  class PoseModel;
 
   class ModelFit {
   public:
     friend class jtil::math::PSOParallel;
     // Constructor / Destructor
-    ModelFit(uint32_t num_models, uint32_t coeff_size_per_model,
-      float* pso_radius_c, jtil::math::CoeffUpdateFuncPtr renormalize_coeff_func);
+    ModelFit(uint32_t num_models, uint32_t coeff_dim_per_model);
     ~ModelFit();
 
-    void fitModel(int16_t* depth, uint8_t* label, float** coeffs,
-      float** prev_coeffs[2]);
-    float queryObjectiveFunction(int16_t* depth, uint8_t* label, 
-      float** coeffs, float** prev_coeffs[2]);
+    // fitModel - Top function:
+    // coeffs - starting coeff per model --> Also the return value
+    // prev_coeff - coeff per model from the previous frame NULL if it
+    //   doesn't exist.
+    void fitModel(int16_t* depth, uint8_t* label, PoseModel** models, 
+      float** coeffs, float** prev_coeffs, 
+      jtil::math::CoeffUpdateFuncPtr coeff_update_func);
+
+    float queryObjFunc(int16_t* depth, uint8_t* label, PoseModel** models, 
+      float** coeffs);
 
     inline void resetFuncEvalCount() { func_eval_count_ = 0; }
     inline uint64_t func_eval_count() { return func_eval_count_; }
 
-    // NOTE: THESE SHOULD BE SET BEFORE FITTING 
-    static const float* coeff_min_limit;
-    static const float* coeff_max_limit;
-    static const float* coeff_penalty_scale;
-
-    // NOTE: THIS MUST BE SET BEFORE FITTING 
-    static const bool* angle_coeffs;
-
-    static float calcDistPenalty(const float* coeff0, const float* coeff1);
+    ModelRenderer* model_renderer() { return model_renderer_; }
 
   private:
     uint32_t coeff_dim_; 
+    uint32_t coeff_dim_per_model_;
     uint32_t num_models_;
+    PoseModel** models_;  // Not owned here
     static ModelFit* cur_fit_;
     static uint64_t func_eval_count_;
     ModelRenderer* model_renderer_;
 
-    float* coeff_;
-    float* prev_coeff_;
+    float* coeff_optim_prev_;  // Flattened coeff array
+    float* coeff_optim_;  // Flattened coeff array
+    float* coeff_tmp_;  // Flattened coeff array
 
-    jtil::math::PSOParallel* lprpso_;
-    float* coeff_tmp_;
+    jtil::math::PSOParallel* pso_;
     float* cur_obj_func_coeff_;
-    float* pso_radius_c_;  // Not owned here
     int16_t* kinect_depth_masked_;
     static const float finger_crossover_penalty_threshold;
 
     // static functions for non-linear fitting
-    static void evalFunc(float* f_val, const float* coeff, 
-      const float* x);
-    static void preturbCoeffs(float* coeff);
-    static float calculateResidual(const float* y, 
-      const float* f_x, const float* coeff);
-    static void calculateResidualTiled(jtil::data_str::Vector<float>& residues, 
-      jtil::data_str::Vector<float*>& coeffs);
-    static void approxJacobian(float* jacob, 
-      const float* coeff);
-    static void approxJacobianTiled(float* jacob, 
-      const float* coeff);
-    static float calcPenalty(const float* coeff);
-    // Main objective function used for fitting.
     static float objectiveFunc(const float* coeff);
     static void objectiveFuncTiled(jtil::data_str::Vector<float>& residues, 
       jtil::data_str::Vector<float*>& coeffs);
+    static float calculateResidual(const float* coeff);
+    static void calculateResidualTiled(jtil::data_str::Vector<float>& residues, 
+      jtil::data_str::Vector<float*>& coeffs);
+    static float calcPenalty(const float* coeff);
+    static float calcDistPenalty(const float* coeff0, const float* coeff1);
+
+    void prepareOptimization(int16_t* depth, uint8_t* label, 
+      PoseModel** models, float** coeffs, float** prev_coeffs,
+      jtil::data_str::Vector<bool>& old_attachement_vals);
 
     void manualFit();
-    float evaluateFuncAndCalculateResidual();
     void prepareKinectData(int16_t* depth, uint8_t* label);
 
     // Non-copyable, non-assignable.

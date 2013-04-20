@@ -34,7 +34,7 @@
 #include "jtil/data_str/vector.h"
 #include "jtil/clk/clk.h"
 #include "jtil/string_util/string_util.h"
-#include "kinect_interface/hand_net/hand_model.h"
+#include "kinect_interface/hand_net/hand_model_coeff.h"
 #include "model_fit/hand_geometry.h"
 #include "model_fit/model_renderer.h"
 #include "model_fit/model_fit.h"
@@ -136,8 +136,8 @@ bool continuous_playback = false;
 bool found_hand = false;
 
 // Hand modelNUM_PARAMETERS
-HandModel* l_hand = NULL;  // Not using this yet
-HandModel* r_hand = NULL;
+HandModelCoeff* l_hand = NULL;  // Not using this yet
+HandModelCoeff* r_hand = NULL;
 ModelRenderer* hand_renderer = NULL;
 ModelFit* fit = NULL;
 Eigen::MatrixXf coeffs;
@@ -270,7 +270,7 @@ void loadCurrentImage() {
 #endif
 
 #ifdef SAVE_SYNTHETIC_IMAGE
-  HandModel* hands[2];
+  HandModelCoeff* hands[2];
   memcpy(coeffs.data(), r_hand->coeff(), 
     NUM_PARAMETERS * sizeof(coeffs.data()[0]));
   hands[0] = r_hand;
@@ -578,8 +578,8 @@ int main(int argc, char *argv[]) {
     hand_renderer = new ModelRenderer(render, fit_left, fit_right);
     fit = new ModelFit(hand_renderer, num_hands);
     coeffs.resize(1, NUM_PARAMETERS * num_hands);
-    r_hand = new HandModel(HandType::RIGHT);
-    l_hand = new HandModel(HandType::LEFT);
+    r_hand = new HandModelCoeff(HandType::RIGHT);
+    l_hand = new HandModelCoeff(HandType::LEFT);
 
     std::cout << "Using a cropped source image of " << HN_SRC_IM_SIZE;
     std::cout << std::endl << "Final image size after processing is ";

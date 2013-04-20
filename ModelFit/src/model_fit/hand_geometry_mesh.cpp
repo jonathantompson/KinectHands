@@ -28,8 +28,6 @@
 #error "HAND_FIT is not defined!  You need to declare it in the preprocessor"
 #endif
 
-using Eigen::Matrix;
-using Eigen::MatrixXf;
 using namespace jtil::math;
 using std::string;
 using std::runtime_error;
@@ -39,9 +37,11 @@ using namespace renderer;
 using namespace kinect_interface::hand_net;
 
 namespace model_fit {
+  float HandGeometryMesh::pso_radius_c_[HAND_NUM_COEFF];
+  float HandGeometryMesh::cur_scale_ = 1.0f;
+  float HandGeometryMesh::cur_lengths_[5] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
   
-  HandGeometryMesh::HandGeometryMesh(HandType hand_type, 
-    Renderer* g_renderer, ModelRenderer* g_hand_renderer) {
+  HandGeometryMesh::HandGeometryMesh(HandType hand_type) {
     // Set all the bones to undefined:
     bone_wrist_index_ = MAX_UINT32;
     bone_palm_index_ = MAX_UINT32;
@@ -55,7 +55,7 @@ namespace model_fit {
       bone_finger_4_index_[i] = MAX_UINT32;
     }
 
-    createHandGeometry(g_renderer, g_hand_renderer, hand_type);
+    createHandGeometry(hand_type);
 
     // HACK: The model's normals are inside out --> Fix them
     if (hand_type == HandType::RIGHT) {
@@ -73,43 +73,43 @@ namespace model_fit {
     // Adding the geometry to the gobal geometry manager's scene graph will
     // transfer ownership of the memory.
     GeometryManager::scene_graph_root()->addChild(scene_graph_);
+    renderer_attachment_ = true;
 
     // Set the PSO static radius
-    pso_radius_c.resize(1, HAND_NUM_COEFF);
     for (uint32_t i = HAND_POS_X; i <= HAND_POS_Z; i++) {
-      pso_radius_c(i) = PSO_RAD_POSITION;
+      pso_radius_c_[i] = PSO_RAD_POSITION;
     }
     for (uint32_t i = HAND_ORIENT_X; i <= HAND_ORIENT_Z; i++) {
-      pso_radius_c(i) = PSO_RAD_EULER;
+      pso_radius_c_[i] = PSO_RAD_EULER;
     }
     for (uint32_t i = WRIST_THETA; i <= WRIST_PHI; i++) {  // Wrist
-      pso_radius_c(i) = (coeff_max_limit[i] - coeff_min_limit[i]) * PSO_RAD_WRIST;
+      pso_radius_c_[i] = (coeff_max_limit_[i] - coeff_min_limit_[i]) * PSO_RAD_WRIST;
     }
     for (uint32_t i = THUMB_THETA; i <= THUMB_K2_PHI; i++) {  // thumb
-      pso_radius_c(i) = (coeff_max_limit[i] - coeff_min_limit[i]) * PSO_RAD_THUMB;
+      pso_radius_c_[i] = (coeff_max_limit_[i] - coeff_min_limit_[i]) * PSO_RAD_THUMB;
     }
     for (uint32_t i = 0; i < 4; i++) {  // All fingers
-      pso_radius_c(F0_ROOT_THETA+i*FINGER_NUM_COEFF) = 
-        (coeff_max_limit[F0_ROOT_THETA+i*FINGER_NUM_COEFF] - 
-        coeff_min_limit[F0_ROOT_THETA+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
-      pso_radius_c(F0_ROOT_PHI+i*FINGER_NUM_COEFF) = 
-        (coeff_max_limit[F0_ROOT_PHI+i*FINGER_NUM_COEFF] - 
-        coeff_min_limit[F0_ROOT_PHI+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
-      pso_radius_c(F0_THETA+i*FINGER_NUM_COEFF) = 
-        (coeff_max_limit[F0_THETA+i*FINGER_NUM_COEFF] - 
-        coeff_min_limit[F0_THETA+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
-      pso_radius_c(F0_PHI+i*FINGER_NUM_COEFF) = 
-        (coeff_max_limit[F0_PHI+i*FINGER_NUM_COEFF] - 
-        coeff_min_limit[F0_PHI+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
-      pso_radius_c(F0_KNUCKLE_MID+i*FINGER_NUM_COEFF) = 
-        (coeff_max_limit[F0_KNUCKLE_MID+i*FINGER_NUM_COEFF] - 
-        coeff_min_limit[F0_KNUCKLE_MID+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
-      pso_radius_c(F0_KNUCKLE_END+i*FINGER_NUM_COEFF) = 
-        (coeff_max_limit[F0_KNUCKLE_END+i*FINGER_NUM_COEFF] - 
-        coeff_min_limit[F0_KNUCKLE_END+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
+      pso_radius_c_[F0_ROOT_THETA+i*FINGER_NUM_COEFF] = 
+        (coeff_max_limit_[F0_ROOT_THETA+i*FINGER_NUM_COEFF] - 
+        coeff_min_limit_[F0_ROOT_THETA+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
+      pso_radius_c_[F0_ROOT_PHI+i*FINGER_NUM_COEFF] = 
+        (coeff_max_limit_[F0_ROOT_PHI+i*FINGER_NUM_COEFF] - 
+        coeff_min_limit_[F0_ROOT_PHI+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
+      pso_radius_c_[F0_THETA+i*FINGER_NUM_COEFF] = 
+        (coeff_max_limit_[F0_THETA+i*FINGER_NUM_COEFF] - 
+        coeff_min_limit_[F0_THETA+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
+      pso_radius_c_[F0_PHI+i*FINGER_NUM_COEFF] = 
+        (coeff_max_limit_[F0_PHI+i*FINGER_NUM_COEFF] - 
+        coeff_min_limit_[F0_PHI+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
+      pso_radius_c_[F0_KNUCKLE_MID+i*FINGER_NUM_COEFF] = 
+        (coeff_max_limit_[F0_KNUCKLE_MID+i*FINGER_NUM_COEFF] - 
+        coeff_min_limit_[F0_KNUCKLE_MID+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
+      pso_radius_c_[F0_KNUCKLE_END+i*FINGER_NUM_COEFF] = 
+        (coeff_max_limit_[F0_KNUCKLE_END+i*FINGER_NUM_COEFF] - 
+        coeff_min_limit_[F0_KNUCKLE_END+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
     }
     for (uint32_t i = F0_TWIST; i <= THUMB_TWIST; i++) {  // thumb
-      pso_radius_c(i) = (coeff_max_limit[i] - coeff_min_limit[i]) * PSO_RAD_FINGERS;
+      pso_radius_c_[i] = (coeff_max_limit_[i] - coeff_min_limit_[i]) * PSO_RAD_FINGERS;
     }
   }
 
@@ -119,8 +119,8 @@ namespace model_fit {
 
   uint32_t HandGeometryMesh::sph_bone_ind_[NUM_BOUNDING_SPHERES];
 
-  void HandGeometryMesh::createHandGeometry(Renderer* g_renderer, 
-    ModelRenderer* g_hand_renderer, HandType type) {
+  void HandGeometryMesh::createHandGeometry(HandType type) {
+    Renderer* g_renderer = Renderer::g_renderer();
     GeometryManager* gm = GeometryManager::g_geom_manager();
 #ifndef LOAD_HAND_MESH_JFILE
     if (type == HandType::LEFT) {
@@ -131,6 +131,7 @@ namespace model_fit {
       gm->saveToJFile(scene_graph_, HAND_MODEL_PATH, RHAND_MODEL_JFILE);
     }
 #else
+
     if (type == HandType::LEFT) {
       scene_graph_ = gm->loadFromJFile(HAND_MODEL_PATH, LHAND_MODEL_JFILE);
     } else {
@@ -270,13 +271,23 @@ namespace model_fit {
       bone_offset_mat.set(cur_bone->bone_offset); 
       Float4x4::inverse(temp, bone_offset_mat);
       Float3::affineTransformPos(center, temp, origin);
-      center.accum(&HandModel::sph_off_[i*3]);
-      cur_sphere = new BoundingSphere(HandModel::sph_size_[i], center, mesh_, 
+      center.accum(&HandModelCoeff::sph_off_[i*3]);
+      cur_sphere = new BoundingSphere(HandModelCoeff::sph_size_[i], center, mesh_, 
         scene_graph_, cur_bone->bone_offset);
       geom->addChild(cur_sphere);
-      g_hand_renderer->addBSphere(cur_sphere);
+      PoseModel::g_b_spheres.pushBack(cur_sphere);
       bspheres_.pushBack(cur_sphere);
     }
+  }
+
+  void HandGeometryMesh::setCurrentStaticHandProperties(
+    const float* coeff) {
+    cur_scale_ = coeff[SCALE];
+    cur_lengths_[0] = coeff[F0_LENGTH];
+    cur_lengths_[1] = coeff[F1_LENGTH];
+    cur_lengths_[2] = coeff[F2_LENGTH];
+    cur_lengths_[3] = coeff[F3_LENGTH];
+    cur_lengths_[4] = coeff[THUMB_LENGTH];
   }
 
   void HandGeometryMesh::updateMatrices(const float* coeff) {
@@ -290,14 +301,14 @@ namespace model_fit {
     mat->leftMultTranslation(coeff[HAND_POS_X],
                              coeff[HAND_POS_Y],
                              coeff[HAND_POS_Z]);
-    mat->rightMultScale(coeff[SCALE], coeff[SCALE], coeff[SCALE]); 
+    mat->rightMultScale(cur_scale_, cur_scale_, cur_scale_); 
 
     // Set the palm bone (depending on wrist angle)
     mat = bones_in_file_->bones[bone_wrist_index_]->getNode()->mat();
     rotateMatXAxisGM(mat_tmp1, coeff[WRIST_PHI]);
     rotateMatZAxisGM(mat_tmp2, coeff[WRIST_THETA]);
     Float4x4::mult(mat_tmp3, mat_tmp1, mat_tmp2);
-    // rotateMatXAxis(mat_tmp1, HandModel::wrist_twist);
+    // rotateMatXAxis(mat_tmp1, HandModelCoeff::wrist_twist);
     // Float4x4::mult(mat_tmp2, mat_tmp1, mat_tmp3);
     Float4x4::mult(*mat, rest_transforms_[bone_wrist_index_], mat_tmp3);
 
@@ -319,7 +330,7 @@ namespace model_fit {
       mat = bones_in_file_->bones[bone_finger_2_index_[i]]->getNode()->mat();
       euler2RotMatGM(mat_tmp3, psi, theta, phi);
       Float4x4::multSIMD(*mat, rest_transforms_[bone_finger_2_index_[i]], mat_tmp3);
-      mat->rightMultScale(1.0f, 1.0f + coeff[F0_LENGTH + i], 1.0f);  // Scale this node
+      mat->rightMultScale(1.0f, 1.0f + cur_lengths_[i], 1.0f);  // Scale this node
 
       mat = bones_in_file_->bones[bone_finger_3_index_[i]]->getNode()->mat();
       float k2_theta = coeff[F0_KNUCKLE_MID + i * FINGER_NUM_COEFF];
@@ -330,10 +341,10 @@ namespace model_fit {
       float bone_base_length = bone_mid_pos.length();
       mat_tmp2.set(bone_mid);
       // Move bone by fraction of the bone length:
-      mat_tmp2.leftMultTranslation(0, bone_base_length * coeff[F0_LENGTH + i], 0);  
+      mat_tmp2.leftMultTranslation(0, bone_base_length * cur_lengths_[i], 0);  
       Float4x4::multSIMD(*mat, mat_tmp2, mat_tmp1);
-      mat->leftMultScale(1.0f, 1.0f / (1.0f + coeff[F0_LENGTH + i]), 1.0f);  // Undo parent scale
-      mat->rightMultScale(1.0f, 1.0f + coeff[F0_LENGTH + i], 1.0f);  // Scale this node
+      mat->leftMultScale(1.0f, 1.0f / (1.0f + cur_lengths_[i]), 1.0f);  // Undo parent scale
+      mat->rightMultScale(1.0f, 1.0f + cur_lengths_[i], 1.0f);  // Scale this node
 
       mat = bones_in_file_->bones[bone_finger_4_index_[i]]->getNode()->mat();
       float k3_theta = coeff[F0_KNUCKLE_END + i * FINGER_NUM_COEFF];
@@ -344,11 +355,11 @@ namespace model_fit {
       float bone_mid_length = bone_tip_pos.length();
       mat_tmp2.set(bone_tip);
       // Move bone by fraction of the bone length:
-      mat_tmp2.leftMultTranslation(0, bone_mid_length * coeff[F0_LENGTH + i], 0);
+      mat_tmp2.leftMultTranslation(0, bone_mid_length * cur_lengths_[i], 0);
       Float4x4::multSIMD(*mat, mat_tmp2, mat_tmp1);
 
-      mat->leftMultScale(1.0f, 1.0f / (1.0f + coeff[F0_LENGTH + i]), 1.0f);  // Undo parent scale
-      mat->rightMultScale(1.0f, 1.0f + coeff[F0_LENGTH + i], 1.0f);  // Scale this node
+      mat->leftMultScale(1.0f, 1.0f / (1.0f + cur_lengths_[i]), 1.0f);  // Undo parent scale
+      mat->rightMultScale(1.0f, 1.0f + cur_lengths_[i], 1.0f);  // Scale this node
     }
 
     // Set the thumb bones
@@ -369,7 +380,7 @@ namespace model_fit {
     const Float4x4& bone_mid = rest_transforms_[bone_thumb_2_index_];
     mat_tmp2.set(bone_mid);
     Float4x4::multSIMD(*mat, mat_tmp2, mat_tmp3);
-    mat->rightMultScale(1.0f, 1.0f + coeff[THUMB_LENGTH], 1.0f);  // Scale this node
+    mat->rightMultScale(1.0f, 1.0f + cur_lengths_[4], 1.0f);  // Scale this node
 
     phi = coeff[THUMB_K2_PHI];
     mat = bones_in_file_->bones[bone_thumb_3_index_]->getNode()->mat();
@@ -380,10 +391,10 @@ namespace model_fit {
     float bone_mid_length = bone_tip_pos.length();
     mat_tmp2.set(bone_tip);
     // Move bone by fraction of the bone length:
-    mat_tmp2.leftMultTranslation(0, bone_mid_length * coeff[THUMB_LENGTH], 0);
+    mat_tmp2.leftMultTranslation(0, bone_mid_length * cur_lengths_[4], 0);
     Float4x4::multSIMD(*mat, mat_tmp2, mat_tmp1);
-    mat->leftMultScale(1.0f, 1.0f / (1.0f + coeff[THUMB_LENGTH]), 1.0f);  // Undo parent scale
-    mat->rightMultScale(1.0f, 1.0f + coeff[THUMB_LENGTH], 1.0f);  // Scale this node
+    mat->leftMultScale(1.0f, 1.0f / (1.0f + cur_lengths_[4]), 1.0f);  // Undo parent scale
+    mat->rightMultScale(1.0f, 1.0f + cur_lengths_[4], 1.0f);  // Scale this node
 
   }
   
@@ -428,6 +439,7 @@ namespace model_fit {
   }
 
   void HandGeometryMesh::fixBoundingSphereMatrices() {
+    /*
     Float4x4 tmp;
     Float4x4 root_inverse;
     Float4x4::inverse(root_inverse, *scene_graph_->mat());
@@ -443,9 +455,10 @@ namespace model_fit {
         Float4x4::multSIMD(*sphere->mat_hierarchy(), *sphere->mesh_node()->mat_hierarchy(), tmp);
       }
     }
+    */
   }
 
-  void HandGeometryMesh::handCoeff2CoeffConvnet(HandModel* hand,
+  void HandGeometryMesh::handCoeff2CoeffConvnet(HandModelCoeff* hand,
     float* coeff_convnet, const Int4& hand_pos_wh, const Float3& uvd_com,
     const Float4x4& proj_mat) {
     // Thumb and finger angles are actually learned as salient points -->
@@ -490,7 +503,7 @@ namespace model_fit {
     }
   }
 
-  void HandGeometryMesh::extractPositionForConvnet(HandModel* hand, 
+  void HandGeometryMesh::extractPositionForConvnet(HandModelCoeff* hand, 
     float* coeff_convnet, const Int4& hand_pos_wh, const Float3& uvd_com,
     const uint32_t b_sphere_index, const uint32_t convnet_U_index,
     const Float4x4& proj_mat) {
@@ -535,6 +548,10 @@ namespace model_fit {
         GeometryManager::g_geom_manager()->scene_graph_root()->addChild(g);
       }
     }
+  }
+
+  const bool HandGeometryMesh::getRendererAttachement() {
+    return renderer_attachment_;
   }
 
   // These next few methods are to avoid the cos and sin double functions in 
@@ -709,9 +726,9 @@ namespace model_fit {
 #endif
   };
 
-  // coeff_min_limit is the minimum coefficient value before the penalty
+  // coeff_min_limit_ is the minimum coefficient value before the penalty
   // function heavily penalizes configurations with this value
-  const float HandGeometryMesh::coeff_min_limit[HAND_NUM_COEFF] = {
+  const float HandGeometryMesh::coeff_min_limit_[HAND_NUM_COEFF] = {
     -std::numeric_limits<float>::infinity(),    // HAND_POS_X
     -std::numeric_limits<float>::infinity(),    // HAND_POS_Y
     -std::numeric_limits<float>::infinity(),    // HAND_POS_Z
@@ -756,9 +773,9 @@ namespace model_fit {
     -0.300f,  // THUMB_TWIST
   };
   
-  // coeff_max_limit is the maximum coefficient value before the penalty
+  // coeff_max_limit_ is the maximum coefficient value before the penalty
   // function heavily penalizes configurations with this value
-  const float HandGeometryMesh::coeff_max_limit[HAND_NUM_COEFF] = {
+  const float HandGeometryMesh::coeff_max_limit_[HAND_NUM_COEFF] = {
     std::numeric_limits<float>::infinity(),    // HAND_POS_X
     std::numeric_limits<float>::infinity(),    // HAND_POS_Y
     std::numeric_limits<float>::infinity(),    // HAND_POS_Z
@@ -805,7 +822,7 @@ namespace model_fit {
   
   // coeff_penalty_scale_ is the exponential scale to use when penalizing coeffs
   // outside the min and max values.
-  const float HandGeometryMesh::coeff_penalty_scale[HAND_NUM_COEFF] = {
+  const float HandGeometryMesh::coeff_penalty_scale_[HAND_NUM_COEFF] = {
     0,    // HAND_POS_X
     0,    // HAND_POS_Y
     0,    // HAND_POS_Z
@@ -852,7 +869,7 @@ namespace model_fit {
 
 // angle_coeffs are boolean values indicating if the coefficient represents
   // a pure angle (0 --> 2pi)
-  const bool HandGeometryMesh::angle_coeffs[HAND_NUM_COEFF] = {
+  const bool HandGeometryMesh::angle_coeffs_[HAND_NUM_COEFF] = {
     // Hand 1
     false,  // HAND_POS_X
     false,  // HAND_POS_Y

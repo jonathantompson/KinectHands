@@ -1,9 +1,10 @@
 //
-//  hand_model.h
+//  hand_model_coeff.h
 //
 //  Created by Jonathan Tompson on 3/1/13.
 //
-//  Slightly different to the version in HandFit --> Just a container really.
+//  Just a container for storing hand model coefficients and loading/saving
+//  them from/to file.
 //
 
 #ifndef KINECT_INTERFACE_HAND_FIT_HAND_MODEL_HEADER
@@ -192,16 +193,17 @@ namespace hand_net {
   std::string HandCoeffToString(const uint32_t coeff);
   const uint8_t labelFromRGB(const float r, const float g, const float b);
 
-  class HandModel {
+  class HandModelCoeff {
   public:
     // Constructor / Destructor
-    HandModel(const HandType hand_type);
-    ~HandModel();
+    HandModelCoeff(const HandType hand_type);
+    ~HandModelCoeff();
 
-    static void loadHandModels(const bool left, const bool right);
-    static void setHandModelVisibility(const bool visibility);
-    static void setHandModelPose(const HandType hand, 
-      const HandImageGenerator* im_gen, const float* convnet_coeff);
+    // TO DO: Move these to another class
+    //static void loadHandModels(const bool left, const bool right);
+    //static void setHandModelVisibility(const bool visibility);
+    //static void setHandModelPose(const HandType hand, 
+    //  const HandImageGenerator* im_gen, const float* convnet_coeff);
 
     // Accessors
     const float getCoeff(const uint32_t index) const;
@@ -220,7 +222,7 @@ namespace hand_net {
     // Model update 4/11 with the Primesense 1.09 (added thumb twist and other stuff)
     bool loadOldModelFromFile(const std::string& dir, const std::string& filename);  
 
-    void copyCoeffFrom(const HandModel* model);
+    void copyCoeffFrom(const HandModelCoeff* model);
     void copyCoeffFrom(const float* coeff, const uint32_t ncoeffs);
 
     static void renormalizeCoeffs(float* coeff);
@@ -235,17 +237,18 @@ namespace hand_net {
     float coeff_[NUM_PARAMETERS];  // The current state
     HandType hand_type_;
 
-    static jtil::renderer::GeometryInstance* lhand;
-    static jtil::renderer::GeometryInstance* rhand;
-    static void setHandModelPose(jtil::renderer::GeometryInstance* hand, 
-      const HandImageGenerator* im_gen, const float* convnet_coeff);
+    // TO DO: Move these to another class
+    //static jtil::renderer::GeometryInstance* lhand;
+    //static jtil::renderer::GeometryInstance* rhand;
+    //static void setHandModelPose(jtil::renderer::GeometryInstance* hand, 
+    //  const HandImageGenerator* im_gen, const float* convnet_coeff);
 
     // Non-copyable, non-assignable.
-    HandModel(HandModel&);
-    HandModel& operator=(const HandModel&);
+    HandModelCoeff(HandModelCoeff&);
+    HandModelCoeff& operator=(const HandModelCoeff&);
   };
 
 };  // namespace hand_net
 };  // namespace kinect_interface
 
-#endif  // KINECT_INTERFACE_HAND_FIT_HAND_MODEL_HEADER
+#endif  // KINECT_INTERFACE_HAND_FIT_HAND_MODEL_COEFF_HEADER

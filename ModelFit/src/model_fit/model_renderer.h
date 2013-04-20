@@ -17,7 +17,6 @@
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/pair.h"
 #include "jtil/data_str/vector.h"
-#include "jtil/data_str/vector_managed.h"
 
 #define DEPTH_ONLY_RESIDUE_FUNC  // Faster but less accurate
 #ifdef DEPTH_ONLY_RESIDUE_FUNC
@@ -53,7 +52,7 @@ namespace model_fit {
   class ModelRenderer {
   public:
     // Constructor / Destructor
-    ModelRenderer(PoseModel** models, const uint32_t num_models);
+    ModelRenderer();
     ~ModelRenderer();
 
     // Call before rendering depth maps:
@@ -65,7 +64,7 @@ namespace model_fit {
 
     // max_num_interpenetration_groups --> if the number of bounding sphere
     // groups is larger than you want to consider (ie, ignore all groups beyond n)
-    void drawDepthMapTiled(jtil::data_str::VectorManaged<float*>& coeff, 
+    void drawDepthMapTiled(jtil::data_str::Vector<float*>& coeff, 
       const uint32_t num_coeff_per_model, PoseModel** models, 
       const uint32_t num_models, const bool calcInterpenetration,
       jtil::data_str::Vector<float>& interpenetration,
@@ -83,13 +82,9 @@ namespace model_fit {
     inline float* depth_tmp() { return depth_tmp_; }
     inline renderer::Camera* camera() { return camera_; }
 
-    void addBSphere(renderer::BoundingSphere* sph);
-
   private:
-    // renderer::Renderer* g_renderer_;  // Not owned here
+    renderer::Renderer* g_renderer_;  // Not owned here
     renderer::Camera* camera_;
-    
-    PoseModel** models_;
     
     renderer::TextureRenderable* depth_texture_;  // 640 x 480
     renderer::TextureRenderable* depth_texture_tiled_;  // 5120 x 3840 (8x8)
@@ -167,8 +162,6 @@ namespace model_fit {
     jtil::math::Float4x4 PVW_mat_;
 
     jtil::data_str::Vector<float> matrix_data_;  // concatenated matrix data
-
-    jtil::data_str::Vector<renderer::BoundingSphere*> bsph_;  // Not owned here
 
     void renderTexturedBonedMesh(renderer::GeometryTexturedBonedMesh* geom, 
       bool color = false);

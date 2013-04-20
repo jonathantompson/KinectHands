@@ -11,7 +11,7 @@
 #include "kinect_interface/open_ni_funcs.h"
 #include "kinect_interface/hand_detector/hand_detector.h"
 #include "kinect_interface/hand_net/hand_image_generator.h"
-#include "kinect_interface/hand_net/hand_model.h"  // for camera parameters
+#include "kinect_interface/hand_net/hand_model_coeff.h"  // for camera parameters
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
 #include "jtil/glew/glew.h"
 #include "jtil/image_util/image_util.h"
@@ -180,10 +180,11 @@ namespace app {
     Renderer::g_renderer()->registerCloseWndCB(App::closeWndCB);
 
    // Set the camera to the kinect camera parameters
-    float fov_deg = HAND_CAMERA_FOV;
-    float view_plane_near = -HAND_CAMERA_VIEW_PLANE_NEAR;
-    float view_plane_far = -HAND_CAMERA_VIEW_PLANE_FAR;
-    SET_SETTING("fov_deg", float, fov_deg);
+    float fov_vert_deg = 
+      360.0f * OpenNIFuncs::fVFOV_primesense_109 / (2.0f * (float)M_PI);
+    float view_plane_near = -HAND_MODEL_CAMERA_VIEW_PLANE_NEAR;
+    float view_plane_far = -HAND_MODEL_CAMERA_VIEW_PLANE_FAR;
+    SET_SETTING("fov_deg", float, fov_vert_deg);
     SET_SETTING("view_plane_near", float, view_plane_near);
     SET_SETTING("view_plane_far", float, view_plane_far);
 
@@ -370,12 +371,6 @@ namespace app {
       GET_SETTING("show_hand_model", bool, show_hand_model);
       Renderer::g_renderer()->ui()->setTextWindowVisibility("kinect_fps_wnd",
         render_kinect_fps);
-      HandModel::setHandModelVisibility(show_hand_model);
-      if (show_hand_model) {
-        HandModel::setHandModelPose(HandType::RIGHT, 
-          hand_net_->image_generator(), 
-          hand_net_->coeff_convnet());
-      }
 
       Renderer::g_renderer()->renderFrame();
 
@@ -479,8 +474,6 @@ namespace app {
     ui->createTextWindow("kinect_fps_wnd", " ");
     jtil::math::Int2 pos(400, 0);
     ui->setTextWindowPos("kinect_fps_wnd", pos);
-
-    HandModel::loadHandModels(false, true);
 
     LightSpotCVSM* light_spot_vsm = new LightSpotCVSM(Renderer::g_renderer());
     light_spot_vsm->dir_world().set(0, 0, -1);

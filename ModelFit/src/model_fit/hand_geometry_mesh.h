@@ -1,4 +1,4 @@
-//#ifndef HAND_FIT_
+//
 //  hand_geometry_mesh.h
 //
 //  Created by Jonathan Tompson on 10/30/12.
@@ -10,7 +10,7 @@
 #define MODEL_FIT_HAND_GEOMETRY_MESH_HEADER
 
 #include "renderer/open_gl_common.h"  // GLfloat
-#include "kinect_interface/hand_net/hand_model.h"
+#include "kinect_interface/hand_net/hand_model_coeff.h"
 #include "model_fit/pose_model.h"
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector.h"
@@ -48,8 +48,7 @@ namespace model_fit {
   class HandGeometryMesh : public PoseModel {
   public:
     // Constructor / Destructor
-    HandGeometryMesh(kinect_interface::hand_net::HandType hand_type, 
-      renderer::Renderer* g_renderer, ModelRenderer* g_hand_renderer);
+    HandGeometryMesh(kinect_interface::hand_net::HandType hand_type);
     virtual ~HandGeometryMesh();
 
     // Call before rendering hand depth maps:
@@ -60,7 +59,7 @@ namespace model_fit {
     
     jtil::data_str::Vector<renderer::BoundingSphere*>& bspheres() { return bspheres_; }
 
-    void handCoeff2CoeffConvnet(kinect_interface::hand_net::HandModel* hand, 
+    void handCoeff2CoeffConvnet(kinect_interface::hand_net::HandModelCoeff* hand, 
       float* coeff_convnet, const jtil::math::Int4& hand_pos_wh, 
       const jtil::math::Float3& uvd_com, const jtil::math::Float4x4& proj_mat);
 
@@ -71,12 +70,19 @@ namespace model_fit {
     // setRendererAttachement - called when ModelFit wants to detach the model
     // from the global renderer
     virtual void setRendererAttachement(const bool renderer_attachment);
+    virtual const bool getRendererAttachement();
 
-    static const float coeff_min_limit[HAND_NUM_COEFF];
-    static const float coeff_max_limit[HAND_NUM_COEFF];
-    static const float coeff_penalty_scale[HAND_NUM_COEFF];
-    static const bool angle_coeffs[HAND_NUM_COEFF];
-    static const float pso_radius_c[HAND_NUM_COEFF];
+    // Since there are a few coeffs that we cannot get from the PSO (since
+    // the PSO doesn't optimize them), we must keep track of some coeff parameters
+    // that are going to be constant accross an optimization run.
+    static void setCurrentStaticHandProperties(const float* coeff);
+
+    virtual const bool* angle_coeffs() { return angle_coeffs_; }
+    virtual const float* pso_radius_c() { return pso_radius_c_; }
+    virtual const float* coeff_min_limit() { return coeff_min_limit_; }
+    virtual const float* coeff_max_limit() { return coeff_max_limit_; }
+    virtual const float* coeff_penalty_scale() { return coeff_penalty_scale_; }
+    virtual const uint32_t max_bsphere_groups() { return 6; }
 
   private:
     // Note all geometry is attached to the global renderer's scene graph and
@@ -104,10 +110,10 @@ namespace model_fit {
     jtil::math::Float4x4 mat_tmp3;
 
     static uint32_t sph_bone_ind_[NUM_SPHERES];
+    static float cur_scale_;
+    static float cur_lengths_[5];
 
-    void createHandGeometry(renderer::Renderer* g_renderer,
-      ModelRenderer* g_hand_renderer, 
-      kinect_interface::hand_net::HandType type);
+    void createHandGeometry(kinect_interface::hand_net::HandType type);
 
     // Copy of the Renderer's stack interface methods, I'd rather duplicate
     // them and keep the renderer seperate.
@@ -119,13 +125,19 @@ namespace model_fit {
     void rotateMatYAxisGM(jtil::math::Float4x4& ret, const float angle);
     void rotateMatXAxisGM(jtil::math::Float4x4& ret, const float angle);
 
-    void extractPositionForConvnet(kinect_interface::hand_net::HandModel* hand, 
+    void extractPositionForConvnet(kinect_interface::hand_net::HandModelCoeff* hand, 
       float* coeff_convnet, const jtil::math::Int4& hand_pos_wh, 
       const jtil::math::Float3& uvd_com, const uint32_t b_sphere_index, 
       const uint32_t convnet_U_index, const jtil::math::Float4x4& proj_mat);
     void calcHandImageUVFromXYZ(jtil::math::Float3& xyz_pos, 
       jtil::math::Float2& uv_pos, const jtil::math::Int4& hand_pos_wh,
       const jtil::math::Float4x4& proj_mat);
+
+    static const float coeff_min_limit_[HAND_NUM_COEFF];
+    static const float coeff_max_limit_[HAND_NUM_COEFF];
+    static const float coeff_penalty_scale_[HAND_NUM_COEFF];
+    static const bool angle_coeffs_[HAND_NUM_COEFF];
+    static float pso_radius_c_[HAND_NUM_COEFF];
 
     // Non-copyable, non-assignable.
     HandGeometryMesh(HandGeometryMesh&);

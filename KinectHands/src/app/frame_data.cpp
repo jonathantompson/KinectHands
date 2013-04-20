@@ -11,7 +11,7 @@
 #include "kinect_interface/open_ni_funcs.h"
 #include "kinect_interface/hand_detector/hand_detector.h"
 #include "kinect_interface/hand_net/hand_image_generator.h"
-#include "kinect_interface/hand_net/hand_model.h"  // for camera parameters
+#include "kinect_interface/hand_net/hand_model_coeff.h"  // for camera parameters
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
 #include "jtil/image_util/image_util.h"
 #include "jtil/fastlz/fastlz.h"

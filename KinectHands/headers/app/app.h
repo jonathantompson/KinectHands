@@ -25,7 +25,7 @@ class DebugBuf;
 
 namespace kinect_interface { class KinectInterface; }
 namespace kinect_interface { namespace hand_net { class HandNet; } }
-namespace kinect_interface { namespace hand_net { class HandModel; } }
+namespace kinect_interface { namespace hand_net { class HandModelCoeff; } }
 
 namespace app {
   struct FrameData;
@@ -84,7 +84,7 @@ namespace app {
 
     // Convolutional Neural Network
     kinect_interface::hand_net::HandNet* hand_net_;
-    kinect_interface::hand_net::HandModel* hands_[2];
+    kinect_interface::hand_net::HandModelCoeff* hands_[2];
 
     jtil::clk::Clk* clk_;
     jtil::math::Int2 mouse_pos_;

@@ -45,9 +45,6 @@ namespace renderer {
     jtil::math::Float3 center_;
     jtil::math::Float3 transformed_rad_vec_;  // Just to avoid putting it on the stack
     jtil::math::Float3 transformed_center_;
-    static const jtil::math::Float3 rad_vec_x_;
-    static const jtil::math::Float3 rad_vec_y_;
-    static const jtil::math::Float3 rad_vec_z_;
     float transformed_radius_;
 
     jtil::math::Float4x4 starting_bone_mat_;

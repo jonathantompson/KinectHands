@@ -9,7 +9,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <iomanip>
-#include "kinect_interface/hand_net/hand_model.h"
+#include "kinect_interface/hand_net/hand_model_coeff.h"
 #include "kinect_interface/hand_net/hand_net.h"  // HandCoeffConvnet
 #include "kinect_interface/hand_net/hand_image_generator.h"
 #include "jtil/jtil.h"
@@ -25,20 +25,17 @@ using namespace jtil::renderer;
 
 namespace kinect_interface {
 namespace hand_net {
-
-  jtil::renderer::GeometryInstance* HandModel::lhand = NULL;
-  jtil::renderer::GeometryInstance* HandModel::rhand = NULL;
  
-  HandModel::HandModel(HandType hand_type) {
+  HandModelCoeff::HandModelCoeff(HandType hand_type) {
     resetPose();
     hand_type_ = hand_type;
   }
 
-  HandModel::~HandModel() {
+  HandModelCoeff::~HandModelCoeff() {
 
   }
 
-  void HandModel::resetPose() {
+  void HandModelCoeff::resetPose() {
     coeff_[HAND_POS_X] = 0.0f;
     coeff_[HAND_POS_Y] = 0.0f;
     coeff_[HAND_POS_Z] = 750.0f;
@@ -90,22 +87,22 @@ namespace hand_net {
     renormalizeCoeffs(coeff_);  // Just in case
   }
     
-  void HandModel::setCoeff(uint32_t index, float coeff_value) {
+  void HandModelCoeff::setCoeff(uint32_t index, float coeff_value) {
     coeff_[index] = coeff_value;
     renormalizeCoeffs(coeff_);
   }
   
-  const float HandModel::getCoeff(const uint32_t index) const {
+  const float HandModelCoeff::getCoeff(const uint32_t index) const {
     return coeff_[index];
   }
 
-  void HandModel::setRotation(const Float3& euler) {
+  void HandModelCoeff::setRotation(const Float3& euler) {
     coeff_[HandCoeff::HAND_ORIENT_X] = euler.m[0];
     coeff_[HandCoeff::HAND_ORIENT_Y] = euler.m[1];
     coeff_[HandCoeff::HAND_ORIENT_Z] = euler.m[2];
   }
 
-  void HandModel::getRotation(Float3& euler) const {
+  void HandModelCoeff::getRotation(Float3& euler) const {
     euler.m[0] = coeff_[HandCoeff::HAND_ORIENT_X];
     euler.m[1] = coeff_[HandCoeff::HAND_ORIENT_Y];
     euler.m[2] = coeff_[HandCoeff::HAND_ORIENT_Z];
@@ -143,16 +140,16 @@ namespace hand_net {
       static_cast<float>(2.0 * M_PI)) - static_cast<float>(M_PI);
   }
 
-  void HandModel::copyCoeffFrom(const HandModel* model) {
+  void HandModelCoeff::copyCoeffFrom(const HandModelCoeff* model) {
     copyCoeffFrom(model->coeff_, NUM_PARAMETERS);
   }
 
-  void HandModel::copyCoeffFrom(const float* coeff, const uint32_t ncoeffs) {
+  void HandModelCoeff::copyCoeffFrom(const float* coeff, const uint32_t ncoeffs) {
     memcpy(coeff_, coeff, sizeof(coeff_[0]) * ncoeffs);
   }
 
   FloatQuat tmp_quat_;
-  void HandModel::renormalizeCoeffs(float* coeff) {
+  void HandModelCoeff::renormalizeCoeffs(float* coeff) {
     // Set all angles 0 --> 2pi
     for (uint32_t i = HAND_ORIENT_X; i < HAND_NUM_COEFF; i++) {
       WrapTwoPI(coeff[i]);
@@ -263,7 +260,7 @@ namespace hand_net {
     return "undefined";
   };
 
-  void HandModel::saveToFile(const std::string& dir, 
+  void HandModelCoeff::saveToFile(const std::string& dir, 
     const std::string& filename) const {
     string full_filename = dir + filename;
     std::ofstream file(full_filename.c_str(), std::ios::out | std::ios::binary);
@@ -276,7 +273,7 @@ namespace hand_net {
     file.close();
   }
 
-  void HandModel::saveBlankFile(const std::string& dir, 
+  void HandModelCoeff::saveBlankFile(const std::string& dir, 
     const std::string& filename) const {
     string full_filename = dir + filename;
     std::ofstream file(full_filename.c_str(), std::ios::out|std::ios::binary);
@@ -297,7 +294,7 @@ namespace hand_net {
     file.close();
   }
 
-  bool HandModel::loadFromFile(const std::string& dir, 
+  bool HandModelCoeff::loadFromFile(const std::string& dir, 
     const std::string& filename) {
     string full_filename = dir + filename;
     std::ifstream file(full_filename.c_str(), std::ios::in | std::ios::binary);
@@ -316,7 +313,7 @@ namespace hand_net {
     return true;
   }
 
-  bool HandModel::loadOldModelFromFile(const std::string& dir, 
+  bool HandModelCoeff::loadOldModelFromFile(const std::string& dir, 
     const std::string& filename) {
 
     string full_filename = dir + filename;
@@ -486,7 +483,7 @@ namespace hand_net {
     }
   }
 
-  void HandModel::printCoeff() const {
+  void HandModelCoeff::printCoeff() const {
     std::cout << "coeff = [";
     std::cout << std::setprecision(6);
     std::cout << std::fixed;
@@ -499,73 +496,74 @@ namespace hand_net {
     std::cout << "]" << std::endl;
   }
 
-  void HandModel::setHandModelVisibility(const bool visibility) {
-    if (lhand) {
-      lhand->setRenderHierarchy(visibility);
-    }
-    if (rhand) {
-      rhand->setRenderHierarchy(visibility);
-    }
-  }
+  // TO DO: Move these to another file
+//  void HandModelCoeff::setHandModelVisibility(const bool visibility) {
+//    if (lhand) {
+//      lhand->setRenderHierarchy(visibility);
+//    }
+//    if (rhand) {
+//      rhand->setRenderHierarchy(visibility);
+//    }
+//  }
+//
+//  void HandModelCoeff::setHandModelPose(const HandType hand, 
+//    const HandImageGenerator* im_gen, const float* convnet_coeff) {
+//    if (hand == LEFT) {
+//#if defined(DEBUG) || defined(_DEBUG)
+//      if (!lhand) {
+//        throw std::wruntime_error("HandModelCoeff::setHandModelPose() - ERROR: "
+//          "lhand not yet initialized!");
+//      }
+//#endif
+//      setHandModelPose(lhand, im_gen, convnet_coeff);
+//    }
+//    if (hand == RIGHT) {
+//#if defined(DEBUG) || defined(_DEBUG)
+//      if (!rhand) {
+//        throw std::wruntime_error("HandModelCoeff::setHandModelPose() - ERROR: "
+//          "rhand not yet initialized!");
+//      }
+//#endif
+//      setHandModelPose(rhand, im_gen, convnet_coeff);
+//    }
+//  }
+//
+//  void HandModelCoeff::setHandModelPose(jtil::renderer::GeometryInstance* hand, 
+//    const HandImageGenerator* im_gen, const float* convnet_coeff) {
+//    const Float3& uvd_com = im_gen->uvd_com();
+//    const Int4& hand_pos_wh = im_gen->hand_pos_wh();
+//
+//    // U and V are between 0 and 1 in the hand image --> Convert back to pixels
+//
+//  }
+//
+//  void HandModelCoeff::loadHandModels(const bool left, const bool right) {
+//#ifndef LOAD_JBIN_FILES
+//    if (left) {
+//      lhand = Renderer::g_renderer()->gm()->loadModelFromFile(
+//        "./models/lib_hand/", "hand_palm_parent_medium_wrist.dae");
+//      Renderer::g_renderer()->gm()->saveModelToJBinFile("./models/lib_hand/", 
+//        "hand_palm_parent_medium_wrist.jbin", lhand);
+//    }
+//    if (right) {
+//      rhand = Renderer::g_renderer()->gm()->loadModelFromFile(
+//        "./models/lib_hand/", "hand_palm_parent_medium_wrist_right.dae");
+//      Renderer::g_renderer()->gm()->saveModelToJBinFile("./models/lib_hand/", 
+//        "hand_palm_parent_medium_wrist_right.jbin", rhand);
+//    }
+//#else
+//    if (left) {
+//      lhand = Renderer::g_renderer()->gm()->loadModelFromJBinFile(
+//        "./models/lib_hand/", "hand_palm_parent_medium_wrist.jbin");
+//    }
+//    if (right) {
+//      rhand = Renderer::g_renderer()->gm()->loadModelFromJBinFile(
+//        "./models/lib_hand/", "hand_palm_parent_medium_wrist_right.jbin");
+//    }
+//#endif
+//  }
 
-  void HandModel::setHandModelPose(const HandType hand, 
-    const HandImageGenerator* im_gen, const float* convnet_coeff) {
-    if (hand == LEFT) {
-#if defined(DEBUG) || defined(_DEBUG)
-      if (!lhand) {
-        throw std::wruntime_error("HandModel::setHandModelPose() - ERROR: "
-          "lhand not yet initialized!");
-      }
-#endif
-      setHandModelPose(lhand, im_gen, convnet_coeff);
-    }
-    if (hand == RIGHT) {
-#if defined(DEBUG) || defined(_DEBUG)
-      if (!rhand) {
-        throw std::wruntime_error("HandModel::setHandModelPose() - ERROR: "
-          "rhand not yet initialized!");
-      }
-#endif
-      setHandModelPose(rhand, im_gen, convnet_coeff);
-    }
-  }
-
-  void HandModel::setHandModelPose(jtil::renderer::GeometryInstance* hand, 
-    const HandImageGenerator* im_gen, const float* convnet_coeff) {
-    const Float3& uvd_com = im_gen->uvd_com();
-    const Int4& hand_pos_wh = im_gen->hand_pos_wh();
-
-    // U and V are between 0 and 1 in the hand image --> Convert back to pixels
-
-  }
-
-  void HandModel::loadHandModels(const bool left, const bool right) {
-#ifndef LOAD_JBIN_FILES
-    if (left) {
-      lhand = Renderer::g_renderer()->gm()->loadModelFromFile(
-        "./models/lib_hand/", "hand_palm_parent_medium_wrist.dae");
-      Renderer::g_renderer()->gm()->saveModelToJBinFile("./models/lib_hand/", 
-        "hand_palm_parent_medium_wrist.jbin", lhand);
-    }
-    if (right) {
-      rhand = Renderer::g_renderer()->gm()->loadModelFromFile(
-        "./models/lib_hand/", "hand_palm_parent_medium_wrist_right.dae");
-      Renderer::g_renderer()->gm()->saveModelToJBinFile("./models/lib_hand/", 
-        "hand_palm_parent_medium_wrist_right.jbin", rhand);
-    }
-#else
-    if (left) {
-      lhand = Renderer::g_renderer()->gm()->loadModelFromJBinFile(
-        "./models/lib_hand/", "hand_palm_parent_medium_wrist.jbin");
-    }
-    if (right) {
-      rhand = Renderer::g_renderer()->gm()->loadModelFromJBinFile(
-        "./models/lib_hand/", "hand_palm_parent_medium_wrist_right.jbin");
-    }
-#endif
-  }
-
-  const float HandModel::sph_off_[NUM_BOUNDING_SPHERES*3] = { 
+  const float HandModelCoeff::sph_off_[NUM_BOUNDING_SPHERES*3] = { 
     -0.1355f, -0.00849999f, -0.2875f,  // F1_KNU3_A,
     0.002f, 0.007f, -0.1205f,  // F1_KNU3_B,
     -0.13f, 0.0305f, -0.1975f,  // F1_KNU2_A,
@@ -610,31 +608,31 @@ namespace hand_net {
   };
 
   // 3/28/2013 --> Reduced sphere radius by 10% and thumb tip by 38.8%
-  const float HandModel::sph_size_[NUM_BOUNDING_SPHERES] = {
+  const float HandModelCoeff::sph_size_[NUM_BOUNDING_SPHERES] = {
     0.086f,   // F1_KNU3_A,  // prev 0.095f - 3/28/2013
     0.108f,   // F1_KNU3_B,  // prev 0.12f - 3/28/2013
     0.126f,   // F1_KNU2_A,  // prev 0.14f - 3/28/2013
     0.144f,   // F1_KNU2_B,  // prev 0.16f - 3/28/2013
-    0.153f,   // F1_KNU1_A,  // prev 0.17f - 3/28/2013
-    0.180f,   // F1_KNU1_B,  // prev 0.20f - 3/28/2013
+    0.103f,   // F1_KNU1_A,  // prev 0.17f - 3/28/2013
+    0.140f,   // F1_KNU1_B,  // prev 0.20f - 3/28/2013
     0.104f,   // F2_KNU3_A,  // prev 0.115f - 3/28/2013
     0.126f,   // F2_KNU3_B,  // prev 0.14f - 3/28/2013
     0.153f,   // F2_KNU2_A,  // prev 0.17f - 3/28/2013
     0.162f,   // F2_KNU2_B,  // prev 0.18f - 3/28/2013
-    0.171f,   // F2_KNU1_A,  // prev 0.19f - 3/28/2013
-    0.180f,   // F2_KNU1_B,  // prev 0.20f - 3/28/2013
+    0.121f,   // F2_KNU1_A,  // prev 0.19f - 3/28/2013
+    0.140f,   // F2_KNU1_B,  // prev 0.20f - 3/28/2013
     0.104f,   // F3_KNU3_A,  // prev 0.115f - 3/28/2013
     0.133f,   // F3_KNU3_B,  // prev 0.17f - 3/28/2013
     0.162f,   // F3_KNU2_A,  // prev 0.18f - 3/28/2013
     0.180f,   // F3_KNU2_B,  // prev 0.20f - 3/28/2013
-    0.180f,   // F3_KNU1_A,  // prev 0.20f - 3/28/2013
-    0.189f,   // F3_KNU1_B,  // prev 0.21f - 3/28/2013
+    0.130f,   // F3_KNU1_A,  // prev 0.20f - 3/28/2013
+    0.149f,   // F3_KNU1_B,  // prev 0.21f - 3/28/2013
     0.095f,   // F4_KNU3_A,  // prev 0.105f - 3/28/2013
     0.120f,   // F4_KNU3_B,  // prev 0.16f - 3/28/2013
     0.153f,   // F4_KNU2_A,  // prev 0.17f - 3/28/2013
     0.162f,   // F4_KNU2_B,  // prev 0.18f - 3/28/2013
-    0.180f,   // F4_KNU1_A,  // prev 0.20f - 3/28/2013
-    0.189f,   // F4_KNU1_B,  // prev 0.21f - 3/28/2013
+    0.130f,   // F4_KNU1_A,  // prev 0.20f - 3/28/2013
+    0.149f,   // F4_KNU1_B,  // prev 0.21f - 3/28/2013
     0.104f,   // TH_KNU3_A,  // prev 0.17f - 3/28/2013  // Tip
     0.171f,   // TH_KNU3_B,  // prev 0.19f - 3/28/2013
     0.180f,   // TH_KNU2_A,  // prev 0.20f - 3/28/2013

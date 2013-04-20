@@ -40,7 +40,12 @@ void exponentialFitParallel(jtil::data_str::Vector<float>& residues,
 bool angle_coeffs[NUM_COEFFS_EXPONTIAL_FIT];
 
 int main(int argc, char *argv[]) { 
+#if defined(_DEBUG) && defined(_WIN32)
+  _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+  // _CrtSetBreakAlloc(184);
+#endif
 
+  // *************************************************************
   PSO* solver = new PSO(NUM_COEFFS_EXPONTIAL_FIT, 17);
   solver->max_iterations = 10000;
   solver->delta_coeff_termination = 1e-8f;
@@ -57,38 +62,33 @@ int main(int argc, char *argv[]) {
     std::cout << ret_coeffs[i] << " ";
   }
 
-  cout << endl << "Expecting:" << endl << "|";
+  cout << endl << "Expecting:" << endl;
   for (uint32_t i = 0; i < NUM_COEFFS_EXPONTIAL_FIT; i++) {
     std::cout << c_answer_exponential_fit[i] << " ";
   }
-  cout << "|" << endl;
+  delete solver;
 
-  // Fake the model fit class so that we can test the core optimizer of the
-  // special case LPRPSO
+  // *************************************************************
   memset(angle_coeffs, 0, sizeof(angle_coeffs[0]) * NUM_COEFFS_EXPONTIAL_FIT);
-  PSOParallel* solver2 = new PSOParallel(NUM_COEFFS_EXPONTIAL_FIT, 64,
-    exponentialFitParallel, &coeffUpdateFunc, angle_coeffs);
+  PSOParallel* solver2 = new PSOParallel(NUM_COEFFS_EXPONTIAL_FIT, 64);
 
   float ret_coeffs2[NUM_COEFFS_EXPONTIAL_FIT];
 
   cout << endl << "RESULTS FOR MODELFIT VERSION" << endl;
 
-  solver2->minimize(ret_coeffs2, c_0_exponential_fit, c_rad);
+  solver2->minimize(ret_coeffs2, c_0_exponential_fit, c_rad, angle_coeffs,
+    exponentialFitParallel, &coeffUpdateFunc);
 
   cout << endl << "Final coeff values:" << endl;
   for (uint32_t i = 0; i < NUM_COEFFS_EXPONTIAL_FIT; i++) {
     std::cout << ret_coeffs2[i] << " ";
   }
 
-  cout << endl << "Expecting:" << endl << "|";
+  cout << endl << "Expecting:" << endl;
   for (uint32_t i = 0; i < NUM_COEFFS_EXPONTIAL_FIT; i++) {
     std::cout << c_answer_exponential_fit[i] << " ";
   }
-  cout << "|" << endl;
-
-#if defined(WIN32) || defined(_WIN32)
-  system("PAUSE");
-#endif
+  delete solver2;
 
   // *************************************************************
   // TRY MINIMIZING THE HW7 Q4a problem
@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
     std::cout << ret_coeffs_bfgs[i] << " ";
   }
   cout << "  --> with func value = ";
-  cout << hw7_4a(ret_coeffs_bfgs) << endl;
+  cout << hw7_4a(ret_coeffs_bfgs) << endl; 
 
   cout << endl << "Expecting:" << endl;
   for (uint32_t i = 0; i < NUM_COEFFS_HW7_4A; i++) {

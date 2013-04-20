@@ -33,7 +33,7 @@ namespace openni { class SensorInfo; }
 namespace kinect_interface {
   namespace hand_detector { class HandDetector; }
   namespace hand_net { class HandNet; }
-  namespace hand_net { class HandModel; }
+  namespace hand_net { class HandModelCoeff; }
   class DepthImagesIO;
 
   typedef enum {

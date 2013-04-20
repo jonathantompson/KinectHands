@@ -14,10 +14,6 @@ using std::endl;
 using jtil::data_str::Pair;
 
 namespace renderer {
-  const jtil::math::Float3 BoundingSphere::rad_vec_x_(1, 0, 0);
-  const jtil::math::Float3 BoundingSphere::rad_vec_y_(0, 1, 0);
-  const jtil::math::Float3 BoundingSphere::rad_vec_z_(0, 0, 1);
-  
   BoundingSphere::BoundingSphere(float rad, Float3& center, Geometry* mesh_node,
     Geometry* hand_root, float* starting_bone_mat) :
   GeometryColoredMesh() {
@@ -55,13 +51,19 @@ namespace renderer {
     Float3::affineTransformPos(transformed_center_, mat_hierarchy_, center_);
 
     // Figure out the transformed radius.  The following WONT work if there is
-    // sqew.
-    Float3::affineTransformVec(transformed_rad_vec_, mat_hierarchy_, rad_vec_x_);
+    // sqew.  It's a bit of a hack...
+    jtil::math::Float3 rad_vec_(radius_, 0, 0);
+    Float3::affineTransformVec(transformed_rad_vec_, mat_hierarchy_, rad_vec_);
+    transformed_radius_ = transformed_rad_vec_.length();
     float rad_sq_ = Float3::dot(transformed_rad_vec_, transformed_rad_vec_);
-    Float3::affineTransformVec(transformed_rad_vec_, mat_hierarchy_, rad_vec_y_);
+
+    rad_vec_.set(0, radius_, 0);
+    Float3::affineTransformVec(transformed_rad_vec_, mat_hierarchy_, rad_vec_);
     rad_sq_ = std::max<float>(Float3::dot(transformed_rad_vec_,
       transformed_rad_vec_), rad_sq_);
-    Float3::affineTransformVec(transformed_rad_vec_, mat_hierarchy_, rad_vec_y_);
+
+    rad_vec_.set(0, 0, radius_);
+    Float3::affineTransformVec(transformed_rad_vec_, mat_hierarchy_, rad_vec_);
     rad_sq_ = std::max<float>(Float3::dot(transformed_rad_vec_,
       transformed_rad_vec_), rad_sq_);
     transformed_radius_ = sqrtf(rad_sq_);
