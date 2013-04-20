@@ -12,7 +12,7 @@
 #include "model_fit/model_renderer.h"
 #include "jtil/data_str/vector_managed.h"
 #include "jtil/string_util/string_util.h"
-#include "math/lprpso_fitting_model_fit.h"
+#include "jtil/math/pso_parallel.h"
 #include "jtil/file_io/file_io.h"
 #include "jtil/file_io/csv_handle_write.h"
 #include "renderer/gl_state.h"
@@ -55,16 +55,19 @@ namespace model_fit {
     prev_coeff_ = new float[coeff_dim_];
     coeff_tmp_ = new float[coeff_dim_];
 
-    lprpso_ = new jtil::math::LPRPSOFittingModelFit(coeff_dim_, PSO_SWARM_SIZE,
+    lprpso_ = new jtil::math::PSOParallel(coeff_dim_, PSO_SWARM_SIZE,
       this, renormalize_coeff_func);
     lprpso_->max_iterations = PSO_MAX_ITERATIONS;
     lprpso_->delta_coeff_termination = PSO_DELTA_C_TERMINATION;
+
+    kinect_depth_masked_ = new int16_t[src_dim];
 
     model_renderer_ = new ModelRenderer(
   }
 
   ModelFit::~ModelFit() {
     SAFE_DELETE(lprpso_);
+    SAFE_DELETE_ARR(kinect_depth_masked_);
   }
 
   void ModelFit::prepareKinectData(int16_t* depth, uint8_t* label) {

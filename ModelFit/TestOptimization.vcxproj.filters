@@ -8,31 +8,19 @@
       <UniqueIdentifier>{d87b7021-a3b4-494b-9854-fe2d997df649}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\math">
-      <UniqueIdentifier>{7ae0e51e-34d4-42ab-835b-ff148a26bbe9}</UniqueIdentifier>
+      <UniqueIdentifier>{ea98ceb4-0f85-45e1-9f57-04da23cebb65}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\math\pso_fitting.cpp">
+    <ClCompile Include="src\math\optimization_test_functions.cpp">
       <Filter>src\math</Filter>
     </ClCompile>
-    <ClCompile Include="src\math\common_fitting.cpp">
-      <Filter>src\math</Filter>
-    </ClCompile>
-    <ClCompile Include="src\main\main_test_pso.cpp">
+    <ClCompile Include="src\main\main_test_optimization.cpp">
       <Filter>src\main</Filter>
-    </ClCompile>
-    <ClCompile Include="src\math\lprpso_fitting_model_fit.cpp">
-      <Filter>src\math</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\math\pso_fitting.h">
-      <Filter>src\math</Filter>
-    </ClInclude>
-    <ClInclude Include="src\math\common_fitting.h">
-      <Filter>src\math</Filter>
-    </ClInclude>
-    <ClInclude Include="src\math\lprpso_fitting_model_fit.h">
+    <ClInclude Include="src\math\optimization_test_functions.h">
       <Filter>src\math</Filter>
     </ClInclude>
   </ItemGroup>

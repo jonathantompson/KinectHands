@@ -16,6 +16,8 @@
 #include "renderer/geometry/geometry_colored_mesh.h"
 #include "renderer/geometry/geometry_colored_boned_mesh.h"
 #include "renderer/geometry/geometry_textured_boned_mesh.h"
+#include "kinect_interface/depth_images_io.h"  // src_dim
+#include "jtil/math/pso_parallel.h"
 #include "renderer/texture/texture.h"
 #include "renderer/texture/texture_renderable.h"
 #include "renderer/shader/shader.h"
@@ -32,8 +34,6 @@
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
 using namespace jtil::data_str;
-using Eigen::Matrix;
-using Eigen::MatrixXf;
 using namespace jtil::math;
 using std::string;
 using std::runtime_error;
@@ -44,9 +44,7 @@ using namespace renderer;
 
 namespace model_fit {
   
-  ModelRenderer::ModelRenderer(renderer::Renderer* g_renderer, 
-    PoseModel** models, const uint32_t num_models) {
-
+  ModelRenderer::ModelRenderer(PoseModel** models, const uint32_t num_models) {
     depth_tmp_ = new float[src_dim * NTILES];
     FloatQuat eye_rot; eye_rot.identity();
     Float3 eye_pos(0, 0, 0);

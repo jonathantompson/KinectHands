@@ -13,7 +13,7 @@
   <ItemGroup>
     <ClCompile Include="src\main\main.cpp" />
     <ClCompile Include="src\math\common_fitting.cpp" />
-    <ClCompile Include="src\math\lprpso_fitting_model_fit.cpp" />
+    <ClCompile Include="src\math\lprpso_tiled.cpp" />
     <ClCompile Include="src\math\optimization_test_functions.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -52,7 +52,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\math\common_fitting.h" />
-    <ClInclude Include="src\math\lprpso_fitting_model_fit.h" />
+    <ClInclude Include="src\math\lprpso_tiled.h" />
     <ClInclude Include="src\math\optimization_test_functions.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>

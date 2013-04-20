@@ -22,11 +22,8 @@
 #ifndef MODEL_FIT_MODEL_FIT_HEADER
 #define MODEL_FIT_MODEL_FIT_HEADER
 
-#include "renderer/open_gl_common.h"  // GLfloat
-#include "kinect_interface/depth_images_io.h"  // src_dim
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector.h"
-#include "jtil/data_str/vector_managed.h"
 #include "math/common_fitting.h"  // For CoeffUpdateFuncPtr
 
 // Particle-Swarm optimizer settings
@@ -42,18 +39,14 @@
 #define DATA_TERM_LAMBDA 0.2f  // default 0.0025f  (higher values = depth difference is more important)
 #define INTERPENETRATION_CONSTANT 0.1f
 
-#define NTILES_X 8  // Don't change these --> If you do you'll have to change 
-#define NTILES_Y 8  //                        the downsample chain
-#define NTILES (NTILES_X * NTILES_Y)
-
-namespace jtil { namespace math { class LPRPSOFittingModelFit; } }
+namespace jtil { namespace math { class PSOParallel; } }
  
 namespace model_fit {
   class ModelRenderer;
 
   class ModelFit {
   public:
-    friend class jtil::math::LPRPSOFittingModelFit;
+    friend class jtil::math::PSOParallel;
     // Constructor / Destructor
     ModelFit(uint32_t num_models, uint32_t coeff_size_per_model,
       float* pso_radius_c, jtil::math::CoeffUpdateFuncPtr renormalize_coeff_func);
@@ -66,7 +59,6 @@ namespace model_fit {
 
     inline void resetFuncEvalCount() { func_eval_count_ = 0; }
     inline uint64_t func_eval_count() { return func_eval_count_; }
- 
 
     // NOTE: THESE SHOULD BE SET BEFORE FITTING 
     static const float* coeff_min_limit;
@@ -88,30 +80,30 @@ namespace model_fit {
     float* coeff_;
     float* prev_coeff_;
 
-    jtil::math::LPRPSOFittingModelFit* lprpso_;
+    jtil::math::PSOParallel* lprpso_;
     float* coeff_tmp_;
     float* cur_obj_func_coeff_;
     float* pso_radius_c_;  // Not owned here
-    int16_t kinect_depth_masked_[src_dim];
+    int16_t* kinect_depth_masked_;
     static const float finger_crossover_penalty_threshold;
 
     // static functions for non-linear fitting
-    static void evalFunc(Eigen::MatrixXf& f_val, const Eigen::MatrixXf& coeff, 
-      const Eigen::MatrixXf& x);
-    static void preturbCoeffs(Eigen::MatrixXf& coeff);
-    static float calculateResidual(const Eigen::MatrixXf& y, 
-      const Eigen::MatrixXf& f_x, const Eigen::MatrixXf& coeff);
+    static void evalFunc(float* f_val, const float* coeff, 
+      const float* x);
+    static void preturbCoeffs(float* coeff);
+    static float calculateResidual(const float* y, 
+      const float* f_x, const float* coeff);
     static void calculateResidualTiled(jtil::data_str::Vector<float>& residues, 
-      jtil::data_str::VectorManaged<Eigen::MatrixXf>& coeffs);
-    static void approxJacobian(Eigen::MatrixXf& jacob, 
-      const Eigen::MatrixXf& coeff);
-    static void approxJacobianTiled(Eigen::MatrixXf& jacob, 
-      const Eigen::MatrixXf& coeff);
-    static float calcPenalty(const Eigen::MatrixXf& coeff);
+      jtil::data_str::Vector<float*>& coeffs);
+    static void approxJacobian(float* jacob, 
+      const float* coeff);
+    static void approxJacobianTiled(float* jacob, 
+      const float* coeff);
+    static float calcPenalty(const float* coeff);
     // Main objective function used for fitting.
-    static float objectiveFunc(const Eigen::MatrixXf& coeff);
+    static float objectiveFunc(const float* coeff);
     static void objectiveFuncTiled(jtil::data_str::Vector<float>& residues, 
-      jtil::data_str::VectorManaged<Eigen::MatrixXf>& coeffs);
+      jtil::data_str::Vector<float*>& coeffs);
 
     void manualFit();
     float evaluateFuncAndCalculateResidual();
