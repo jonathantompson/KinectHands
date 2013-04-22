@@ -26,6 +26,7 @@
 #include "jtil/image_util/image_util.h"
 #include "jtil/string_util/string_util.h"
 #include "jtil/data_str/vector_managed.h"
+#include "jtil/data_str/vector.h"
 #include "jtil/fastlz/fastlz.h"
 #include "jtil/exceptions/wruntime_error.h"
 
@@ -173,10 +174,10 @@ namespace kinect_interface {
   void DepthImagesIO::LoadDepthImagesFromDirectoryForDT(const string& directory, 
     DepthImageData*& train_data, DepthImageData*& test_data,
     const float frac_test_data, const uint32_t file_stride) {
-    VectorManaged<char*> files_in_directory;
+    Vector<Pair<char*, int64_t>> files_in_directory;
     const bool load_processed_images = true;  // don't change this!
     uint32_t num_files = GetFilesInDirectory(files_in_directory, directory,
-      load_processed_images);
+      load_processed_images, 0);
     if (num_files == 0) {
       throw std::runtime_error("ERROR: no files in the database!\n");
     }
@@ -237,7 +238,7 @@ namespace kinect_interface {
       if ((i % 100) == 0 || i == num_files - 1) {
         std::cout << "      loading image " << i + 1 << " of " << num_files << std::endl;
       }
-      std::string cur_filename = string(*files_in_directory.at(i*file_stride));
+      std::string cur_filename = string(files_in_directory.at(i*file_stride)->first);
       if (DT_DOWNSAMPLE > 1) {
         if (load_training_data && i % stride_test_data == 0) {
           test_data->filenames[cur_test_image] = new char[cur_filename.length() + 1];
@@ -287,6 +288,11 @@ namespace kinect_interface {
         throw wruntime_error("LoadDepthImagesFromDirectory - something"
           "went wrong.  The number of training and test images are not"
           " what we expected!");
+    }
+
+    // Clean up the filename
+    for (uint32_t i = 0; i < files_in_directory.size(); i++) {
+      SAFE_DELETE_ARR(files_in_directory[i].first);
     }
   }
 
@@ -529,8 +535,9 @@ namespace kinect_interface {
   }
 
   uint32_t DepthImagesIO::GetFilesInDirectory(
-    jtil::data_str::VectorManaged<char*>& files_in_directory, 
-    const string& directory, const bool load_processed_images) {
+    jtil::data_str::Vector<Pair<char*, int64_t>>& files_in_directory, 
+    const string& directory, const bool load_processed_images, 
+    const uint32_t kinect_num) {
     std::vector<Pair<char*, int64_t>> files;
 #if defined(WIN32) || defined(_WIN32)
     // Prepare string for use with FindFile functions.  First, copy the
@@ -538,18 +545,29 @@ namespace kinect_interface {
     TCHAR szDir[MAX_PATH];
     StringCchCopy(szDir, MAX_PATH, 
       jtil::string_util::ToWideString(directory).c_str());
+    std::wstringstream ss;
     if (!load_processed_images) {
-      StringCchCat(szDir, MAX_PATH, TEXT("\\hands_*.bin"));
+      if (kinect_num ==  0) {
+        ss << L"\\hands_*.bin";
+      } else {
+        ss << L"\\hands" << kinect_num << L"_*.bin";
+      }
     } else {
-      StringCchCat(szDir, MAX_PATH, TEXT("\\processed_hands_*.bin"));
+      if (kinect_num ==  0) {
+        ss << L"\\processed_hands_*.bin";
+      } else {
+        ss << L"\\processed_hands" << kinect_num << L"_*.bin";
+      }
     }
+    StringCchCat(szDir, MAX_PATH, ss.str().c_str());
 
     // Find the first file in the directory.
     WIN32_FIND_DATA ffd;
     HANDLE hFind = FindFirstFile(szDir, &ffd);
     if (hFind == INVALID_HANDLE_VALUE) {
-      throw wruntime_error(string("GetFilesInDirectory error ") +
-        string("getting dir info. Check that directory is not empty!"));
+      cout << "GetFilesInDirectory error getting dir info. Check that ";
+      cout << "directory is not empty!";
+      return 0;
     }
 
     do {
@@ -607,7 +625,11 @@ namespace kinect_interface {
     // Now Parse the filenames and get their unique ID number
     for (uint32_t i = 0; i < files.size(); i++) {
       std::string str = files.at(i).first;
-      size_t i1 = str.find_first_of("0123456789");
+      size_t i0 = 0;
+      if (kinect_num != 0) {
+        i0 = str.find_first_of("0123456789");
+      }
+      size_t i1 = str.find_first_of("0123456789", i0+1);
       if (i1 == string::npos) {
         throw std::wruntime_error("DepthImagesIO::GetFilesInDirectory() - "
           "ERROR: Couldn't parse filename!");
@@ -624,12 +646,14 @@ namespace kinect_interface {
 
     // Now sort the files by their unique id
     // Third argument is an inline lambda expression (comparison function)
+    std::cout << "sorting image filenames by timestamp..." << std::endl;
     std::sort(files.begin(), files.end(), [](Pair<char*, int64_t>& a,
       Pair<char*, int64_t>& b) { return b.second >= a.second; });
 
-    // And finally, copy the sorted files into the output vector
+    // Now copy them into the output array
+    files_in_directory.capacity((uint32_t)files.size());
     for (uint32_t i = 0; i < files.size(); i++) {
-      files_in_directory.pushBack(files.at(i).first);
+      files_in_directory.pushBack(files.at(i));
     }
 
     return files_in_directory.size();

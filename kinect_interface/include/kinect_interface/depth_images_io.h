@@ -11,7 +11,7 @@
 #include <iostream>
 #include <fstream>
 #include "jtil/math/math_types.h"
-#include "jtil/data_str/vector_managed.h"
+#include "jtil/data_str/vector.h"
 #include "jtil/data_str/pair.h"
 #include "kinect_interface/depth_image_data.h"
 
@@ -54,8 +54,9 @@ namespace kinect_interface {
     // - load_processed_images = true --> hands_*.bin
     // - load_processed_images = false --> processed_hands_*.bin
     uint32_t GetFilesInDirectory(
-      jtil::data_str::VectorManaged<char*>& files_names, 
-      const std::string& directory, const bool load_processed_images);
+      jtil::data_str::Vector<jtil::data_str::Pair<char*, int64_t>>& files_names, 
+      const std::string& directory, const bool load_processed_images,
+      const uint32_t kinect_num);
 
     static void releaseImages(DepthImageData*& data);
 

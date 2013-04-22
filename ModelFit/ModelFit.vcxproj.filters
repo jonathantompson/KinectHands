@@ -142,6 +142,9 @@
     <ClCompile Include="src\model_fit\pose_model.cpp">
       <Filter>Source Files\src\model_fit</Filter>
     </ClCompile>
+    <ClCompile Include="src\model_fit\calibrate_geometry.cpp">
+      <Filter>Source Files\src\model_fit</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\renderer\colors.h">
@@ -247,6 +250,9 @@
       <Filter>Source Files\src\model_fit</Filter>
     </ClInclude>
     <ClInclude Include="src\model_fit\model_renderer.h">
+      <Filter>Source Files\src\model_fit</Filter>
+    </ClInclude>
+    <ClInclude Include="src\model_fit\calibrate_geometry.h">
       <Filter>Source Files\src\model_fit</Filter>
     </ClInclude>
   </ItemGroup>

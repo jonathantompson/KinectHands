@@ -30,6 +30,7 @@
 #include "renderer/gl_state.h"
 #include "windowing/window.h"
 #include "windowing/window_settings.h"
+#include "model_fit/calibrate_geometry.h"
 #include "model_fit/hand_geometry_mesh.h"
 #include "model_fit/model_renderer.h"
 #include "model_fit/model_fit.h"
@@ -43,10 +44,15 @@
 #include "jtil/file_io/file_io.h"
 #include "jtil/string_util/string_util.h"
 #include "jtil/threading/thread_pool.h"
+#include "jtil/math/bfgs.h"
 
 #if defined(WIN32) || defined(_WIN32)
   #define snprintf _snprintf_s
 #endif
+#define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
+#define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
+
+#define CALIBRATION_RUN
 
 // KINECT DATA
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Fit
@@ -62,6 +68,8 @@
 #define IM_DIR_BASE string("data/hand_depth_data/")
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
+
+#define MAX_KINECTS 2
 
 #if defined(__APPLE__)
   #define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
@@ -81,6 +89,7 @@ const bool fit_right = true;
 using namespace std;
 using namespace jtil::math;
 using namespace jtil::data_str;
+using namespace jtil::file_io;
 using namespace model_fit;
 using namespace renderer;
 using namespace windowing;
@@ -108,31 +117,42 @@ bool camera_rotate = false;
 bool scale_coeff = false;
 bool running = false;
 
-// Hand model
-HandModelCoeff** l_hand_coeffs = NULL;  // Left Hand coefficients
-HandModelCoeff** r_hand_coeffs = NULL;  // Right hand coeffs
+// model
+
 PoseModel** models;
-const uint32_t num_models = (fit_left ? 1 : 0) + (fit_right ? 1 : 0);
+#if defined(CALIBRATION_RUN)
+  const uint32_t num_models = 1;
+  float** coeffs[MAX_KINECTS] = {NULL, NULL};
+  const uint32_t num_coeff = CalibrateCoeff::NUM_PARAMETERS;
+  const uint32_t num_coeff_fit = CAL_GEOM_NUM_COEFF;
+  int kinect_to_modify = 0;
+#else
+  HandModelCoeff** l_hand_coeffs = NULL;  // Left Hand coefficients
+  HandModelCoeff** r_hand_coeffs = NULL;  // Right hand coeffs
+  const uint32_t num_models = (fit_left ? 1 : 0) + (fit_right ? 1 : 0);
+  int hand_to_modify = fit_left ? 0 : 1;
+  const uint32_t num_coeff = HandCoeff::NUM_PARAMETERS;
+  const uint32_t num_coeff_fit = HAND_NUM_COEFF;
+#endif
 uint32_t cur_coeff = 0;
 ModelFit* fit = NULL;
 bool continuous_fit = false;  // fit frames continuously each frame
 bool continuous_play = false;  // Play back recorded frames
-int hand_to_modify = fit_left ? 0 : 1;
-bool render_hand = true;
+bool render_models = true;
 uint32_t coeff_src = 0;
 float** coeff = NULL;  // Temp space only used when performing fit
 float** prev_coeff = NULL; 
 
 // Kinect Image data 
 DepthImagesIO* image_io = NULL;
-jtil::data_str::VectorManaged<char*> im_files;
-float cur_xyz_data[src_dim*3];
-float cur_uvd_data[src_dim*3];
-int16_t cur_depth_data[src_dim*3];
-uint8_t cur_label_data[src_dim];
-uint8_t cur_image_rgb[src_dim*3];
+Vector<Pair<char*, int64_t>> im_files[MAX_KINECTS];  
+float cur_xyz_data[MAX_KINECTS][src_dim*3];
+float cur_uvd_data[MAX_KINECTS][src_dim*3];
+int16_t cur_depth_data[MAX_KINECTS][src_dim*3];
+uint8_t cur_label_data[MAX_KINECTS][src_dim];
+uint8_t cur_image_rgb[MAX_KINECTS][src_dim*3];
 uint32_t cur_image = 0;
-GeometryColoredPoints* geometry_points= NULL;
+GeometryColoredPoints* geometry_points[MAX_KINECTS];
 float temp_xyz[3 * src_dim];
 float temp_rgb[3 * src_dim];
 bool render_depth = true;
@@ -142,97 +162,151 @@ OpenNIFuncs openni_funcs;
 void quit() {
   for (uint32_t i = 0; i < num_models; i++) {
     models[i]->setRendererAttachement(true);  // Make sure Geometry manager deletes models
-    delete models[i];
+    SAFE_DELETE(models[i]);
   }
-  delete[] models;
-
-  delete[] coeff;
-  delete[] prev_coeff;
-  delete image_io;
-  delete clk; 
+  SAFE_DELETE_ARR(models);
+  SAFE_DELETE_ARR(coeff);
+  SAFE_DELETE_ARR(prev_coeff);
+  SAFE_DELETE(image_io);
+  SAFE_DELETE(clk);
+#if defined(CALIBRATION_RUN)
+  for (uint32_t i = 0; i < MAX_KINECTS; i++) {
+    if (coeffs[i]) {
+      for (uint32_t j = 0; j < im_files[0].size(); j++) {
+        SAFE_DELETE_ARR(coeffs[i][j]);
+      }
+    }
+  }
+#else
   if (l_hand_coeffs) {
-    for (uint32_t i = 0; i < im_files.size(); i++) { 
+    for (uint32_t i = 0; i < im_files[0].size(); i++) { 
       delete l_hand_coeffs[i];
     }
     delete[] l_hand_coeffs;
   }
   if (r_hand_coeffs) {
-    for (uint32_t i = 0; i < im_files.size(); i++) {
+    for (uint32_t i = 0; i < im_files[0].size(); i++) {
       delete r_hand_coeffs[i];
     }
     delete[] r_hand_coeffs;
   }
-  delete render;
-  delete geometry_points;
-  delete fit;
+#endif
+  SAFE_DELETE(render);
+  SAFE_DELETE(fit);
+  for (uint32_t k = 0; k < MAX_KINECTS; k++) {
+    SAFE_DELETE(geometry_points[k]);
+    for (uint32_t i = 0; i < im_files[k].size(); i++) {
+      SAFE_DELETE_ARR(im_files[k][i].first);
+    }
+  }
   Texture::shutdownTextureSystem();
   GLState::shutdownGLState();
-  delete wnd;
+  SAFE_DELETE(wnd);
   Window::killWindowSystem();
   exit(0);
 }
 
 void loadCurrentImage(bool print_to_screen = true) {
-  char* file = im_files[cur_image];
+  char* file = im_files[0][cur_image].first;
   string full_filename = IM_DIR + string(file);
   if (print_to_screen) {
     std::cout << "loading image: " << full_filename << std::endl;
     std::cout << "cur_image = " << cur_image << " of ";
-    std::cout << im_files.size() << std::endl;
+    std::cout << im_files[0].size() << std::endl;
   }
 
   image_io->LoadCompressedImageWithRedHands(full_filename, 
-    cur_depth_data, cur_label_data, cur_image_rgb, NULL);
+    cur_depth_data[0], cur_label_data[0], cur_image_rgb[0], NULL);
 
 #ifdef KINECT_DATA
-  DepthImagesIO::convertSingleImageToXYZ(cur_xyz_data, cur_depth_data);
+  DepthImagesIO::convertSingleImageToXYZ(cur_xyz_data[0], cur_depth_data[0]);
 #else
-  openni_funcs.ConvertDepthImageToProjective((uint16_t*)cur_depth_data, 
-    cur_uvd_data);
-  openni_funcs.convertDepthToWorldCoordinates(cur_uvd_data, cur_xyz_data, 
+  openni_funcs.ConvertDepthImageToProjective((uint16_t*)cur_depth_data[0], 
+    cur_uvd_data[0]);
+  openni_funcs.convertDepthToWorldCoordinates(cur_uvd_data[0], cur_xyz_data[0], 
     src_dim);
 #endif
+
+  // Now load the other Kinect data
+  for (uint32_t k = 1; k < MAX_KINECTS; k++) {
+    if (im_files[k].size() == 0) {
+      for (uint32_t j = 0; j < src_dim; j++) {
+        cur_depth_data[k][j] = GDT_MAX_DIST;
+      }
+      memset(cur_label_data[k], 0, sizeof(cur_label_data[k][0]) * src_dim); 
+      memset(cur_image_rgb[k], 0, sizeof(cur_image_rgb[k][0]) * src_dim * 3); 
+    } else {
+      // find the correct file (with smallest timestamp difference) - O(n)
+      int64_t src_timestamp = im_files[0][cur_image].second;
+      uint32_t i_match = 0;
+      int64_t min_delta_t = std::abs(src_timestamp - im_files[k][0].second);
+      for (uint32_t i = 1; i < im_files[k].size(); i++) {
+        int64_t delta_t = std::abs(src_timestamp - im_files[k][i].second);
+        if (delta_t < min_delta_t) {
+          min_delta_t = delta_t;
+          i_match = i;
+        }
+      }
+      // Now we've found the correct file, load it
+      file = im_files[k][i_match].first;
+      full_filename = IM_DIR + string(file);
+      std::cout << "loading additional image: " << full_filename << std::endl;
+      image_io->LoadCompressedImageWithRedHands(full_filename, 
+        cur_depth_data[k], cur_label_data[k], cur_image_rgb[k], NULL);
+#ifdef KINECT_DATA
+      DepthImagesIO::convertSingleImageToXYZ(cur_xyz_data[k], cur_depth_data[k]);
+#else
+      openni_funcs.ConvertDepthImageToProjective((uint16_t*)cur_depth_data[k], 
+        cur_uvd_data[k]);
+      openni_funcs.convertDepthToWorldCoordinates(cur_uvd_data[k], cur_xyz_data[k], 
+        src_dim);
+#endif
+    }
+  }
 }
 
 void InitXYZPointsForRendering() {
-  if (geometry_points == NULL) {
-    geometry_points = new GeometryColoredPoints;
-  } else {
-    geometry_points->unsyncVAO();
-  }
-  jtil::data_str::Vector<jtil::math::Float3>* vert = geometry_points->vertices();
-  jtil::data_str::Vector<jtil::math::Float3>* cols = geometry_points->colors();
-
-  if (vert->capacity() < src_dim) {
-    vert->capacity(src_dim);
-  }
-  vert->resize(src_dim);
-  if (cols->capacity() < src_dim) {
-    cols->capacity(src_dim);
-  }
-  cols->resize(src_dim);
-
-  float cur_col[3];
-  for (uint32_t i = 0; i < src_dim; i++) {
-    vert->at(i)->set(&cur_xyz_data[i*3]);
-    if (cur_label_data[i] == 0) {
-      cur_col[0] = 1.0f * static_cast<float>(cur_image_rgb[i*3]) / 255.0f;
-      cur_col[1] = 1.0f * static_cast<float>(cur_image_rgb[i*3+1]) / 255.0f;
-      cur_col[2] = 1.0f * static_cast<float>(cur_image_rgb[i*3+2]) / 255.0f;
-    } else {
-      cur_col[0] = std::max<float>(0.0f, (float)(cur_image_rgb[i*3]) / 255.0f - 0.1f);
-      cur_col[1] = std::min<float>((float)(cur_image_rgb[i*3+1]) / 255.0f + 0.4f, 255.0f);
-      cur_col[2] = std::max<float>(0.0f, (float)(cur_image_rgb[i*3+2]) / 255.0f - 0.1f);
+  
+  for (uint32_t k = 0; k < MAX_KINECTS; k++) {
+    if (geometry_points[k]->synced()) {
+      geometry_points[k]->unsyncVAO();
     }
-    cols->at(i)->set(cur_col);
+    jtil::data_str::Vector<jtil::math::Float3>* vert = geometry_points[k]->vertices();
+    jtil::data_str::Vector<jtil::math::Float3>* cols = geometry_points[k]->colors();
+
+    float cur_col[3];
+    for (uint32_t i = 0; i < src_dim; i++) {
+      vert->at(i)->set(&cur_xyz_data[k][i*3]);
+      if (cur_label_data[k][i] == 0) {
+        cur_col[0] = 1.0f * static_cast<float>(cur_image_rgb[k][i*3]) / 255.0f;
+        cur_col[1] = 1.0f * static_cast<float>(cur_image_rgb[k][i*3+1]) / 255.0f;
+        cur_col[2] = 1.0f * static_cast<float>(cur_image_rgb[k][i*3+2]) / 255.0f;
+      } else {
+        cur_col[0] = std::max<float>(0.0f, (float)(cur_image_rgb[k][i*3]) / 255.0f - 0.1f);
+        cur_col[1] = std::min<float>((float)(cur_image_rgb[k][i*3+1]) / 255.0f + 0.4f, 255.0f);
+        cur_col[2] = std::max<float>(0.0f, (float)(cur_image_rgb[k][i*3+2]) / 255.0f - 0.1f);
+      }
+      cols->at(i)->set(cur_col);
+    }
+    geometry_points[k]->syncVAO();
   }
-  geometry_points->syncVAO();
 }
 
 
-void saveCurrentHandCoeffs() {
-  string r_hand_file = string("coeffr_") + im_files[cur_image];
-  string l_hand_file = string("coeffl_") + im_files[cur_image];
+void saveCurrentCoeffs() {
+#if defined(CALIBRATION_RUN)
+  // Save both kinect coeffs in the same file
+  string filename = IM_DIR + string("calb_coeff_") + im_files[0][cur_image].first;
+  float calb_data[MAX_KINECTS * num_coeff];
+  for (uint32_t i = 0; i < MAX_KINECTS; i++) {
+    memcpy(&calb_data[i * num_coeff], coeffs[i][cur_image], 
+      sizeof(*calb_data) * num_coeff);
+  }
+  SaveArrayToFile<float>(calb_data, MAX_KINECTS * num_coeff, filename);
+  cout << "hand data saved to file" << endl;
+#else
+  string r_hand_file = string("coeffr_") + im_files[0][cur_image].first;
+  string l_hand_file = string("coeffl_") + im_files[0][cur_image].first;
   if (fit_right) {
     r_hand_coeffs[cur_image]->saveToFile(IM_DIR, r_hand_file);
   } else {
@@ -244,6 +318,7 @@ void saveCurrentHandCoeffs() {
     l_hand_coeffs[cur_image]->saveBlankFile(IM_DIR, l_hand_file);
   }
   cout << "hand data saved to file" << endl;
+#endif
 }
 
 void MouseButtonCB(int button, int action) {
@@ -283,6 +358,17 @@ void MousePosCB(int x, int y) {
     if (/*cur_coeff >= 0 &&*/ cur_coeff <= 2) {
       theta_y *= 50.0f;
     }
+#if defined(CALIBRATION_RUN)
+    if (cur_coeff != CALIB_SCALE) {
+      coeffs[kinect_to_modify][cur_image][cur_coeff] -= theta_y;
+      cout << "cur_coeff " << cur_coeff;
+      cout << " --> " << coeffs[kinect_to_modify][cur_image][cur_coeff] << endl;
+    } else {
+      for (uint32_t i = 0; i < MAX_KINECTS; i++) {
+        coeffs[i][cur_image][cur_coeff] -= theta_y;
+      }
+    }
+#else
     float coeff_val;
     if (cur_coeff == HandCoeff::SCALE) {
       // We must set both scales at once
@@ -298,6 +384,7 @@ void MousePosCB(int x, int y) {
     }
     cout << "cur_coeff " << kinect_interface::hand_net::HandCoeffToString(cur_coeff);
     cout << " --> " << coeff_val - theta_y << endl;
+#endif
   }
 }
 
@@ -412,6 +499,7 @@ void KeyboardCB(int key, int action) {
       if (action == RELEASED && !shift_down) {
         render_output = key - static_cast<int>('1') + 1;
       }
+#ifndef CALIBRATION_RUN
       if (action == RELEASED && shift_down && cur_image > 0) {
         switch (key) {
           case static_cast<int>('5'):
@@ -479,12 +567,13 @@ void KeyboardCB(int key, int action) {
             }
             break;
         }
-        saveCurrentHandCoeffs();
+        saveCurrentCoeffs();
       }
+#endif
       break;
     case KEY_KP_ADD:
       if (action == RELEASED) {
-        cur_image = cur_image < static_cast<uint32_t>(im_files.size())-1 ? 
+        cur_image = cur_image < static_cast<uint32_t>(im_files[0].size())-1 ? 
           cur_image+1 : cur_image;
         loadCurrentImage();
         InitXYZPointsForRendering();
@@ -500,8 +589,8 @@ void KeyboardCB(int key, int action) {
     case static_cast<int>('0'):
       if (action == RELEASED) {
         cur_image = cur_image + 100;
-        if (cur_image >= im_files.size()) {
-          cur_image = im_files.size()-1;
+        if (cur_image >= im_files[0].size()) {
+          cur_image = im_files[0].size()-1;
         }
         loadCurrentImage();
         InitXYZPointsForRendering();
@@ -517,7 +606,10 @@ void KeyboardCB(int key, int action) {
     case static_cast<int>('}'):
     case static_cast<int>(']'):
       if (action == RELEASED) {
-        cur_coeff = (cur_coeff + 1) % HandCoeff::NUM_PARAMETERS;
+        cur_coeff = (cur_coeff + 1) % num_coeff;
+#ifdef CALIBRATION_RUN
+        cout << "cur_coeff = " << cur_coeff << std::endl;
+#else
         cout << "cur_coeff = " << kinect_interface::hand_net::HandCoeffToString(cur_coeff); 
         if (hand_to_modify == 0) {
           cout << " = " << l_hand_coeffs[cur_image]->getCoeff(cur_coeff);
@@ -525,12 +617,16 @@ void KeyboardCB(int key, int action) {
           cout << " = " << r_hand_coeffs[cur_image]->getCoeff(cur_coeff);
         }
         cout << std::endl;
+#endif
       }
       break;
     case static_cast<int>('{'):
     case static_cast<int>('['):
       if (action == RELEASED) {
-        cur_coeff = cur_coeff != 0 ? (cur_coeff - 1) : HandCoeff::NUM_PARAMETERS - 1;
+        cur_coeff = cur_coeff != 0 ? (cur_coeff - 1) : num_coeff - 1;
+#ifdef CALIBRATION_RUN
+        cout << "cur_coeff = " << cur_coeff << std::endl;
+#else
         cout << "cur_coeff = " << kinect_interface::hand_net::HandCoeffToString(cur_coeff); 
         if (hand_to_modify == 0) {
           cout << " = " << l_hand_coeffs[cur_image]->getCoeff(cur_coeff);
@@ -538,6 +634,7 @@ void KeyboardCB(int key, int action) {
           cout << " = " << r_hand_coeffs[cur_image]->getCoeff(cur_coeff);
         }
         cout << std::endl;
+#endif
       }
       break;
     case static_cast<int>('f'):
@@ -576,17 +673,40 @@ void KeyboardCB(int key, int action) {
       if (action == RELEASED) {
         playback_step = playback_step + 1;
         playback_step = playback_step == 11 ? 1 : playback_step;
-        std::cout << "playback_step = " << playback_step << std::endl;
+        cout << "playback_step = " << playback_step << endl;
+      }
+      break;
+    case static_cast<int>('c'):
+    case static_cast<int>('C'): 
+      if (action == RELEASED) {
+#ifdef CALIBRATION_RUN
+        // Use BFGS to find an average affine transformation
+        BFGS* bfgs = new BFGS(7);
+        Float3* v1 = new Float3[im_files[0].size()];
+        //float delta_coeff[num_coeff];
+        //for (uint32_t i = 0; i < im_files[0].size(); i++) {
+        //  Float3 trans
+        //}
+      /*  playback_step = playback_step + 1;
+        playback_step = playback_step == 11 ? 1 : playback_step;
+        cout << "playback_step = " << playback_step << endl;*/
+        delete[] v1;
+        delete bfgs;
+#endif
       }
       break;
     case static_cast<int>('h'):
     case static_cast<int>('H'):
       if (action == RELEASED) {
-        saveCurrentHandCoeffs();
+        saveCurrentCoeffs();
       }
       break;
     case KEY_SPACE:
       if (action == RELEASED) {
+#ifdef CALIBRATION_RUN
+        kinect_to_modify = (kinect_to_modify + 1) % MAX_KINECTS;
+        cout << "kinect_to_modify = " << kinect_to_modify << endl;
+#else
         if (fit_left && fit_right) {
           hand_to_modify = (hand_to_modify + 1) % 2;
         } else if (fit_left) {
@@ -599,14 +719,15 @@ void KeyboardCB(int key, int action) {
         } else {
           cout << "Adjusting RIGHT HAND" << endl;
         }
+#endif
       }
       break;
     case static_cast<int>('Y'):
     case static_cast<int>('y'):
       if (action == RELEASED) {
-        render_hand = !render_hand;
+        render_models = !render_models;
         for (uint32_t i = 0; i < num_models; i++) {
-          models[i]->setRendererAttachement(render_hand);
+          models[i]->setRendererAttachement(render_models);
         }
       }
       break;
@@ -622,6 +743,7 @@ void KeyboardCB(int key, int action) {
         fitFrame(false, true);
       }
       break;
+#ifndef CALIBRATION_RUN
     case static_cast<int>('k'):
     case static_cast<int>('K'):
 #if defined(WIN32) || defined(_WIN32)
@@ -631,15 +753,15 @@ void KeyboardCB(int key, int action) {
         }
 
         for (int i = 0; i < repeat; i++) {
-          full_im_filename = IM_DIR + string(im_files[cur_image]);
+          full_im_filename = IM_DIR + string(im_files[0][cur_image].first);
           new_full_im_filename = IM_DIR + string("deleted_") + 
-            string(im_files[cur_image]);
-          r_coeff_file = IM_DIR + string("coeffr_") + im_files[cur_image];
+            string(im_files[0][cur_image].first);
+          r_coeff_file = IM_DIR + string("coeffr_") + im_files[0][cur_image].first;
           new_r_coeff_file = IM_DIR + string("deleted_") + string("coeffr_") + 
-            im_files[cur_image];
-          l_coeff_file = IM_DIR + string("coeffl_") + im_files[cur_image];
+            im_files[0][cur_image].first;
+          l_coeff_file = IM_DIR + string("coeffl_") + im_files[0][cur_image].first;
           new_l_coeff_file = IM_DIR + string("deleted_") + string("coeffl_") + 
-            im_files[cur_image];
+            im_files[0][cur_image].first;
 
           if (delete_confirmed == 1) {
             if(!MoveFile(full_im_filename.c_str(), new_full_im_filename.c_str()) 
@@ -658,11 +780,12 @@ void KeyboardCB(int key, int action) {
               cout << endl;
               delete r_hand_coeffs[cur_image];
               delete l_hand_coeffs[cur_image];
-              for (uint32_t i = cur_image; i < im_files.size() - 1; i++) {
+              for (uint32_t i = cur_image; i < im_files[0].size() - 1; i++) {
                 r_hand_coeffs[i] = r_hand_coeffs[i+1];
                 l_hand_coeffs[i] = l_hand_coeffs[i+1];
               }
-              im_files.deleteAtAndShift((uint32_t)cur_image);
+              SAFE_DELETE(im_files[0][cur_image].first); 
+              im_files[0].deleteAtAndShift((uint32_t)cur_image);
               loadCurrentImage();
               InitXYZPointsForRendering();
             }
@@ -687,6 +810,7 @@ void KeyboardCB(int key, int action) {
       cout << "Move function not implemented for Mac OS X" << endl;
 #endif
       break;
+#endif
   }
 }
 
@@ -696,6 +820,20 @@ jtil::math::Float4x4 mat_tmp;
 WindowSettings settings;
 
 void fitFrame(bool seed_with_last_frame, bool query_only) {
+#ifdef CALIBRATION_RUN
+  if (seed_with_last_frame && cur_image > 0) {
+    for (uint32_t k = 0; k < MAX_KINECTS; k++) {
+      memcpy(coeffs[k][cur_image], coeffs[k][cur_image-1], 
+        sizeof(coeffs[k][cur_image][0]) * num_coeff);
+    }
+  }
+  // Just fit each kinect independantly
+  CalibrateGeometry::setCurrentStaticHandProperties(coeffs[0][cur_image]);
+  for (uint32_t k = 0; k < MAX_KINECTS; k++) {
+    fit->fitModel(cur_depth_data[k], cur_label_data[k], models, 
+      &coeffs[k][cur_image], NULL, CalibrateGeometry::renormalizeCoeffs);
+  }
+#else
   if (seed_with_last_frame && cur_image > 0) {
     cout << "Using the previous frame as the optimization seed." << endl;
     if (fit_right) {
@@ -727,16 +865,17 @@ void fitFrame(bool seed_with_last_frame, bool query_only) {
   HandGeometryMesh::setCurrentStaticHandProperties(coeff[0]);
 
   if (query_only) {
-    fit->queryObjFunc(cur_depth_data, cur_label_data, models, coeff);
+    fit->queryObjFunc(cur_depth_data[0], cur_label_data[0], models, coeff);
   } else {
     if (cur_image > 0) {
-      fit->fitModel(cur_depth_data, cur_label_data, models, coeff, 
+      fit->fitModel(cur_depth_data[0], cur_label_data[0], models, coeff, 
         prev_coeff, HandModelCoeff::renormalizeCoeffs);
     } else {
-      fit->fitModel(cur_depth_data, cur_label_data, models, coeff, 
+      fit->fitModel(cur_depth_data[0], cur_label_data[0], models, coeff, 
         NULL, HandModelCoeff::renormalizeCoeffs);
     }
   }
+#endif
 }
 
 void renderFrame(float dt) {
@@ -761,6 +900,10 @@ void renderFrame(float dt) {
     render->camera()->moveCamera(&delta_pos);
   }
 
+#ifdef CALIBRATION_RUN
+  CalibrateGeometry::setCurrentStaticHandProperties(coeffs[0][cur_image]);
+  models[0]->updateMatrices(coeffs[kinect_to_modify][cur_image]);
+#else
   float* cur_coeff;
   if (fit_right && fit_left) {
     cur_coeff = l_hand_coeffs[cur_image]->coeff();
@@ -775,6 +918,7 @@ void renderFrame(float dt) {
     models[0]->updateMatrices(l_hand_coeffs[cur_image]->coeff());
   }
   HandGeometryMesh::setCurrentStaticHandProperties(cur_coeff);
+#endif
 
   // Now render the final frame
   Float4x4 identity;
@@ -783,24 +927,32 @@ void renderFrame(float dt) {
   case 1:
     render->renderFrame(dt);
     if (render_depth) {
-      render->renderColoredPointCloud(geometry_points, &identity,
+#ifdef CALIBRATION_RUN
+      render->renderColoredPointCloud(geometry_points[kinect_to_modify], &identity,
         4.0f * static_cast<float>(settings.width) / 4.0f);
-        // 4.0f * static_cast<float>(settings.width) / 4.0f);
+#else
+      render->renderColoredPointCloud(geometry_points[0], &identity,
+        4.0f * static_cast<float>(settings.width) / 4.0f);
+#endif
     }
     break;
   case 2:
-    float coeff[num_models * HAND_NUM_COEFF];
+    float coeff[num_models * num_coeff_fit];
+#ifdef CALIBRATION_RUN
+    memcpy(coeff, coeffs[kinect_to_modify][cur_image], sizeof(coeff[0]) * num_coeff_fit);
+#else
     if (fit_left && !fit_right) {
-      memcpy(coeff, l_hand_coeffs[cur_image]->coeff(), sizeof(coeff[0])*HAND_NUM_COEFF);
+      memcpy(coeff, l_hand_coeffs[cur_image]->coeff(), sizeof(coeff[0])*num_coeff_fit);
     } else if (!fit_left && fit_right) {
-      memcpy(coeff, r_hand_coeffs[cur_image]->coeff(), sizeof(coeff[0])*HAND_NUM_COEFF);
+      memcpy(coeff, r_hand_coeffs[cur_image]->coeff(), sizeof(coeff[0])*num_coeff_fit);
     } else {
-      memcpy(coeff, l_hand_coeffs[cur_image]->coeff(), sizeof(coeff[0])*HAND_NUM_COEFF);
-      memcpy(&coeff[HAND_NUM_COEFF], r_hand_coeffs[cur_image]->coeff(), 
-        sizeof(coeff[0])*HAND_NUM_COEFF);
+      memcpy(coeff, l_hand_coeffs[cur_image]->coeff(), sizeof(coeff[0])*num_coeff_fit);
+      memcpy(&coeff[num_coeff_fit], r_hand_coeffs[cur_image]->coeff(), 
+        sizeof(coeff[0])*num_coeff_fit);
     }
+#endif
 
-    fit->model_renderer()->drawDepthMap(coeff, HAND_NUM_COEFF, models,
+    fit->model_renderer()->drawDepthMap(coeff, num_coeff_fit, models,
       num_models, false);
     fit->model_renderer()->visualizeDepthMap(wnd);
     break;
@@ -838,6 +990,7 @@ int main(int argc, char *argv[]) {
   cout << "p - Playback frames (@15fps)" << endl;
   cout << "o - Change playback frame skip" << endl;
   cout << "l - Go to start frame" << endl;
+  cout << "c - Save calibration data (calibration mode only)" << endl;
   cout << "j - Query Objective Function Value" << endl;
   cout << "shift+12345 - Copy finger1234/thumb from last frame" << endl;
   cout << "k - (3 times) delete current file" << endl;
@@ -877,9 +1030,20 @@ int main(int argc, char *argv[]) {
       -HAND_MODEL_CAMERA_VIEW_PLANE_NEAR, -HAND_MODEL_CAMERA_VIEW_PLANE_FAR, 
       fov_vert_deg);
 
+    // Initialize the XYZ points geometry
+    for (uint32_t k = 0; k < MAX_KINECTS; k++) {
+      geometry_points[k] = new GeometryColoredPoints;
+      geometry_points[k]->vertices()->capacity(src_dim);
+      geometry_points[k]->vertices()->resize(src_dim);
+      geometry_points[k]->colors()->capacity(src_dim);
+      geometry_points[k]->colors()->resize(src_dim);
+    }
+ 
     // Load the Kinect data for fitting from file and process it
     image_io = new DepthImagesIO();
-    image_io->GetFilesInDirectory(im_files, IM_DIR, false);
+    for (uint32_t i = 0; i < MAX_KINECTS; i++) {
+      image_io->GetFilesInDirectory(im_files[i], IM_DIR, false, i);
+    }
     loadCurrentImage();
   
     // Attach callback functions for event handling
@@ -893,6 +1057,9 @@ int main(int argc, char *argv[]) {
     coeff = new float*[num_models];
     prev_coeff = new float*[num_models];
     models = new PoseModel*[num_models];
+#ifdef CALIBRATION_RUN
+    models[0] = new CalibrateGeometry();
+#else
     if (fit_left && fit_right) {
       models[0] = new HandGeometryMesh(LEFT);
       models[1] = new HandGeometryMesh(RIGHT);
@@ -901,23 +1068,52 @@ int main(int argc, char *argv[]) {
     } else if (fit_right) {
       models[0] = new HandGeometryMesh(RIGHT);
     }
+#endif
 
     // Create the optimizer that will fit the models
-    fit = new ModelFit(num_models, HAND_NUM_COEFF);
+    fit = new ModelFit(num_models, num_coeff_fit);
 
     // Load the coeffs from file
-    r_hand_coeffs = new HandModelCoeff*[im_files.size()];
-    l_hand_coeffs = new HandModelCoeff*[im_files.size()];
+#ifdef CALIBRATION_RUN
+    float calb_data[MAX_KINECTS * num_coeff];
+    for (uint32_t i = 0; i < MAX_KINECTS; i++) {
+      coeffs[i] = new float*[im_files[0].size()];
+      for (uint32_t j = 0; j < im_files[0].size(); j++) {
+        coeffs[i][j] = new float[num_coeff];
+      }
+    }
+
+    for (uint32_t i = 0; i < im_files[0].size(); i++) {
+      string filename = IM_DIR + string("calb_coeff_") + im_files[0][i].first;
+      if (fileExists(filename)) {
+        LoadArrayFromFile<float>(calb_data, num_coeff * 2, filename);
+        for (uint32_t j = 0; j < MAX_KINECTS; j++) {
+          memcpy(coeffs[j][i], &calb_data[j * num_coeff], sizeof(*calb_data) *
+            num_coeff);
+        }
+      } else {
+        for (uint32_t j = 0; j < MAX_KINECTS; j++) {
+          for (uint32_t k = 0; k < num_coeff; k++) {
+            coeffs[j][i][k] = 0.0f;
+          }
+          coeffs[j][i][CALIB_POS_Z] = 700.0f;  // Start 700 away 
+          coeffs[j][i][CALIB_SCALE] = 0.95f;
+        } 
+      }
+    }
+#else
+    r_hand_coeffs = new HandModelCoeff*[im_files[0].size()];
+    l_hand_coeffs = new HandModelCoeff*[im_files[0].size()];
 #ifdef LOAD_AND_SAVE_OLD_FORMAT_COEFFS
     for (uint32_t i = 0; i < im_files.size(); i++) {
       r_hand_coeffs[i] = new HandModelCoeff(kinect_interface::hand_net::HandType::RIGHT);
-      r_hand_coeffs[i]->loadOldFormatFromFile(IM_DIR, string("coeffr_") + im_files[i]);
+      r_hand_coeffs[i]->loadOldFormatFromFile(IM_DIR, string("coeffr_") + im_files[i].first);
       l_hand_coeffs[i] = new HandModelCoeff(kinect_interface::hand_net::HandType::LEFT);
-      l_hand_coeffs[i]->loadOldFormatFromFile(IM_DIR, string("coeffl_") + im_files[i]);
+      l_hand_coeffs[i]->loadOldFormatFromFile(IM_DIR, string("coeffl_") + im_files[i].first);
     }
     for (uint32_t i = 0; i < im_files.size(); i++) {
-      string r_hand_file = string("coeffr_") + im_files[i];
-      string l_hand_file = string("coeffl_") + im_files[i];
+      string r_hand_file = string("coeffr_") + im_files[i].first;
+      string l_hand_file = string("coeffl_") + im_files[i].first;
       if (fit_right) {
         r_hand_coeffs[i]->saveToFile(IM_DIR, r_hand_file);
       } else {
@@ -930,16 +1126,17 @@ int main(int argc, char *argv[]) {
       }
     }
 #else
-    for (uint32_t i = 0; i < im_files.size(); i++) {
+    for (uint32_t i = 0; i < im_files[0].size(); i++) {
       r_hand_coeffs[i] = new HandModelCoeff(kinect_interface::hand_net::HandType::RIGHT);
-      r_hand_coeffs[i]->loadFromFile(IM_DIR, string("coeffr_") + im_files[i]);
+      r_hand_coeffs[i]->loadFromFile(IM_DIR, string("coeffr_") + im_files[0][i].first);
       l_hand_coeffs[i] = new HandModelCoeff(kinect_interface::hand_net::HandType::LEFT);
-      l_hand_coeffs[i]->loadFromFile(IM_DIR, string("coeffl_") + im_files[i]);
+      l_hand_coeffs[i]->loadFromFile(IM_DIR, string("coeffl_") + im_files[0][i].first);
     }
+#endif
 #endif
 
     for (uint32_t i = 0; i < num_models; i++) {
-      models[i]->setRendererAttachement(render_hand);
+      models[i]->setRendererAttachement(render_models);
     }
 
     // Finally, initialize the points for rendering
@@ -952,13 +1149,13 @@ int main(int argc, char *argv[]) {
       float dt = static_cast<float>(t1-t0);
 
       if (continuous_fit) {
-        if (cur_image < im_files.size() - 1) {
+        if (cur_image < im_files[0].size() - 1) {
           cout << "fitting frame " << cur_image + 1 << " of ";
-          cout << im_files.size() << endl;
+          cout << im_files[0].size() << endl;
           cur_image++;
           loadCurrentImage();
           fitFrame(true, false);
-          saveCurrentHandCoeffs();
+          saveCurrentCoeffs();
           InitXYZPointsForRendering();
         } else {
           std::cout << "Function Evals Per Second = ";
@@ -968,7 +1165,7 @@ int main(int argc, char *argv[]) {
         }
       }
       if (continuous_play) {
-        if (cur_image < im_files.size() - playback_step) {
+        if (cur_image < im_files[0].size() - playback_step) {
           continuous_play_timer_start += (t1 - t0);
           if (continuous_play_timer_start >= continuous_play_frame_time) {
             cur_image += playback_step;

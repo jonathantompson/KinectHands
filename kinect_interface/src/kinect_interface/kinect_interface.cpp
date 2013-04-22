@@ -90,6 +90,11 @@ namespace kinect_interface {
       &KinectInterface::kinectUpdateThread, this);
     kinect_thread_ = MakeThread(threadBody);
 
+    // Spin wait here until the Kinect updat thread has done one iteration
+    while (frame_number_ <= 1) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
     device_initialized_ = true;
     // Increment the devices counter
     openni_static_lock_.lock();
@@ -488,6 +493,8 @@ namespace kinect_interface {
     double time_accum = 0;
     uint64_t last_frame_number = 0;
 
+    SetThreadName("KinectInterface::kinectUpdateThread()");
+
     while (kinect_running_) {
       bool crop_depth_to_rgb, flip_image, depth_color_sync;
       GET_SETTING("crop_depth_to_rgb", bool, crop_depth_to_rgb);
@@ -503,7 +510,7 @@ namespace kinect_interface {
       for (uint32_t i = 0; i < NUM_STREAMS; i++) {
         int changedIndex;
 	      checkOpenNIRC(openni::OpenNI::waitForAnyStream(&streams_[i], 1, 
-          &changedIndex, OPENNI_WAIT_TIMEOUT), 
+          &changedIndex), 
           "kinectUpdateThread() - ERROR: waitForAnyStream failed!");
         if (changedIndex != 0) {
           throw std::wruntime_error("KinectInterface::kinectUpdateThread() - "

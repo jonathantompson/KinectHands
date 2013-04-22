@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClCompile Include="src\main\main.cpp" />
     <ClCompile Include="src\model_fit\bounding_sphere.cpp" />
+    <ClCompile Include="src\model_fit\calibrate_geometry.cpp" />
     <ClCompile Include="src\model_fit\hand_geometry_mesh.cpp" />
     <ClCompile Include="src\model_fit\model_renderer.cpp" />
     <ClCompile Include="src\model_fit\model_fit.cpp" />
@@ -47,6 +48,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\model_fit\bounding_sphere.h" />
+    <ClInclude Include="src\model_fit\calibrate_geometry.h" />
     <ClInclude Include="src\model_fit\hand_geometry_mesh.h" />
     <ClInclude Include="src\model_fit\model_renderer.h" />
     <ClInclude Include="src\model_fit\model_fit.h" />

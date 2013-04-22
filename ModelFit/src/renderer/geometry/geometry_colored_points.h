@@ -39,6 +39,7 @@ namespace renderer {
     
     void syncVAO();  // At startup
     void unsyncVAO();  // Might be slow!
+    inline bool synced() const { return synced_; }
 
     jtil::data_str::Vector<jtil::math::Float3>* vertices() { return &vertices_; }
     jtil::data_str::Vector<jtil::math::Float3>* colors() { return &colors_; }
