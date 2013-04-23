@@ -93,6 +93,7 @@ int main(int argc, char *argv[]) {
   // *************************************************************
   // TRY MINIMIZING THE HW7 Q4a problem
   BFGS* solver_bfgs = new BFGS(NUM_COEFFS_HW7_4A);
+  solver_bfgs->verbose = true;
   solver_bfgs->max_iterations = 1000;
   solver_bfgs->delta_f_term = 1e-12f;
   solver_bfgs->jac_2norm_term = 1e-12f;
@@ -123,6 +124,7 @@ int main(int argc, char *argv[]) {
   // *************************************************************
   // TRY MINIMIZING THE HW7 Q4b problem
   BFGS* solver_bfgs2 = new BFGS(NUM_COEFFS_HW7_4B);
+  solver_bfgs2->verbose = true;
   solver_bfgs2->max_iterations = 1000;
   solver_bfgs2->delta_f_term = 1e-12f;
   solver_bfgs2->jac_2norm_term = 1e-12f;

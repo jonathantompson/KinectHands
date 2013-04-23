@@ -18,9 +18,9 @@
 
 #define CAL_GEOM_NUM_COEFF 7
 #define SPHERE_RADIUS (65.5f / 2.0f)
-#define SPHERE_A_OFST 97.0  // From center of cross to outside of ball (actually 95)
-#define SPHERE_B_OFST 92.0
-#define SPHERE_C_OFST 91.5
+#define SPHERE_A_OFST 94.5f  // From center of cross to outside of ball (actually 95)
+#define SPHERE_B_OFST 92.5f  // Actually 92.5
+#define SPHERE_C_OFST 91  // Actually 91
 #define SPHERE_NSTACKS 15
 #define SPHERE_NSLICES 15
 #define SPHERE_BASE_RADIUS 1.0f
@@ -86,6 +86,8 @@ namespace model_fit {
     virtual const uint32_t max_bsphere_groups() { return 6; }
 
     static void renormalizeCoeffs(float* coeff);
+    static float calcAveCameraViewObjFunc(const float* coeff);
+    static void calcAveCameraViewJacobFunc(float* jacob, const float* coeff);
 
     // Since there are a few coeffs that we cannot get from the PSO (since
     // the PSO doesn't optimize them), we must keep track of some coeff parameters
@@ -93,7 +95,6 @@ namespace model_fit {
     static void setCurrentStaticHandProperties(const float* coeff);
 
   private:
-    static float cur_scale_;
     renderer::Geometry* scene_graph_;  // The renderable geometry - Not owned here
     renderer::Geometry* sphere_a_;
     renderer::Geometry* sphere_b_;
@@ -125,7 +126,9 @@ namespace model_fit {
     static jtil::math::Float3* vq_[3];
     static jtil::math::Float3* vb_[3];
     static jtil::math::Float3 vmodel_[3];
+    static uint32_t num_frames_;
     static void coeff2Mat(jtil::math::Float4x4& mat, const float* coeff);
+    static void coeffMeters2Mat(jtil::math::Float4x4& mat, const float* coeff);
 
     // Non-copyable, non-assignable.
     CalibrateGeometry(CalibrateGeometry&);

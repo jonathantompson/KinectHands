@@ -309,10 +309,14 @@ namespace kinect_interface {
       const openni::Array<openni::VideoMode>& modes = 
         sensor.getSupportedVideoModes();
       int ibest = -1;
+#if defined(DEBUG) || defined(_DEBUG)
       std::cout << "Supported Modes:" << std::endl;
+#endif
       for (int i = 0; i < modes.getSize(); i++) {
         const openni::VideoMode& mode = modes[i];
+#if defined(DEBUG) || defined(_DEBUG)
         printMode(mode);
+#endif
         PixelFormat format = mode.getPixelFormat();
         int res_x = mode.getResolutionX();
         int res_y = mode.getResolutionY();
@@ -357,10 +361,14 @@ namespace kinect_interface {
       const openni::Array<openni::VideoMode>& modes = 
         sensor.getSupportedVideoModes();
       int ibest = -1;
+#if defined(DEBUG) || defined(_DEBUG)
       std::cout << "Supported Modes:" << std::endl;
+#endif
       for (int i = 0; i < modes.getSize(); i++) {
         const openni::VideoMode& mode = modes[i];
+#if defined(DEBUG) || defined(_DEBUG)
         printMode(mode);
+#endif
         PixelFormat cur_format = mode.getPixelFormat();
         int res_x = mode.getResolutionX();
         int res_y = mode.getResolutionY();
@@ -393,7 +401,9 @@ namespace kinect_interface {
     // than one format has the max resolution, choose the highest fps mode
     const openni::SensorInfo& depth_sensor_info = 
       streams_[DEPTH]->getSensorInfo();
+#if defined(DEBUG) || defined(_DEBUG)
     std::cout << "Depth ";
+#endif
     openni::VideoMode mode = findMaxResYFPSMode(depth_sensor_info,
       PixelFormat::PIXEL_FORMAT_DEPTH_1_MM);
     std::cout << "Setting Depth mode: ";
@@ -436,7 +446,9 @@ namespace kinect_interface {
     // Find a resolution mode to match the depth mode
     const openni::SensorInfo& rgb_sensor_info = 
       streams_[RGB]->getSensorInfo();
+#if defined(DEBUG) || defined(_DEBUG)
     std::cout << "RGB ";
+#endif
     openni::VideoMode mode = findMatchingMode(rgb_sensor_info, depth_dim_,
       depth_fps_setting_, PixelFormat::PIXEL_FORMAT_RGB888);
     std::cout << "Setting RGB mode: ";

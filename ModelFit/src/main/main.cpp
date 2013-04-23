@@ -52,7 +52,7 @@
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
 #define CALIBRATION_RUN
-#define CALIBRATION_TEMP_FILT_SIZE 6
+#define FILTER_SIZE 30  // Only in calibration mode
 
 // KINECT DATA
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Fit
@@ -179,8 +179,30 @@ void quit() {
       for (uint32_t j = 0; j < im_files[0].size(); j++) {
         SAFE_DELETE_ARR(coeffs[i][j]);
       }
+      SAFE_DELETE_ARR(coeffs[i]);
     }
   }
+  for (uint32_t k = 0; k < MAX_KINECTS; k++) {
+    if (depth_database[k]) {
+      for (uint32_t f = 0; f < im_files[k].size(); f++) {
+        SAFE_DELETE_ARR(depth_database[k][f]);
+      }
+      SAFE_DELETE_ARR(depth_database[k]);
+    }
+    if (rgb_database[k]) {
+      for (uint32_t f = 0; f < im_files[k].size(); f++) {
+        SAFE_DELETE_ARR(rgb_database[k][f]);
+      }
+      SAFE_DELETE_ARR(rgb_database[k]);
+    }
+    if (label_database[k]) {
+      for (uint32_t f = 0; f < im_files[k].size(); f++) {
+        SAFE_DELETE_ARR(label_database[k][f]);
+      }
+      SAFE_DELETE_ARR(label_database[k]);
+    }
+  }
+
 #else
   if (l_hand_coeffs) {
     for (uint32_t i = 0; i < im_files[0].size(); i++) { 
@@ -220,16 +242,19 @@ void loadCurrentImage(bool print_to_screen = true) {
   }
 #if defined(CALIBRATION_RUN)
   // Average the non-zero pixels over some temporal filter kernel
-  uint32_t start_index[MAX_KINECTS] = {cur_image, 0};
-  for (uint32_t k = 1; k < MAX_KINECTS; k++) {
+  int32_t start_index[MAX_KINECTS] = {cur_image, 0};
+  int16_t cur_depth[FILTER_SIZE];
+  for (int32_t k = 1; k < MAX_KINECTS; k++) {
     if (im_files[k].size() == 0) {
       start_index[k] = MAX_UINT32;
     } else {
-      // find the correct file (with smallest timestamp difference) - O(n)
+      // find the correct file (with smallest timestamp difference) - 
+      // Search in a window of 20 images
       int64_t src_timestamp = im_files[0][cur_image].second;
-      start_index[k] = 0;
-      int64_t min_delta_t = std::abs(src_timestamp - im_files[k][0].second);
-      for (uint32_t i = 1; i < im_files[k].size(); i++) {
+      start_index[k] = std::max<int32_t>(0, (int32_t)cur_image - 10);
+      int64_t min_delta_t = std::abs(src_timestamp - im_files[k][start_index[k]].second);
+      for (int32_t i = std::max<int32_t>(0, (int32_t)cur_image - 9); 
+        i < std::min<int32_t>((int32_t)im_files[k].size(), (int32_t)cur_image + 9); i++) {
         int64_t delta_t = std::abs(src_timestamp - im_files[k][i].second);
         if (delta_t < min_delta_t) {
           min_delta_t = delta_t;
@@ -238,22 +263,45 @@ void loadCurrentImage(bool print_to_screen = true) {
       }
     }
   }
-  for (uint32_t k = 0; k < MAX_KINECTS; k++) {
-    for (uint32_t i = 0; i < src_dim; i++) {
-      int32_t integ = 0;
-      int32_t cnt = 0;
-      for (uint32_t f = start_index[k]; f < f + CALIBRATION_TEMP_FILT_SIZE &&
-        f < im_files[k].size(); f++) {
-        int16_t cur_depth = depth_database[k][f][i];
-        if (cur_depth != 0 && cur_depth < GDT_MAX_DIST) {
-          integ += cur_depth;
+  for (int32_t k = 0; k < MAX_KINECTS; k++) {
+    for (int32_t i = 0; i < src_dim; i++) {
+      int32_t filt = 0;
+      for (int32_t f = start_index[k]; f < start_index[k] + FILTER_SIZE && 
+        f < (int32_t)im_files[k].size(); f++, filt++) {
+        cur_depth[filt] = depth_database[k][f][i];
+      }
+      // Now calculate the std and mean of the non-zero entries
+      for ( ; filt < FILTER_SIZE; filt++) {
+        cur_depth[filt] = GDT_MAX_DIST + 1;
+      }
+      float sum = 0;
+      float sum_sqs = 0;
+      float cnt = 0;
+      for (int32_t filt = 0; filt < FILTER_SIZE; filt++) {
+        if (cur_depth[filt] != 0 && cur_depth[filt] < GDT_MAX_DIST) {
+          sum += (float)cur_depth[filt];
+          sum_sqs += (float)cur_depth[filt] * (float)cur_depth[filt];
           cnt++;
         }
       }
-      if (cnt == 0) {
+      if (cnt < LOOSE_EPSILON) {
         cur_depth_data[k][i] = GDT_MAX_DIST + 1;
       } else {
-        cur_depth_data[k][i] = integ / cnt;
+        float mean = sum / cnt;
+        float var = sum_sqs / cnt - (mean * mean);
+        if (var > 100) {
+          // Calculate a new mean of all the depth values IN FRONT of the mean
+          sum = 0;
+          cnt = 0;
+          for (int32_t filt = 0; filt < FILTER_SIZE; filt++) {
+            if (cur_depth[filt] < mean && cur_depth[filt] != 0) {
+              sum += (float)cur_depth[filt];
+              cnt++;
+            }
+          }
+          mean = sum / cnt;
+        }
+        cur_depth_data[k][i] = (int16_t)mean;
       }
     }
     memcpy(cur_image_rgb[k], rgb_database[k][start_index[k]], 
@@ -741,8 +789,17 @@ void KeyboardCB(int key, int action) {
         for (uint32_t i = 1; i < MAX_KINECTS; i++) {
           ((CalibrateGeometry*)models[0])->calcAveCameraView(camera_view[i], 0,
             i, (const float***)&coeffs[0], 
-            im_files[0].size() - CALIBRATION_TEMP_FILT_SIZE);
+            im_files[0].size() - FILTER_SIZE);
         }
+        // Now save the results to file
+        float* data = new float[MAX_KINECTS * 16];
+        for (uint32_t i = 1; i < MAX_KINECTS; i++) {
+          memcpy(&data[i * 16], camera_view[i].m, sizeof(data[0]) * 16);
+        }
+        string cal_filename = IM_DIR + string("calibration_data.bin");
+        SaveArrayToFile<float>(data, MAX_KINECTS * 16, cal_filename);
+        SAFE_DELETE_ARR(data);
+        std::cout << "Calibration data saved to " << cal_filename << endl;
 #endif
       }
       break;
@@ -1038,7 +1095,7 @@ int main(int argc, char *argv[]) {
   static_cast<void>(argc); static_cast<void>(argv);
 #if defined(_DEBUG) && defined(_WIN32)
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-  //_CrtSetBreakAlloc(4452);
+  _CrtSetBreakAlloc(9002);
 #endif
 
   cout << "Usage:" << endl;

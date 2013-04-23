@@ -34,11 +34,11 @@ using namespace kinect_interface::hand_net;
 
 namespace model_fit {
   float CalibrateGeometry::pso_radius_c_[CAL_GEOM_NUM_COEFF];
-  float CalibrateGeometry::cur_scale_;
   jtil::math::BFGS* CalibrateGeometry::solver_ = NULL;
   jtil::math::Float3* CalibrateGeometry::vq_[3] = {NULL, NULL, NULL};
   jtil::math::Float3* CalibrateGeometry::vb_[3] = {NULL, NULL, NULL};
   jtil::math::Float3 CalibrateGeometry::vmodel_[3];
+  uint32_t CalibrateGeometry::num_frames_;
   
   CalibrateGeometry::CalibrateGeometry() {
     Float3 tennis_ball_yellow(0.776470f, 0.929412f, 0.172549f);
@@ -47,19 +47,22 @@ namespace model_fit {
       SPHERE_BASE_RADIUS, tennis_ball_yellow);
     sphere_b_ = GeometryColoredMesh::makeSphere(SPHERE_NSTACKS, SPHERE_NSLICES,
       SPHERE_BASE_RADIUS, tennis_ball_yellow);
+    tennis_ball_yellow[0] *= 0.5f;
+    tennis_ball_yellow[1] *= 0.5f;
+    tennis_ball_yellow[2] *= 0.5f;
     sphere_c_ = GeometryColoredMesh::makeSphere(SPHERE_NSTACKS, SPHERE_NSLICES,
       SPHERE_BASE_RADIUS, tennis_ball_yellow);
-    cylinder_a_ = GeometryColoredMesh::makeCylinder(CYL_NSLICES,
-      CYL_BASE_HEIGHT, CYL_BASE_RADIUS, CYL_BASE_RADIUS, wood_brown);
-    cylinder_b_ = GeometryColoredMesh::makeCylinder(CYL_NSLICES,
-      CYL_BASE_HEIGHT, CYL_BASE_RADIUS, CYL_BASE_RADIUS, wood_brown);
+    //cylinder_a_ = GeometryColoredMesh::makeCylinder(CYL_NSLICES,
+    //  CYL_BASE_HEIGHT, CYL_BASE_RADIUS, CYL_BASE_RADIUS, wood_brown);
+    //cylinder_b_ = GeometryColoredMesh::makeCylinder(CYL_NSLICES,
+    //  CYL_BASE_HEIGHT, CYL_BASE_RADIUS, CYL_BASE_RADIUS, wood_brown);
 
     scene_graph_ = new Geometry();
     scene_graph_->addChild(sphere_a_);
     scene_graph_->addChild(sphere_b_);
     scene_graph_->addChild(sphere_c_);
-    scene_graph_->addChild(cylinder_a_);
-    scene_graph_->addChild(cylinder_b_);
+    //scene_graph_->addChild(cylinder_a_);
+    //scene_graph_->addChild(cylinder_b_);
 
     Float3 scale_vec(SPHERE_RADIUS, SPHERE_RADIUS, SPHERE_RADIUS);
     Float4x4::scaleMat(*sphere_a_->mat(), scale_vec);
@@ -75,11 +78,11 @@ namespace model_fit {
     sphere_b_->mat()->leftMultTranslation(vmodel_[1]);
     sphere_c_->mat()->leftMultTranslation(vmodel_[2]);
 
-    scale_vec.set(CYL_RADIUS, SPHERE_A_OFST + SPHERE_RADIUS, CYL_RADIUS);
-    Float4x4::scaleMat(*cylinder_b_->mat(), scale_vec);
-    cylinder_b_->mat()->leftMultRotateZAxis((float)M_PI_2);
-    scale_vec.set(CYL_RADIUS, SPHERE_B_OFST + SPHERE_RADIUS, CYL_RADIUS);
-    Float4x4::scaleMat(*cylinder_a_->mat(), scale_vec);
+    //scale_vec.set(CYL_RADIUS, SPHERE_A_OFST + SPHERE_RADIUS, CYL_RADIUS);
+    //Float4x4::scaleMat(*cylinder_b_->mat(), scale_vec);
+    //cylinder_b_->mat()->leftMultRotateZAxis((float)M_PI_2);
+    //scale_vec.set(CYL_RADIUS, SPHERE_B_OFST + SPHERE_RADIUS, CYL_RADIUS);
+    //Float4x4::scaleMat(*cylinder_a_->mat(), scale_vec);
 
     for (uint32_t i = 0; i < 3; i++) {
       pso_radius_c_[i] = 25.0f;
@@ -252,7 +255,6 @@ namespace model_fit {
 
   void CalibrateGeometry::setCurrentStaticHandProperties(
     const float* coeff) {
-    cur_scale_ = coeff[CALIB_SCALE];
   }
 
   // coeff_min_limit_ is the minimum coefficient value before the penalty
@@ -264,6 +266,7 @@ namespace model_fit {
     -3.14159f,  // HAND_ORIENT_X
     -3.14159f,  // HAND_ORIENT_Y
     -3.14159f,  // HAND_ORIENT_Z
+    0.25f,       // SCALE
   };
   
   // coeff_max_limit_ is the maximum coefficient value before the penalty
@@ -275,6 +278,7 @@ namespace model_fit {
     3.14159f,  // HAND_ORIENT_X
     3.14159f,  // HAND_ORIENT_Y
     3.14159f,  // HAND_ORIENT_Z
+    10.0f,     // SCALE
   };
   
   // coeff_penalty_scale_ is the exponential scale to use when penalizing coeffs
@@ -283,9 +287,10 @@ namespace model_fit {
     0,    // HAND_POS_X
     0,    // HAND_POS_Y
     0,    // HAND_POS_Z
-    0,  // HAND_ORIENT_X
-    0,  // HAND_ORIENT_Y
-    0,  // HAND_ORIENT_Z
+    0,    // HAND_ORIENT_X
+    0,    // HAND_ORIENT_Y
+    0,    // HAND_ORIENT_Z
+    0,    // SCALE
   };
 
 // angle_coeffs are boolean values indicating if the coefficient represents
@@ -295,9 +300,10 @@ namespace model_fit {
     false,  // HAND_POS_X
     false,  // HAND_POS_Y
     false,  // HAND_POS_Z
-    true,  // HAND_ORIENT_X
-    true,  // HAND_ORIENT_Y
-    true,  // HAND_ORIENT_Z
+    true,   // HAND_ORIENT_X
+    true,   // HAND_ORIENT_Y
+    true,   // HAND_ORIENT_Z
+    false,  // SCALE
   };
 
   void CalibrateGeometry::coeff2Mat(jtil::math::Float4x4& mat, 
@@ -311,26 +317,73 @@ namespace model_fit {
       coeff[CALIB_SCALE]);
   }
 
+  void CalibrateGeometry::coeffMeters2Mat(jtil::math::Float4x4& mat, 
+    const float* coeff) {
+    // Set the root matrix:
+    euler2RotMatGM(mat, coeff[CALIB_ORIENT_X], coeff[CALIB_ORIENT_Y],
+      coeff[CALIB_ORIENT_Z]);
+    mat.leftMultTranslation(1000.0f * coeff[CALIB_POS_X], 
+      1000.0f * coeff[CALIB_POS_Y], 1000.0f * coeff[CALIB_POS_Z]);
+    mat.rightMultScale(coeff[CALIB_SCALE], coeff[CALIB_SCALE],
+      coeff[CALIB_SCALE]);
+  }
+
+  float CalibrateGeometry::calcAveCameraViewObjFunc(const float* coeff) {
+    Float4x4 mat;
+    coeffMeters2Mat(mat, coeff);
+    float ret_val = 0.0f;
+    Float3 v_trans;
+    Float3 v_delta;
+    for (uint32_t f = 0; f < num_frames_; f++) {
+      for (uint32_t i = 0; i < 3; i++) {
+        Float3::affineTransformPos(v_trans, mat, vq_[i][f]);
+        Float3::sub(v_delta, v_trans, vb_[i][f]);
+        ret_val += sqrtf(Float3::dot(v_delta, v_delta));
+      }
+    }
+    return ret_val / ((float)num_frames_ * 3.0f);  // Normalize
+  }
+
+  void CalibrateGeometry::calcAveCameraViewJacobFunc(float* jacob, 
+    const float* coeff) {
+    float coeff_tmp[NUM_PARAMETERS];
+    // Estimate using central diff.
+    // http://math.fullerton.edu/mathews/n2003/differentiation/NumericalDiffProof.pdf
+    memcpy(coeff_tmp, coeff, sizeof(coeff_tmp[0]) * NUM_PARAMETERS);
+    const float h = 0.001f;
+    for (uint32_t i = 0; i < NUM_PARAMETERS; i++) {
+      coeff_tmp[i] = coeff[i] - h;
+      float f0 = calcAveCameraViewObjFunc(coeff_tmp);
+      coeff_tmp[i] = coeff[i] + h;
+      float f1 = calcAveCameraViewObjFunc(coeff_tmp);
+      coeff_tmp[i] = coeff[i];
+      jacob[i] = (f1 - f0) / (2.0f * h);
+    }
+  }
+
   void CalibrateGeometry::calcAveCameraView(jtil::math::Float4x4& ret, 
     const uint32_t i_base_cam, const uint32_t i_query_cam, 
     const float*** coeffs, const uint32_t num_frames) {
     std::cout << "calculating ave camera view" << std::endl;
     // Following Murphy's suggestion.  We're going to use BFGS and solve the
     // average transformation in a least sqs sense, that is we want to minimize
-    // sum_f=1:n ( sum_i=1,2,3 (||A vq_i,f - vb_i,f||^2) )
+    // sum_f=1:n ( sum_i=1,2,3 (||A vb_i,f - vq_i,f||_2) )
     // - A is the affine transformation that goes from base coord to query
     // - vq_i,f is one of the 3 correspondance points in query's coord frame
     // - vb_i,f is the same correspondance point in base's coord frame
     solver_ = new BFGS(CalibrateCoeff::NUM_PARAMETERS);
+    solver_->verbose = true;
+    solver_->eta_s = 1e-8;  // Aggressive sufficient descent condition
+    num_frames_ = num_frames;
     for (uint32_t i = 0; i < 3; i++) {
-      vq_[i] = new Float3[num_frames];
-      vb_[i] = new Float3[num_frames];
+      vq_[i] = new Float3[num_frames_];
+      vb_[i] = new Float3[num_frames_];
     }
 
     // Calculate vq and vb for each camera
     Float4x4 model_base;
     Float4x4 model_query;
-    for (uint32_t f = 0; f < num_frames; f++) {
+    for (uint32_t f = 0; f < num_frames_; f++) {
       coeff2Mat(model_base, coeffs[i_base_cam][f]);
       coeff2Mat(model_query, coeffs[i_query_cam][f]);
       for (uint32_t i = 0; i < 3; i++) {
@@ -344,8 +397,8 @@ namespace model_fit {
     float c0_query[NUM_PARAMETERS];
     memcpy(c0_base, coeffs[i_base_cam][0], sizeof(c0_base[0])*NUM_PARAMETERS);
     memcpy(c0_query, coeffs[i_query_cam][0], sizeof(c0_base[0])*NUM_PARAMETERS);
-    c0_base[SCALE] = 1.0f;
-    c0_query[SCALE] = 1.0f;
+    c0_base[CalibrateCoeff::CALIB_SCALE] = 1.0f;
+    c0_query[CalibrateCoeff::CALIB_SCALE] = 1.0f;
     coeff2Mat(model_base, c0_base);
     coeff2Mat(model_query, c0_query);
     Float4x4 model_query_inv, mat0;
@@ -360,15 +413,30 @@ namespace model_fit {
     Float4x4::getTranslation(trans0, mat0);
     // Float4x4::extractRotation(rot0, mat0);  // Actually does polar decomp
     Float4x4::rotMat2Euler(euler0[0], euler0[1], euler0[2], mat0);
-    c0[CALIB_POS_X] = trans0[0];
-    c0[CALIB_POS_Y] = trans0[1];
-    c0[CALIB_POS_Z] = trans0[2];
+    c0[CALIB_POS_X] = trans0[0] / 1000.0f;
+    c0[CALIB_POS_Y] = trans0[1] / 1000.0f;
+    c0[CALIB_POS_Z] = trans0[2] / 1000.0f;
     c0[CALIB_ORIENT_X] = euler0[0];
     c0[CALIB_ORIENT_Y] = euler0[1];
     c0[CALIB_ORIENT_Z] = euler0[2];
     c0[CALIB_SCALE] = 1.0f;
 
-    coeff2Mat(ret, c0);
+    std::cout << "Starting obj func value = " << calcAveCameraViewObjFunc(c0);
+    std::cout << std::endl;
+
+    float J0[NUM_PARAMETERS];
+    calcAveCameraViewJacobFunc(J0, c0);
+    std::cout << "Starting jacobian value = ";
+    for (uint32_t i = 0; i < NUM_PARAMETERS; i++) {
+      std::cout << J0[i] << " ";
+    }
+    std::cout << std::endl;
+
+    float cfit[NUM_PARAMETERS];
+    solver_->minimize(cfit, c0, angle_coeffs_, calcAveCameraViewObjFunc,
+      calcAveCameraViewJacobFunc, renormalizeCoeffs);
+
+    coeffMeters2Mat(ret, cfit);
 
     // Clean up
     SAFE_DELETE(solver_);
