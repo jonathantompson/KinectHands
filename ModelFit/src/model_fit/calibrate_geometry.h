@@ -30,6 +30,7 @@
 #define CYL_BASE_HEIGHT 2.0f
 
 #define NUM_CAL_SPHERES 0
+namespace jtil { namespace math { class BFGS; } }
 
 namespace renderer { class Geometry; }
 namespace renderer { class Renderer; }
@@ -61,6 +62,12 @@ namespace model_fit {
     virtual inline renderer::Geometry* scene_graph() { return scene_graph_; }
     
     jtil::data_str::Vector<renderer::BoundingSphere*>& bspheres() { return bspheres_; }
+
+    // From the fitted coeffs, find an "average" affine transformation that
+    // describes i_query_cam in i_base_cam's coordinate system.
+    void calcAveCameraView(jtil::math::Float4x4& ret, 
+      const uint32_t i_base_cam, const uint32_t i_query_cam, 
+      const float*** coeffs, const uint32_t num_frames);
 
     virtual void renderStackReset();
     virtual renderer::Geometry* renderStackPop();
@@ -104,7 +111,7 @@ namespace model_fit {
     // them and keep the renderer seperate.
     jtil::data_str::Vector<renderer::Geometry*> render_stack_;
 
-    void euler2RotMatGM(jtil::math::Float4x4& a, const float x_angle, 
+    static void euler2RotMatGM(jtil::math::Float4x4& a, const float x_angle, 
       const float y_angle, const float z_angle);
 
     static const float coeff_min_limit_[CAL_GEOM_NUM_COEFF];
@@ -112,6 +119,13 @@ namespace model_fit {
     static const float coeff_penalty_scale_[CAL_GEOM_NUM_COEFF];
     static const bool angle_coeffs_[CAL_GEOM_NUM_COEFF];
     static float pso_radius_c_[CAL_GEOM_NUM_COEFF];
+
+    // Satic data used for calculating average coordinate frame
+    static jtil::math::BFGS* solver_;
+    static jtil::math::Float3* vq_[3];
+    static jtil::math::Float3* vb_[3];
+    static jtil::math::Float3 vmodel_[3];
+    static void coeff2Mat(jtil::math::Float4x4& mat, const float* coeff);
 
     // Non-copyable, non-assignable.
     CalibrateGeometry(CalibrateGeometry&);

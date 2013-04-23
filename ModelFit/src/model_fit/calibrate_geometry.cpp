@@ -15,8 +15,10 @@
 #include "jtil/data_str/pair.h"
 #include "kinect_interface/hand_net/hand_net.h"  // for HandCoeffConvnet
 #include "kinect_interface/hand_net/hand_image_generator.h"  // for HN_HAND_SIZE
+#include "jtil/math/bfgs.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
+#define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
 #ifndef HAND_FIT
 #error "HAND_FIT is not defined!  You need to declare it in the preprocessor"
@@ -33,6 +35,10 @@ using namespace kinect_interface::hand_net;
 namespace model_fit {
   float CalibrateGeometry::pso_radius_c_[CAL_GEOM_NUM_COEFF];
   float CalibrateGeometry::cur_scale_;
+  jtil::math::BFGS* CalibrateGeometry::solver_ = NULL;
+  jtil::math::Float3* CalibrateGeometry::vq_[3] = {NULL, NULL, NULL};
+  jtil::math::Float3* CalibrateGeometry::vb_[3] = {NULL, NULL, NULL};
+  jtil::math::Float3 CalibrateGeometry::vmodel_[3];
   
   CalibrateGeometry::CalibrateGeometry() {
     Float3 tennis_ball_yellow(0.776470f, 0.929412f, 0.172549f);
@@ -60,9 +66,14 @@ namespace model_fit {
     Float4x4::scaleMat(*sphere_b_->mat(), scale_vec);
     Float4x4::scaleMat(*sphere_c_->mat(), scale_vec);
 
-    sphere_a_->mat()->leftMultTranslation(0, (SPHERE_A_OFST + SPHERE_RADIUS), 0);
-    sphere_b_->mat()->leftMultTranslation(-(SPHERE_B_OFST + SPHERE_RADIUS), 0, 0);
-    sphere_c_->mat()->leftMultTranslation((SPHERE_C_OFST + SPHERE_RADIUS), 0, 0);
+    // Calculate the sphere positions in model space
+    vmodel_[0].set(0, (SPHERE_A_OFST + SPHERE_RADIUS), 0);
+    vmodel_[1].set(-(SPHERE_B_OFST + SPHERE_RADIUS), 0, 0);
+    vmodel_[2].set((SPHERE_C_OFST + SPHERE_RADIUS), 0, 0);
+
+    sphere_a_->mat()->leftMultTranslation(vmodel_[0]);
+    sphere_b_->mat()->leftMultTranslation(vmodel_[1]);
+    sphere_c_->mat()->leftMultTranslation(vmodel_[2]);
 
     scale_vec.set(CYL_RADIUS, SPHERE_A_OFST + SPHERE_RADIUS, CYL_RADIUS);
     Float4x4::scaleMat(*cylinder_b_->mat(), scale_vec);
@@ -89,16 +100,7 @@ namespace model_fit {
   }
 
   void CalibrateGeometry::updateMatrices(const float* coeff) {
-    Float4x4* mat;
-
-    // Set the root matrix:
-    mat = scene_graph_->mat();
-    euler2RotMatGM(*mat, coeff[CALIB_ORIENT_X], coeff[CALIB_ORIENT_Y],
-      coeff[CALIB_ORIENT_Z]);
-    mat->leftMultTranslation(coeff[CALIB_POS_X],
-                             coeff[CALIB_POS_Y],
-                             coeff[CALIB_POS_Z]);
-    mat->rightMultScale(coeff[CALIB_SCALE], coeff[CALIB_SCALE], coeff[CALIB_SCALE]);
+    coeff2Mat(*scene_graph_->mat(), coeff);
   }
   
   void CalibrateGeometry::renderStackReset() {
@@ -297,5 +299,83 @@ namespace model_fit {
     true,  // HAND_ORIENT_Y
     true,  // HAND_ORIENT_Z
   };
+
+  void CalibrateGeometry::coeff2Mat(jtil::math::Float4x4& mat, 
+    const float* coeff) {
+    // Set the root matrix:
+    euler2RotMatGM(mat, coeff[CALIB_ORIENT_X], coeff[CALIB_ORIENT_Y],
+      coeff[CALIB_ORIENT_Z]);
+    mat.leftMultTranslation(coeff[CALIB_POS_X], coeff[CALIB_POS_Y],
+      coeff[CALIB_POS_Z]);
+    mat.rightMultScale(coeff[CALIB_SCALE], coeff[CALIB_SCALE],
+      coeff[CALIB_SCALE]);
+  }
+
+  void CalibrateGeometry::calcAveCameraView(jtil::math::Float4x4& ret, 
+    const uint32_t i_base_cam, const uint32_t i_query_cam, 
+    const float*** coeffs, const uint32_t num_frames) {
+    std::cout << "calculating ave camera view" << std::endl;
+    // Following Murphy's suggestion.  We're going to use BFGS and solve the
+    // average transformation in a least sqs sense, that is we want to minimize
+    // sum_f=1:n ( sum_i=1,2,3 (||A vq_i,f - vb_i,f||^2) )
+    // - A is the affine transformation that goes from base coord to query
+    // - vq_i,f is one of the 3 correspondance points in query's coord frame
+    // - vb_i,f is the same correspondance point in base's coord frame
+    solver_ = new BFGS(CalibrateCoeff::NUM_PARAMETERS);
+    for (uint32_t i = 0; i < 3; i++) {
+      vq_[i] = new Float3[num_frames];
+      vb_[i] = new Float3[num_frames];
+    }
+
+    // Calculate vq and vb for each camera
+    Float4x4 model_base;
+    Float4x4 model_query;
+    for (uint32_t f = 0; f < num_frames; f++) {
+      coeff2Mat(model_base, coeffs[i_base_cam][f]);
+      coeff2Mat(model_query, coeffs[i_query_cam][f]);
+      for (uint32_t i = 0; i < 3; i++) {
+        Float3::affineTransformPos(vb_[i][f], model_base, vmodel_[i]);
+        Float3::affineTransformPos(vq_[i][f], model_query, vmodel_[i]);
+      }
+    }
+    
+    // Approximate a starting matrix by using the 0th frame's data
+    float c0_base[NUM_PARAMETERS];
+    float c0_query[NUM_PARAMETERS];
+    memcpy(c0_base, coeffs[i_base_cam][0], sizeof(c0_base[0])*NUM_PARAMETERS);
+    memcpy(c0_query, coeffs[i_query_cam][0], sizeof(c0_base[0])*NUM_PARAMETERS);
+    c0_base[SCALE] = 1.0f;
+    c0_query[SCALE] = 1.0f;
+    coeff2Mat(model_base, c0_base);
+    coeff2Mat(model_query, c0_query);
+    Float4x4 model_query_inv, mat0;
+    Float4x4::inverse(model_query_inv, model_query);
+    Float4x4::mult(mat0, model_base, model_query_inv);
+
+    // MAT0 is just rotations and translations --> easy to decompose (and is
+    // pretty close to the answer we want):
+    float c0[NUM_PARAMETERS];
+    Float4x4 rot0;
+    Float3 trans0, euler0;
+    Float4x4::getTranslation(trans0, mat0);
+    // Float4x4::extractRotation(rot0, mat0);  // Actually does polar decomp
+    Float4x4::rotMat2Euler(euler0[0], euler0[1], euler0[2], mat0);
+    c0[CALIB_POS_X] = trans0[0];
+    c0[CALIB_POS_Y] = trans0[1];
+    c0[CALIB_POS_Z] = trans0[2];
+    c0[CALIB_ORIENT_X] = euler0[0];
+    c0[CALIB_ORIENT_Y] = euler0[1];
+    c0[CALIB_ORIENT_Z] = euler0[2];
+    c0[CALIB_SCALE] = 1.0f;
+
+    coeff2Mat(ret, c0);
+
+    // Clean up
+    SAFE_DELETE(solver_);
+    for (uint32_t i = 0; i < 3; i++) {
+      SAFE_DELETE_ARR(vq_[i]);
+      SAFE_DELETE_ARR(vb_[i]);
+    }
+  }
 
 }  // namespace hand_fit

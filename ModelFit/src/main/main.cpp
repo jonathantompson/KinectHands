@@ -44,7 +44,6 @@
 #include "jtil/file_io/file_io.h"
 #include "jtil/string_util/string_util.h"
 #include "jtil/threading/thread_pool.h"
-#include "jtil/math/bfgs.h"
 
 #if defined(WIN32) || defined(_WIN32)
   #define snprintf _snprintf_s
@@ -53,6 +52,7 @@
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
 #define CALIBRATION_RUN
+#define CALIBRATION_TEMP_FILT_SIZE 6
 
 // KINECT DATA
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Fit
@@ -118,14 +118,18 @@ bool scale_coeff = false;
 bool running = false;
 
 // model
-
+Float4x4 camera_view[MAX_KINECTS];
 PoseModel** models;
 #if defined(CALIBRATION_RUN)
   const uint32_t num_models = 1;
-  float** coeffs[MAX_KINECTS] = {NULL, NULL};
+  float** coeffs[MAX_KINECTS] = {NULL, NULL};  // coeffs[kinect][frame][coeff]
   const uint32_t num_coeff = CalibrateCoeff::NUM_PARAMETERS;
   const uint32_t num_coeff_fit = CAL_GEOM_NUM_COEFF;
   int kinect_to_modify = 0;
+  bool render_all_views = 0;
+  int16_t** depth_database[MAX_KINECTS] = {NULL, NULL};  // depth[kinect][frame][pix]
+  uint8_t** rgb_database[MAX_KINECTS] = {NULL, NULL};
+  uint8_t** label_database[MAX_KINECTS] = {NULL, NULL};
 #else
   HandModelCoeff** l_hand_coeffs = NULL;  // Left Hand coefficients
   HandModelCoeff** r_hand_coeffs = NULL;  // Right hand coeffs
@@ -214,9 +218,60 @@ void loadCurrentImage(bool print_to_screen = true) {
     std::cout << "cur_image = " << cur_image << " of ";
     std::cout << im_files[0].size() << std::endl;
   }
+#if defined(CALIBRATION_RUN)
+  // Average the non-zero pixels over some temporal filter kernel
+  uint32_t start_index[MAX_KINECTS] = {cur_image, 0};
+  for (uint32_t k = 1; k < MAX_KINECTS; k++) {
+    if (im_files[k].size() == 0) {
+      start_index[k] = MAX_UINT32;
+    } else {
+      // find the correct file (with smallest timestamp difference) - O(n)
+      int64_t src_timestamp = im_files[0][cur_image].second;
+      start_index[k] = 0;
+      int64_t min_delta_t = std::abs(src_timestamp - im_files[k][0].second);
+      for (uint32_t i = 1; i < im_files[k].size(); i++) {
+        int64_t delta_t = std::abs(src_timestamp - im_files[k][i].second);
+        if (delta_t < min_delta_t) {
+          min_delta_t = delta_t;
+          start_index[k] = i;
+        }
+      }
+    }
+  }
+  for (uint32_t k = 0; k < MAX_KINECTS; k++) {
+    for (uint32_t i = 0; i < src_dim; i++) {
+      int32_t integ = 0;
+      int32_t cnt = 0;
+      for (uint32_t f = start_index[k]; f < f + CALIBRATION_TEMP_FILT_SIZE &&
+        f < im_files[k].size(); f++) {
+        int16_t cur_depth = depth_database[k][f][i];
+        if (cur_depth != 0 && cur_depth < GDT_MAX_DIST) {
+          integ += cur_depth;
+          cnt++;
+        }
+      }
+      if (cnt == 0) {
+        cur_depth_data[k][i] = GDT_MAX_DIST + 1;
+      } else {
+        cur_depth_data[k][i] = integ / cnt;
+      }
+    }
+    memcpy(cur_image_rgb[k], rgb_database[k][start_index[k]], 
+      sizeof(cur_image_rgb[k][0]) * src_dim * 3);
+    memset(cur_label_data[k], 0, sizeof(cur_label_data[k][0]) * src_dim);
 
-  image_io->LoadCompressedImageWithRedHands(full_filename, 
-    cur_depth_data[0], cur_label_data[0], cur_image_rgb[0], NULL);
+#ifdef KINECT_DATA
+      DepthImagesIO::convertSingleImageToXYZ(cur_xyz_data[k], cur_depth_data[k]);
+#else
+      openni_funcs.ConvertDepthImageToProjective((uint16_t*)cur_depth_data[k], 
+        cur_uvd_data[k]);
+      openni_funcs.convertDepthToWorldCoordinates(cur_uvd_data[k], cur_xyz_data[k], 
+        src_dim);
+#endif
+  }
+#else
+  image_io->LoadCompressedImage(full_filename, 
+    cur_depth_data[0], cur_label_data[0], cur_image_rgb[0]);
 
 #ifdef KINECT_DATA
   DepthImagesIO::convertSingleImageToXYZ(cur_xyz_data[0], cur_depth_data[0]);
@@ -251,7 +306,7 @@ void loadCurrentImage(bool print_to_screen = true) {
       file = im_files[k][i_match].first;
       full_filename = IM_DIR + string(file);
       std::cout << "loading additional image: " << full_filename << std::endl;
-      image_io->LoadCompressedImageWithRedHands(full_filename, 
+      image_io->LoadCompressedImage(full_filename, 
         cur_depth_data[k], cur_label_data[k], cur_image_rgb[k], NULL);
 #ifdef KINECT_DATA
       DepthImagesIO::convertSingleImageToXYZ(cur_xyz_data[k], cur_depth_data[k]);
@@ -263,6 +318,7 @@ void loadCurrentImage(bool print_to_screen = true) {
 #endif
     }
   }
+#endif
 }
 
 void InitXYZPointsForRendering() {
@@ -681,17 +737,21 @@ void KeyboardCB(int key, int action) {
       if (action == RELEASED) {
 #ifdef CALIBRATION_RUN
         // Use BFGS to find an average affine transformation
-        BFGS* bfgs = new BFGS(7);
-        Float3* v1 = new Float3[im_files[0].size()];
-        //float delta_coeff[num_coeff];
-        //for (uint32_t i = 0; i < im_files[0].size(); i++) {
-        //  Float3 trans
-        //}
-      /*  playback_step = playback_step + 1;
-        playback_step = playback_step == 11 ? 1 : playback_step;
-        cout << "playback_step = " << playback_step << endl;*/
-        delete[] v1;
-        delete bfgs;
+        camera_view[0].identity();
+        for (uint32_t i = 1; i < MAX_KINECTS; i++) {
+          ((CalibrateGeometry*)models[0])->calcAveCameraView(camera_view[i], 0,
+            i, (const float***)&coeffs[0], 
+            im_files[0].size() - CALIBRATION_TEMP_FILT_SIZE);
+        }
+#endif
+      }
+      break;
+    case static_cast<int>('x'):
+    case static_cast<int>('X'): 
+      if (action == RELEASED) {
+#ifdef CALIBRATION_RUN
+        render_all_views = !render_all_views;
+        cout << "render_all_views = " << render_all_views << endl;
 #endif
       }
       break;
@@ -902,7 +962,11 @@ void renderFrame(float dt) {
 
 #ifdef CALIBRATION_RUN
   CalibrateGeometry::setCurrentStaticHandProperties(coeffs[0][cur_image]);
-  models[0]->updateMatrices(coeffs[kinect_to_modify][cur_image]);
+  if (!render_all_views) {
+    models[0]->updateMatrices(coeffs[kinect_to_modify][cur_image]);
+  } else {
+    models[0]->updateMatrices(coeffs[0][cur_image]);
+  }
 #else
   float* cur_coeff;
   if (fit_right && fit_left) {
@@ -928,8 +992,16 @@ void renderFrame(float dt) {
     render->renderFrame(dt);
     if (render_depth) {
 #ifdef CALIBRATION_RUN
-      render->renderColoredPointCloud(geometry_points[kinect_to_modify], &identity,
-        4.0f * static_cast<float>(settings.width) / 4.0f);
+      if (!render_all_views) {
+        render->renderColoredPointCloud(geometry_points[kinect_to_modify], 
+          &identity, 4.0f * static_cast<float>(settings.width) / 4.0f);
+      } else {
+        for (uint32_t i = 0; i < MAX_KINECTS; i++) {
+          render->renderColoredPointCloud(geometry_points[i], 
+            &camera_view[i], 4.0f * static_cast<float>(settings.width) / 4.0f);
+        }
+      }
+
 #else
       render->renderColoredPointCloud(geometry_points[0], &identity,
         4.0f * static_cast<float>(settings.width) / 4.0f);
@@ -991,6 +1063,7 @@ int main(int argc, char *argv[]) {
   cout << "o - Change playback frame skip" << endl;
   cout << "l - Go to start frame" << endl;
   cout << "c - Save calibration data (calibration mode only)" << endl;
+  cout << "x - Render all views (calibration mode only)" << endl;
   cout << "j - Query Objective Function Value" << endl;
   cout << "shift+12345 - Copy finger1234/thumb from last frame" << endl;
   cout << "k - (3 times) delete current file" << endl;
@@ -1041,9 +1114,28 @@ int main(int argc, char *argv[]) {
  
     // Load the Kinect data for fitting from file and process it
     image_io = new DepthImagesIO();
-    for (uint32_t i = 0; i < MAX_KINECTS; i++) {
-      image_io->GetFilesInDirectory(im_files[i], IM_DIR, false, i);
+    for (uint32_t k = 0; k < MAX_KINECTS; k++) {
+      image_io->GetFilesInDirectory(im_files[k], IM_DIR, false, k);
+      camera_view[k].identity();
     }
+#if defined(CALIBRATION_RUN)
+    // Load in all the images from file
+    for (uint32_t k = 0; k < MAX_KINECTS; k++) {
+      depth_database[k] = new int16_t*[im_files[k].size()];
+      rgb_database[k] = new uint8_t*[im_files[k].size()];
+      label_database[k] = new uint8_t*[im_files[k].size()];
+      for (uint32_t f = 0; f < im_files[k].size(); f++) {
+        depth_database[k][f] = new int16_t[src_dim];
+        rgb_database[k][f] = new uint8_t[src_dim*3];
+        label_database[k][f] = new uint8_t[src_dim];
+        char* file = im_files[k][f].first;
+        string full_filename = IM_DIR + string(file);
+        image_io->LoadCompressedImage(full_filename, depth_database[k][f], 
+          label_database[k][f], rgb_database[k][f]);
+      }
+    }
+
+#endif
     loadCurrentImage();
   
     // Attach callback functions for event handling

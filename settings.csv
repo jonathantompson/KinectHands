@@ -20,7 +20,7 @@ crop_depth_to_rgb,                bool,      1
 continuous_snapshot,              bool,      0
 flip_image,                       bool,      1
 depth_color_sync,                 bool,      1
-cur_kinect,                       int,       0
+cur_kinect,                       int,       1
 
 //, RENDERER
 screen_resolution_enum,           int,       8
