@@ -9,18 +9,18 @@
 //, *********** SETTINGS ***********
 //, APPLICATION SPECIFIC
 track_openni_skeleton,            bool,      0
-kinect_output,                    int,       1
+kinect_output,                    int,       0
 detect_hands,                     bool,      0
 detect_pose,                      bool,      0
 label_type_enum,                  int,       0
 render_convnet_points,            bool,      1
 render_kinect_fps,                bool,      1
 show_hand_model,                  bool,      0
-crop_depth_to_rgb,                bool,      1
 continuous_snapshot,              bool,      0
+continuous_cal_snapshot,          bool,      0
 flip_image,                       bool,      1
 depth_color_sync,                 bool,      1
-cur_kinect,                       int,       1
+cur_kinect,                       int,       0
 
 //, RENDERER
 screen_resolution_enum,           int,       8
@@ -56,7 +56,7 @@ dof_on,                           bool,      0
 dof_bounds,                       Float4,    0.15, 0.25, 3.0, 5.0
 ui_render_crosshairs,             bool,      0
 ui_crosshairs_size,               float,     0.025
-ui_starting_height,               int,       550
+ui_starting_height,               int,       600
 ui_starting_width,                int,       320
 vsm_on,                           bool,      0 
 vsm_resolution_enum,              int,       2
@@ -101,9 +101,9 @@ visualize_normals_length,         float,     0.25
 //, CAMERA
 //, Note camera near and far view planes are just Min and Max.  
 //, Frustum will be fitted to world objects and light volumes at runtime.
-fov_deg,                          float,     45
+fov_deg,                          float,     48
 view_plane_near,                  float,     -10.0
-view_plane_far,                   float,     -3000.0
+view_plane_far,                   float,     -5000.0
 starting_eye_rot,                 FloatQuat, 0.0, 0.0, 0.0, -1.0
 starting_eye_pos,                 Float3,    0.0, 0.0, -20.0
 camera_speed,                     float,     10.0

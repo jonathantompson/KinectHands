@@ -285,6 +285,31 @@ namespace renderer {
     return ret;
   }
 
+  GeometryColoredMesh* GeometryColoredMesh::makeCube(
+    const jtil::math::Float3& ctop, const jtil::math::Float3& cbottom, 
+    const jtil::math::Float3& cleft, const jtil::math::Float3& cright, 
+    const jtil::math::Float3& cfront, const jtil::math::Float3& cback) {
+    GeometryColoredMesh* ret = new GeometryColoredMesh();
+    ret->mat_.identity();
+
+    addTriangle(ret, ctop, 2, 1, 0, cube_vertices_);  // Top face 1
+    addTriangle(ret, ctop, 3, 2, 0, cube_vertices_);  // Top face 2
+    addTriangle(ret, cright, 6, 2, 3, cube_vertices_);  // Right face 1
+    addTriangle(ret, cright, 7, 6, 3, cube_vertices_);  // Right face 2
+    addTriangle(ret, cleft, 1, 5, 0, cube_vertices_);  // Left face 1
+    addTriangle(ret, cleft, 5, 4, 0, cube_vertices_);  // Left face 2
+    addTriangle(ret, cfront, 7, 3, 0, cube_vertices_);  // Front face 1
+    addTriangle(ret, cfront, 4, 7, 0, cube_vertices_);  // Front face 2
+    addTriangle(ret, cback, 5, 1, 2, cube_vertices_);  // Back face 1
+    addTriangle(ret, cback, 6, 5, 2, cube_vertices_);  // Back face 2
+    addTriangle(ret, cbottom, 6, 7, 4, cube_vertices_);  // Bottom face 1
+    addTriangle(ret, cbottom, 5, 6, 4, cube_vertices_);  // Bottom face 2
+
+    ret->syncVAO();
+
+    return ret;
+  }
+
   GeometryColoredMesh* GeometryColoredMesh::makeCubeRainbow() {
     GeometryColoredMesh* ret = new GeometryColoredMesh();
     ret->mat_.identity();

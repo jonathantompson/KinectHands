@@ -16,8 +16,14 @@ namespace kinect_interface {
   // Kinect constants FROM: XnOpenNI.cpp (and slightly edited)
   const double OpenNIFuncs::fHFOV_kinect_ = 1.0144686707507438;
   const double OpenNIFuncs::fVFOV_kinect_ = 0.78980943449644714;
-  const float OpenNIFuncs::fHFOV_primesense_109 = 1.01707470f;
-  const float OpenNIFuncs::fVFOV_primesense_109 = 0.791987565f;
+
+  //const float OpenNIFuncs::fHFOV_primesense_109 = 1.017074704170227f;  // True depth
+  //const float OpenNIFuncs::fVFOV_primesense_109 = 0.7919895648956299f;  // True depth
+  //const float OpenNIFuncs::fHFOV_primesense_109 = 1.075848937034607f;  // approx rgb
+  //const float OpenNIFuncs::fVFOV_primesense_109 = 0.8383198380470276f;  // approx rgb
+  const float OpenNIFuncs::fHFOV_primesense_109 = 1.076187422640391f;  // measured rgb
+  const float OpenNIFuncs::fVFOV_primesense_109 = 0.844611400289787f;  // measured rgb
+
   const double OpenNIFuncs::m_fRealWorldXtoZ_kinect_ = tan(OpenNIFuncs::fHFOV_kinect_/2)*2;
   const double OpenNIFuncs::m_fRealWorldYtoZ_kinect_ = tan(OpenNIFuncs::fVFOV_kinect_/2)*2;
   const uint32_t OpenNIFuncs::nXRes_kinect_ = 640;

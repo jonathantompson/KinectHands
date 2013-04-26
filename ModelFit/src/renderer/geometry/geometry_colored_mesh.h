@@ -78,6 +78,10 @@ namespace renderer {
 
     // Geometry builder methods --> Make new geometry primatives
     static GeometryColoredMesh* makeCube(const jtil::math::Float3& color);
+    static GeometryColoredMesh* makeCube(const jtil::math::Float3& ctop,
+      const jtil::math::Float3& cbottom, const jtil::math::Float3& cleft,
+      const jtil::math::Float3& cright, const jtil::math::Float3& cfront,
+      const jtil::math::Float3& cback);
     static GeometryColoredMesh* makeCubeRainbow();
     static GeometryColoredMesh* makePyramid(const jtil::math::Float3& color);
     static GeometryColoredMesh* makePyramidRainbow();

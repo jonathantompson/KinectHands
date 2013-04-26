@@ -14,6 +14,7 @@
 #include "renderer/geometry/geometry_vertices.h"
 #include "renderer/geometry/geometry_points.h"
 #include "renderer/geometry/geometry_colored_points.h"
+#include "renderer/geometry/geometry_colored_lines.h"
 #include "renderer/texture/texture.h"
 #include "renderer/texture/texture_renderable.h"
 #include "renderer/colors.h"
@@ -95,6 +96,10 @@ namespace renderer {
     v_shader_cpoints_ = NULL;
     f_shader_cpoints_ = NULL;
 
+    sp_clines_ = NULL;
+    v_shader_clines_ = NULL;
+    f_shader_clines_ = NULL;
+
     sp_downsample2_ = NULL;
     sp_downsample2_integ_ = NULL;
     sp_downsample4_ = NULL;
@@ -151,6 +156,10 @@ namespace renderer {
     SAFE_DELETE(sp_cpoints_);
     SAFE_DELETE(v_shader_cpoints_);
     SAFE_DELETE(f_shader_cpoints_);
+
+    SAFE_DELETE(sp_clines_);
+    SAFE_DELETE(v_shader_clines_);
+    SAFE_DELETE(f_shader_clines_);
 
     SAFE_DELETE(sp_downsample2_);
     SAFE_DELETE(sp_downsample2_integ_);
@@ -404,6 +413,17 @@ namespace renderer {
     h_PVW_mat_cpoints_ = sp_cpoints_->getUniformLocation("PVW_mat");
     h_VW_mat_cpoints_ = sp_cpoints_->getUniformLocation("VW_mat");
     h_cpoint_size_constant_ = sp_cpoints_->getUniformLocation("point_size_constant");
+
+    // Colored line rendering
+    v_shader_clines_ = new Shader("shaders/clines.vert", ShaderType::VERTEX_SHADER);
+    f_shader_clines_ = new Shader("shaders/clines.frag", ShaderType::FRAGMENT_SHADER);
+    sp_clines_ = new ShaderProgram(v_shader_clines_, f_shader_clines_);
+    sp_clines_->bindVertShaderInputLocation(Renderer::pos);
+    sp_clines_->bindVertShaderInputLocation(Renderer::col);
+    sp_clines_->link();
+    h_PVW_mat_clines_ = sp_clines_->getUniformLocation("PVW_mat");
+    //h_VW_mat_clines_ = sp_clines_->getUniformLocation("VW_mat");
+    //h_cline_size_constant_ = sp_clines_->getUniformLocation("line_size_constant");
     
     // Force a resize event TO set the correct viewport and projection matricies
     resize(screen_width_, screen_height_);
@@ -887,6 +907,23 @@ namespace renderer {
     
     points->draw();
   }
+
+  void Renderer::renderColoredLines(GeometryColoredLines* lines,
+    Float4x4* mat_world, const float line_size_constant) {
+    sp_clines_->useProgram();
+    
+    //GLState::glsEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+    //bindFloat1(line_size_constant, h_cline_size_constant_);
+    
+    // Calculate the model view projection matrix and bind it to the shader
+    Float4x4::mult(VW_mat_, *camera_->view(), *mat_world);
+    //bindFloat4x4(&VW_mat_, h_VW_mat_clines_);
+    Float4x4::mult(PVW_mat_, *camera_->proj(), VW_mat_ );
+    bindFloat4x4(&PVW_mat_, h_PVW_mat_clines_);
+    
+    lines->draw();
+  }
+
 
   void Renderer::downsample2Texture(TextureRenderable* dst, 
     TextureRenderable* src) {

@@ -16,7 +16,9 @@
 #include "jtil/data_str/vector.h"
 #include "jtil/data_str/pair.h"
 
-#define CAL_GEOM_NUM_COEFF 7
+#define CAL_GEOM_NUM_COEFF 6
+
+// Coeffs for spheres + cross
 #define SPHERE_RADIUS (65.5f / 2.0f)
 #define SPHERE_A_OFST 94.5f  // From center of cross to outside of ball (actually 95)
 #define SPHERE_B_OFST 92.5f  // Actually 92.5
@@ -28,6 +30,12 @@
 #define CYL_NSLICES 15
 #define CYL_BASE_RADIUS 1.0f
 #define CYL_BASE_HEIGHT 2.0f
+#define INCLUDE_STICKS
+
+// Coeffs for BOX
+#define BOX_SIDEA 339.725f
+#define BOX_SIDEB 330.2f
+#define BOX_SIDEC 106.68f
 
 #define NUM_CAL_SPHERES 0
 namespace jtil { namespace math { class BFGS; } }
@@ -45,14 +53,13 @@ namespace model_fit {
     CALIB_ORIENT_X     = 3,
     CALIB_ORIENT_Y     = 4,
     CALIB_ORIENT_Z     = 5,
-    CALIB_SCALE        = 6,
-    NUM_PARAMETERS     = 7,
+    NUM_PARAMETERS     = 6,
   } CalibrateCoeff;
 
   class CalibrateGeometry : public PoseModel {
   public:
     // Constructor / Destructor
-    CalibrateGeometry();
+    CalibrateGeometry(bool box = false);
     virtual ~CalibrateGeometry();
 
     // Call before rendering hand depth maps:
@@ -68,6 +75,11 @@ namespace model_fit {
     void calcAveCameraView(jtil::math::Float4x4& ret, 
       const uint32_t i_base_cam, const uint32_t i_query_cam, 
       const float*** coeffs, const uint32_t num_frames);
+    // The next version is simper than above and just finds the current frame
+    // camera
+    void calcCameraView(jtil::math::Float4x4& ret, 
+      const uint32_t i_base_cam, const uint32_t i_query_cam, 
+      const float*** coeffs, const uint32_t cur_frame);
 
     virtual void renderStackReset();
     virtual renderer::Geometry* renderStackPop();
@@ -89,11 +101,6 @@ namespace model_fit {
     static float calcAveCameraViewObjFunc(const float* coeff);
     static void calcAveCameraViewJacobFunc(float* jacob, const float* coeff);
 
-    // Since there are a few coeffs that we cannot get from the PSO (since
-    // the PSO doesn't optimize them), we must keep track of some coeff parameters
-    // that are going to be constant accross an optimization run.
-    static void setCurrentStaticHandProperties(const float* coeff);
-
   private:
     renderer::Geometry* scene_graph_;  // The renderable geometry - Not owned here
     renderer::Geometry* sphere_a_;
@@ -101,6 +108,8 @@ namespace model_fit {
     renderer::Geometry* sphere_c_;
     renderer::Geometry* cylinder_a_;
     renderer::Geometry* cylinder_b_;
+
+    renderer::Geometry* box_;
     jtil::data_str::Vector<renderer::BoundingSphere*> bspheres_;  // Attached to scene graph!
     bool renderer_attachment_;  // whether or not the model is attached to the 
                                 // global renderer's scene graph

@@ -48,6 +48,7 @@ using namespace jtil::threading;
 namespace app {
 
   App* App::g_app_ = NULL;
+  uint32_t App::screenshot_counter_ = 0;
 #if defined(_WIN32)
   DebugBuf* App::debug_buf = NULL;
   std::streambuf* old_cout_buf = NULL;
@@ -375,9 +376,13 @@ namespace app {
       Renderer::g_renderer()->renderFrame();
 
       // Save the frame to file if we have been asked to:
-      bool continuous_snapshot;
+      bool continuous_snapshot, continuous_cal_snapshot;
       GET_SETTING("continuous_snapshot", bool, continuous_snapshot);
-      if (continuous_snapshot) {
+      GET_SETTING("continuous_cal_snapshot", bool, continuous_cal_snapshot);
+      if (continuous_cal_snapshot && continuous_snapshot) {
+        SET_SETTING("continuous_cal_snapshot", bool, false);
+      }
+      if (continuous_snapshot || continuous_cal_snapshot) {
         executeThreadCallbacks(tp_, data_save_cbs_);
       }
 
@@ -442,10 +447,14 @@ namespace app {
     ui->addSelectboxItem("kinect_output",
       ui::UIEnumVal(OUTPUT_HAND_NORMALS, "Hand Normals"));
     ui->addCheckbox("render_kinect_fps", "Render Kinect FPS");
-    ui->addCheckbox("crop_depth_to_rgb", "Crop depth to RGB");
     ui->addCheckbox("continuous_snapshot", "Save continuous video stream");
+    ui->addCheckbox("continuous_cal_snapshot", "Save continuous calibration stream");
     ui->addCheckbox("flip_image", "Flip Kinect Image");
     ui->addCheckbox("depth_color_sync", "Depth Color Sync Enabled"); 
+    ui->addButton("screenshot_button", "RGB Screenshot", 
+      App::screenshotCB);
+    ui->addButton("greyscale_screenshot_button", "Greyscale Screenshot", 
+      App::greyscaleScreenshotCB);
 
     ui->addHeadingText("Hand Detection:");
     ui->addCheckbox("detect_hands", "Enable Hand Detection");
@@ -484,6 +493,39 @@ namespace app {
     light_spot_vsm->inner_fov_deg() = 30.0f;
     light_spot_vsm->cvsm_count(1);
     Renderer::g_renderer()->addLight(light_spot_vsm);
+  }
+
+  void App::screenshotCB() {
+    int cur_kinect;
+    GET_SETTING("cur_kinect", int, cur_kinect);
+    g_app_->kinect_[cur_kinect]->lockData();
+    const uint8_t* rgb = g_app_->kinect_[cur_kinect]->rgb();
+    std::stringstream ss;
+    ss << "rgb_screenshot" << g_app_->screenshot_counter_ << ".jpg";
+    jtil::renderer::Texture::saveRGBToFile(ss.str(), rgb, src_width, 
+      src_height, true);
+    std::cout << "RGB saved to file " << ss.str() << std::endl;
+    g_app_->screenshot_counter_++;
+    g_app_->kinect_[cur_kinect]->unlockData();
+  }
+
+  void App::greyscaleScreenshotCB() {
+    int cur_kinect;
+    GET_SETTING("cur_kinect", int, cur_kinect);
+    g_app_->kinect_[cur_kinect]->lockData();
+    const uint8_t* rgb = g_app_->kinect_[cur_kinect]->rgb();
+    uint8_t* grey = new uint8_t[src_width * src_height];
+    for (uint32_t i = 0; i < src_dim; i++) {
+      grey[i] = (uint8_t)(((uint16_t)rgb[i*3] + (uint16_t)rgb[i*3+1] + 
+        (uint16_t)rgb[i*3+2]) / 3);
+    }
+    std::stringstream ss;
+    ss << "greyscale_screenshot" << g_app_->screenshot_counter_ << ".jpg";
+    jtil::renderer::Texture::saveGreyscaleToFile(ss.str(), grey, src_width, 
+      src_height, true);
+    std::cout << "Greyscale saved to file " << ss.str() << std::endl;
+    g_app_->screenshot_counter_++;
+    g_app_->kinect_[cur_kinect]->unlockData();
   }
 
   int App::closeWndCB() {
@@ -544,12 +586,22 @@ namespace app {
 
   void App::saveKinectData(const uint32_t index) {
     if (kdata_[index]->saved_frame_number != kdata_[index]->frame_number) {
+      bool continuous_cal_snapshot;
+      GET_SETTING("continuous_cal_snapshot", bool, continuous_cal_snapshot);
       std::stringstream ss;
       uint64_t time = (uint64_t)(clk_->getTime() * 1e9);
-      if (index > 0) {
-        ss << "hands" << index << "_" << time << ".bin";
+      if (continuous_cal_snapshot) {
+        if (index > 0) {
+          ss << "calb" << index << "_" << time << ".bin";
+        } else {
+          ss << "calb_" << time << ".bin";
+        }
       } else {
-        ss << "hands_" << time << ".bin";
+        if (index > 0) {
+          ss << "hands" << index << "_" << time << ".bin";
+        } else {
+          ss << "hands_" << time << ".bin";
+        }
       }
       kdata_[index]->saveSensorData(ss.str());
     }

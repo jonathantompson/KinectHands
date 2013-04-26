@@ -10,6 +10,7 @@
 #include <sstream>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include "kinect_interface/kinect_interface.h"
 #include "kinect_interface/open_ni_funcs.h"
 #include "kinect_interface/hand_detector/hand_detector.h"
@@ -89,11 +90,6 @@ namespace kinect_interface {
     Callback<void>* threadBody = MakeCallableOnce(
       &KinectInterface::kinectUpdateThread, this);
     kinect_thread_ = MakeThread(threadBody);
-
-    // Spin wait here until the Kinect updat thread has done one iteration
-    while (frame_number_ <= 1) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
 
     device_initialized_ = true;
     // Increment the devices counter
@@ -289,7 +285,11 @@ namespace kinect_interface {
     // Open a connection to the device's rgb channel
     initRGB();
 
-    GET_SETTING("crop_depth_to_rgb", bool, crop_depth_to_rgb_);
+    // Note: XYZ (real world values are ALL wrong when image registration is
+    // turned on).  It looks OK for a single Kinect, but the space is warped.
+    // This is an OpenNI bug:
+
+    crop_depth_to_rgb_ = false;
     if (crop_depth_to_rgb_) {
       device_->setImageRegistrationMode(openni::IMAGE_REGISTRATION_DEPTH_TO_COLOR);
     } else {
@@ -300,6 +300,56 @@ namespace kinect_interface {
     for (uint32_t i = 0; i < NUM_STREAMS; i++) {
       streams_[i]->setMirroringEnabled(flip_image_);
     }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+    // Read the streams once so the frame is initialized.
+    for (uint32_t i = 0; i < NUM_STREAMS; i++) {
+      streams_[i]->readFrame(frames_[i]);
+    }
+
+    // Update the OpenNIFuncs constants
+    float depth_hfov = streams_[DEPTH]->getHorizontalFieldOfView();
+    float depth_vfov = streams_[DEPTH]->getVerticalFieldOfView();
+    // To get the RGB fov is a little work.  Unfortunately, if you query the
+    // stream openNI gives you the same fov as above.  Instead, convert
+    // a pixel at each corner of the RGB to figure out the FOV change from
+    // depth to RGB.
+    jtil::math::Vec2<int> p1(0, 0);
+    jtil::math::Vec2<int> p1_rgb, p2_rgb, p3_rgb, p4_rgb;
+    int depth_val = 500;
+    openni::CoordinateConverter::convertDepthToColor(*streams_[DEPTH],
+      *streams_[RGB], p1[0], p1[1], depth_val, &p1_rgb[0], &p1_rgb[1]);
+    // All the other points are a little trickier...  If we query for (639, 0)
+    // for instance, the returned value is (0, 0) since there is a black crop
+    // bar around the outside of the image, instead query a little inside.
+    jtil::math::Vec2<int> p2(depth_dim_[0]-100, 0);
+    jtil::math::Vec2<int> p3(0, depth_dim_[1]-100);
+    jtil::math::Vec2<int> p4(depth_dim_[0]-100, depth_dim_[1]-100);
+    openni::CoordinateConverter::convertDepthToColor(*streams_[DEPTH],
+      *streams_[RGB], p2[0], p2[1], depth_val, &p2_rgb[0], &p2_rgb[1]);
+    openni::CoordinateConverter::convertDepthToColor(*streams_[DEPTH],
+      *streams_[RGB], p3[0], p3[1], depth_val, &p3_rgb[0], &p3_rgb[1]);
+    openni::CoordinateConverter::convertDepthToColor(*streams_[DEPTH],
+      *streams_[RGB], p4[0], p4[1], depth_val, &p4_rgb[0], &p4_rgb[1]);
+    // It seems from looking at the numbers there is both rotation, translation
+    // crop and some depth dependant scaling, but lets just fudge it and take
+    // and average vertical and horizontal FOV change.
+    float scale_h1 = (float)(p1[0] - p2[0]) / (float)(p1_rgb[0] - p2_rgb[0]);
+    float scale_h2 = (float)(p3[0] - p4[0]) / (float)(p3_rgb[0] - p4_rgb[0]);
+    float scale_v1 = (float)(p1[1] - p3[1]) / (float)(p1_rgb[1] - p3_rgb[1]);
+    float scale_v2 = (float)(p2[1] - p4[1]) / (float)(p2_rgb[1] - p4_rgb[1]);
+    float rgb_hfov = 0.5f * (scale_h1 + scale_h2) * depth_hfov;
+    float rgb_vfov = 0.5f * (scale_v1 + scale_v2) * depth_vfov;
+    std::streamsize old_precision = std::cout.precision();
+    std::cout.precision(std::numeric_limits<double>::digits10 + 1);
+    std::cout << "       DEPTH: HFOV = " << depth_hfov;
+    std::cout << " VFOV = " << depth_vfov << std::endl;
+    std::cout << "  approx RGB: HFOV = " << rgb_hfov;
+    std::cout << " VFOV = " << rgb_vfov << std::endl;
+    std::cout.precision(old_precision);
+    openni_funcs_ = new OpenNIFuncs(depth_dim_[0], depth_dim_[1],
+      depth_hfov, depth_vfov);
 
     std::cout << "Finished initializaing OpenNI device" << std::endl;
   }
@@ -422,11 +472,6 @@ namespace kinect_interface {
     depth_dim_.set(depth_mode.getResolutionX(), depth_mode.getResolutionY());
     frames_[DEPTH] = new openni::VideoFrameRef();
 
-    // Update the OpenNIFuncs constants
-    openni_funcs_ = new OpenNIFuncs(depth_dim_[0], depth_dim_[1],
-      streams_[DEPTH]->getHorizontalFieldOfView(), 
-      streams_[DEPTH]->getVerticalFieldOfView());
-
     if (depth_format_100um_) {
       depth_1mm_ = new uint16_t[depth_dim_[0] * depth_dim_[1]];
     }
@@ -508,32 +553,36 @@ namespace kinect_interface {
     SetThreadName("KinectInterface::kinectUpdateThread()");
 
     while (kinect_running_) {
-      bool crop_depth_to_rgb, flip_image, depth_color_sync;
-      GET_SETTING("crop_depth_to_rgb", bool, crop_depth_to_rgb);
+      bool flip_image, depth_color_sync;
       GET_SETTING("flip_image", bool, flip_image);
       GET_SETTING("depth_color_sync", bool, depth_color_sync);
       setFlipImage(flip_image);
-      setCropDepthToRGB(crop_depth_to_rgb);
       setDepthColorSync(depth_color_sync);
 
       // Wait for all streams individually.  We need Depth and RGB frames to be
       // consistent in time so we should for both rather than process each one
       // independantly
+      bool stream_ready[NUM_STREAMS];
       for (uint32_t i = 0; i < NUM_STREAMS; i++) {
         int changedIndex;
-	      checkOpenNIRC(openni::OpenNI::waitForAnyStream(&streams_[i], 1, 
-          &changedIndex), 
-          "kinectUpdateThread() - ERROR: waitForAnyStream failed!");
-        if (changedIndex != 0) {
-          throw std::wruntime_error("KinectInterface::kinectUpdateThread() - "
-          "ERROR: waitForAnyStream failed!");
+        openni::Status rc = openni::OpenNI::waitForAnyStream(&streams_[i], 1, 
+          &changedIndex, OPENNI_WAIT_TIMEOUT);
+        if (changedIndex != 0 || rc != openni::Status::STATUS_OK) {
+          stream_ready[i] = false;
+        } else {
+          stream_ready[i] = true;
         }
       }
 
       data_lock_.lock();
 
       for (uint32_t i = 0; i < NUM_STREAMS; i++) {
-        streams_[i]->readFrame(frames_[i]);
+        if (stream_ready[i]) {
+          streams_[i]->readFrame(frames_[i]);
+        } else {
+          std::cout << "kinectUpdateThread() - WARNING: stream timeout!";
+          std::cout << std::endl;
+        }
       }
 
       // Check if we're running again.  Someone may have shut down the thread

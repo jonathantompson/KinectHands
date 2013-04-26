@@ -51,6 +51,11 @@ namespace renderer {
                               static_cast<float>(rgb[i * 3 + 2])/255.0f));
     }
   }
+
+  void GeometryColoredPoints::addPoint(const float* xyz, const float* rgb) {
+    vertices_.pushBack(Float3(xyz[0], xyz[1], xyz[2]));
+    colors_.pushBack(Float3(rgb[0], rgb[1], rgb[2]));
+  }
   
   void GeometryColoredPoints::addPoints(const float* xyz, const float* rgb,
                                         uint32_t num_points) {

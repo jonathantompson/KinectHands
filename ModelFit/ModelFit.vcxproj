@@ -23,6 +23,7 @@
     <ClCompile Include="src\renderer\geometry\bone_info.cpp" />
     <ClCompile Include="src\renderer\geometry\geometry.cpp" />
     <ClCompile Include="src\renderer\geometry\geometry_colored_boned_mesh.cpp" />
+    <ClCompile Include="src\renderer\geometry\geometry_colored_lines.cpp" />
     <ClCompile Include="src\renderer\geometry\geometry_colored_mesh.cpp" />
     <ClCompile Include="src\renderer\geometry\geometry_colored_points.cpp" />
     <ClCompile Include="src\renderer\geometry\geometry_manager.cpp" />
@@ -58,6 +59,7 @@
     <ClInclude Include="src\renderer\geometry\bone_info.h" />
     <ClInclude Include="src\renderer\geometry\geometry.h" />
     <ClInclude Include="src\renderer\geometry\geometry_colored_boned_mesh.h" />
+    <ClInclude Include="src\renderer\geometry\geometry_colored_lines.h" />
     <ClInclude Include="src\renderer\geometry\geometry_colored_mesh.h" />
     <ClInclude Include="src\renderer\geometry\geometry_colored_points.h" />
     <ClInclude Include="src\renderer\geometry\geometry_manager.h" />
@@ -89,6 +91,8 @@
     <None Include="shaders\cdepth.vert" />
     <None Include="shaders\cdepth_skinned.vert" />
     <None Include="shaders\cdepth_skinned_lbs.vert" />
+    <None Include="shaders\clines.frag" />
+    <None Include="shaders\clines.vert" />
     <None Include="shaders\cmesh_bone_dlight.frag" />
     <None Include="shaders\cmesh_bone_dlight.vert" />
     <None Include="shaders\cmesh_bone_dlight_lbs.vert" />
@@ -176,6 +180,7 @@
       <PreprocessorDefinitions>HAND_FIT;NDEBUG;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)../kinect_interface/include;$(ProjectDir)../../PRenderer2/jtil/include;$(ProjectDir)FreeImage3154/include;$(ProjectDir)assimp_3.0.1270/include;$(ProjectDir)src;$(ProjectDir)eigen-3.1.1/Eigen;$(ProjectDir)glfw/include</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -202,6 +207,7 @@ COPY /Y $(ProjectDir)FreeImage3154\lib_win7_64\FreeImage.dll $(ProjectDir)Build\
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <AdditionalOptions>/Qvec-report:1 %(AdditionalOptions)</AdditionalOptions>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

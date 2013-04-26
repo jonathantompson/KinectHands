@@ -175,9 +175,8 @@ namespace kinect_interface {
     DepthImageData*& train_data, DepthImageData*& test_data,
     const float frac_test_data, const uint32_t file_stride) {
     Vector<Pair<char*, int64_t>> files_in_directory;
-    const bool load_processed_images = true;  // don't change this!
-    uint32_t num_files = GetFilesInDirectory(files_in_directory, directory,
-      load_processed_images, 0);
+    uint32_t num_files = GetFilesInDirectory(files_in_directory, directory, 0,
+      "processed_hands");
     if (num_files == 0) {
       throw std::runtime_error("ERROR: no files in the database!\n");
     }
@@ -536,8 +535,7 @@ namespace kinect_interface {
 
   uint32_t DepthImagesIO::GetFilesInDirectory(
     jtil::data_str::Vector<Pair<char*, int64_t>>& files_in_directory, 
-    const string& directory, const bool load_processed_images, 
-    const uint32_t kinect_num) {
+    const string& directory, const uint32_t kinect_num, const char* prefix) {
     std::vector<Pair<char*, int64_t>> files;
 #if defined(WIN32) || defined(_WIN32)
     // Prepare string for use with FindFile functions.  First, copy the
@@ -546,7 +544,7 @@ namespace kinect_interface {
     StringCchCopy(szDir, MAX_PATH, 
       jtil::string_util::ToWideString(directory).c_str());
     std::wstringstream ss;
-    if (!load_processed_images) {
+    if (prefix == NULL) {
       if (kinect_num ==  0) {
         ss << L"\\hands_*.bin";
       } else {
@@ -554,9 +552,10 @@ namespace kinect_interface {
       }
     } else {
       if (kinect_num ==  0) {
-        ss << L"\\processed_hands_*.bin";
+        ss << L"\\" << jtil::string_util::ToWideString(prefix) << L"_*.bin";
       } else {
-        ss << L"\\processed_hands" << kinect_num << L"_*.bin";
+        ss << L"\\" << jtil::string_util::ToWideString(prefix) << kinect_num;
+        ss << L"_*.bin";
       }
     }
     StringCchCat(szDir, MAX_PATH, ss.str().c_str());

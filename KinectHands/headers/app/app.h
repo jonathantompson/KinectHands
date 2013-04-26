@@ -67,6 +67,8 @@ namespace app {
     static void mouseButtonCB(const int button, const int action);
     static void mouseWheelCB(const int pos);
     static void characterInputCB(const int character, const int action);
+    static void screenshotCB();
+    static void greyscaleScreenshotCB();
 
   private:
     static App* g_app_;  // Global singleton
@@ -91,6 +93,7 @@ namespace app {
     jtil::math::Int2 mouse_pos_old_;
     double frame_time_;
     double frame_time_prev_;
+    static uint32_t screenshot_counter_;
 
     jtil::renderer::Texture* background_tex_;
     jtil::renderer::Texture* convnet_background_tex_;  // smaller dimension

@@ -34,6 +34,7 @@ namespace renderer {
     virtual ~GeometryColoredPoints();
     
     // getter and setter methods
+    void addPoint(const float* xyz, const float* rgb);
     void addPoints(const float* xyz, const uint8_t* rgb, uint32_t num_points);
     void addPoints(const float* xyz, const float* rgb, uint32_t num_points);
     

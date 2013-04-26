@@ -36,6 +36,7 @@ namespace renderer {
   class GeometryVertices;
   class GeometryPoints;
   class GeometryColoredPoints;
+  class GeometryColoredLines;
   class Texture;
   class TextureRenderable;
   class LightDir;
@@ -100,6 +101,8 @@ namespace renderer {
       const jtil::math::Float3* color, const float point_size_constant);
     void renderColoredPointCloud(GeometryColoredPoints* points,
       jtil::math::Float4x4* mat_world, const float point_size_constant);
+    void renderColoredLines(GeometryColoredLines* points,
+      jtil::math::Float4x4* mat_world, const float line_size_constant);
     void downsample2Texture(TextureRenderable* dst, TextureRenderable* src);
     void downsample2IntegTexture(TextureRenderable* dst, TextureRenderable* src);
     void downsample4Texture(TextureRenderable* dst, TextureRenderable* src);
@@ -221,6 +224,14 @@ namespace renderer {
     GLint h_VW_mat_cpoints_;
     GLint h_PVW_mat_cpoints_;
     GLint h_cpoint_size_constant_;
+
+    // Colored Line rendering
+    Shader* v_shader_clines_;
+    Shader* f_shader_clines_;
+    ShaderProgram* sp_clines_;
+    //GLint h_VW_mat_clines_;
+    GLint h_PVW_mat_clines_;
+    //GLint h_cline_size_constant_;
     
     // Temporary variables
     jtil::math::Float4x4 Normal_mat_;

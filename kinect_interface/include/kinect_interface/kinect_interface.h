@@ -18,7 +18,7 @@
 #define SKELETON_SMOOTHING 0.05f
 #define MIRROR true  // true if you want OPEN to mirror all kinect data
 #define KINECT_INTERFACE_NUM_WORKER_THREADS 4
-#define OPENNI_WAIT_TIMEOUT 1000
+#define OPENNI_WAIT_TIMEOUT 50  // Maybe ms?
 
 namespace jtil { namespace clk { class Clk; } }
 namespace jtil { namespace data_str { template <typename T> class VectorManaged; } }

@@ -145,6 +145,9 @@
     <ClCompile Include="src\model_fit\calibrate_geometry.cpp">
       <Filter>Source Files\src\model_fit</Filter>
     </ClCompile>
+    <ClCompile Include="src\renderer\geometry\geometry_colored_lines.cpp">
+      <Filter>Source Files\src\renderer\geometry</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\renderer\colors.h">
@@ -254,6 +257,9 @@
     </ClInclude>
     <ClInclude Include="src\model_fit\calibrate_geometry.h">
       <Filter>Source Files\src\model_fit</Filter>
+    </ClInclude>
+    <ClInclude Include="src\renderer\geometry\geometry_colored_lines.h">
+      <Filter>Source Files\src\renderer\geometry</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -372,6 +378,12 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="shaders\residue_calc_depth_only.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\clines.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\clines.vert">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>
