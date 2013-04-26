@@ -624,6 +624,10 @@ public:
 		{
 		}
 
+		virtual ~NewFrameListener()
+		{
+		}
+
 		/**
 		Derived classes should implement this function to handle new frames.
 		*/
@@ -1426,6 +1430,11 @@ public:
 		return rc;
 	}
 
+	bool getDepthColorSyncEnabled()
+	{
+		return oniDeviceGetDepthColorSyncEnabled(m_device) == TRUE;
+	}
+
 	/**
 	Sets a property that takes an arbitrary data type as its input.  It is not expected that
 	application code will need this function frequently, as all commonly used properties have
@@ -1763,6 +1772,35 @@ public:
 		return rc == STATUS_OK && enabled == TRUE;
 	}
 
+	Status setGain(int gain)
+	{
+		return setProperty(STREAM_PROPERTY_GAIN, gain);
+	}
+	Status setExposure(int exposure)
+	{
+		return setProperty(STREAM_PROPERTY_EXPOSURE, exposure);
+	}
+	int getGain()
+	{
+		int gain;
+		Status rc = getProperty(STREAM_PROPERTY_GAIN, &gain);
+		if (rc != STATUS_OK)
+		{
+			return 100;
+		}
+		return gain;
+	}
+	int getExposure()
+	{
+		int exposure;
+		Status rc = getProperty(STREAM_PROPERTY_EXPOSURE, &exposure);
+		if (rc != STATUS_OK)
+		{
+			return 0;
+		}
+		return exposure;
+	}
+
 	bool isValid() const {return m_pStream != NULL;}
 private:
 	template <class T>
@@ -1831,6 +1869,11 @@ public:
 			m_deviceConnectedCallbacks.deviceStateChanged = NULL;
 			m_deviceConnectedCallbacksHandle = NULL;
 		}
+		
+		virtual ~DeviceConnectedListener()
+		{
+		}
+		
 		/**
 		* Callback function for the onDeviceConnected event.  This function will be 
 		* called whenever this event occurs.  When this happens, a pointer to the @ref DeviceInfo
@@ -1881,6 +1924,11 @@ public:
 			m_deviceDisconnectedCallbacks.deviceStateChanged = NULL;
 			m_deviceDisconnectedCallbacksHandle = NULL;
 		}
+		
+		virtual ~DeviceDisconnectedListener()
+		{
+		}
+		
 		/**
 		 * Callback function for the onDeviceDisconnected event. This function will be
 		 * called whenever this event occurs.  When this happens, a pointer to the DeviceInfo
@@ -1924,6 +1972,11 @@ public:
 			m_deviceStateChangedCallbacks.deviceStateChanged = deviceStateChangedCallback;
 			m_deviceStateChangedCallbacksHandle = NULL;
 		}
+		
+		virtual ~DeviceStateChangedListener()
+		{
+		}
+		
 		/**
 		* Callback function for the onDeviceStateChanged event.  This function will be 
 		* called whenever this event occurs.  When this happens, a pointer to a DeviceInfo

@@ -1,8 +1,15 @@
 #include <cmath>
 #include <string>
 #include <iostream>
+#include <stdexcept>
+#include <iostream>
+#include <fstream>
 #include "kinect_interface/open_ni_funcs.h"
+#include "kinect_interface/calibration_data.h"
 #include "jtil/exceptions/wruntime_error.h"
+
+#define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
+#define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
 using std::cout;
 using std::endl;
@@ -17,12 +24,12 @@ namespace kinect_interface {
   const double OpenNIFuncs::fHFOV_kinect_ = 1.0144686707507438;
   const double OpenNIFuncs::fVFOV_kinect_ = 0.78980943449644714;
 
-  //const float OpenNIFuncs::fHFOV_primesense_109 = 1.017074704170227f;  // True depth
-  //const float OpenNIFuncs::fVFOV_primesense_109 = 0.7919895648956299f;  // True depth
+  const float OpenNIFuncs::fHFOV_primesense_109 = 1.017074704170227f;  // True depth
+  const float OpenNIFuncs::fVFOV_primesense_109 = 0.7919895648956299f;  // True depth
   //const float OpenNIFuncs::fHFOV_primesense_109 = 1.075848937034607f;  // approx rgb
   //const float OpenNIFuncs::fVFOV_primesense_109 = 0.8383198380470276f;  // approx rgb
-  const float OpenNIFuncs::fHFOV_primesense_109 = 1.076187422640391f;  // measured rgb
-  const float OpenNIFuncs::fVFOV_primesense_109 = 0.844611400289787f;  // measured rgb
+  //const float OpenNIFuncs::fHFOV_primesense_109 = 1.076187422640391f;  // measured rgb
+  //const float OpenNIFuncs::fVFOV_primesense_109 = 0.844611400289787f;  // measured rgb
 
   const double OpenNIFuncs::m_fRealWorldXtoZ_kinect_ = tan(OpenNIFuncs::fHFOV_kinect_/2)*2;
   const double OpenNIFuncs::m_fRealWorldYtoZ_kinect_ = tan(OpenNIFuncs::fVFOV_kinect_/2)*2;
@@ -33,7 +40,9 @@ namespace kinect_interface {
   const uint32_t OpenNIFuncs::nYRes_primesense_109 = 480;
 
   OpenNIFuncs::OpenNIFuncs(const uint32_t nXRes, const uint32_t nYRes, 
-      const float hFOV, const float vFOV) {
+    const float hFOV, const float vFOV, const uint32_t internal_dev_id) {
+    internal_dev_id_ = internal_dev_id;
+    cal_data_ = NULL;
     nXRes_ = (float)nXRes;
     nYRes_ = (float)nYRes;
     fHFOV_ = hFOV;
@@ -44,9 +53,11 @@ namespace kinect_interface {
 	  halfResY_ = nYRes_ / 2.0f;
 	  coeffX_ = nXRes_ / xzFactor_;
 	  coeffY_ = nYRes_ / yzFactor_;
+    loadCalibrationData();
   }
 
   OpenNIFuncs::OpenNIFuncs() {
+    internal_dev_id_ = 0;
     nXRes_ = (float)nXRes_primesense_109;
     nYRes_ = (float)nYRes_primesense_109;
     fHFOV_ = fHFOV_primesense_109;
@@ -57,10 +68,11 @@ namespace kinect_interface {
 	  halfResY_ = nYRes_ / 2.0f;
 	  coeffX_ = nXRes_ / xzFactor_;
 	  coeffY_ = nYRes_ / yzFactor_;
+    loadCalibrationData();
   }
 
   OpenNIFuncs::~OpenNIFuncs() {
-
+    SAFE_DELETE(cal_data_);
   }
 
   // FROM: XnOpenNI.cpp (and slightly edited)
@@ -167,6 +179,132 @@ namespace kinect_interface {
     }
   }
 
+  bool OpenNIFuncs::TranslateSinglePixel(const uint32_t x, const uint32_t y, 
+    uint16_t z, uint32_t& imageX, uint32_t& imageY, const bool m_isMirrored) {
+    imageX = 0;
+    imageY = 0;
+
+    uint32_t nDepthXRes = m_depthResolution.x;
+    bool bMirror = m_isMirrored;
+    uint32_t nIndex = bMirror ? ((y+1)*nDepthXRes - x - 1) * 2 : 
+      (y*nDepthXRes + x) * 2;
+    uint16_t* pRegTable = (uint16_t*)&m_pRegTable[nIndex];
+    uint16_t* pRGBRegDepthToShiftTable = m_pDepth2ShiftTable; 
+    uint32_t nNewX = 0;
+    uint32_t nNewY = 0;
+
+    uint32_t nLinesShift = cal_data_->m_pPadInfo->nCroppingLines - 
+      cal_data_->m_pPadInfo->nStartLines;
+
+    if (z == 0) {
+      return false;
+    }
+
+    nNewX = (uint32_t)(*pRegTable + pRGBRegDepthToShiftTable[z]) / 
+      cal_data_->m_blob.params1080.rgbRegXValScale;
+    nNewY = *(pRegTable+1);
+    if (nNewX >= nDepthXRes || nNewY < nLinesShift) {
+      return false;
+    }
+
+    imageX = bMirror ? (nDepthXRes - nNewX - 1) : nNewX;
+    imageY = nNewY - nLinesShift;
+
+    /////////////////////////////////////
+     
+
+    double fullXRes = m_colorResolution.x;
+    double fullYRes;
+    bool bCrop = FALSE;
+
+    if ((9 * m_colorResolution.x / m_colorResolution.y) == 16)
+    {
+      fullYRes = m_colorResolution.x * 4 / 5;
+      bCrop = TRUE;
+    }
+    else
+    {
+      fullYRes = m_colorResolution.y;
+      bCrop = FALSE;
+    }
+
+    // inflate to full res
+    imageX = (uint32_t)(fullXRes / m_depthResolution.x * imageX);
+    imageY = (uint32_t)(fullYRes / m_depthResolution.y * imageY);
+
+    if (bCrop)
+    {
+      // crop from center
+      imageY -= (uint32_t)(fullYRes - m_colorResolution.y)/2;
+      if (imageY > (uint32_t)m_colorResolution.y)
+      {
+        return false;
+      }
+    }
+
+    return true;
+
+  }
+
+  void OpenNIFuncs::loadCalibrationData() {
+    char filename[256];
+#if defined(WIN32) || defined(_WIN32)
+#pragma warning(push)
+#pragma warning(disable:4996)
+  _snprintf(filename, 256, "calibration_info1080_%d.bin", internal_dev_id_);
+#pragma warning(pop)
+#else
+  snprintf(filename, 256, "calibration_info1080_%d.bin", internal_dev_id_);
+#endif
+    std::ifstream file(filename, std::ios::in | std::ios::binary);
+    if (!file.is_open()) {
+      throw std::wruntime_error(std::string("OpenNIFuncs::loadCalibrationData()"
+        " - ERROR: Cannot open output file:") + filename);
+    }
+
+    cal_data_ = new CalibrationData();
+    file.read((char*)(&cal_data_->m_blob),
+      sizeof(DepthUtilsSensorCalibrationInfo));
+    file.read((char*)cal_data_->m_pRegistrationTable_QQVGA, 
+      sizeof(cal_data_->m_pRegistrationTable_QQVGA[0]) * 160*120*2);
+    file.read((char*)cal_data_->m_pRegistrationTable_QVGA, 
+      sizeof(cal_data_->m_pRegistrationTable_QVGA[0]) * 320*240*2);
+    file.read((char*)cal_data_->m_pRegistrationTable_VGA, 
+      sizeof(cal_data_->m_pRegistrationTable_VGA[0]) * 640*480*2);
+    file.read((char*)cal_data_->m_pDepthToShiftTable_QQVGA, 
+      sizeof(cal_data_->m_pDepthToShiftTable_QQVGA[0]) * (MAX_Z+1));
+    file.read((char*)cal_data_->m_pDepthToShiftTable_QVGA, 
+      sizeof(cal_data_->m_pDepthToShiftTable_QVGA[0]) * (MAX_Z+1));
+    file.read((char*)cal_data_->m_pDepthToShiftTable_VGA, 
+      sizeof(cal_data_->m_pDepthToShiftTable_VGA[0]) * (MAX_Z+1));
+    file.close();
+
+    switch ((int)nXRes_) {
+    case 640:
+      m_pRegTable = cal_data_->m_pRegistrationTable_VGA;
+      m_pDepth2ShiftTable = cal_data_->m_pDepthToShiftTable_VGA;
+      cal_data_->m_pPadInfo = &cal_data_->m_blob.params1080.padInfo_VGA;
+      break;
+    case 320:
+      m_pRegTable = cal_data_->m_pRegistrationTable_QVGA;
+      m_pDepth2ShiftTable = cal_data_->m_pDepthToShiftTable_QVGA;
+      cal_data_->m_pPadInfo = &cal_data_->m_blob.params1080.padInfo_QVGA;
+      break;
+    case 160:
+      m_pRegTable = cal_data_->m_pRegistrationTable_QQVGA;
+      m_pDepth2ShiftTable = cal_data_->m_pDepthToShiftTable_QQVGA;
+      cal_data_->m_pPadInfo = &cal_data_->m_blob.params1080.padInfo_QQVGA;
+      break;
+    default:
+      throw std::wruntime_error("OpenNIFuncs::loadCalibrationData() - ERROR: "
+        "No calibration data for the current resolution mode!");
+    }
+
+    m_depthResolution.x = (int)nXRes_;
+    m_depthResolution.y = (int)nYRes_;
+    m_colorResolution.x = (int)nXRes_;
+    m_colorResolution.y = (int)nYRes_;
+  }
 
 }  // namespace kinect
 

@@ -41,7 +41,8 @@ namespace app {
     uint64_t saved_frame_number;
     char kinect_fps_str[256];
 
-    uint8_t* rgb;  // A ptr into rgb_depth_data_
+    uint8_t rgb[src_dim * 3];
+    uint8_t* registered_rgb;  // A ptr into rgb_depth_data_
     float xyz[src_dim * 3];
     uint8_t labels[src_dim];
     int16_t* depth;  // A ptr into rgb_depth_data_

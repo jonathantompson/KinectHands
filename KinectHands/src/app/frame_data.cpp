@@ -41,10 +41,11 @@ namespace app {
     saved_frame_number = 0;
 
     depth = (int16_t*)depth_rgb_data_;
-    rgb = (uint8_t*)(&depth[src_dim]);
+    registered_rgb = (uint8_t*)(&depth[src_dim]);
 
     memset(depth, 0, sizeof(depth[0]) * src_dim);
     memset(rgb, 0, 3 *sizeof(rgb[0]) * src_dim);
+    memset(registered_rgb, 0, 3 *sizeof(registered_rgb[0]) * src_dim);
   }
 
   FrameData::~FrameData() {
@@ -56,6 +57,8 @@ namespace app {
       // Grab the kinect data
       kinect->lockData();
       memcpy(rgb, kinect->rgb(), sizeof(rgb[0]) * src_dim * 3);
+      memcpy(registered_rgb, kinect->registered_rgb(), 
+        sizeof(registered_rgb[0]) * src_dim * 3);
       memcpy(xyz, kinect->xyz(), sizeof(xyz[0]) * src_dim * 3);
       memcpy(depth, kinect->depth(), sizeof(depth[0]) * src_dim);
       if (sync_depth_hand_detector) {
@@ -65,8 +68,17 @@ namespace app {
       memcpy(labels, kinect->labels(), sizeof(labels[0]) * src_dim);
       frame_number = kinect->frame_number();
 
+#if defined(WIN32) || defined(_WIN32)
+#pragma warning(push)
+#pragma warning(disable:4996)
+#endif
+
       snprintf(kinect_fps_str, 255, "Kinect FPS: %.2f", 
         (float)kinect->fps());
+
+#if defined(WIN32) || defined(_WIN32)
+#pragma warning(pop)
+#endif
 
       if (render_labels != NULL) {
         int label_type_enum;

@@ -32,11 +32,12 @@ namespace app {
 
   typedef enum {
     OUTPUT_RGB = 0,
-    OUTPUT_DEPTH = 1,
-    OUTPUT_HAND_DETECTOR_DEPTH = 2,
-    OUTPUT_CONVNET_DEPTH = 3,
-    OUTPUT_CONVNET_SRC_DEPTH = 4,
-    OUTPUT_HAND_NORMALS = 5,
+    OUTPUT_RGB_REGISTERED = 1,
+    OUTPUT_DEPTH = 2,
+    OUTPUT_HAND_DETECTOR_DEPTH = 3,
+    OUTPUT_CONVNET_DEPTH = 4,
+    OUTPUT_CONVNET_SRC_DEPTH = 5,
+    OUTPUT_HAND_NORMALS = 6,
   } KinectOutput;
 
   typedef enum {

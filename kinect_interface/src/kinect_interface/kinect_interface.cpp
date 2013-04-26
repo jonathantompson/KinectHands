@@ -69,6 +69,7 @@ namespace kinect_interface {
     hand_detector_ = NULL;
     image_io_ = NULL;
     depth_1mm_ = NULL;
+    registered_rgb_ = NULL;
     openni_funcs_ = NULL;
     clk_ = NULL;
     depth_dim_.zeros();
@@ -81,7 +82,6 @@ namespace kinect_interface {
     frame_number_ = 0;
     fps_ = 0;
     tp_ = NULL;
-    pts_world_thread_cbs_ = NULL;
 
     init(device_uri);
 
@@ -125,6 +125,7 @@ namespace kinect_interface {
     SAFE_DELETE(clk_);
     SAFE_DELETE(hand_detector_);
     SAFE_DELETE(image_io_);
+    SAFE_DELETE_ARR(registered_rgb_);
     SAFE_DELETE_ARR(pts_uvd_);
     SAFE_DELETE_ARR(pts_world_);
     SAFE_DELETE_ARR(labels_);
@@ -229,15 +230,18 @@ namespace kinect_interface {
     // Create a thread pool for parallelizing the UVD to depth calculations
     uint32_t num_threads = KINECT_INTERFACE_NUM_WORKER_THREADS;
     tp_ = new jtil::threading::ThreadPool(num_threads);
-    pts_world_thread_cbs_ = new VectorManaged<Callback<void>*>(num_threads);
-    uint32_t n_pixels = depth_dim_[0] * depth_dim_[1];
-    uint32_t n_pixels_per_thread = 1 + n_pixels / num_threads;  // round up
-    for (uint32_t i = 0; i < num_threads; i++) {
-      uint32_t start = i * n_pixels_per_thread;
-      uint32_t end = std::min<uint32_t>(((i + 1) * n_pixels_per_thread) - 1,
-        n_pixels - 1);
-      pts_world_thread_cbs_->pushBack(MakeCallableMany(
-        &KinectInterface::convertDepthToWorldThread, this, start, end));
+    if (KINECT_INTERFACE_NUM_CONVERTER_THREADS > 1) {
+      uint32_t n_pixels = depth_dim_[0] * depth_dim_[1];
+      uint32_t n_pixels_per_thread = 1 + n_pixels / num_threads;  // round up
+      for (uint32_t i = 0; i < num_threads; i++) {
+        uint32_t start = i * n_pixels_per_thread;
+        uint32_t end = std::min<uint32_t>(((i + 1) * n_pixels_per_thread) - 1,
+          n_pixels - 1);
+        pts_world_thread_cbs_.pushBack(MakeCallableMany(
+          &KinectInterface::convertDepthToWorld, this, start, end));
+        rgb_thread_cbs_.pushBack(MakeCallableMany(
+          &KinectInterface::convertRGBToDepth, this, start, end));
+      }
     }
 
     clk_ = new Clk();
@@ -281,6 +285,7 @@ namespace kinect_interface {
     labels_ = new uint8_t[depth_size];
     pts_world_ = new float[3 * depth_size];
     pts_uvd_ = new float[3 * depth_size];
+    registered_rgb_ = new uint8_t[3 * depth_size];
 
     // Open a connection to the device's rgb channel
     initRGB();
@@ -288,13 +293,8 @@ namespace kinect_interface {
     // Note: XYZ (real world values are ALL wrong when image registration is
     // turned on).  It looks OK for a single Kinect, but the space is warped.
     // This is an OpenNI bug:
-
-    crop_depth_to_rgb_ = false;
-    if (crop_depth_to_rgb_) {
-      device_->setImageRegistrationMode(openni::IMAGE_REGISTRATION_DEPTH_TO_COLOR);
-    } else {
-      device_->setImageRegistrationMode(openni::IMAGE_REGISTRATION_OFF);
-    } 
+    setCropDepthToRGB(false);
+    device_->setImageRegistrationMode(openni::IMAGE_REGISTRATION_OFF);
 
     GET_SETTING("flip_image", bool, flip_image_);
     for (uint32_t i = 0; i < NUM_STREAMS; i++) {
@@ -311,45 +311,8 @@ namespace kinect_interface {
     // Update the OpenNIFuncs constants
     float depth_hfov = streams_[DEPTH]->getHorizontalFieldOfView();
     float depth_vfov = streams_[DEPTH]->getVerticalFieldOfView();
-    // To get the RGB fov is a little work.  Unfortunately, if you query the
-    // stream openNI gives you the same fov as above.  Instead, convert
-    // a pixel at each corner of the RGB to figure out the FOV change from
-    // depth to RGB.
-    jtil::math::Vec2<int> p1(0, 0);
-    jtil::math::Vec2<int> p1_rgb, p2_rgb, p3_rgb, p4_rgb;
-    int depth_val = 500;
-    openni::CoordinateConverter::convertDepthToColor(*streams_[DEPTH],
-      *streams_[RGB], p1[0], p1[1], depth_val, &p1_rgb[0], &p1_rgb[1]);
-    // All the other points are a little trickier...  If we query for (639, 0)
-    // for instance, the returned value is (0, 0) since there is a black crop
-    // bar around the outside of the image, instead query a little inside.
-    jtil::math::Vec2<int> p2(depth_dim_[0]-100, 0);
-    jtil::math::Vec2<int> p3(0, depth_dim_[1]-100);
-    jtil::math::Vec2<int> p4(depth_dim_[0]-100, depth_dim_[1]-100);
-    openni::CoordinateConverter::convertDepthToColor(*streams_[DEPTH],
-      *streams_[RGB], p2[0], p2[1], depth_val, &p2_rgb[0], &p2_rgb[1]);
-    openni::CoordinateConverter::convertDepthToColor(*streams_[DEPTH],
-      *streams_[RGB], p3[0], p3[1], depth_val, &p3_rgb[0], &p3_rgb[1]);
-    openni::CoordinateConverter::convertDepthToColor(*streams_[DEPTH],
-      *streams_[RGB], p4[0], p4[1], depth_val, &p4_rgb[0], &p4_rgb[1]);
-    // It seems from looking at the numbers there is both rotation, translation
-    // crop and some depth dependant scaling, but lets just fudge it and take
-    // and average vertical and horizontal FOV change.
-    float scale_h1 = (float)(p1[0] - p2[0]) / (float)(p1_rgb[0] - p2_rgb[0]);
-    float scale_h2 = (float)(p3[0] - p4[0]) / (float)(p3_rgb[0] - p4_rgb[0]);
-    float scale_v1 = (float)(p1[1] - p3[1]) / (float)(p1_rgb[1] - p3_rgb[1]);
-    float scale_v2 = (float)(p2[1] - p4[1]) / (float)(p2_rgb[1] - p4_rgb[1]);
-    float rgb_hfov = 0.5f * (scale_h1 + scale_h2) * depth_hfov;
-    float rgb_vfov = 0.5f * (scale_v1 + scale_v2) * depth_vfov;
-    std::streamsize old_precision = std::cout.precision();
-    std::cout.precision(std::numeric_limits<double>::digits10 + 1);
-    std::cout << "       DEPTH: HFOV = " << depth_hfov;
-    std::cout << " VFOV = " << depth_vfov << std::endl;
-    std::cout << "  approx RGB: HFOV = " << rgb_hfov;
-    std::cout << " VFOV = " << rgb_vfov << std::endl;
-    std::cout.precision(old_precision);
     openni_funcs_ = new OpenNIFuncs(depth_dim_[0], depth_dim_[1],
-      depth_hfov, depth_vfov);
+      depth_hfov, depth_vfov, openni_devices_open_);
 
     std::cout << "Finished initializaing OpenNI device" << std::endl;
   }
@@ -518,13 +481,10 @@ namespace kinect_interface {
   }
 
   void KinectInterface::setCropDepthToRGB(const bool crop_depth_to_rgb) {
-    if (crop_depth_to_rgb_ != crop_depth_to_rgb) {
-      crop_depth_to_rgb_ = crop_depth_to_rgb;
-      if (crop_depth_to_rgb_) {
-        device_->setImageRegistrationMode(openni::IMAGE_REGISTRATION_DEPTH_TO_COLOR);
-      } else {
-        device_->setImageRegistrationMode(openni::IMAGE_REGISTRATION_OFF);
-      }
+    if (crop_depth_to_rgb) {
+      device_->setImageRegistrationMode(openni::IMAGE_REGISTRATION_DEPTH_TO_COLOR);
+    } else {
+      device_->setImageRegistrationMode(openni::IMAGE_REGISTRATION_OFF);
     }
   }
 
@@ -601,7 +561,7 @@ namespace kinect_interface {
         depth_1mm_ = (uint16_t*)frames_[DEPTH]->getData(); 
       }
 
-      convertDepthToWorld();
+      performConversions();
 
       bool detect_hands, found_hand;
       GET_SETTING("detect_hands", bool, detect_hands);
@@ -634,55 +594,108 @@ namespace kinect_interface {
     cout << "kinectUpdateThread shutting down..." << endl;
   }
 
-  void KinectInterface::convertDepthToWorld() {
+  void KinectInterface::performConversions() {
     openni_funcs_->ConvertDepthImageToProjective(depth(), pts_uvd_);
     if (depth_format_100um_) {
       for (int32_t i = 2; i < 3 * depth_dim_[0] * depth_dim_[1]; i+=3) {
         pts_uvd_[i] /= 10.0f;
       }
     }
-
-    threads_finished_ = 0;
-    for (uint32_t i = 0; i < pts_world_thread_cbs_->size(); i++) {
-      tp_->addTask((*pts_world_thread_cbs_)[i]);
+    
+    if (KINECT_INTERFACE_NUM_CONVERTER_THREADS == 1) {
+      convertDepthToWorld(0, src_dim-1);
+      convertRGBToDepth(0, src_dim-1);
+    } else {
+      executeThreadCallbacks(tp_, pts_world_thread_cbs_);
+      executeThreadCallbacks(tp_, rgb_thread_cbs_);
     }
+  }
 
-    // Wait until the other threads are done
+  void KinectInterface::executeThreadCallbacks(jtil::threading::ThreadPool* tp, 
+    jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>& cbs) {
+    threads_finished_ = 0;
+    for (uint32_t i = 0; i < cbs.size(); i++) {
+      tp_->addTask(cbs[i]);
+    }
+    // Wait for all threads to finish
     std::unique_lock<std::mutex> ul(thread_update_lock_);  // Get lock
-    while (threads_finished_ != pts_world_thread_cbs_->size()) {
+    while (threads_finished_ != cbs.size()) {
       not_finished_.wait(ul);
     }
     ul.unlock();  // Release lock
   }
 
-  void KinectInterface::convertDepthToWorldThread(const uint32_t start, 
+  void KinectInterface::convertDepthToWorld(const uint32_t start, 
     const uint32_t end) {
-      // There are two ways to do this: one is with the 
-      // openni::CoordinateConverter class, but looking through the source on
-      // github it looks expensive.  The other is digging into the c src directly
-      // and defining our own version.
-      float* pts_uvd_start = &pts_uvd_[start*3];
-      float* pts_world_start = &pts_world_[start*3];
-      const uint32_t count = end - start + 1;
-      openni_funcs_->convertDepthToWorldCoordinates(pts_uvd_start, 
-        pts_world_start, count);
+    // There are two ways to do this: one is with the 
+    // openni::CoordinateConverter class, but looking through the source on
+    // github it looks expensive.  The other is digging into the c src directly
+    // and defining our own version.
+    float* pts_uvd_start = &pts_uvd_[start*3];
+    float* pts_world_start = &pts_world_[start*3];
+    const uint32_t count = end - start + 1;
+    openni_funcs_->convertDepthToWorldCoordinates(pts_uvd_start, 
+      pts_world_start, count);
 
-      //const uint16_t* d = depth();
-      //for (uint32_t i = start; i <= end; i++) {
-      //  uint32_t u = i % depth_dim_[0];
-      //  uint32_t v = i / depth_dim_[0];
-      //  openni::CoordinateConverter::convertDepthToWorld(*streams_[DEPTH], u, v, 
-      //    d[i], &pts_world_[i*3], &pts_world_[i*3+1], &pts_world_[i*3+2]);
-      //}
+    //const uint16_t* d = depth();
+    //for (uint32_t i = start; i <= end; i++) {
+    //  uint32_t u = i % depth_dim_[0];
+    //  uint32_t v = i / depth_dim_[0];
+    //  openni::CoordinateConverter::convertDepthToWorld(*streams_[DEPTH], u, v, 
+    //    d[i], &pts_world_[i*3], &pts_world_[i*3+1], &pts_world_[i*3+2]);
+    //}
 
-      std::unique_lock<std::mutex> ul(thread_update_lock_);
-      threads_finished_++;
-      not_finished_.notify_all();  // Signify that all threads might have finished
-      ul.unlock();
+    std::unique_lock<std::mutex> ul(thread_update_lock_);
+    threads_finished_++;
+    not_finished_.notify_all();  // Signify that all threads might have finished
+    ul.unlock();
+  }
+
+  void KinectInterface::convertRGBToDepth(const uint32_t start, 
+    const uint32_t end) {
+    bool flip_image;
+    GET_SETTING("flip_image", bool, flip_image);
+
+    const uint16_t* d = depth();
+    OniStreamHandle dhandle = streams_[DEPTH]->_getHandle();
+    OniStreamHandle chandle = streams_[RGB]->_getHandle();
+    uint32_t rgb_u;
+    uint32_t rgb_v;
+    uint8_t* rgb = (uint8_t*)frames_[RGB]->getData();
+    for (uint32_t i = start; i <= end; i++) {
+      uint32_t u = i % depth_dim_[0];
+      uint32_t v = i / depth_dim_[0];
+      // This is the API version (REALLY slow)
+      //openni::CoordinateConverter::convertDepthToColor(*streams_[DEPTH], 
+      //  *streams_[RGB], u, v, d[i], &rgb_uv[0], &rgb_uv[1]);
+
+      // My version:
+      bool ret = openni_funcs_->TranslateSinglePixel(u, v, d[i], rgb_u, 
+        rgb_v, flip_image);
+      if (ret && rgb_u < src_width && rgb_v < src_height) {
+        int src_index = rgb_v * src_width + rgb_u;
+        registered_rgb_[i * 3] = rgb[src_index * 3];
+        registered_rgb_[i * 3 + 1] = rgb[src_index * 3 + 1];
+        registered_rgb_[i * 3 + 2] = rgb[src_index * 3 + 2];
+      } else {
+        registered_rgb_[i * 3] = 0;
+        registered_rgb_[i * 3 + 1] = 0;
+        registered_rgb_[i * 3 + 2] = 0;
+      }
+    }
+
+    std::unique_lock<std::mutex> ul(thread_update_lock_);
+    threads_finished_++;
+    not_finished_.notify_all();  // Signify that all threads might have finished
+    ul.unlock();
   }
 
   const uint8_t* KinectInterface::rgb() const { 
     return (uint8_t*)frames_[RGB]->getData(); 
+  } 
+
+  const uint8_t* KinectInterface::registered_rgb() const { 
+    return registered_rgb_; 
   } 
 
   const float* KinectInterface::xyz() const {

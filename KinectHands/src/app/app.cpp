@@ -78,8 +78,12 @@ namespace app {
       SAFE_DELETE(kinect_[i]);
       SAFE_DELETE(kdata_[i]);
     }
+    if (tp_) {
+      tp_->stop();
+    }
     SAFE_DELETE(hand_net_);
     SAFE_DELETE(clk_);
+    SAFE_DELETE(tp_);
     SAFE_DELETE(convnet_background_tex_);
     SAFE_DELETE(convnet_src_background_tex_);
     SAFE_DELETE(background_tex_);
@@ -249,6 +253,10 @@ namespace app {
         switch (kinect_output) {
         case OUTPUT_RGB:
           memcpy(im_, kdata_[cur_kinect]->rgb, sizeof(im_[0]) * src_dim * 3);
+          break;
+        case OUTPUT_RGB_REGISTERED:
+          memcpy(im_, kdata_[cur_kinect]->registered_rgb, 
+            sizeof(im_[0]) * src_dim * 3);
           break;
         case OUTPUT_DEPTH:
           for (uint32_t i = 0; i < src_dim; i++) {
@@ -435,7 +443,10 @@ namespace app {
     ui::UI* ui = Renderer::g_renderer()->ui();
     ui->addHeadingText("Kinect Settings:");
     ui->addSelectbox("kinect_output", "Kinect Output");
-    ui->addSelectboxItem("kinect_output", ui::UIEnumVal(OUTPUT_RGB, "RGB"));
+    ui->addSelectboxItem("kinect_output", 
+      ui::UIEnumVal(OUTPUT_RGB, "RGB"));
+    ui->addSelectboxItem("kinect_output",
+      ui::UIEnumVal(OUTPUT_RGB_REGISTERED, "RGB Registered"));
     ui->addSelectboxItem("kinect_output", 
       ui::UIEnumVal(OUTPUT_DEPTH, "Depth"));
     ui->addSelectboxItem("kinect_output", 

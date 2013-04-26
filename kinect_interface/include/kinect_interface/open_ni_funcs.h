@@ -1,19 +1,11 @@
 //
-//  open_ni_dg.h
+//  open_ni_funcs.h
 //
 //  This is just a bunch of functions taken out of the OpenNI2 source code that
-//  I need.
+//  I need and that make calculating some of the pixel transformations orders
+//  of magnitude faster (as well as resulting in being able to call them 
+//  without OpenNI).
 //
-
-// Primesense 1:
-//        DEPTH: HFOV = 1.017074704170227 VFOV = 0.7919895648956299
-//   approx RGB: HFOV = 1.080080389976502 VFOV = 0.8394885063171387
-// Primesense 2:
-//        DEPTH: HFOV = 1.017074704170227 VFOV = 0.7919895648956299
-//   approx RGB: HFOV = 1.075848937034607 VFOV = 0.8383176922798157
-// Primesense 3:
-//        DEPTH: HFOV = 1.017074704170227 VFOV = 0.7919895648956299
-//   approx RGB: HFOV = 1.075848937034607 VFOV = 0.8371533155441284
 
 #ifndef KINECT_INTERFACE_OPEN_NI_FUNCS_HEADER
 #define KINECT_INTERFACE_OPEN_NI_FUNCS_HEADER
@@ -21,13 +13,17 @@
 #include "jtil/math/math_types.h"
 		
 namespace kinect_interface {
+  struct CalibrationData;
   
   class OpenNIFuncs {
   public:
     // Top level interface
     
+    // internal_dev_id --> I hacked the OpenNI library to save all the 
+    // calibration data to disk on startup.  The filename is enumerated by
+    // the number of kinects that have been opened.
     OpenNIFuncs(const uint32_t nXRes, const uint32_t nYRes, 
-      const float hFOV, const float vFOV);
+      const float hFOV, const float vFOV, const uint32_t internal_dev_id);
     OpenNIFuncs();  // The default is for the primesense 1.09
     ~OpenNIFuncs();
 
@@ -38,6 +34,12 @@ namespace kinect_interface {
       const uint32_t nCount);
     void ConvertDepthImageToProjective(const uint16_t* aDepth,
       float* aProjective);
+
+    // TranslateSinglePixel is taken from DepthUtilsImpl.cpp and all the
+    // constants were intercepted at runtime.
+    // Returns false if transformation is impossible (depth = 0 for instance)
+    bool TranslateSinglePixel(const uint32_t x, const uint32_t y, 
+      uint16_t z, uint32_t& imageX, uint32_t& imageY, const bool m_isMirrored);
 
     // The following are for the Kinect
     static uint32_t xnConvertProjectiveToRealWorld(uint32_t nCount,
@@ -75,9 +77,18 @@ namespace kinect_interface {
     float halfResY_;
     float coeffX_;
     float coeffY_;
+    uint32_t internal_dev_id_;
+    CalibrationData* cal_data_;
+    uint16_t* m_pRegTable;  // Pointer into Calibration data (depending on current resolution)
+    uint16_t* m_pDepth2ShiftTable;  // Pointer into Calibration data (depending on current resolution)
+    struct {
+      int x, y;
+    } m_depthResolution, m_colorResolution;
 
     inline static double GetRealWorldXtoZKinect() { return m_fRealWorldXtoZ_kinect_; }
 		inline static double GetRealWorldYtoZKinect() { return m_fRealWorldYtoZ_kinect_; }
+
+    void loadCalibrationData();
   };
   
 };  // namespace kinect_interface

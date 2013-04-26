@@ -58,6 +58,7 @@
     <ClCompile Include="src\kinect_interface\open_ni_funcs.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\kinect_interface\calibration_data.h" />
     <ClInclude Include="include\kinect_interface\depth_images_io.h" />
     <ClInclude Include="include\kinect_interface\depth_image_data.h" />
     <ClInclude Include="include\kinect_interface\hand_detector\common_tree_funcs.h" />
