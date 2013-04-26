@@ -460,7 +460,7 @@ namespace renderer {
     // GLState::glsDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
     
     // setClearColor(0.1f, 0.1f, 0.2f, 1.0f);
-    GLState::glsClearColor(0.05f, 0.05f, 0.1f, 1.0f);
+    GLState::glsClearColor(0.15f, 0.15f, 0.3f, 1.0f);
     GLState::glsClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
     // Render all the Bounding sphere's in wireframe

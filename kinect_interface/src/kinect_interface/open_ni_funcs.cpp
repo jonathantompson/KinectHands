@@ -26,6 +26,7 @@ namespace kinect_interface {
 
   const float OpenNIFuncs::fHFOV_primesense_109 = 1.017074704170227f;  // True depth
   const float OpenNIFuncs::fVFOV_primesense_109 = 0.7919895648956299f;  // True depth
+
   //const float OpenNIFuncs::fHFOV_primesense_109 = 1.075848937034607f;  // approx rgb
   //const float OpenNIFuncs::fVFOV_primesense_109 = 0.8383198380470276f;  // approx rgb
   //const float OpenNIFuncs::fHFOV_primesense_109 = 1.076187422640391f;  // measured rgb

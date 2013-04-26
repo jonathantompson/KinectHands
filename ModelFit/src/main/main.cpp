@@ -55,7 +55,8 @@
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
 #define CALIBRATION_RUN
-#define FILTER_SIZE 10  // Only in calibration mode
+#define FILTER_SIZE 30  // Only in calibration mode
+#define PERFORM_ICP_FIT  // Only in calibration mode
 
 // KINECT DATA
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Fit
@@ -124,7 +125,8 @@ bool running = false;
 Float4x4 camera_view[MAX_KINECTS];
 PoseModel** models;
 #if defined(CALIBRATION_RUN)
-  bool box_calibrate_geometry = false;
+  bool box_calibrate_geometry = true;
+  const float max_icp_dist = 1100.0f;
   const uint32_t num_models = 1;
   float** coeffs[MAX_KINECTS] = {NULL, NULL};  // coeffs[kinect][frame][coeff]
   const uint32_t num_coeff = CalibrateCoeff::NUM_PARAMETERS;
@@ -819,8 +821,6 @@ void KeyboardCB(int key, int action) {
         float* pc2 = new float[src_dim * 3];
         float red[3] = {1, 0, 0};
         float blue[3] = {0, 0, 1};
-        const float max_icp_dist = (float)GDT_MAX_DIST;
-        //const float max_icp_dist = 1100.0f; 
         uint32_t cnt_pc1 = 0; 
         Float3 pt_transformed;
         for (uint32_t i = 0; i < src_dim; i++) {
@@ -849,15 +849,19 @@ void KeyboardCB(int key, int action) {
           }
         }
 
+#ifdef PERFORM_ICP_FIT
         std::cout << "Performing ICP on " << cnt_pc1 << " and " << cnt_pc2;
         std::cout << " pts" << std::endl;
-        // Use normals
-        icp.match(camera_view[kinect_to_modify], pc1, cnt_pc1, pc2, cnt_pc2, 
-          camera_view[kinect_to_modify], cur_norm_data[0], 
-          cur_norm_data[kinect_to_modify]);
-        // Don't use normals
+#ifdef USE_ICP_NORMALS
+        // Use Normals
         //icp.match(camera_view[kinect_to_modify], pc1, cnt_pc1, pc2, cnt_pc2, 
-        //  camera_view[kinect_to_modify]);
+        //  camera_view[kinect_to_modify], cur_norm_data[0], 
+        //  cur_norm_data[kinect_to_modify]);
+#else
+        // Don't use normals
+        icp.match(camera_view[kinect_to_modify], pc1, cnt_pc1, pc2, cnt_pc2, 
+          camera_view[kinect_to_modify]);
+#endif
 
         // Create lines geometry from the last correspondance points:
         float* pc2_transformed = icp.getLastPC2Transformed();
@@ -872,6 +876,7 @@ void KeyboardCB(int key, int action) {
           }
         }
         geometry_lines[kinect_to_modify-1]->syncVAO();
+#endif
 
         // Now save the results to file
         std::stringstream ss;

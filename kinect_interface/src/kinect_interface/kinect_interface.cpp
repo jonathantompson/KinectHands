@@ -670,9 +670,9 @@ namespace kinect_interface {
       //  *streams_[RGB], u, v, d[i], &rgb_uv[0], &rgb_uv[1]);
 
       // My version:
-      bool ret = openni_funcs_->TranslateSinglePixel(u, v, d[i], rgb_u, 
+      openni_funcs_->TranslateSinglePixel(u, v, d[i], rgb_u, 
         rgb_v, flip_image);
-      if (ret && rgb_u < src_width && rgb_v < src_height) {
+      if (d[i] != 0 && rgb_u < src_width && rgb_v < src_height) {
         int src_index = rgb_v * src_width + rgb_u;
         registered_rgb_[i * 3] = rgb[src_index * 3];
         registered_rgb_[i * 3 + 1] = rgb[src_index * 3 + 1];
