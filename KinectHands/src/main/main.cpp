@@ -23,6 +23,7 @@ void Hello()
 {}
 
 #if defined(_WIN32)
+#pragma warning( disable : 4099 )
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreviousInstance,
                    LPSTR lpcmdline, int nCmdShow) {
 #else

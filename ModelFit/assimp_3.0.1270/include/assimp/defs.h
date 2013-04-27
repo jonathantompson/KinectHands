@@ -211,7 +211,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	 * If this flag is specified boost::threads is *not* required. */
 	//////////////////////////////////////////////////////////////////////////
 #ifndef ASSIMP_BUILD_SINGLETHREADED
-#	define ASSIMP_BUILD_SINGLETHREADED
+//#	define ASSIMP_BUILD_SINGLETHREADED
 #endif
 
 #ifndef ASSIMP_BUILD_SINGLETHREADED

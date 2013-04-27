@@ -79,6 +79,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\;$(ProjectDir)..\lib\WIN7;$(ProjectDir)..\kinect_interface\build\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
       <AdditionalDependencies>kinect_interface_d.lib;jtil_d.lib;libzmq_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>COPY /Y $(SolutionDir)lib\WIN7\OpenNI2.dll $(SolutionDir)OpenNI2.dll
@@ -107,6 +108,7 @@ COPY /Y $(SolutionDir)lib\WIN7\OpenNI2\Drivers\* $(SolutionDir)OpenNI2\Drivers
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\;$(ProjectDir)..\lib\WIN7;$(ProjectDir)..\kinect_interface\build\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
       <AdditionalDependencies>kinect_interface.lib;jtil.lib;libzmq.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>COPY /Y $(SolutionDir)lib\WIN7\OpenNI2.dll $(SolutionDir)OpenNI2.dll

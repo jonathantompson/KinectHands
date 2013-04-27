@@ -50,6 +50,7 @@
 
 #if defined(WIN32) || defined(_WIN32)
   #define snprintf _snprintf_s
+  #pragma warning( disable : 4099 )
 #endif
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }

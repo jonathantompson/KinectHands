@@ -67,6 +67,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)../kinect_interface/build/$(Platform)/$(Configuration)/;$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\;./glut-3.7.6-bin</AdditionalLibraryDirectories>
       <AdditionalDependencies>jtil_d.lib;kinect_interface_d.lib;glut64.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>copy $(ProjectDir)glut-3.7.6-bin\glut64.dll $(ProjectDir)Build\HandForestsDataEdit\$(Configuration)\glut64.dll</Command>
@@ -92,6 +93,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>jtil.lib;kinect_interface.lib;glut64.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)../kinect_interface/build/$(Platform)/$(Configuration)/;$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\;./glut-3.7.6-bin</AdditionalLibraryDirectories>
+      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>copy $(ProjectDir)glut-3.7.6-bin\glut64.dll $(ProjectDir)Build\HandForestsDataEdit\$(Configuration)\glut64.dll</Command>

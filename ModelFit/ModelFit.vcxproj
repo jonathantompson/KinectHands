@@ -177,7 +177,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>HAND_FIT;NDEBUG;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>FREEIMAGE_LIB;HAND_FIT;NDEBUG;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)../kinect_interface/include;$(ProjectDir)../../PRenderer2/jtil/include;$(ProjectDir)FreeImage3154/include;$(ProjectDir)assimp_3.0.1270/include;$(ProjectDir)src;$(ProjectDir)eigen-3.1.1/Eigen;$(ProjectDir)glfw/include</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <OpenMPSupport>true</OpenMPSupport>
@@ -186,8 +186,9 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\;$(ProjectDir)glew/bin;$(ProjectDir)glfw/bin;$(ProjectDir)assimp_3.0.1270/lib_win7_64;$(ProjectDir)../kinect_interface/build/$(Platform)/$(Configuration)/;$(ProjectDir)FreeImage3154/lib_win7_64</AdditionalLibraryDirectories>
-      <AdditionalDependencies>jtil_d.lib;kinect_interface_d.lib;assimp.lib;FreeImage.lib;GLFW_d.lib;comctl32.lib;glu32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib</AdditionalDependencies>
+      <AdditionalDependencies>jtil_d.lib;kinect_interface_d.lib;assimpD.lib;FreeImaged.lib;GLFW_d.lib;comctl32.lib;glu32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>/NODEFAULTLIB:[msvcrt.lib, libcmt.lib, LIBCMT]</IgnoreSpecificDefaultLibraries>
+      <AdditionalOptions>/ignore:4099 /ignore:4204 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>COPY /Y $(ProjectDir)assimp_3.0.1270\lib_win7_64\assimp.dll $(ProjectDir)Build\ModelFit\$(Configuration)\assimp.dll
@@ -202,7 +203,7 @@ COPY /Y $(ProjectDir)FreeImage3154\lib_win7_64\FreeImage.dll $(ProjectDir)Build\
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>HAND_FIT;NDEBUG;WIN32;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>FREEIMAGE_LIB;HAND_FIT;NDEBUG;WIN32;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)../kinect_interface/include;$(ProjectDir)../../PRenderer2/jtil/include;$(ProjectDir)FreeImage3154/include;$(ProjectDir)assimp_3.0.1270/include;$(ProjectDir)src;$(ProjectDir)eigen-3.1.1/Eigen;$(ProjectDir)glfw/include</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
@@ -214,13 +215,14 @@ COPY /Y $(ProjectDir)FreeImage3154\lib_win7_64\FreeImage.dll $(ProjectDir)Build\
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>jtil.lib;kinect_interface.lib;assimp.lib;FreeImage.lib;GLFW.lib;comctl32.lib;glu32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib</AdditionalDependencies>
+      <AdditionalDependencies>assimp.lib;FreeImage.lib;jtil.lib;kinect_interface.lib;GLFW.lib;comctl32.lib;glu32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\;$(ProjectDir)glew/bin;$(ProjectDir)glfw/bin;$(ProjectDir)assimp_3.0.1270/lib_win7_64;$(ProjectDir)../kinect_interface/build/$(Platform)/$(Configuration)/;$(ProjectDir)FreeImage3154/lib_win7_64</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>/NODEFAULTLIB:[msvcrt.lib, libcmt.lib, LIBCMT]</IgnoreSpecificDefaultLibraries>
+      <AdditionalOptions>/ignore:4099 /ignore:4204 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>COPY /Y $(ProjectDir)assimp_3.0.1270\lib_win7_64\assimp.dll $(ProjectDir)Build\ModelFit\$(Configuration)\assimp.dll
-COPY /Y $(ProjectDir)FreeImage3154\lib_win7_64\FreeImage.dll $(ProjectDir)Build\ModelFit\$(Configuration)\FreeImage.dll</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

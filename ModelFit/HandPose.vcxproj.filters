@@ -34,8 +34,8 @@
     <Filter Include="src\renderer\lights">
       <UniqueIdentifier>{72198500-128e-4dbb-868d-ecee7ebead4d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\hand_fit">
-      <UniqueIdentifier>{b45c826e-8c6b-48fd-931a-c28483e635b9}</UniqueIdentifier>
+    <Filter Include="src\model_fit">
+      <UniqueIdentifier>{c242853b-fa99-4561-9e6d-88167f6254e3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -123,17 +123,23 @@
     <ClCompile Include="src\renderer\gl_state.cpp">
       <Filter>src\renderer</Filter>
     </ClCompile>
-    <ClCompile Include="src\hand_fit\hand_renderer.cpp">
-      <Filter>src\hand_fit</Filter>
+    <ClCompile Include="src\model_fit\bounding_sphere.cpp">
+      <Filter>src\model_fit</Filter>
     </ClCompile>
-    <ClCompile Include="src\hand_fit\bounding_sphere.cpp">
-      <Filter>src\hand_fit</Filter>
+    <ClCompile Include="src\model_fit\calibrate_geometry.cpp">
+      <Filter>src\model_fit</Filter>
     </ClCompile>
-    <ClCompile Include="src\hand_fit\hand_fit.cpp">
-      <Filter>src\hand_fit</Filter>
+    <ClCompile Include="src\model_fit\hand_geometry_mesh.cpp">
+      <Filter>src\model_fit</Filter>
     </ClCompile>
-    <ClCompile Include="src\hand_fit\hand_geometry_mesh.cpp">
-      <Filter>src\hand_fit</Filter>
+    <ClCompile Include="src\model_fit\model_fit.cpp">
+      <Filter>src\model_fit</Filter>
+    </ClCompile>
+    <ClCompile Include="src\model_fit\model_renderer.cpp">
+      <Filter>src\model_fit</Filter>
+    </ClCompile>
+    <ClCompile Include="src\model_fit\pose_model.cpp">
+      <Filter>src\model_fit</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -227,20 +233,23 @@
     <ClInclude Include="src\renderer\gl_state.h">
       <Filter>src\renderer</Filter>
     </ClInclude>
-    <ClInclude Include="src\hand_fit\hand_renderer.h">
-      <Filter>src\hand_fit</Filter>
+    <ClInclude Include="src\model_fit\bounding_sphere.h">
+      <Filter>src\model_fit</Filter>
     </ClInclude>
-    <ClInclude Include="src\hand_fit\bounding_sphere.h">
-      <Filter>src\hand_fit</Filter>
+    <ClInclude Include="src\model_fit\calibrate_geometry.h">
+      <Filter>src\model_fit</Filter>
     </ClInclude>
-    <ClInclude Include="src\hand_fit\hand_fit.h">
-      <Filter>src\hand_fit</Filter>
+    <ClInclude Include="src\model_fit\hand_geometry_mesh.h">
+      <Filter>src\model_fit</Filter>
     </ClInclude>
-    <ClInclude Include="src\hand_fit\hand_geometry.h">
-      <Filter>src\hand_fit</Filter>
+    <ClInclude Include="src\model_fit\model_fit.h">
+      <Filter>src\model_fit</Filter>
     </ClInclude>
-    <ClInclude Include="src\hand_fit\hand_geometry_mesh.h">
-      <Filter>src\hand_fit</Filter>
+    <ClInclude Include="src\model_fit\model_renderer.h">
+      <Filter>src\model_fit</Filter>
+    </ClInclude>
+    <ClInclude Include="src\model_fit\pose_model.h">
+      <Filter>src\model_fit</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
