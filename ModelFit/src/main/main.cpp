@@ -54,7 +54,7 @@
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
-#define CALIBRATION_RUN
+// #define CALIBRATION_RUN
 #define FILTER_SIZE 30  // Only in calibration mode
 #define PERFORM_ICP_FIT  // Only in calibration mode
 
@@ -360,9 +360,15 @@ void loadCurrentImage(bool print_to_screen = true) {
       // find the correct file (with smallest timestamp difference) - O(n)
       int64_t src_timestamp = im_files[0][cur_image].second;
       uint32_t i_match = 0;
-      int64_t min_delta_t = std::abs(src_timestamp - im_files[k][0].second);
+      int64_t min_delta_t = src_timestamp - im_files[k][0].second;
+      if (min_delta_t < 0) {
+        min_delta_t *= -1;
+      }
       for (uint32_t i = 1; i < im_files[k].size(); i++) {
-        int64_t delta_t = std::abs(src_timestamp - im_files[k][i].second);
+        int64_t delta_t = src_timestamp - im_files[k][i].second;
+        if (delta_t < 0) {
+          delta_t *= -1;
+        }
         if (delta_t < min_delta_t) {
           min_delta_t = delta_t;
           i_match = i;
