@@ -130,6 +130,10 @@ namespace app {
 
     // Find and initialize all kinects up to MAX_NUM_KINECTS
     KinectInterface::findDevices(kinect_uris_);
+    if (kinect_uris_.size() == 0) {
+      throw std::wruntime_error("App::init() - ERROR: Found no OpenNI "
+        "compatible devices!");
+    }
     for (uint32_t i = 0; i < kinect_uris_.size() && i < MAX_NUM_KINECTS; i++) {
       kinect_[i] = new KinectInterface(kinect_uris_[i]);
     }

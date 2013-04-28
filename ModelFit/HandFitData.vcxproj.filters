@@ -38,8 +38,8 @@
     <Filter Include="shaders">
       <UniqueIdentifier>{85e2da50-ebe2-4a02-aded-017e44bef53e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\src\hand_fit">
-      <UniqueIdentifier>{b3376c1f-f7e9-4abf-8dfd-ef1122eb4592}</UniqueIdentifier>
+    <Filter Include="Source Files\src\model_fit">
+      <UniqueIdentifier>{06100825-d4cc-496a-80a3-6a5d78a012fc}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -124,20 +124,26 @@
     <ClCompile Include="src\renderer\gl_state.cpp">
       <Filter>Source Files\src\renderer</Filter>
     </ClCompile>
-    <ClCompile Include="src\hand_fit\hand_geometry_mesh.cpp">
-      <Filter>Source Files\src\hand_fit</Filter>
-    </ClCompile>
-    <ClCompile Include="src\hand_fit\hand_renderer.cpp">
-      <Filter>Source Files\src\hand_fit</Filter>
-    </ClCompile>
-    <ClCompile Include="src\hand_fit\bounding_sphere.cpp">
-      <Filter>Source Files\src\hand_fit</Filter>
-    </ClCompile>
-    <ClCompile Include="src\hand_fit\hand_fit.cpp">
-      <Filter>Source Files\src\hand_fit</Filter>
-    </ClCompile>
     <ClCompile Include="src\main\main_data.cpp">
       <Filter>Source Files\src\main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\model_fit\bounding_sphere.cpp">
+      <Filter>Source Files\src\model_fit</Filter>
+    </ClCompile>
+    <ClCompile Include="src\model_fit\calibrate_geometry.cpp">
+      <Filter>Source Files\src\model_fit</Filter>
+    </ClCompile>
+    <ClCompile Include="src\model_fit\hand_geometry_mesh.cpp">
+      <Filter>Source Files\src\model_fit</Filter>
+    </ClCompile>
+    <ClCompile Include="src\model_fit\model_fit.cpp">
+      <Filter>Source Files\src\model_fit</Filter>
+    </ClCompile>
+    <ClCompile Include="src\model_fit\model_renderer.cpp">
+      <Filter>Source Files\src\model_fit</Filter>
+    </ClCompile>
+    <ClCompile Include="src\model_fit\pose_model.cpp">
+      <Filter>Source Files\src\model_fit</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -231,20 +237,23 @@
     <ClInclude Include="src\renderer\gl_state.h">
       <Filter>Source Files\src\renderer</Filter>
     </ClInclude>
-    <ClInclude Include="src\hand_fit\hand_geometry.h">
-      <Filter>Source Files\src\hand_fit</Filter>
+    <ClInclude Include="src\model_fit\bounding_sphere.h">
+      <Filter>Source Files\src\model_fit</Filter>
     </ClInclude>
-    <ClInclude Include="src\hand_fit\hand_geometry_mesh.h">
-      <Filter>Source Files\src\hand_fit</Filter>
+    <ClInclude Include="src\model_fit\calibrate_geometry.h">
+      <Filter>Source Files\src\model_fit</Filter>
     </ClInclude>
-    <ClInclude Include="src\hand_fit\hand_renderer.h">
-      <Filter>Source Files\src\hand_fit</Filter>
+    <ClInclude Include="src\model_fit\hand_geometry_mesh.h">
+      <Filter>Source Files\src\model_fit</Filter>
     </ClInclude>
-    <ClInclude Include="src\hand_fit\bounding_sphere.h">
-      <Filter>Source Files\src\hand_fit</Filter>
+    <ClInclude Include="src\model_fit\model_fit.h">
+      <Filter>Source Files\src\model_fit</Filter>
     </ClInclude>
-    <ClInclude Include="src\hand_fit\hand_fit.h">
-      <Filter>Source Files\src\hand_fit</Filter>
+    <ClInclude Include="src\model_fit\model_renderer.h">
+      <Filter>Source Files\src\model_fit</Filter>
+    </ClInclude>
+    <ClInclude Include="src\model_fit\pose_model.h">
+      <Filter>Source Files\src\model_fit</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

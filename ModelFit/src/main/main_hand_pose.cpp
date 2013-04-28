@@ -29,16 +29,19 @@
 #include "kinect_interface/hand_net/hand_model_coeff.h"
 #include "model_fit/model_fit.h"
 #include "model_fit/model_renderer.h"
-#include "model_fit/hand_geometry.h"
+#include "model_fit/hand_geometry_mesh.h"
 #include "model_fit/bounding_sphere.h"
 #include "model_fit/hand_geometry_mesh.h"
 #include "jtil/math/noise.h"
 #include "jtil/clk/clk.h"
 #include "renderer/gl_state.h"
 #include "jtil/renderer/geometry/mesh_simplification/mesh_simplification.h"
+#include "kinect_interface/depth_images_io.h"
+#include "kinect_interface/open_ni_funcs.h"
 
 #if defined(WIN32) || defined(_WIN32)
   #define snprintf _snprintf_s
+  #pragma warning( disable : 4099 )
 #endif
 
 // Processed files are MUCH quicker to load (100s x faster), but require that
@@ -54,9 +57,10 @@
 using namespace std;
 using namespace jtil::math;
 using namespace jtil::data_str;
-using namespace hand_fit;
+using namespace model_fit;
 using namespace kinect_interface::hand_net;
 using namespace kinect_interface::hand_detector;
+using namespace kinect_interface;
 using namespace renderer;
 using windowing::Window;
 using windowing::WindowSettings;
@@ -89,7 +93,8 @@ uint64_t cur_frame = 0;
 HandModelCoeff* rhand = NULL;
 HandModelCoeff* lhand = NULL;
 HandModelCoeff* rhand_rest_pose = NULL;
-ModelRenderer* hand_renderer = NULL;
+ModelRenderer* model_renderer = NULL;
+HandGeometryMesh* models[2];
 uint32_t cur_coeff = 0;
 uint32_t cur_sphere = 0;
 uint32_t cur_coord = 0;
@@ -101,7 +106,7 @@ bool save_frames_to_file = false;
 float depth_tmp[src_dim * 4];
 int16_t depth[src_dim];
 uint8_t labels[src_dim];
-Eigen::MatrixXf coeffs;
+float coeffs[HandCoeff::NUM_PARAMETERS * 2];
 
 // Bunny model for decimation test
 Geometry* bunny;
@@ -194,7 +199,7 @@ void MousePosCB(int x, int y) {
       cout << " --> " << coeff_val - theta_y << endl;
     } else {
       // CHANGE THE POSITION OF THE BOUNDING SPHERE
-      HandGeometryMesh* geom = (HandGeometryMesh*)hand_renderer->l_hand_geom();
+      HandGeometryMesh* geom = models[0];
       theta_y *= 0.1f;
       switch (cur_coord) {
       case 0:
@@ -237,8 +242,8 @@ void KeyboardCB(int key, int action) {
         delete rhand;
         delete lhand;
         delete rhand_rest_pose;
-        if (hand_renderer) {
-          delete hand_renderer;
+        if (model_renderer) {
+          delete model_renderer;
         }
         GLState::shutdownGLState();
         delete wnd_settings;
@@ -524,8 +529,10 @@ int main(int argc, char *argv[]) {
     eye_rot.identity();
     Float3 eye_pos(0, 0, 0);
     render = new Renderer();
+    float fov_vert_deg = 360.0f * OpenNIFuncs::fVFOV_primesense_109 / 
+      (2.0f * (float)M_PI);
     render->init(eye_rot, eye_pos, wnd_settings->width, wnd_settings->height,
-      -1.0f, -2000.0f, HAND_CAMERA_FOV);
+      -1.0f, -2000.0f, fov_vert_deg);
     
     // Spawn some pretty objects (to test the renderer)
     GeometryColoredMesh* tmp;
@@ -557,6 +564,8 @@ int main(int argc, char *argv[]) {
     dog->mat()->leftMultTranslation(300.0f, 0, 750.0f);
     GeometryManager::scene_graph_root()->addChild(dog);
 
+    models[0] = new HandGeometryMesh(LEFT);
+    models[1] = new HandGeometryMesh(RIGHT);
     
     sphere = GeometryColoredMesh::makeSphere(64, 64, 1.0f, renderer::white);
     sphere->mat()->scaleMat(50, 50, 50);
@@ -570,12 +579,11 @@ int main(int argc, char *argv[]) {
     wnd->registerMouseWheelCB(NULL);
     wnd->registerCharacterInputCB(NULL);
 
-    hand_renderer = new ModelRenderer(render, true, true);
+    model_renderer = new ModelRenderer();
     rhand = new HandModelCoeff(HandType::RIGHT);
     lhand = new HandModelCoeff(HandType::LEFT);
     lhand->setCoeff(HandCoeff::HAND_POS_X, -150);
     rhand_rest_pose = new HandModelCoeff(HandType::RIGHT);
-    coeffs.resize(1, HAND_NUM_COEFF * 2);
 
     // Main render loop
     while (true) {
@@ -612,9 +620,9 @@ int main(int argc, char *argv[]) {
           // noise = [0, 1]
           float noise = (0.5f* (hand_frames[HandCoeff::F0_KNUCKLE_MID + 
             i*FINGER_NUM_COEFF]->sample((float)t_animation) + 1.0f));
-          float min = ModelFit::coeff_min_limit[HandCoeff::F0_KNUCKLE_MID + 
+          float min = models[0]->coeff_min_limit()[HandCoeff::F0_KNUCKLE_MID + 
             i*FINGER_NUM_COEFF];
-          float max = ModelFit::coeff_max_limit[HandCoeff::F0_KNUCKLE_MID + 
+          float max = models[0]->coeff_max_limit()[HandCoeff::F0_KNUCKLE_MID + 
             i*FINGER_NUM_COEFF];
           lhand->setCoeff(HandCoeff::F0_KNUCKLE_MID + i*FINGER_NUM_COEFF, 
             min + noise * (max-min));
@@ -624,8 +632,8 @@ int main(int argc, char *argv[]) {
           // finger bend
           noise = (0.5f * 
             (hand_frames[HandCoeff::F0_PHI + i*FINGER_NUM_COEFF]->sample((float)t_animation) + 1.0f));
-          min = ModelFit::coeff_min_limit[HandCoeff::F0_PHI + i*FINGER_NUM_COEFF];
-          max = ModelFit::coeff_max_limit[HandCoeff::F0_PHI + i*FINGER_NUM_COEFF];
+          min = models[0]->coeff_min_limit()[HandCoeff::F0_PHI + i*FINGER_NUM_COEFF];
+          max = models[0]->coeff_max_limit()[HandCoeff::F0_PHI + i*FINGER_NUM_COEFF];
         }
       }
 
@@ -642,12 +650,12 @@ int main(int argc, char *argv[]) {
         render->camera()->moveCamera(&delta_pos);
       }
 
-      hand_renderer->updateMatrices(rhand->coeff(), rhand->hand_type());
-      hand_renderer->updateMatrices(lhand->coeff(), lhand->hand_type());
-      memcpy(coeffs.block<1, HAND_NUM_COEFF>(0, 0).data(), lhand->coeff(), 
-        sizeof(lhand->coeff()[0]) * HAND_NUM_COEFF);
-      memcpy(coeffs.block<1, HAND_NUM_COEFF>(0, HAND_NUM_COEFF).data(), 
-        rhand->coeff(), sizeof(rhand->coeff()[0]) * HAND_NUM_COEFF);
+      HandGeometryMesh::setCurrentStaticHandProperties(lhand->coeff());
+      models[0]->updateMatrices(lhand->coeff());
+      models[1]->updateMatrices(rhand->coeff());
+
+      memcpy(coeffs, lhand->coeff(), sizeof(coeffs[0]) * HAND_NUM_COEFF);
+      memcpy(&coeffs[HAND_NUM_COEFF], rhand->coeff(), sizeof(coeffs[0]) * HAND_NUM_COEFF);
       
       HandModelCoeff* hands[2];
       hands[0] = lhand;
@@ -657,19 +665,21 @@ int main(int argc, char *argv[]) {
       case 1:
         render->renderFrame(dt);
         if (cur_frame % 60 == 0) {
-          interpenetration = hand_renderer->calcInterpenetrationTerm();
+          interpenetration = model_renderer->calcInterpenetrationTerm(6);
           if (interpenetration > 1.0f + EPSILON) {
             cout << "interpenetration = " << interpenetration << endl;
           }
         }
         break;
       case 2:
-        hand_renderer->drawDepthMap(coeffs, hands, 2, false);
-        hand_renderer->visualizeDepthMap(wnd, false);
+        model_renderer->drawDepthMap(coeffs, HAND_NUM_COEFF, 
+          (PoseModel**)models, 2, false);
+        model_renderer->visualizeDepthMap(wnd, false);
         break;
       case 3:
-        hand_renderer->drawDepthMap(coeffs, hands, 2, true);
-        hand_renderer->visualizeDepthMap(wnd, true);
+        model_renderer->drawDepthMap(coeffs, HAND_NUM_COEFF, 
+          (PoseModel**)models, 2, true);
+        model_renderer->visualizeDepthMap(wnd, true);
         break;
       default:
         throw runtime_error("ERROR: render_output is an incorrect value");
@@ -678,9 +688,10 @@ int main(int argc, char *argv[]) {
       if (save_frames_to_file) {
         if (render_output != 3) {
           // If we haven't drawn the colored depth map, then draw it
-          hand_renderer->drawDepthMap(coeffs, hands, 2, true);
+          model_renderer->drawDepthMap(coeffs, HAND_NUM_COEFF, 
+            (PoseModel**)models, 2, true);
         }
-        TextureRenderable* tex = hand_renderer->cdepth_texture();
+        TextureRenderable* tex = model_renderer->cdepth_texture();
         tex->getTexture0Data<float>(depth_tmp);
         std::stringstream ss;
         ss << "data/hands_" << (uint64_t)(clk->getTime()*1e9) << ".bin";

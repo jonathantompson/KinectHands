@@ -74,6 +74,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>./glut-3.7.6-bin; $(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
       <AdditionalDependencies>jtil_d.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -100,6 +101,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>jtil.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>./glut-3.7.6-bin; $(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>
