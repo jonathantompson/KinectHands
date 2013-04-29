@@ -35,13 +35,25 @@ namespace app {
       const bool sync_depth_hand_detector, uint8_t* render_labels = NULL);
     // saveSensorData: Return true if a new datafile was created (false usually
     // indicates that the frame has already been saved to disk).
-    bool saveSensorData(const std::string& filename);
+    bool saveSensorData(const bool calibration, const uint32_t kinect_index);
 
-    uint64_t frame_number;
-    uint64_t saved_frame_number;
+    uint64_t depth_frame_number;
+    uint64_t rgb_frame_number;
+    uint64_t ir_frame_number;
+    uint64_t saved_min_frame_number;  // Only save when all of depth, 
+                                      // rgb and ir have been updated
+
+    // FPS counting
+    double last_frame_time;
     char kinect_fps_str[256];
+    uint64_t last_depth_frame_number;
+    double time_accum;
+    double fps;
 
-    uint8_t rgb[src_dim * 3];
+    static double time_sec;
+
+    bool sync_ir_stream_;
+    uint8_t rgb_ir[src_dim * 3];  
     uint8_t* registered_rgb;  // A ptr into rgb_depth_data_
     float xyz[src_dim * 3];
     uint8_t labels[src_dim];

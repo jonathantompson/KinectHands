@@ -39,7 +39,7 @@ namespace kinect_interface {
     // constants were intercepted at runtime.
     // Returns false if transformation is impossible (depth = 0 for instance)
     bool TranslateSinglePixel(const uint32_t x, const uint32_t y, 
-      uint16_t z, uint32_t& imageX, uint32_t& imageY, const bool m_isMirrored);
+      uint16_t z, int& imageX, int& imageY, const bool m_isMirrored);
 
     // The following are for the Kinect
     static uint32_t xnConvertProjectiveToRealWorld(uint32_t nCount,

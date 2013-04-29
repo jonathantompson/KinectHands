@@ -55,7 +55,7 @@
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
-// #define CALIBRATION_RUN
+#define CALIBRATION_RUN
 #define FILTER_SIZE 30  // Only in calibration mode
 #define PERFORM_ICP_FIT  // Only in calibration mode
 
@@ -73,7 +73,7 @@
 #define IM_DIR_BASE string("data/hand_depth_data/")
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
-#define MAX_KINECTS 3
+#define MAX_KINECTS 2
 
 #if defined(__APPLE__)
   #define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
@@ -126,8 +126,8 @@ bool running = false;
 Float4x4 camera_view[MAX_KINECTS];
 PoseModel** models;
 #if defined(CALIBRATION_RUN)
-  bool box_calibrate_geometry = true;
-  const float max_icp_dist = 1100.0f;
+  bool box_calibrate_geometry = true; 
+  const float max_icp_dist = 1000.0f;
   const uint32_t num_models = 1;
   float** coeffs[MAX_KINECTS] = {NULL, NULL};  // coeffs[kinect][frame][coeff]
   const uint32_t num_coeff = CalibrateCoeff::NUM_PARAMETERS;
@@ -407,15 +407,18 @@ void InitXYZPointsForRendering() {
     float cur_col[3];
     for (uint32_t i = 0; i < src_dim; i++) {
       vert->at(i)->set(&cur_xyz_data[k][i*3]);
+      if (vert->at(i)->m[2] > max_icp_dist) {
+        vert->at(i)->m[2] = 2001;
+      }
 
       if (cur_label_data[k][i] == 0) {
-        if (k != 1) {
+        if (k != 2) {
           cur_col[0] = 1.0f * static_cast<float>(cur_image_rgb[k][i*3]) / 255.0f;
         } else {
            cur_col[0] = 0.1f * static_cast<float>(cur_image_rgb[k][i*3]) / 255.0f;
         }
         cur_col[1] = 1.0f * static_cast<float>(cur_image_rgb[k][i*3+1]) / 255.0f;
-        if (k != 2) {
+        if (k != 1) {
           cur_col[2] = 1.0f * static_cast<float>(cur_image_rgb[k][i*3+2]) / 255.0f;
         } else {
           cur_col[2] = 0.1f * static_cast<float>(cur_image_rgb[k][i*3+2]) / 255.0f;

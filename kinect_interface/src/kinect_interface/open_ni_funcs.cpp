@@ -24,8 +24,11 @@ namespace kinect_interface {
   const double OpenNIFuncs::fHFOV_kinect_ = 1.0144686707507438;
   const double OpenNIFuncs::fVFOV_kinect_ = 0.78980943449644714;
 
-  const float OpenNIFuncs::fHFOV_primesense_109 = 1.017074704170227f;  // True depth
-  const float OpenNIFuncs::fVFOV_primesense_109 = 0.7919895648956299f;  // True depth
+  const float OpenNIFuncs::fHFOV_primesense_109 = 1.01707470885081f;  // openNI depth
+  const float OpenNIFuncs::fVFOV_primesense_109 = 0.791989554540429f;  // openNI depth
+
+  //const float OpenNIFuncs::fHFOV_primesense_109 = 1.017314617897f;  // measured depth
+  //const float OpenNIFuncs::fVFOV_primesense_109 = 0.795009466072f;  // measured depth
 
   //const float OpenNIFuncs::fHFOV_primesense_109 = 1.075848937034607f;  // approx rgb
   //const float OpenNIFuncs::fVFOV_primesense_109 = 0.8383198380470276f;  // approx rgb
@@ -48,10 +51,10 @@ namespace kinect_interface {
     nYRes_ = (float)nYRes;
     fHFOV_ = hFOV;
     fVFOV_ = vFOV;
-    xzFactor_ = tanf(fHFOV_ / 2.0f) * 2.0f;
-	  yzFactor_ = tanf(fVFOV_ / 2.0f) * 2.0f;
-    halfResX_ = nXRes_ / 2.0f;
-	  halfResY_ = nYRes_ / 2.0f;
+    xzFactor_ = tan(fHFOV_ / 2) * 2;
+	  yzFactor_ = tan(fVFOV_ / 2) * 2;
+    halfResX_ = nXRes_ / 2;
+	  halfResY_ = nYRes_ / 2;
 	  coeffX_ = nXRes_ / xzFactor_;
 	  coeffY_ = nYRes_ / yzFactor_;
     loadCalibrationData();
@@ -181,7 +184,7 @@ namespace kinect_interface {
   }
 
   bool OpenNIFuncs::TranslateSinglePixel(const uint32_t x, const uint32_t y, 
-    uint16_t z, uint32_t& imageX, uint32_t& imageY, const bool m_isMirrored) {
+    uint16_t z, int& imageX, int& imageY, const bool m_isMirrored) {
     imageX = 0;
     imageY = 0;
 
@@ -205,7 +208,7 @@ namespace kinect_interface {
       cal_data_->m_blob.params1080.rgbRegXValScale;
     nNewY = *(pRegTable+1);
     if (nNewX >= nDepthXRes || nNewY < nLinesShift) {
-      return false;
+      //return false;
     }
 
     imageX = bMirror ? (nDepthXRes - nNewX - 1) : nNewX;
@@ -237,7 +240,7 @@ namespace kinect_interface {
     {
       // crop from center
       imageY -= (uint32_t)(fullYRes - m_colorResolution.y)/2;
-      if (imageY > (uint32_t)m_colorResolution.y)
+      if ((uint32_t)imageY > (uint32_t)m_colorResolution.y)
       {
         return false;
       }

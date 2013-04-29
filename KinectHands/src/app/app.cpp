@@ -155,6 +155,8 @@ namespace app {
 
     // We have lots of hard-coded dimension values (check that they are
     // consistent).
+    bool sync_ir_stream;
+    GET_SETTING("sync_ir_stream", bool, sync_ir_stream);
     Int2 expected_dim(src_width, src_height);
     if (!Int2::equal(kinect_[0]->depth_dim(), expected_dim) ||
       !Int2::equal(kinect_[0]->rgb_dim(), expected_dim)) {
@@ -205,6 +207,7 @@ namespace app {
       frame_time_prev_ = frame_time_;
       frame_time_ = clk_->getTime();
       double dt = frame_time_ - frame_time_prev_;
+      FrameData::time_sec = frame_time_;
 
       int kinect_output, cur_kinect, label_type_enum;
       GET_SETTING("cur_kinect", int, cur_kinect);
@@ -214,10 +217,14 @@ namespace app {
       // Copy over the data from all the kinect threads
       executeThreadCallbacks(tp_, kinect_update_cbs_);
 
-      if (new_data_) {
-        Renderer::g_renderer()->ui()->setTextWindowString("kinect_fps_wnd",
-          kdata_[cur_kinect]->kinect_fps_str);
+      std::stringstream ss;
+      for (uint32_t i = 0; i < kinect_uris_.size(); i++) {
+        ss << "K" << i << ": " << kdata_[i]->kinect_fps_str << "fps, ";
+      }
+      Renderer::g_renderer()->ui()->setTextWindowString("kinect_fps_wnd",
+        ss.str().c_str());
 
+      if (new_data_) {
         if (kinect_output == OUTPUT_HAND_NORMALS) {
             hand_net_->image_generator()->calcNormalImage(
               kdata_[cur_kinect]->normals_xyz, kdata_[cur_kinect]->xyz, 
@@ -255,8 +262,8 @@ namespace app {
 
       if (new_data_) {
         switch (kinect_output) {
-        case OUTPUT_RGB:
-          memcpy(im_, kdata_[cur_kinect]->rgb, sizeof(im_[0]) * src_dim * 3);
+        case OUTPUT_RGB_IR:
+          memcpy(im_, kdata_[cur_kinect]->rgb_ir, sizeof(im_[0]) * src_dim * 3);
           break;
         case OUTPUT_RGB_REGISTERED:
           memcpy(im_, kdata_[cur_kinect]->registered_rgb, 
@@ -448,7 +455,7 @@ namespace app {
     ui->addHeadingText("Kinect Settings:");
     ui->addSelectbox("kinect_output", "Kinect Output");
     ui->addSelectboxItem("kinect_output", 
-      ui::UIEnumVal(OUTPUT_RGB, "RGB"));
+      ui::UIEnumVal(OUTPUT_RGB_IR, "RGB / IR"));
     ui->addSelectboxItem("kinect_output",
       ui::UIEnumVal(OUTPUT_RGB_REGISTERED, "RGB Registered"));
     ui->addSelectboxItem("kinect_output", 
@@ -464,8 +471,6 @@ namespace app {
     ui->addCheckbox("render_kinect_fps", "Render Kinect FPS");
     ui->addCheckbox("continuous_snapshot", "Save continuous video stream");
     ui->addCheckbox("continuous_cal_snapshot", "Save continuous calibration stream");
-    ui->addCheckbox("flip_image", "Flip Kinect Image");
-    ui->addCheckbox("depth_color_sync", "Depth Color Sync Enabled"); 
     ui->addButton("screenshot_button", "RGB Screenshot", 
       App::screenshotCB);
     ui->addButton("greyscale_screenshot_button", "Greyscale Screenshot", 
@@ -511,13 +516,20 @@ namespace app {
   }
 
   void App::screenshotCB() {
+    bool sync_ir_stream;
     int cur_kinect;
+    GET_SETTING("sync_ir_stream", bool, sync_ir_stream);
     GET_SETTING("cur_kinect", int, cur_kinect);
     g_app_->kinect_[cur_kinect]->lockData();
-    const uint8_t* rgb = g_app_->kinect_[cur_kinect]->rgb();
+    const uint8_t* rgb_src;
+    if (!sync_ir_stream) {
+      rgb_src = g_app_->kinect_[cur_kinect]->rgb();
+    } else {
+      rgb_src = g_app_->kinect_[cur_kinect]->ir();
+    }
     std::stringstream ss;
     ss << "rgb_screenshot" << g_app_->screenshot_counter_ << ".jpg";
-    jtil::renderer::Texture::saveRGBToFile(ss.str(), rgb, src_width, 
+    jtil::renderer::Texture::saveRGBToFile(ss.str(), rgb_src, src_width, 
       src_height, true);
     std::cout << "RGB saved to file " << ss.str() << std::endl;
     g_app_->screenshot_counter_++;
@@ -526,13 +538,20 @@ namespace app {
 
   void App::greyscaleScreenshotCB() {
     int cur_kinect;
+    bool sync_ir_stream;
+    GET_SETTING("sync_ir_stream", bool, sync_ir_stream);
     GET_SETTING("cur_kinect", int, cur_kinect);
     g_app_->kinect_[cur_kinect]->lockData();
-    const uint8_t* rgb = g_app_->kinect_[cur_kinect]->rgb();
+    const uint8_t* rgb_src;
+    if (!sync_ir_stream) {
+      rgb_src = g_app_->kinect_[cur_kinect]->rgb();
+    } else {
+      rgb_src = g_app_->kinect_[cur_kinect]->ir();
+    }
     uint8_t* grey = new uint8_t[src_width * src_height];
     for (uint32_t i = 0; i < src_dim; i++) {
-      grey[i] = (uint8_t)(((uint16_t)rgb[i*3] + (uint16_t)rgb[i*3+1] + 
-        (uint16_t)rgb[i*3+2]) / 3);
+      grey[i] = (uint8_t)(((uint16_t)rgb_src[i*3] + (uint16_t)rgb_src[i*3+1] + 
+        (uint16_t)rgb_src[i*3+2]) / 3);
     }
     std::stringstream ss;
     ss << "greyscale_screenshot" << g_app_->screenshot_counter_ << ".jpg";
@@ -541,6 +560,7 @@ namespace app {
     std::cout << "Greyscale saved to file " << ss.str() << std::endl;
     g_app_->screenshot_counter_++;
     g_app_->kinect_[cur_kinect]->unlockData();
+    SAFE_DELETE(grey);
   }
 
   int App::closeWndCB() {
@@ -580,15 +600,15 @@ namespace app {
 
   }
 
-  void App::syncKinectData(const uint32_t index) {
+  void App::syncKinectData(const uint32_t index){
     int cur_kinect, kinect_output;
     GET_SETTING("cur_kinect", int, cur_kinect);
     GET_SETTING("kinect_output", int, kinect_output);
     if (index == cur_kinect) {
-      new_data_ = kdata_[index]->syncWithKinect(kinect_[index],
+      new_data_ = kdata_[index]->syncWithKinect(kinect_[index], 
         kinect_output == OUTPUT_HAND_DETECTOR_DEPTH, render_labels_);
     } else {
-      kdata_[index]->syncWithKinect(kinect_[index], 
+      kdata_[index]->syncWithKinect(kinect_[index],
         kinect_output == OUTPUT_HAND_DETECTOR_DEPTH);
     }
 
@@ -600,26 +620,10 @@ namespace app {
   }
 
   void App::saveKinectData(const uint32_t index) {
-    if (kdata_[index]->saved_frame_number != kdata_[index]->frame_number) {
-      bool continuous_cal_snapshot;
-      GET_SETTING("continuous_cal_snapshot", bool, continuous_cal_snapshot);
-      std::stringstream ss;
-      uint64_t time = (uint64_t)(clk_->getTime() * 1e9);
-      if (continuous_cal_snapshot) {
-        if (index > 0) {
-          ss << "calb" << index << "_" << time << ".bin";
-        } else {
-          ss << "calb_" << time << ".bin";
-        }
-      } else {
-        if (index > 0) {
-          ss << "hands" << index << "_" << time << ".bin";
-        } else {
-          ss << "hands_" << time << ".bin";
-        }
-      }
-      kdata_[index]->saveSensorData(ss.str());
-    }
+    bool continuous_cal_snapshot;
+    GET_SETTING("continuous_cal_snapshot", bool, continuous_cal_snapshot);
+
+    kdata_[index]->saveSensorData(continuous_cal_snapshot, index);
 
     // Signal that we're done
     std::unique_lock<std::mutex> ul(thread_update_lock_);

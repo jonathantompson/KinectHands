@@ -31,7 +31,7 @@ namespace app {
   struct FrameData;
 
   typedef enum {
-    OUTPUT_RGB = 0,
+    OUTPUT_RGB_IR = 0,
     OUTPUT_RGB_REGISTERED = 1,
     OUTPUT_DEPTH = 2,
     OUTPUT_HAND_DETECTOR_DEPTH = 3,

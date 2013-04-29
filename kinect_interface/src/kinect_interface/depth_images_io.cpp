@@ -1,9 +1,3 @@
-//
-//  load_depth_images.cpp
-//
-//  Created by Jonathan Tompson on 7/20/12.
-//
-
 #if defined(WIN32) || defined(_WIN32)
   #include <windows.h>
   #include <tchar.h> 

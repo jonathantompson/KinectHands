@@ -54,6 +54,7 @@
     <ClCompile Include="src\kinect_interface\hand_net\torch_stage.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\spatial_convolution_map.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\transpose.cpp" />
+    <ClCompile Include="src\kinect_interface\kinect_device_listener.cpp" />
     <ClCompile Include="src\kinect_interface\kinect_interface.cpp" />
     <ClCompile Include="src\kinect_interface\open_ni_funcs.cpp" />
   </ItemGroup>
@@ -102,6 +103,7 @@
     <ClInclude Include="include\kinect_interface\hand_net\torch_stage.h" />
     <ClInclude Include="include\kinect_interface\hand_net\spatial_convolution_map.h" />
     <ClInclude Include="include\kinect_interface\hand_net\transpose.h" />
+    <ClInclude Include="include\kinect_interface\kinect_device_listener.h" />
     <ClInclude Include="include\kinect_interface\kinect_interface.h" />
     <ClInclude Include="include\kinect_interface\open_ni_funcs.h" />
   </ItemGroup>

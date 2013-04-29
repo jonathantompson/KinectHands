@@ -1,9 +1,3 @@
-//
-//  kinect_interface.cpp
-//
-//  Source origionally from OpenNI libraries, then modified by Otavio B. for
-//  Computer Vision class code, then adapted by Ken Perlin's lab for KinectHands
-
 #include <mutex>
 #include <thread>
 #include <string>
@@ -12,6 +6,7 @@
 #include <iostream>
 #include <limits>
 #include "kinect_interface/kinect_interface.h"
+#include "kinect_interface/kinect_device_listener.h"
 #include "kinect_interface/open_ni_funcs.h"
 #include "kinect_interface/hand_detector/hand_detector.h"
 #include "jtil/jtil.h"
@@ -27,6 +22,7 @@
 
 #include "OpenNI.h"
 #include "OniCAPI.h"
+#include "PS1080.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
@@ -59,6 +55,8 @@ namespace kinect_interface {
   bool KinectInterface::openni_init_ = false;
   std::mutex KinectInterface::openni_static_lock_;
   uint32_t KinectInterface::openni_devices_open_ = 0;
+  KinectDeviceListener* KinectInterface::device_listener_ = NULL;
+  Vector<KinectInterface*> KinectInterface::open_kinects_;
 
   KinectInterface::KinectInterface(const char* device_uri) {
     device_initialized_ = false;
@@ -71,16 +69,17 @@ namespace kinect_interface {
     depth_1mm_ = NULL;
     registered_rgb_ = NULL;
     openni_funcs_ = NULL;
-    clk_ = NULL;
     depth_dim_.zeros();
     rgb_dim_.zeros();
+    ir_dim_.zeros();
     for (uint32_t i = 0; i < NUM_STREAMS; i++) {
       streams_[i] = NULL;
       frames_[i] = NULL;
     }
 
-    frame_number_ = 0;
-    fps_ = 0;
+    depth_frame_number_ = 0;
+    rgb_frame_number_ = 0;
+    ir_frame_number_ = 0;
     tp_ = NULL;
 
     init(device_uri);
@@ -95,6 +94,7 @@ namespace kinect_interface {
     // Increment the devices counter
     openni_static_lock_.lock();
     openni_devices_open_++;
+    open_kinects_.pushBack(this);
     openni_static_lock_.unlock();
   }
 
@@ -117,12 +117,10 @@ namespace kinect_interface {
       tp_->stop();
     }
     SAFE_DELETE(tp_);
-
-    // Clean up
+    SAFE_DELETE(device_listener_);
     if (depth_format_100um_) {
       SAFE_DELETE_ARR(depth_1mm_);
     }
-    SAFE_DELETE(clk_);
     SAFE_DELETE(hand_detector_);
     SAFE_DELETE(image_io_);
     SAFE_DELETE_ARR(registered_rgb_);
@@ -156,9 +154,11 @@ namespace kinect_interface {
     openni_static_lock_.lock();
     if (!openni_init_) {
       openni::Status rc = openni::OpenNI::initialize();
-
       if (rc == openni::STATUS_OK) {
         openni_init_ = true;
+        device_listener_ = new KinectDeviceListener();
+        openni::OpenNI::addDeviceDisconnectedListener(device_listener_);
+	      openni::OpenNI::addDeviceStateChangedListener(device_listener_);
       } else {
         std::stringstream ss;
         ss << "KinectInterface::initOpenNI() - ERROR: ";
@@ -244,7 +244,6 @@ namespace kinect_interface {
       }
     }
 
-    clk_ = new Clk();
     hand_detector_ = new HandDetector(tp_);
     hand_detector_->init(depth_dim_[0], depth_dim_[1]);
 
@@ -273,10 +272,14 @@ namespace kinect_interface {
     }
     device_ = new openni::Device();
     checkOpenNIRC(device_->open(deviceURI), "Failed to connect to device");
+    const openni::DeviceInfo& info = device_->getDeviceInfo();
+    device_uri_ = info.getUri();
 
-    GET_SETTING("depth_color_sync", bool, depth_color_sync_);
-    checkOpenNIRC(device_->setDepthColorSyncEnabled(depth_color_sync_),
-      "Failed to set depth/color sync");
+     // Note: XYZ (real world values are ALL wrong when image registration is
+    // turned on).  It looks OK for a single Kinect, but the space is warped.
+    // This is an OpenNI bug:
+    setCropDepthToRGB(false);
+    setDepthColorSync(false);
 
     // Open a connection to the device's depth channel
     initDepth();
@@ -288,31 +291,37 @@ namespace kinect_interface {
     registered_rgb_ = new uint8_t[3 * depth_size];
 
     // Open a connection to the device's rgb channel
-    initRGB();
-
-    // Note: XYZ (real world values are ALL wrong when image registration is
-    // turned on).  It looks OK for a single Kinect, but the space is warped.
-    // This is an OpenNI bug:
-    setCropDepthToRGB(false);
-    device_->setImageRegistrationMode(openni::IMAGE_REGISTRATION_OFF);
+    GET_SETTING("sync_ir_stream", bool, sync_ir_stream_);
+    initRGB(!sync_ir_stream_);
+    initIR(sync_ir_stream_);
 
     GET_SETTING("flip_image", bool, flip_image_);
-    for (uint32_t i = 0; i < NUM_STREAMS; i++) {
-      streams_[i]->setMirroringEnabled(flip_image_);
-    }
+    setFlipImage(flip_image_);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
-    // Read the streams once so the frame is initialized.
-    for (uint32_t i = 0; i < NUM_STREAMS; i++) {
-      streams_[i]->readFrame(frames_[i]);
-    }
-
     // Update the OpenNIFuncs constants
-    float depth_hfov = streams_[DEPTH]->getHorizontalFieldOfView();
-    float depth_vfov = streams_[DEPTH]->getVerticalFieldOfView();
+    float depth_hfov = streams_[DEPTH_STREAM]->getHorizontalFieldOfView();
+    float depth_vfov = streams_[DEPTH_STREAM]->getVerticalFieldOfView();
     openni_funcs_ = new OpenNIFuncs(depth_dim_[0], depth_dim_[1],
       depth_hfov, depth_vfov, openni_devices_open_);
+
+    // Check OpenNI's math:
+    //uint64_t zpd; 
+    //streams_[DEPTH_STREAM]->getProperty(XN_STREAM_PROPERTY_ZERO_PLANE_DISTANCE, &zpd); 
+    //double zpps; 
+    //streams_[DEPTH_STREAM]->getProperty(XN_STREAM_PROPERTY_ZERO_PLANE_PIXEL_SIZE, &zpps); 
+    //double focal_length_cmos = (double)zpd / zpps;
+    //// http://en.wikipedia.org/wiki/Angle_of_view FOV calculation
+    //double FOVh = 2.0 * atan( ( 1280.0 * 0.5 ) / focal_length_cmos );
+    //double FOVv = 2.0 * atan( ( 960.0 * 0.5 ) / focal_length_cmos );
+    //std::streamsize old_precision = std::cout.precision();
+    //std::cout.precision(15);
+    //std::cout << "FOVh = " << FOVh << std::endl;
+    //std::cout << "FOVv = " << FOVv << std::endl;
+    //std::cout << "depth_hfov = " << depth_hfov << std::endl;
+    //std::cout << "depth_vfov = " << depth_vfov << std::endl;
+    //std::cout.precision(old_precision);
 
     std::cout << "Finished initializaing OpenNI device" << std::endl;
   }
@@ -400,20 +409,14 @@ namespace kinect_interface {
   }
 
   void KinectInterface::initDepth() {
-    streams_[DEPTH] = new openni::VideoStream();
-    checkOpenNIRC(streams_[DEPTH]->create(*device_, openni::SENSOR_DEPTH),
+    streams_[DEPTH_STREAM] = new openni::VideoStream();
+    checkOpenNIRC(streams_[DEPTH_STREAM]->create(*device_, openni::SENSOR_DEPTH),
       "Failed to connect to device depth channel");
-    checkOpenNIRC(streams_[DEPTH]->start(), "Failed to start depth stream");
-    if (!streams_[DEPTH]->isValid()) {
-      shutdownOpenNIStatic();
-      throw std::wruntime_error("KinectInterface::init() - ERROR: "
-        "Depth stream is not valid");
-    }
 
     // Find the supported mode with the highest depth resolution.  If more
     // than one format has the max resolution, choose the highest fps mode
     const openni::SensorInfo& depth_sensor_info = 
-      streams_[DEPTH]->getSensorInfo();
+      streams_[DEPTH_STREAM]->getSensorInfo();
 #if defined(DEBUG) || defined(_DEBUG)
     std::cout << "Depth ";
 #endif
@@ -421,63 +424,117 @@ namespace kinect_interface {
       PixelFormat::PIXEL_FORMAT_DEPTH_1_MM);
     std::cout << "Setting Depth mode: ";
     printMode(mode);
-    checkOpenNIRC(streams_[DEPTH]->setVideoMode(mode), 
+    checkOpenNIRC(streams_[DEPTH_STREAM]->setVideoMode(mode), 
       "Failed to set depth video mode");
     depth_fps_setting_ = mode.getFps();
 
+    streams_[DEPTH_STREAM]->setProperty(XN_STREAM_PROPERTY_CLOSE_RANGE, true);
+
     // Now retrieve the current mode to make sure everything went OK.
-    openni::VideoMode depth_mode = streams_[DEPTH]->getVideoMode();
+    openni::VideoMode depth_mode = streams_[DEPTH_STREAM]->getVideoMode();
     if (depth_mode.getPixelFormat() != PixelFormat::PIXEL_FORMAT_DEPTH_1_MM) {
       throw std::wruntime_error("KinectInterface::init() - ERROR: "
         "Depth stream is not a 16 bit grayscale format!");
     }
     depth_format_100um_ = false;
     depth_dim_.set(depth_mode.getResolutionX(), depth_mode.getResolutionY());
-    frames_[DEPTH] = new openni::VideoFrameRef();
+
+    checkOpenNIRC(streams_[DEPTH_STREAM]->start(), "Failed to start depth stream");
+    if (!streams_[DEPTH_STREAM]->isValid()) {
+      shutdownOpenNIStatic();
+      throw std::wruntime_error("KinectInterface::init() - ERROR: "
+        "Depth stream is not valid");
+    }
+
+    frames_[DEPTH_STREAM] = new openni::VideoFrameRef();
 
     if (depth_format_100um_) {
       depth_1mm_ = new uint16_t[depth_dim_[0] * depth_dim_[1]];
     }
   }
 
-  void KinectInterface::initRGB() {
-    streams_[RGB] = new openni::VideoStream();
-    checkOpenNIRC(streams_[RGB]->create(*device_, openni::SENSOR_COLOR),
+  void KinectInterface::initRGB(const bool start) {
+    streams_[RGB_STREAM] = new openni::VideoStream();
+    checkOpenNIRC(streams_[RGB_STREAM]->create(*device_, openni::SENSOR_COLOR),
       "Failed to connect to device rgb channel");
-    checkOpenNIRC(streams_[RGB]->start(), "Failed to start rgb stream");
-    if (!streams_[RGB]->isValid()) {
-      shutdownOpenNIStatic();
-      throw std::wruntime_error("KinectInterface::init() - ERROR: "
-        "RGB stream is not valid");
-    }
 
     // Find a resolution mode to match the depth mode
     const openni::SensorInfo& rgb_sensor_info = 
-      streams_[RGB]->getSensorInfo();
+      streams_[RGB_STREAM]->getSensorInfo();
 #if defined(DEBUG) || defined(_DEBUG)
-    std::cout << "RGB ";
+    std::cout << "RGB_STREAM ";
 #endif
     openni::VideoMode mode = findMatchingMode(rgb_sensor_info, depth_dim_,
       depth_fps_setting_, PixelFormat::PIXEL_FORMAT_RGB888);
-    std::cout << "Setting RGB mode: ";
+    std::cout << "Setting RGB_STREAM mode: ";
     printMode(mode);
-    checkOpenNIRC(streams_[RGB]->setVideoMode(mode), 
+    checkOpenNIRC(streams_[RGB_STREAM]->setVideoMode(mode), 
       "Failed to set rgb video mode");
     rgb_fps_setting_ = mode.getFps();
 
     // Now retrieve the current mode to make sure everything went OK.
-    openni::VideoMode rgb_mode = streams_[RGB]->getVideoMode();
+    openni::VideoMode rgb_mode = streams_[RGB_STREAM]->getVideoMode();
     if (rgb_mode.getPixelFormat() != PixelFormat::PIXEL_FORMAT_RGB888) {
       throw std::wruntime_error("KinectInterface::init() - ERROR: "
-        "RGB stream is not a 24 bit rgb format!");
+        "RGB_STREAM stream is not a 24 bit rgb format!");
     }
     rgb_dim_.set(rgb_mode.getResolutionX(), rgb_mode.getResolutionY());
-    frames_[RGB] = new openni::VideoFrameRef(); 
+
+    if (start) {
+      checkOpenNIRC(streams_[RGB_STREAM]->start(), "Failed to start rgb stream");
+      if (!streams_[RGB_STREAM]->isValid()) {
+        shutdownOpenNIStatic();
+        throw std::wruntime_error("KinectInterface::init() - ERROR: "
+          "RGB_IR_STREAM stream is not valid");
+      }
+    }
+
+    frames_[RGB_STREAM] = new openni::VideoFrameRef(); 
   }
 
-  char* KinectInterface::getStatusMessage() {
-    status_str_[0] = '\0';  // Empty string
-    return status_str_;
+  void KinectInterface::initIR(const bool start) {
+    bool has_ir = device_->hasSensor(openni::SENSOR_IR);
+    if (!has_ir) {
+      streams_[IR_STREAM] = NULL;
+      frames_[IR_STREAM] = NULL;
+      return;
+    }
+    streams_[IR_STREAM] = new openni::VideoStream();
+    checkOpenNIRC(streams_[IR_STREAM]->create(*device_, openni::SENSOR_IR),
+      "Failed to connect to device IR channel");
+
+    // Find a resolution mode to match the depth mode
+    const openni::SensorInfo& ir_sensor_info = 
+      streams_[IR_STREAM]->getSensorInfo();
+#if defined(DEBUG) || defined(_DEBUG)
+    std::cout << "IR_STREAM ";
+#endif
+    openni::VideoMode mode = findMatchingMode(ir_sensor_info, depth_dim_,
+      depth_fps_setting_, PixelFormat::PIXEL_FORMAT_RGB888);
+    std::cout << "Setting IR_STREAM mode: ";
+    printMode(mode);
+    checkOpenNIRC(streams_[IR_STREAM]->setVideoMode(mode), 
+      "Failed to set ir video mode");
+    ir_fps_setting_ = mode.getFps();
+
+    // Now retrieve the current mode to make sure everything went OK.
+    openni::VideoMode ir_mode = streams_[IR_STREAM]->getVideoMode();
+    if (ir_mode.getPixelFormat() != PixelFormat::PIXEL_FORMAT_RGB888) {
+      throw std::wruntime_error("KinectInterface::init() - ERROR: "
+        "IR_STREAM stream is not a 24 bit rgb format!");
+    }
+    ir_dim_.set(ir_mode.getResolutionX(), ir_mode.getResolutionY());
+
+    if (start) {
+      checkOpenNIRC(streams_[IR_STREAM]->start(), "Failed to start IR stream");
+      if (!streams_[IR_STREAM]->isValid()) {
+        shutdownOpenNIStatic();
+        throw std::wruntime_error("KinectInterface::init() - ERROR: "
+          "RGB_IR_STREAM stream is not valid");
+      }
+    }
+
+    frames_[IR_STREAM] = new openni::VideoFrameRef(); 
   }
 
   void KinectInterface::setCropDepthToRGB(const bool crop_depth_to_rgb) {
@@ -489,49 +546,51 @@ namespace kinect_interface {
   }
 
   void KinectInterface::setFlipImage(const bool flip_image) {
-    if (flip_image_ != flip_image) {
-      flip_image_ = flip_image;
-      for (uint32_t i = 0; i < NUM_STREAMS; i++) {
-        streams_[i]->setMirroringEnabled(flip_image_);
+    for (uint32_t i = 0; i < NUM_STREAMS; i++) {
+      if (i == RGB_STREAM && sync_ir_stream_) {
+        continue;
       }
-    } 
-  }
-
-  void KinectInterface::setDepthColorSync(const bool depth_color_sync) {
-    if (depth_color_sync_ != depth_color_sync) {
-      depth_color_sync_ = depth_color_sync;
-      checkOpenNIRC(device_->setDepthColorSyncEnabled(depth_color_sync_),
-        "Failed to set depth/color sync");
+      if (i == IR_STREAM && !sync_ir_stream_) {
+        continue;
+      }
+      checkOpenNIRC(streams_[i]->setMirroringEnabled(flip_image), 
+        "Failed to set mirroring!");
     }
   }
 
-  void KinectInterface::kinectUpdateThread() {
-    double last_frame_time = clk_->getTime();
-    double time_accum = 0;
-    uint64_t last_frame_number = 0;
+  void KinectInterface::setDepthColorSync(const bool depth_color_sync) {
+    checkOpenNIRC(device_->setDepthColorSyncEnabled(depth_color_sync),
+      "Failed to set depth/color sync");
+  }
 
+  void KinectInterface::kinectUpdateThread() {
     SetThreadName("KinectInterface::kinectUpdateThread()");
 
     while (kinect_running_) {
-      bool flip_image, depth_color_sync;
-      GET_SETTING("flip_image", bool, flip_image);
-      GET_SETTING("depth_color_sync", bool, depth_color_sync);
-      setFlipImage(flip_image);
-      setDepthColorSync(depth_color_sync);
-
-      // Wait for all streams individually.  We need Depth and RGB frames to be
+      // Wait for all streams individually.  We need Depth and RGB_IR_STREAM frames to be
       // consistent in time so we should for both rather than process each one
       // independantly
+      bool a_frame_changed = false;
       bool stream_ready[NUM_STREAMS];
       for (uint32_t i = 0; i < NUM_STREAMS; i++) {
+        stream_ready[i] = false;
+        if (i == RGB_STREAM && sync_ir_stream_) {
+          continue;
+        }
+        if (i == IR_STREAM && !sync_ir_stream_) {
+          continue;
+        }
         int changedIndex;
         openni::Status rc = openni::OpenNI::waitForAnyStream(&streams_[i], 1, 
           &changedIndex, OPENNI_WAIT_TIMEOUT);
-        if (changedIndex != 0 || rc != openni::Status::STATUS_OK) {
-          stream_ready[i] = false;
-        } else {
+        if (changedIndex == 0 && rc == openni::Status::STATUS_OK) {
           stream_ready[i] = true;
+          a_frame_changed = true;
         }
+      }
+
+      if (!a_frame_changed) {
+        continue;  // Happens when USB bus is timing out I think
       }
 
       data_lock_.lock();
@@ -539,9 +598,17 @@ namespace kinect_interface {
       for (uint32_t i = 0; i < NUM_STREAMS; i++) {
         if (stream_ready[i]) {
           streams_[i]->readFrame(frames_[i]);
-        } else {
-          std::cout << "kinectUpdateThread() - WARNING: stream timeout!";
-          std::cout << std::endl;
+          switch (i) {
+          case DEPTH_STREAM:
+            depth_frame_number_++;
+            break;
+          case RGB_STREAM:
+            rgb_frame_number_++;
+            break;
+          case IR_STREAM:
+            ir_frame_number_++;
+            break;
+          }
         }
       }
 
@@ -552,40 +619,33 @@ namespace kinect_interface {
         break;
       }
 
-      if (depth_format_100um_) {
-        uint16_t* depth_src = (uint16_t*)frames_[DEPTH]->getData(); 
-        for (int32_t i = 0; i < depth_dim_[0] * depth_dim_[1]; i++) {
-          depth_1mm_[i] = depth_src[i] / 10;
+      if (stream_ready[DEPTH_STREAM]) {
+        if (depth_format_100um_) {
+          uint16_t* depth_src = (uint16_t*)frames_[DEPTH_STREAM]->getData(); 
+          for (int32_t i = 0; i < depth_dim_[0] * depth_dim_[1]; i++) {
+            depth_1mm_[i] = depth_src[i] / 10;
+          }
+        } else {
+          depth_1mm_ = (uint16_t*)frames_[DEPTH_STREAM]->getData(); 
         }
-      } else {
-        depth_1mm_ = (uint16_t*)frames_[DEPTH]->getData(); 
-      }
 
-      performConversions();
+        performConversions();
 
-      bool detect_hands, found_hand;
-      GET_SETTING("detect_hands", bool, detect_hands);
-      if (detect_hands) {
-        found_hand = hand_detector_->findHandLabels((int16_t*)depth_1mm_, 
-          pts_world_, HDLabelMethod::HDFloodfill, labels_);
-        if (!found_hand) {
+        bool detect_hands, found_hand;
+        GET_SETTING("detect_hands", bool, detect_hands);
+        if (detect_hands) {
+          found_hand = hand_detector_->findHandLabels((int16_t*)depth_1mm_, 
+            pts_world_, HDLabelMethod::HDFloodfill, labels_);
+          if (!found_hand) {
+            memset(labels_, 0, sizeof(labels_[0]) * src_dim);
+          }
+        }
+
+        if (!detect_hands || !found_hand) {
           memset(labels_, 0, sizeof(labels_[0]) * src_dim);
         }
-      }
-
-      if (!detect_hands || !found_hand) {
-        memset(labels_, 0, sizeof(labels_[0]) * src_dim);
-      }
-
-      frame_number_++;
-      double frame_time = clk_->getTime();
-      time_accum += (frame_time - last_frame_time);
-      last_frame_time = frame_time;
-      if (time_accum > 0.5) {
-        fps_ = (frame_number_ - last_frame_number) / time_accum;
-        time_accum = 0;
-        last_frame_number = frame_number_;
-      }
+      }  // if (stream_ready[DEPTH_STREAM]) {
+      
       data_lock_.unlock();
 
       std::this_thread::yield();
@@ -601,7 +661,7 @@ namespace kinect_interface {
         pts_uvd_[i] /= 10.0f;
       }
     }
-    
+
     if (KINECT_INTERFACE_NUM_CONVERTER_THREADS == 1) {
       convertDepthToWorld(0, src_dim-1);
       convertRGBToDepth(0, src_dim-1);
@@ -641,7 +701,7 @@ namespace kinect_interface {
     //for (uint32_t i = start; i <= end; i++) {
     //  uint32_t u = i % depth_dim_[0];
     //  uint32_t v = i / depth_dim_[0];
-    //  openni::CoordinateConverter::convertDepthToWorld(*streams_[DEPTH], u, v, 
+    //  openni::CoordinateConverter::convertDepthToWorld(*streams_[DEPTH_STREAM], u, v, 
     //    d[i], &pts_world_[i*3], &pts_world_[i*3+1], &pts_world_[i*3+2]);
     //}
 
@@ -653,34 +713,50 @@ namespace kinect_interface {
 
   void KinectInterface::convertRGBToDepth(const uint32_t start, 
     const uint32_t end) {
-    bool flip_image;
-    GET_SETTING("flip_image", bool, flip_image);
+    if (!sync_ir_stream_) {
+      const uint16_t* d = depth();
+      OniStreamHandle dhandle = streams_[DEPTH_STREAM]->_getHandle();
+      OniStreamHandle chandle = streams_[RGB_STREAM]->_getHandle();
+      int rgb_u;
+      int rgb_v;
+      uint8_t* rgb = (uint8_t*)frames_[RGB_STREAM]->getData();
+      for (uint32_t i = start; i <= end; i++) {
+        uint32_t u = i % depth_dim_[0];
+        uint32_t v = i / depth_dim_[0];
+        // This is the API version (REALLY slow)
+        //openni::Status rc = openni::CoordinateConverter::convertDepthToColor(
+        //  *streams_[DEPTH_STREAM], *streams_[RGB_IR_STREAM], u, v, d[i], &rgb_u, &rgb_v);
+        //if (rc == openni::Status::STATUS_OK) {
+        //  int src_index = rgb_v * src_width + rgb_u;
+        //  registered_rgb_[i * 3] = rgb[src_index * 3];
+        //  registered_rgb_[i * 3 + 1] = rgb[src_index * 3 + 1];
+        //  registered_rgb_[i * 3 + 2] = rgb[src_index * 3 + 2];
+        //} else {
+        //  registered_rgb_[i * 3] = 0;
+        //  registered_rgb_[i * 3 + 1] = 0;
+        //  registered_rgb_[i * 3 + 2] = 0;
+        //}
 
-    const uint16_t* d = depth();
-    OniStreamHandle dhandle = streams_[DEPTH]->_getHandle();
-    OniStreamHandle chandle = streams_[RGB]->_getHandle();
-    uint32_t rgb_u;
-    uint32_t rgb_v;
-    uint8_t* rgb = (uint8_t*)frames_[RGB]->getData();
-    for (uint32_t i = start; i <= end; i++) {
-      uint32_t u = i % depth_dim_[0];
-      uint32_t v = i / depth_dim_[0];
-      // This is the API version (REALLY slow)
-      //openni::CoordinateConverter::convertDepthToColor(*streams_[DEPTH], 
-      //  *streams_[RGB], u, v, d[i], &rgb_uv[0], &rgb_uv[1]);
-
-      // My version:
-      openni_funcs_->TranslateSinglePixel(u, v, d[i], rgb_u, 
-        rgb_v, flip_image);
-      if (d[i] != 0 && rgb_u < src_width && rgb_v < src_height) {
-        int src_index = rgb_v * src_width + rgb_u;
-        registered_rgb_[i * 3] = rgb[src_index * 3];
-        registered_rgb_[i * 3 + 1] = rgb[src_index * 3 + 1];
-        registered_rgb_[i * 3 + 2] = rgb[src_index * 3 + 2];
-      } else {
-        registered_rgb_[i * 3] = 0;
-        registered_rgb_[i * 3 + 1] = 0;
-        registered_rgb_[i * 3 + 2] = 0;
+        //  // My version:
+        openni_funcs_->TranslateSinglePixel(u, v, d[i], rgb_u, 
+          rgb_v, flip_image_);
+        if (d[i] != 0 && rgb_u < src_width && rgb_v < src_height && rgb_u >= 0 &&
+          rgb_v >= 0) {
+            int src_index = rgb_v * src_width + rgb_u;
+            registered_rgb_[i * 3] = rgb[src_index * 3];
+            registered_rgb_[i * 3 + 1] = rgb[src_index * 3 + 1];
+            registered_rgb_[i * 3 + 2] = rgb[src_index * 3 + 2];
+        } else {
+          registered_rgb_[i * 3] = 0;
+          registered_rgb_[i * 3 + 1] = 0;
+          registered_rgb_[i * 3 + 2] = 0;
+        }
+      }
+    } else {
+      for (uint32_t i = start; i <= end; i++) {
+        registered_rgb_[i * 3] = 255;
+        registered_rgb_[i * 3 + 1] = 255;
+        registered_rgb_[i * 3 + 2] = 255;
       }
     }
 
@@ -691,7 +767,11 @@ namespace kinect_interface {
   }
 
   const uint8_t* KinectInterface::rgb() const { 
-    return (uint8_t*)frames_[RGB]->getData(); 
+    return (uint8_t*)frames_[RGB_STREAM]->getData(); 
+  } 
+
+  const uint8_t* KinectInterface::ir() const { 
+    return (uint8_t*)frames_[IR_STREAM]->getData(); 
   } 
 
   const uint8_t* KinectInterface::registered_rgb() const { 
@@ -703,7 +783,7 @@ namespace kinect_interface {
   }
 
   const uint16_t* KinectInterface::depth() const { 
-    return (uint16_t*)frames_[DEPTH]->getData(); 
+    return (uint16_t*)frames_[DEPTH_STREAM]->getData(); 
   }
 
   const uint16_t* KinectInterface::depth1mm() const { 
