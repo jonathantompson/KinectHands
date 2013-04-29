@@ -33,9 +33,12 @@
 #define INCLUDE_STICKS
 
 // Coeffs for BOX
-#define BOX_SIDEA 339.725f
-#define BOX_SIDEB 330.2f
-#define BOX_SIDEC 106.68f
+//#define BOX_SIDEA 339.725f  // Actual size
+//#define BOX_SIDEB 330.2f
+//#define BOX_SIDEC 106.68f
+#define BOX_SIDEA 334.725f  // Better size
+#define BOX_SIDEB 315.2f
+#define BOX_SIDEC 102.68f
 
 #define NUM_CAL_SPHERES 0
 namespace jtil { namespace math { class BFGS; } }
@@ -100,6 +103,11 @@ namespace model_fit {
     static void renormalizeCoeffs(float* coeff);
     static float calcAveCameraViewObjFunc(const float* coeff);
     static void calcAveCameraViewJacobFunc(float* jacob, const float* coeff);
+    void findPointsCloseToModel(jtil::data_str::Vector<float>& pc, 
+      const float* xyz, const float* coeff, const float dist_thresh);
+
+    jtil::math::Float3& box_size() { return box_size_; }
+    void updateBoxSize();
 
   private:
     renderer::Geometry* scene_graph_;  // The renderable geometry - Not owned here
@@ -110,6 +118,7 @@ namespace model_fit {
     renderer::Geometry* cylinder_b_;
 
     renderer::Geometry* box_;
+    jtil::math::Float3 box_size_;
     jtil::data_str::Vector<renderer::BoundingSphere*> bspheres_;  // Attached to scene graph!
     bool renderer_attachment_;  // whether or not the model is attached to the 
                                 // global renderer's scene graph

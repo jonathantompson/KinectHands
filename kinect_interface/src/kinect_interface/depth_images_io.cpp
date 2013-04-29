@@ -539,18 +539,10 @@ namespace kinect_interface {
       jtil::string_util::ToWideString(directory).c_str());
     std::wstringstream ss;
     if (prefix == NULL) {
-      if (kinect_num ==  0) {
-        ss << L"\\hands_*.bin";
-      } else {
-        ss << L"\\hands" << kinect_num << L"_*.bin";
-      }
+      ss << L"\\hands" << kinect_num << L"_*.bin";
     } else {
-      if (kinect_num ==  0) {
-        ss << L"\\" << jtil::string_util::ToWideString(prefix) << L"_*.bin";
-      } else {
-        ss << L"\\" << jtil::string_util::ToWideString(prefix) << kinect_num;
-        ss << L"_*.bin";
-      }
+      ss << L"\\" << jtil::string_util::ToWideString(prefix) << kinect_num;
+      ss << L"_*.bin";
     }
     StringCchCat(szDir, MAX_PATH, ss.str().c_str());
 
@@ -618,11 +610,8 @@ namespace kinect_interface {
     // Now Parse the filenames and get their unique ID number
     for (uint32_t i = 0; i < files.size(); i++) {
       std::string str = files.at(i).first;
-      size_t i0 = 0;
-      if (kinect_num != 0) {
-        i0 = str.find_first_of("0123456789");
-      }
-      size_t i1 = str.find_first_of("0123456789", i0+1);
+      size_t i0 = str.find_first_of("0123456789");  // Kinect number
+      size_t i1 = str.find_first_of("0123456789", i0+1);  // Frame number
       if (i1 == string::npos) {
         throw std::wruntime_error("DepthImagesIO::GetFilesInDirectory() - "
           "ERROR: Couldn't parse filename!");

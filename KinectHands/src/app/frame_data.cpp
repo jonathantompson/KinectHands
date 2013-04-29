@@ -143,16 +143,16 @@ namespace app {
   bool FrameData::saveSensorData(const bool calibration,
     const uint32_t kinect_index) {
     uint64_t min_frame = std::min<uint64_t>(depth_frame_number, 
-      std::min<uint64_t>(rgb_frame_number, ir_frame_number));
+      sync_ir_stream_ ? ir_frame_number : rgb_frame_number);
     if (saved_min_frame_number == min_frame) {
       return false;
     } else {
       std::stringstream ss;
-      uint64_t time_ns = (uint64_t)(time_sec * 1e9);
+      int64_t time_ns = (int64_t)(time_sec * 1.0e9);
       if (calibration) {
-        ss << "calb" << kinect_index << "_" << time << ".bin";
+        ss << "calb" << kinect_index << "_" << time_ns << ".bin"; 
       } else {
-        ss << "hands" << kinect_index << "_" << time << ".bin";
+        ss << "hands" << kinect_index << "_" << time_ns << ".bin";
       }
 
       // Flag the user pixels (which for now are just pixels less than some 

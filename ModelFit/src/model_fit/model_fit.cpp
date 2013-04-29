@@ -11,6 +11,7 @@
 #include "jtil/file_io/file_io.h"
 #include "jtil/file_io/csv_handle_write.h"
 #include "renderer/gl_state.h"
+#include "renderer/camera/camera.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
 #include "kinect_interface/depth_images_io.h"
 
@@ -33,10 +34,13 @@ namespace model_fit {
   ModelFit* ModelFit::cur_fit_ = NULL;
   uint64_t ModelFit::func_eval_count_ = 0;
  
-  ModelFit::ModelFit(uint32_t num_models, uint32_t coeff_dim_per_model) {
+  ModelFit::ModelFit(const uint32_t num_models, 
+    const uint32_t coeff_dim_per_model, const uint32_t num_cameras) {
     if (num_models == 0 || coeff_dim_per_model == 0) {
       throw std::wruntime_error("ModelFit::ModelFit() - ERROR: check inputs!");
     }
+
+    num_cameras_ = num_cameras;
     num_models_ = num_models;
     coeff_dim_per_model_ = coeff_dim_per_model;
     coeff_dim_ = coeff_dim_per_model_ * num_models_;
@@ -51,7 +55,7 @@ namespace model_fit {
 
     kinect_depth_masked_ = new int16_t[src_dim];
 
-    model_renderer_ = new ModelRenderer();
+    model_renderer_ = new ModelRenderer(num_cameras_);
   }
 
   ModelFit::~ModelFit() {
@@ -63,22 +67,29 @@ namespace model_fit {
     SAFE_DELETE(model_renderer_);
   }
 
-  void ModelFit::prepareKinectData(int16_t* depth, uint8_t* label) {
-    memcpy(kinect_depth_masked_, depth, 
-      sizeof(kinect_depth_masked_[0]) * src_dim);
-#ifdef DEPTH_ONLY_RESIDUE_FUNC
-    // Do nothing
-#else
-    for (uint32_t i = 0; i < src_dim; i++) {
-      if (label[i] == 0) {
-        kinect_depth_masked_[i] = 0;
+  void ModelFit::prepareKinectData(int16_t** depth, uint8_t** label) {
+    for (uint32_t i_camera = 0; i_camera < num_cameras_; i_camera++) {
+      memcpy(kinect_depth_masked_, depth[i_camera], 
+        sizeof(kinect_depth_masked_[0]) * src_dim);
+  #ifdef DEPTH_ONLY_RESIDUE_FUNC
+      // Do nothing
+  #else
+      for (uint32_t i = 0; i < src_dim; i++) {
+        if (label[i_camera][i] == 0) {
+          kinect_depth_masked_[i] = 0;
+        }
       }
+  #endif
+      model_renderer_->uploadDepth(i_camera, kinect_depth_masked_);
     }
-#endif
-    model_renderer_->uploadDepthDepth(kinect_depth_masked_);
   }
 
-  void ModelFit::fitModel(int16_t* depth, uint8_t* label, PoseModel** models, 
+  void ModelFit::setCameraView(const uint32_t i_camera, 
+    const jtil::math::Float4x4& view) {
+    model_renderer_->camera(i_camera)->view()->set(view);
+  }
+
+  void ModelFit::fitModel(int16_t** depth, uint8_t** label, PoseModel** models, 
     float** coeffs, float** prev_coeffs,
     CoeffUpdateFuncPtr coeff_update_func) {
     Vector<bool> old_attachement_vals(num_models_);
@@ -110,7 +121,7 @@ namespace model_fit {
   }
 
 
-  void ModelFit::prepareOptimization(int16_t* depth, uint8_t* label, 
+  void ModelFit::prepareOptimization(int16_t** depth, uint8_t** label, 
     PoseModel** models, float** coeffs, float** prev_coeffs,
     Vector<bool>& old_attachement_vals) {
     models_ = models;
@@ -140,7 +151,7 @@ namespace model_fit {
     prepareKinectData(depth, label);
   }
 
-  float ModelFit::queryObjFunc(int16_t* depth, uint8_t* label, 
+  float ModelFit::queryObjFunc(int16_t** depth, uint8_t** label, 
     PoseModel** models, float** coeffs) {
     Vector<bool> old_attachement_vals(num_models_);
     prepareOptimization(depth, label, models, coeffs, NULL,
@@ -310,17 +321,17 @@ namespace model_fit {
     func_eval_count_ += NTILES;
     calculateResidualTiled(residues, coeffs);
 
-#if defined(_DEBUG) || defined(DEBUG)
-    // Very expensive, but double check that they are correct!
-    for (uint32_t i = 0; i < coeffs.size(); i++) {
-      float obj_func = objectiveFunc(coeffs[i]);
-      if (abs(obj_func - residues[i]) / abs(residues[i]) > 1e-2) {
-        cout << "tiled vs non-tiled obj function residue mismatch!" << endl;
-        cout << obj_func << " vs " << residues[i] << endl;
-        throw runtime_error("ERROR: tiled residue doesn't match single residue!");
-      }
-    }
-#endif
+//#if defined(_DEBUG) || defined(DEBUG)
+//    // Very expensive, but double check that they are correct!
+//    for (uint32_t i = 0; i < coeffs.size(); i++) {
+//      float obj_func = objectiveFunc(coeffs[i]);
+//      if (abs(obj_func - residues[i]) / abs(residues[i]) > 1e-2) {
+//        cout << "tiled vs non-tiled obj function residue mismatch!" << endl;
+//        cout << obj_func << " vs " << residues[i] << endl;
+//        throw runtime_error("ERROR: tiled residue doesn't match single residue!");
+//      }
+//    }
+//#endif
   }
 
 }  // namespace hand_fit

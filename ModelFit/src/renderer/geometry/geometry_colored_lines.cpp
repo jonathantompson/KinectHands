@@ -118,7 +118,7 @@ namespace renderer {
 
     bindVAO();  // Bind all required OpenGL resources
 
-    GLState::glsDrawArrays(GL_LINES, 0, synced_num_vertices_/2);
+    GLState::glsDrawArrays(GL_LINES, 0, synced_num_vertices_);
     
     unbindVAO();  // Unbind all required OpenGL resources
   }

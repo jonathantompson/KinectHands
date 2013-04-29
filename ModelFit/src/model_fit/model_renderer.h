@@ -52,39 +52,43 @@ namespace model_fit {
   class ModelRenderer {
   public:
     // Constructor / Destructor
-    ModelRenderer();
+    ModelRenderer(const uint32_t num_cameras);
     ~ModelRenderer();
 
     // Call before rendering depth maps:
-    void uploadDepthDepth(int16_t* kinect_depth);  
+    void uploadDepth(const uint32_t i_camera, const int16_t* kinect_depth);  
 
     // Top level functions
     void drawDepthMap(const float* coeff, const uint32_t num_coeff_per_model, 
-      PoseModel** models, const uint32_t num_models, const bool color = false);
+      PoseModel** models, const uint32_t num_models, const uint32_t i_camera,
+      const bool color = false);
 
     // max_num_interpenetration_groups --> if the number of bounding sphere
     // groups is larger than you want to consider (ie, ignore all groups beyond n)
     void drawDepthMapTiled(jtil::data_str::Vector<float*>& coeff, 
       const uint32_t num_coeff_per_model, PoseModel** models, 
-      const uint32_t num_models, const bool calcInterpenetration,
+      const uint32_t num_models, const uint32_t i_camera,
+      const bool calcInterpenetration, 
       jtil::data_str::Vector<float>& interpenetration,
       const uint32_t max_num_interpenetration_groups);
 
     void visualizeDepthMap(windowing::Window* wnd, bool color = false);
 
-    float calculateResidualDataTerm();
-    void calculateResidualDataTermTiled(jtil::data_str::Vector<float>& residues);
+    float calculateResidualDataTerm(const uint32_t i_camera);
+    void calculateResidualDataTermTiled(jtil::data_str::Vector<float>& residues,
+      const uint32_t i_camera);
     float calcInterpenetrationTerm(const uint32_t max_groups);
     void extractDepthMap(float* depth_vals);
 
     inline renderer::TextureRenderable* depth_texture() { return depth_texture_; }
     inline renderer::TextureRenderable* cdepth_texture() { return cdepth_texture_; }
     inline float* depth_tmp() { return depth_tmp_; }
-    inline renderer::Camera* camera() { return camera_; }
+    inline renderer::Camera* camera(const uint32_t id) { return cameras_[id]; }
 
   private:
     renderer::Renderer* g_renderer_;  // Not owned here
-    renderer::Camera* camera_;
+    uint32_t num_cameras_;
+    renderer::Camera** cameras_;
     
     renderer::TextureRenderable* depth_texture_;  // 640 x 480
     renderer::TextureRenderable* depth_texture_tiled_;  // 5120 x 3840 (8x8)
@@ -97,8 +101,8 @@ namespace model_fit {
     renderer::TextureRenderable* residue_texture_160_;  // 4 x 3
     renderer::TextureRenderable* residue_texture_x2_;   // 1280 x 960
     renderer::TextureRenderable* residue_texture_x8_;   // 5120 x 3840
-    renderer::Texture* kinect_depth_texture_;
-    renderer::Texture* kinect_depth_texture_tiled_;
+    renderer::Texture** kinect_depth_textures_;
+    renderer::Texture** kinect_depth_textures_tiled_;
     renderer::TextureRenderable* cdepth_texture_;  // depth and color
 
     float* depth_tmp_;  // DEPTH_IMAGE_DIM * NTILES
@@ -164,11 +168,11 @@ namespace model_fit {
     jtil::data_str::Vector<float> matrix_data_;  // concatenated matrix data
 
     void renderTexturedBonedMesh(renderer::GeometryTexturedBonedMesh* geom, 
-      bool color = false);
+      const uint32_t i_camera, bool color = false);
     void renderColoredMesh(renderer::GeometryColoredMesh* geom, 
-      bool color = false);
+      const uint32_t i_camera, bool color = false);
     void renderColoredBonedMesh(renderer::GeometryColoredBonedMesh* geom, 
-      bool color = false);
+      const uint32_t i_camera, bool color = false);
 
     void insertionSortAxisExtents(uint32_t* arr, 
       uint32_t iextent);
@@ -178,7 +182,8 @@ namespace model_fit {
 
     void drawDepthMapInternal(const float* coeff, 
       const uint32_t num_coeff_per_model, PoseModel** models, 
-      const uint32_t num_models, const bool color, const bool tiled);
+      const uint32_t num_models, const uint32_t i_camera, const bool color, 
+      const bool tiled);
 
     // Non-copyable, non-assignable.
     ModelRenderer(ModelRenderer&);

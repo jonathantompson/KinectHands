@@ -48,16 +48,20 @@
 #include "jtil/math/icp.h"
 #include "jtil/image_util/image_util.h"
 
-#if defined(WIN32) || defined(_WIN32)
+#if defined(WIN32) || defined(_WIN32) 
   #define snprintf _snprintf_s
   #pragma warning( disable : 4099 )
 #endif
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
-#define CALIBRATION_RUN
+// #define CALIBRATION_RUN
 #define FILTER_SIZE 30  // Only in calibration mode
 #define PERFORM_ICP_FIT  // Only in calibration mode
+// #define USE_ICP_NORMALS  // Only in calibration mode
+#define ICP_PC_MODEL_DIST_THRESH 15  // mm
+#define ICP_NUM_ITERATIONS 40
+#define MAX_ICP_PTS 10000
 
 // KINECT DATA
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Fit
@@ -73,7 +77,7 @@
 #define IM_DIR_BASE string("data/hand_depth_data/")
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
-#define MAX_KINECTS 2
+#define MAX_KINECTS 3
 
 #if defined(__APPLE__)
   #define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
@@ -121,13 +125,14 @@ int mouse_x, mouse_y, mouse_x_prev, mouse_y_prev;
 bool camera_rotate = false;
 bool scale_coeff = false;
 bool running = false;
+bool shift_down = false;
 
 // model
 Float4x4 camera_view[MAX_KINECTS];
 PoseModel** models;
 #if defined(CALIBRATION_RUN)
   bool box_calibrate_geometry = true; 
-  const float max_icp_dist = 1000.0f;
+  const float max_icp_dist = GDT_MAX_DIST;
   const uint32_t num_models = 1;
   float** coeffs[MAX_KINECTS] = {NULL, NULL};  // coeffs[kinect][frame][coeff]
   const uint32_t num_coeff = CalibrateCoeff::NUM_PARAMETERS;
@@ -139,6 +144,8 @@ PoseModel** models;
   uint8_t** label_database[MAX_KINECTS] = {NULL, NULL};
   uint32_t cur_icp_mat = 0;
   int32_t last_icp_kinect = -1;
+  bool render_correspondances = true;
+  uint32_t num_model_fit_cameras = 1;
 #else
   HandModelCoeff** l_hand_coeffs = NULL;  // Left Hand coefficients
   HandModelCoeff** r_hand_coeffs = NULL;  // Right hand coeffs
@@ -146,6 +153,7 @@ PoseModel** models;
   int hand_to_modify = fit_left ? 0 : 1;
   const uint32_t num_coeff = HandCoeff::NUM_PARAMETERS;
   const uint32_t num_coeff_fit = HAND_NUM_COEFF;
+  uint32_t num_model_fit_cameras = MAX_KINECTS;
 #endif
 uint32_t cur_coeff = 0;
 ModelFit* fit = NULL;
@@ -396,21 +404,32 @@ void loadCurrentImage(bool print_to_screen = true) {
 }
 
 void InitXYZPointsForRendering() {
-  
+  //Vector<float> pc1;
+  //CalibrateGeometry* cal_model = (CalibrateGeometry*)models[0];
+
   for (uint32_t k = 0; k < MAX_KINECTS; k++) {
     if (geometry_points[k]->synced()) {
       geometry_points[k]->unsyncVAO();
     }
+
+    //cal_model->findPointsCloseToModel(pc1, cur_xyz_data[k], 
+    //  coeffs[k][cur_image], ICP_PC_MODEL_DIST_THRESH);
+
     jtil::data_str::Vector<jtil::math::Float3>* vert = geometry_points[k]->vertices();
     jtil::data_str::Vector<jtil::math::Float3>* cols = geometry_points[k]->colors();
 
+    //for (uint32_t i = 0; i < src_dim; i++) {
+    //  if (i < pc1.size()/3) {
+    //    vert->at(i)->set(&pc1[i*3]);
+    //    cols->at(i)->set(Float3(1.0f, 1.0f, 1.0f));
+    //  } else {
+    //    vert->at(i)->set(0, 0, 0);
+    //    cols->at(i)->set(Float3(0.0f, 0.0f, 0.0f));
+    //  }
+    //}
     float cur_col[3];
     for (uint32_t i = 0; i < src_dim; i++) {
       vert->at(i)->set(&cur_xyz_data[k][i*3]);
-      if (vert->at(i)->m[2] > max_icp_dist) {
-        vert->at(i)->m[2] = 2001;
-      }
-
       if (cur_label_data[k][i] == 0) {
         if (k != 2) {
           cur_col[0] = 1.0f * static_cast<float>(cur_image_rgb[k][i*3]) / 255.0f;
@@ -502,9 +521,17 @@ void MousePosCB(int x, int y) {
       theta_y *= 50.0f;
     }
 #if defined(CALIBRATION_RUN)
-    coeffs[kinect_to_modify][cur_image][cur_coeff] -= theta_y;
-    cout << "cur_coeff " << cur_coeff;
-    cout << " --> " << coeffs[kinect_to_modify][cur_image][cur_coeff] << endl;
+    if (shift_down) {
+      Float3& box_size = ((CalibrateGeometry*)models[0])->box_size();
+      box_size[cur_coeff % 3] -= theta_y;
+      ((CalibrateGeometry*)models[0])->updateBoxSize();
+      cout << "cur_coeff " << cur_coeff % 3;
+      cout << " --> " << box_size[cur_coeff % 3] << endl;
+    } else {
+      coeffs[kinect_to_modify][cur_image][cur_coeff] -= theta_y;
+      cout << "cur_coeff " << cur_coeff;
+      cout << " --> " << coeffs[kinect_to_modify][cur_image][cur_coeff] << endl;
+    }
 #else
     float coeff_val;
     if (cur_coeff == HandCoeff::SCALE) {
@@ -531,7 +558,6 @@ void fitFrame(bool seed_with_last_frame, bool query_only);
 double continuous_fit_timer_start;
 double continuous_play_timer_start;
 const double continuous_play_frame_time = 1.0/15.0;
-bool shift_down = false;
 int delete_confirmed = 0;
 string full_im_filename;
 string r_coeff_file;
@@ -826,64 +852,91 @@ void KeyboardCB(int key, int action) {
         SaveArrayToFile<float>(camera_view[0].m, 16, cal_filename);
         std::cout << "Calibration data saved to " << cal_filename << endl;
 
-        // Collect the non-background points (so that ICP is WAY faster)
-        float* pc1 = new float[src_dim * 3];
-        float* pc2 = new float[src_dim * 3];
-        float red[3] = {1, 0, 0};
-        float blue[3] = {0, 0, 1};
-        uint32_t cnt_pc1 = 0; 
-        Float3 pt_transformed;
-        for (uint32_t i = 0; i < src_dim; i++) {
-          if (cur_xyz_data[0][i * 3 + 2] < max_icp_dist && 
-            cur_xyz_data[0][i * 3 + 2] > 0) {
-              Float3 pt(&cur_xyz_data[0][i * 3]);
-              pc1[cnt_pc1 * 3] = pt[0];
-              pc1[cnt_pc1 * 3 + 1] = pt[1];
-              pc1[cnt_pc1 * 3 + 2] = pt[2];
-              cnt_pc1++;
-          }
+        // Collect the points that are just near the fitted model
+        Vector<float> pc1_src, pc2_src;
+        CalibrateGeometry* cal_model = (CalibrateGeometry*)models[0];
+        cal_model->findPointsCloseToModel(pc1_src, cur_xyz_data[0], 
+          coeffs[0][cur_image], ICP_PC_MODEL_DIST_THRESH);
+        cal_model->findPointsCloseToModel(pc2_src, cur_xyz_data[kinect_to_modify], 
+          coeffs[kinect_to_modify][cur_image], ICP_PC_MODEL_DIST_THRESH);
+
+        // Randomly permute the point clouds to find a subset
+        Vector<float> pc1;
+        MERSINE_TWISTER_ENG eng;
+        jtil::data_str::Vector<int> indices;
+        for (uint32_t i = 0; i < pc1_src.size() / 3; i++) {
+          indices.pushBack(i);
+        }
+        int size = std::min<int>((int)(pc1_src.size()/3), MAX_ICP_PTS);
+        for (int i = 0; i < size; i++) {
+          UNIFORM_INT_DISTRIBUTION dist(i, indices.size()-1);
+          int rand_index = dist(eng);
+          int tmp = indices[i];
+          indices[i] = indices[rand_index];
+          indices[rand_index] = tmp;
+        }
+        indices.resize(size);
+        for (int i = 0; i < (int)indices.size(); i++) {
+          pc1.pushBack(pc1_src[indices[i] * 3]);
+          pc1.pushBack(pc1_src[indices[i] * 3 + 1]);
+          pc1.pushBack(pc1_src[indices[i] * 3 + 2]);
         }
 
+        Vector<float> pc2;
+        indices.resize(0);
+        for (uint32_t i = 0; i < pc2_src.size() / 3; i++) {
+          indices.pushBack(i);
+        }
+        size = std::min<int>((int)(pc2_src.size()/3), MAX_ICP_PTS);
+        for (int i = 0; i < size; i++) {
+          UNIFORM_INT_DISTRIBUTION dist(i, indices.size()-1);
+          int rand_index = dist(eng);
+          int tmp = indices[i];
+          indices[i] = indices[rand_index];
+          indices[rand_index] = tmp;
+        }
+        indices.resize(size);
+        for (int i = 0; i < (int)indices.size(); i++) {
+          pc2.pushBack(pc2_src[indices[i] * 3]);
+          pc2.pushBack(pc2_src[indices[i] * 3 + 1]);
+          pc2.pushBack(pc2_src[indices[i] * 3 + 2]);
+        }
+
+        // Approximate the camera by using the fitted model coeffs
         ((CalibrateGeometry*)models[0])->calcCameraView(
           camera_view[kinect_to_modify], 0, kinect_to_modify, 
           (const float***)&coeffs[0], cur_image);
 
-        uint32_t cnt_pc2 = 0;
-        for (uint32_t i = 0; i < src_dim; i++) {
-          if (cur_xyz_data[kinect_to_modify][i * 3 + 2] < max_icp_dist && 
-            cur_xyz_data[kinect_to_modify][i * 3 + 2] > 0) {
-              pc2[cnt_pc2 * 3] = cur_xyz_data[kinect_to_modify][i * 3];
-              pc2[cnt_pc2 * 3 + 1] = cur_xyz_data[kinect_to_modify][i * 3 + 1];
-              pc2[cnt_pc2 * 3 + 2] = cur_xyz_data[kinect_to_modify][i * 3 + 2];
-              cnt_pc2++;
-          }
-        }
-
+        // Now perform ICP for a tight fit
 #ifdef PERFORM_ICP_FIT
-        std::cout << "Performing ICP on " << cnt_pc1 << " and " << cnt_pc2;
-        std::cout << " pts" << std::endl;
+        icp.num_iterations = ICP_NUM_ITERATIONS;
+        std::cout << "Performing ICP on " << (pc1.size()/3) << " and ";
+        std::cout << (pc2.size()/3) << " pts" << std::endl;
 #ifdef USE_ICP_NORMALS
+        throw std::wruntime_error("NORMALS ICP IS BROKEN!");
         // Use Normals
-        //icp.match(camera_view[kinect_to_modify], pc1, cnt_pc1, pc2, cnt_pc2, 
-        //  camera_view[kinect_to_modify], cur_norm_data[0], 
-        //  cur_norm_data[kinect_to_modify]);
+        icp.match(camera_view[kinect_to_modify], &pc1[0], (pc1.size()/3), 
+          &pc2[0], (pc2.size()/3), camera_view[kinect_to_modify], 
+          cur_norm_data[0], cur_norm_data[kinect_to_modify]);
 #else
         // Don't use normals
-        icp.match(camera_view[kinect_to_modify], pc1, cnt_pc1, pc2, cnt_pc2, 
-          camera_view[kinect_to_modify]);
+        icp.match(camera_view[kinect_to_modify], &pc1[0], (pc1.size()/3), 
+          &pc2[0], (pc2.size()/3), camera_view[kinect_to_modify]);
 #endif
 
         // Create lines geometry from the last correspondance points:
         float* pc2_transformed = icp.getLastPC2Transformed();
         int* correspondances = icp.getLastCorrespondances();
         float* weights = icp.getLastWeights();
+        float red[3] = {1, 0, 0};
+        float blue[3] = {0, 0, 1};
         SAFE_DELETE(geometry_lines[kinect_to_modify-1]);
         geometry_lines[kinect_to_modify-1] = new GeometryColoredLines();
-        for (uint32_t i = 0; i < cnt_pc2; i++) {
-          if (weights[i] > EPSILON) {
+        for (uint32_t i = 0; i < (pc2.size()/3); i++) {
+          //if (weights[i] > EPSILON) {
             geometry_lines[kinect_to_modify-1]->addLine(&pc2_transformed[i * 3],
               &pc1[correspondances[i] * 3], red, blue);
-          }
+          //}
         }
         geometry_lines[kinect_to_modify-1]->syncVAO();
 #endif
@@ -908,6 +961,15 @@ void KeyboardCB(int key, int action) {
           cur_icp_mat = (cur_icp_mat + 1) % icp.getTransforms().size();
         }
         std::cout << "cur_icp_mat = " << cur_icp_mat << std::endl;
+#endif
+      }
+      break;
+    case static_cast<int>('v'):
+    case static_cast<int>('V'): 
+      if (action == RELEASED) {
+#ifdef CALIBRATION_RUN
+        render_correspondances = !render_correspondances;
+        cout << "render_correspondances = " << render_correspondances << endl;
 #endif
       }
       break;
@@ -1157,25 +1219,27 @@ void renderFrame(float dt) {
 #ifdef CALIBRATION_RUN
       if (!render_all_views) {
         render->renderColoredPointCloud(geometry_points[kinect_to_modify], 
-          &camera_view[kinect_to_modify], 2.0f * static_cast<float>(settings.width) / 4.0f);
+          &identity, 1.5f * static_cast<float>(settings.width) / 4.0f);
       } else {
         for (uint32_t k = 0; k < MAX_KINECTS; k++) {
           if (k == last_icp_kinect && icp.getTransforms().size() > 0) {
             render->renderColoredPointCloud(geometry_points[k], 
               &icp.getTransforms()[cur_icp_mat], 
-              2.0f * static_cast<float>(settings.width) / 4.0f);
+              1.5f * static_cast<float>(settings.width) / 4.0f);
           } else {
             render->renderColoredPointCloud(geometry_points[k], 
-              &camera_view[k], 2.0f * static_cast<float>(settings.width) / 4.0f);
+              &camera_view[k], 1.5f * static_cast<float>(settings.width) / 4.0f);
           }
         }
 
       }
-      //for (uint32_t k = 0; k < MAX_KINECTS - 1; k++) {
-      //  if (geometry_lines[k] != NULL) {
-      //    render->renderColoredLines(geometry_lines[k], &identity, 1.0f);
-      //  }
-      //}
+      if (render_correspondances) {
+        for (uint32_t k = 0; k < MAX_KINECTS - 1; k++) {
+          if (geometry_lines[k] != NULL) {
+            render->renderColoredLines(geometry_lines[k], &identity, 4.0f);
+          }
+        }
+      }
 #else
       for (uint32_t k = 0; k < MAX_KINECTS; k++) {
         render->renderColoredPointCloud(geometry_points[k], 
@@ -1243,6 +1307,7 @@ int main(int argc, char *argv[]) {
   cout << "c - Save calibration data (calibration mode only)" << endl;
   cout << "x - Render all views (calibration mode only)" << endl;
   cout << "z - Step through ICP frames (if ICP has been run) (calibration mode only)" << endl;
+  cout << "v - Render Correspondances (if ICP has been run) (calibration mode only)" << endl;
   cout << "j - Query Objective Function Value" << endl;
   cout << "shift+12345 - Copy finger1234/thumb from last frame" << endl;
   cout << "k - (3 times) delete current file" << endl;
@@ -1356,7 +1421,11 @@ int main(int argc, char *argv[]) {
 #endif
 
     // Create the optimizer that will fit the models
-    fit = new ModelFit(num_models, num_coeff_fit);
+    fit = new ModelFit(num_models, num_coeff_fit, num_model_fit_cameras);
+
+    for (uint32_t k = 0; k < num_model_fit_cameras; k++) {
+      fit->setCameraView(k, camera_view[k]);
+    }
 
     // Load the coeffs from file
 #ifdef CALIBRATION_RUN

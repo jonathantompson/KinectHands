@@ -25,6 +25,7 @@
 #endif
 
 using namespace jtil::math;
+using namespace jtil::data_str;
 using std::string;
 using std::runtime_error;
 using std::cout;
@@ -54,10 +55,11 @@ namespace model_fit {
       scene_graph_ = new Geometry();
       scene_graph_->addChild(box_);
 
-      Float3 scale_vec(BOX_SIDEA/2.0f, BOX_SIDEB/2.0f, BOX_SIDEC/2.0f);
-      Float4x4::scaleMat(*box_->mat(), scale_vec);
+      box_size_.set(BOX_SIDEA, BOX_SIDEB, BOX_SIDEC);
+      updateBoxSize();
     } else {
- Float3 tennis_ball_yellow(0.776470f, 0.929412f, 0.172549f);
+      box_ = NULL;
+      Float3 tennis_ball_yellow(0.776470f, 0.929412f, 0.172549f);
       Float3 wood_brown(0.50588f, 0.48235f, 0.11372f);
       sphere_a_ = GeometryColoredMesh::makeSphere(SPHERE_NSTACKS, SPHERE_NSLICES,
         SPHERE_BASE_RADIUS, tennis_ball_yellow);
@@ -123,6 +125,15 @@ namespace model_fit {
 
   CalibrateGeometry::~CalibrateGeometry() {
     // Note, ownership of all geometry is transfered to the renderer class
+  }
+
+  void CalibrateGeometry::updateBoxSize() {
+    if (box_) {
+      Float4x4::scaleMat(*box_->mat(), box_size_[0]/2.0f, box_size_[1]/2.0f,
+        box_size_[2]/2.0f);
+    } else {
+      throw std::wruntime_error("updateBoxSize() - ERROR: box_ == NULL!");
+    }
   }
 
   void CalibrateGeometry::updateMatrices(const float* coeff) {
@@ -477,6 +488,48 @@ namespace model_fit {
     Float4x4 model_query_inv;
     Float4x4::inverse(model_query_inv, model_query);
     Float4x4::mult(ret, model_base, model_query_inv);
+  }
+
+  void CalibrateGeometry::findPointsCloseToModel(Vector<float>& pc, 
+    const float* xyz, const float* coeff, const float dist_thresh) {
+    float dist_thresh_sq = dist_thresh * dist_thresh;
+    // Iterate through the Kinect point cloud and find the points that are
+    // close to the model
+    if (box_ == NULL) {
+      throw std::wruntime_error("findPointsCloseToModel() - Only valid for "
+        "box model");
+    }
+    Float4x4 model_mat, model_mat_inv;
+    coeff2Mat(model_mat, coeff);
+    Float4x4::inverse(model_mat_inv, model_mat);
+
+    pc.resize(0);
+
+    Float3 pt, pt_tranformed, pt_box, delta;
+    Float3 box_half_lengths(BOX_SIDEA/2.0f, BOX_SIDEB/2.0f, BOX_SIDEC/2.0f);
+    for (uint32_t i = 0; i < src_dim; i++) {
+      // Transform the point into the box's coordinate frame
+      pt.set(xyz[i * 3], xyz[i * 3 + 1], xyz[i * 3 + 2]);
+      Float3::affineTransformPos(pt_tranformed, model_mat_inv, pt);
+      // Force the tranformed point into the postive octant (flipping the
+      // axis wont change the distance computation, but makes our life easier)
+      pt_tranformed[0] = fabsf(pt_tranformed[0]);
+      pt_tranformed[1] = fabsf(pt_tranformed[1]);
+      pt_tranformed[2] = fabsf(pt_tranformed[2]);
+      // Find the closest point on the box to the transformed point in the 
+      // positive octant, we don't care about negative coeffs
+      pt_box[0] = std::min<float>(box_half_lengths[0], pt_tranformed[0]);
+      pt_box[1] = std::min<float>(box_half_lengths[1], pt_tranformed[1]);
+      pt_box[2] = std::min<float>(box_half_lengths[2], pt_tranformed[2]);
+      // Now calculate the squared distance:
+      Float3::sub(delta, pt_box, pt_tranformed);
+      float dist_sq = Float3::dot(delta, delta);
+      if (dist_sq <= dist_thresh_sq) {
+        pc.pushBack(xyz[i * 3]);
+        pc.pushBack(xyz[i * 3 + 1]);
+        pc.pushBack(xyz[i * 3 + 2]);
+      }
+    }
   }
 
 }  // namespace hand_fit

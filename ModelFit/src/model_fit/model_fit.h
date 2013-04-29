@@ -49,18 +49,18 @@ namespace model_fit {
   public:
     friend class jtil::math::PSOParallel;
     // Constructor / Destructor
-    ModelFit(uint32_t num_models, uint32_t coeff_dim_per_model);
+    ModelFit(const uint32_t num_models, const uint32_t coeff_dim_per_model, 
+      const uint32_t num_cameras);
     ~ModelFit();
 
     // fitModel - Top function:
-    // coeffs - starting coeff per model --> Also the return value
-    // prev_coeff - coeff per model from the previous frame NULL if it
-    //   doesn't exist.
-    void fitModel(int16_t* depth, uint8_t* label, PoseModel** models, 
+    // Requirements: depth and label array for each num_cameras
+    //               models, coeffs and prev_coeffs for each num_models
+    void fitModel(int16_t** depth, uint8_t** label, PoseModel** models, 
       float** coeffs, float** prev_coeffs, 
       jtil::math::CoeffUpdateFuncPtr coeff_update_func);
 
-    float queryObjFunc(int16_t* depth, uint8_t* label, PoseModel** models, 
+    float queryObjFunc(int16_t** depth, uint8_t** label, PoseModel** models, 
       float** coeffs);
 
     inline void resetFuncEvalCount() { func_eval_count_ = 0; }
@@ -68,10 +68,14 @@ namespace model_fit {
 
     ModelRenderer* model_renderer() { return model_renderer_; }
 
+    void setCameraView(const uint32_t i_camera, 
+      const jtil::math::Float4x4& view);
+
   private:
     uint32_t coeff_dim_; 
     uint32_t coeff_dim_per_model_;
     uint32_t num_models_;
+    uint32_t num_cameras_;
     PoseModel** models_;  // Not owned here
     static ModelFit* cur_fit_;
     static uint64_t func_eval_count_;
@@ -96,12 +100,10 @@ namespace model_fit {
     static float calcPenalty(const float* coeff);
     static float calcDistPenalty(const float* coeff0, const float* coeff1);
 
-    void prepareOptimization(int16_t* depth, uint8_t* label, 
+    void prepareOptimization(int16_t** depth, uint8_t** label, 
       PoseModel** models, float** coeffs, float** prev_coeffs,
       jtil::data_str::Vector<bool>& old_attachement_vals);
-
-    void manualFit();
-    void prepareKinectData(int16_t* depth, uint8_t* label);
+    void prepareKinectData(int16_t** depth, uint8_t** label);
 
     // Non-copyable, non-assignable.
     ModelFit(ModelFit&);
