@@ -34,10 +34,11 @@ namespace app {
     OUTPUT_RGB_IR = 0,
     OUTPUT_RGB_REGISTERED = 1,
     OUTPUT_DEPTH = 2,
-    OUTPUT_HAND_DETECTOR_DEPTH = 3,
-    OUTPUT_CONVNET_DEPTH = 4,
-    OUTPUT_CONVNET_SRC_DEPTH = 5,
-    OUTPUT_HAND_NORMALS = 6,
+    OUTPUT_DEPTH_RAINBOW = 3,
+    OUTPUT_HAND_DETECTOR_DEPTH = 4,
+    OUTPUT_CONVNET_DEPTH = 5,
+    OUTPUT_CONVNET_SRC_DEPTH = 6,
+    OUTPUT_HAND_NORMALS = 7,
   } KinectOutput;
 
   typedef enum {
@@ -84,6 +85,9 @@ namespace app {
     kinect_interface::KinectInterface* kinect_[MAX_NUM_KINECTS];
     FrameData* kdata_[MAX_NUM_KINECTS];
     bool new_data_;
+    uint8_t rainbowPalletR[256];
+    uint8_t rainbowPalletG[256];
+    uint8_t rainbowPalletB[256];
 
     // Convolutional Neural Network
     kinect_interface::hand_net::HandNet* hand_net_;
@@ -117,6 +121,7 @@ namespace app {
     void moveStuff(const double dt);  // Temporary: just to play with renderer
     void addStuff();
     void registerNewRenderer();
+    void initRainbowPallet();
 
     // Thread pool to get the KinectData from the kinects in parallel
     jtil::threading::ThreadPool* tp_;

@@ -116,6 +116,7 @@ namespace app {
     Renderer::InitRenderer();
     registerNewRenderer();
 
+
     hand_net_ = new HandNet();
     hand_net_->loadFromFile("./data/handmodel.net.convnet");
 
@@ -163,6 +164,8 @@ namespace app {
       throw std::wruntime_error("App::newApp() - ERROR: Sensor image "
         "dimensions don't match our hard-coded values!");
     }
+
+    initRainbowPallet();
   }
 
   void App::killApp() {
@@ -200,6 +203,37 @@ namespace app {
     SET_SETTING("view_plane_far", float, view_plane_far);
 
     g_app_->addStuff();
+  }
+
+  void App::initRainbowPallet() {
+    unsigned char r, g, b;
+    for (int i = 0; i < 256; i++) {
+      if (i <= 29) {
+        r = (unsigned char)(129.36-i*4.36);
+        g = 0;
+        b = (unsigned char)255;
+      } else if (i<=86) {
+        r = 0;
+        g = (unsigned char)(-133.54+i*4.52);
+        b = (unsigned char)255;
+      } else if (i<=141) {
+        r = 0;
+        g = (unsigned char)255;
+        b = (unsigned char)(665.83-i*4.72);
+      } else if (i<=199) {
+        r = (unsigned char)(-635.26+i*4.47);
+        g = (unsigned char)255;
+        b = 0;
+      } else {
+        r = (unsigned char)255;
+        g = (unsigned char)(1166.81-i*4.57);
+        b = 0;
+      }
+
+      rainbowPalletR[i] = r;
+      rainbowPalletG[i] = g;
+      rainbowPalletB[i] = b;
+    }
   }
 
   void App::run() {
@@ -269,12 +303,26 @@ namespace app {
           memcpy(im_, kdata_[cur_kinect]->registered_rgb, 
             sizeof(im_[0]) * src_dim * 3);
           break;
-        case OUTPUT_DEPTH:
-          for (uint32_t i = 0; i < src_dim; i++) {
-            const uint8_t val = (kdata_[cur_kinect]->depth[i] / 5) % 255;
-            im_[i*3] = val;
-            im_[i*3+1] = val;
-            im_[i*3+2] = val;
+        case OUTPUT_DEPTH: 
+          {
+            int16_t* depth = kdata_[cur_kinect]->depth;
+            for (uint32_t i = 0; i < src_dim; i++) {
+              const uint8_t val = (depth[i] / 5) % 255;
+              im_[i*3] = val;
+              im_[i*3+1] = val;
+              im_[i*3+2] = val;
+            }
+          }
+          break;
+        case OUTPUT_DEPTH_RAINBOW:
+          {
+            int16_t* depth = kdata_[cur_kinect]->depth;
+            for (uint32_t i = 0; i < src_dim; i++) {
+              uint32_t nColIndex = (uint32_t)(depth[i] % 256);
+              im_[i * 3] = rainbowPalletR[nColIndex];
+              im_[i * 3 + 1] = rainbowPalletG[nColIndex];
+              im_[i * 3 + 2] = rainbowPalletB[nColIndex];
+            }
           }
           break;
         case OUTPUT_HAND_DETECTOR_DEPTH:
@@ -460,6 +508,8 @@ namespace app {
       ui::UIEnumVal(OUTPUT_RGB_REGISTERED, "RGB Registered"));
     ui->addSelectboxItem("kinect_output", 
       ui::UIEnumVal(OUTPUT_DEPTH, "Depth"));
+    ui->addSelectboxItem("kinect_output", 
+      ui::UIEnumVal(OUTPUT_DEPTH_RAINBOW, "Depth Rainbow"));
     ui->addSelectboxItem("kinect_output", 
       ui::UIEnumVal(OUTPUT_HAND_DETECTOR_DEPTH, "Hand Detector Depth"));
     ui->addSelectboxItem("kinect_output", 
