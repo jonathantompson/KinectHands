@@ -41,8 +41,13 @@ namespace model_fit {
   jtil::math::Float3 CalibrateGeometry::vmodel_[3];
   uint32_t CalibrateGeometry::num_frames_;
 
-  CalibrateGeometry::CalibrateGeometry(bool box) {
-    if (box) {
+  CalibrateGeometry::CalibrateGeometry(const CalibrateGeometryType type) {
+    type_ = type;
+    scene_graph_ = new Geometry();
+
+    switch (type) {
+    case BOX:
+      {
       Float3 red(1, 0, 0);
       Float3 green(0, 1, 0);
       Float3 blue(0, 0, 1);
@@ -51,13 +56,14 @@ namespace model_fit {
       Float3 cyan(0, 1, 1);
       box_ = GeometryColoredMesh::makeCube(red, green, blue, white, yellow, 
         cyan);
-
-      scene_graph_ = new Geometry();
       scene_graph_->addChild(box_);
 
       box_size_.set(BOX_SIDEA, BOX_SIDEB, BOX_SIDEC);
       updateBoxSize();
-    } else {
+      }
+      break;
+    case TENNIS:
+      {
       box_ = NULL;
       Float3 tennis_ball_yellow(0.776470f, 0.929412f, 0.172549f);
       Float3 wood_brown(0.50588f, 0.48235f, 0.11372f);
@@ -77,7 +83,6 @@ namespace model_fit {
         CYL_BASE_HEIGHT, CYL_BASE_RADIUS, CYL_BASE_RADIUS, wood_brown);
 #endif
 
-      scene_graph_ = new Geometry();
       scene_graph_->addChild(sphere_a_);
       scene_graph_->addChild(sphere_b_);
       scene_graph_->addChild(sphere_c_);
@@ -107,6 +112,13 @@ namespace model_fit {
       scale_vec.set(CYL_RADIUS, SPHERE_B_OFST + SPHERE_RADIUS, CYL_RADIUS);
       Float4x4::scaleMat(*cylinder_a_->mat(), scale_vec);
 #endif
+      }
+      break;
+    case ICOSAHEDRON:
+      icosahedron_ = GeometryManager::g_geom_manager()->loadFromFile("./models/",
+        "icosahedron.dae", false);
+      scene_graph_->addChild(icosahedron_);
+      break;
     }
 
     for (uint32_t i = 0; i < 3; i++) {

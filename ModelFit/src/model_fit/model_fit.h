@@ -94,9 +94,13 @@ namespace model_fit {
     static float objectiveFunc(const float* coeff);
     static void objectiveFuncTiled(jtil::data_str::Vector<float>& residues, 
       jtil::data_str::Vector<float*>& coeffs);
-    static float calculateResidual(const float* coeff);
-    static void calculateResidualTiled(jtil::data_str::Vector<float>& residues, 
-      jtil::data_str::Vector<float*>& coeffs);
+    // If any of the pointers are NULL then the term isn't calculated.
+    // All terms are accumulated to the current value.
+    static void calculateResidual(const float* coeff, const uint32_t i_camera,
+      float* depth_term, float* penalty_term, float* interpen_term);
+    static void calculateResidualTiled(jtil::data_str::Vector<float>* depth_term, 
+      jtil::data_str::Vector<float>* penalty_term,
+      jtil::data_str::Vector<float*>& coeffs, const uint32_t i_camera);
     static float calcPenalty(const float* coeff);
     static float calcDistPenalty(const float* coeff0, const float* coeff1);
 

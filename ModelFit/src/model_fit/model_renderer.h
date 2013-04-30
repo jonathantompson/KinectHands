@@ -68,8 +68,7 @@ namespace model_fit {
     void drawDepthMapTiled(jtil::data_str::Vector<float*>& coeff, 
       const uint32_t num_coeff_per_model, PoseModel** models, 
       const uint32_t num_models, const uint32_t i_camera,
-      const bool calcInterpenetration, 
-      jtil::data_str::Vector<float>& interpenetration,
+      jtil::data_str::Vector<float>* interpenetration,
       const uint32_t max_num_interpenetration_groups);
 
     void visualizeDepthMap(windowing::Window* wnd, bool color = false);

@@ -55,12 +55,13 @@
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
-// #define CALIBRATION_RUN
+#define CALIBRATION_RUN
 #define FILTER_SIZE 30  // Only in calibration mode
 #define PERFORM_ICP_FIT  // Only in calibration mode
 // #define USE_ICP_NORMALS  // Only in calibration mode
 #define ICP_PC_MODEL_DIST_THRESH 15  // mm
 #define ICP_NUM_ITERATIONS 40
+#define CALIBRATION_MAX_FILES 100
 #define MAX_ICP_PTS 10000
 
 // KINECT DATA
@@ -131,7 +132,7 @@ bool shift_down = false;
 Float4x4 camera_view[MAX_KINECTS];
 PoseModel** models;
 #if defined(CALIBRATION_RUN)
-  bool box_calibrate_geometry = true; 
+  CalibrateGeometryType cal_type = CalibrateGeometryType::ICOSAHEDRON; 
   const float max_icp_dist = GDT_MAX_DIST;
   const uint32_t num_models = 1;
   float** coeffs[MAX_KINECTS] = {NULL, NULL};  // coeffs[kinect][frame][coeff]
@@ -1116,7 +1117,9 @@ void fitFrame(bool seed_with_last_frame, bool query_only) {
   }
   // Just fit each kinect independantly
   for (uint32_t k = 0; k < MAX_KINECTS; k++) {
-    fit->fitModel(cur_depth_data[k], cur_label_data[k], models, 
+    int16_t* depth = cur_depth_data[k];
+    uint8_t* labels = cur_label_data[k];
+    fit->fitModel(&depth, &labels, models, 
       &coeffs[k][cur_image], NULL, CalibrateGeometry::renormalizeCoeffs);
   }
 #else
@@ -1364,6 +1367,9 @@ int main(int argc, char *argv[]) {
     for (uint32_t k = 0; k < MAX_KINECTS; k++) {
 #if defined(CALIBRATION_RUN)
       image_io->GetFilesInDirectory(im_files[k], IM_DIR, k, "calb");
+      if (im_files[k].size() > CALIBRATION_MAX_FILES) {
+        im_files[k].resize(CALIBRATION_MAX_FILES);
+      }
 #else
       image_io->GetFilesInDirectory(im_files[k], IM_DIR, k);
 #endif
@@ -1408,7 +1414,7 @@ int main(int argc, char *argv[]) {
     prev_coeff = new float*[num_models];
     models = new PoseModel*[num_models];
 #ifdef CALIBRATION_RUN
-    models[0] = new CalibrateGeometry(box_calibrate_geometry);
+    models[0] = new CalibrateGeometry(cal_type);
 #else
     if (fit_left && fit_right) {
       models[0] = new HandGeometryMesh(LEFT);

@@ -395,7 +395,7 @@ namespace renderer {
     Float3(1.0f, 1.0f, 1.0f),       // white
     Float3(0.0f, 0.0f, 0.0f)        // black
   };
-  
+
   // theta is angle from top [0, pi], phi is angle along slice [0, 2pi]
   // http://en.wikipedia.org/wiki/Spherical_coordinate_system
   void SphericalToCartesean(Float3* xyz, float r, float phi, float theta ) {

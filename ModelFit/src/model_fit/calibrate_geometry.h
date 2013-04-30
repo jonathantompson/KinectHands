@@ -59,10 +59,16 @@ namespace model_fit {
     NUM_PARAMETERS     = 6,
   } CalibrateCoeff;
 
+  typedef enum { 
+    TENNIS,
+    BOX,
+    ICOSAHEDRON
+  } CalibrateGeometryType;
+
   class CalibrateGeometry : public PoseModel {
   public:
     // Constructor / Destructor
-    CalibrateGeometry(bool box = false);
+    CalibrateGeometry(const CalibrateGeometryType type);
     virtual ~CalibrateGeometry();
 
     // Call before rendering hand depth maps:
@@ -110,6 +116,10 @@ namespace model_fit {
     void updateBoxSize();
 
   private:
+    CalibrateGeometryType type_;
+
+    // This is a waste to have all the pointers even if they aren't used...
+    // but this is just throwaway code so it's OK.
     renderer::Geometry* scene_graph_;  // The renderable geometry - Not owned here
     renderer::Geometry* sphere_a_;
     renderer::Geometry* sphere_b_;
@@ -119,6 +129,9 @@ namespace model_fit {
 
     renderer::Geometry* box_;
     jtil::math::Float3 box_size_;
+
+    renderer::Geometry* icosahedron_;
+
     jtil::data_str::Vector<renderer::BoundingSphere*> bspheres_;  // Attached to scene graph!
     bool renderer_attachment_;  // whether or not the model is attached to the 
                                 // global renderer's scene graph

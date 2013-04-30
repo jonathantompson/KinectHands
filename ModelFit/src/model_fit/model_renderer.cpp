@@ -268,8 +268,7 @@ namespace model_fit {
   void ModelRenderer::drawDepthMapTiled(Vector<float*>& coeff, 
     const uint32_t num_coeff_per_model, PoseModel** models, 
     const uint32_t num_models, const uint32_t i_camera, 
-    const bool calcInterpenetration, Vector<float>& interpenetration, 
-    const uint32_t max_num_interpen_groups) {
+    Vector<float>* interpenetration, const uint32_t max_num_interpen_groups) {
     depth_texture_tiled_->begin();
 
     GLState::glsClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
@@ -287,8 +286,9 @@ namespace model_fit {
       drawDepthMapInternal(coeff[i], num_coeff_per_model, models, num_models,
         i_camera, false, true);
       // Before destorying the matrix heirachy, calculate the interpenetration
-      if (calcInterpenetration) {
-        interpenetration[i] += calcInterpenetrationTerm(max_num_interpen_groups);
+      if (interpenetration) {
+        (*interpenetration)[i] += 
+          calcInterpenetrationTerm(max_num_interpen_groups);
       }
     }
 

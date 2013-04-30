@@ -9,7 +9,7 @@
 //, *********** SETTINGS ***********
 //, APPLICATION SPECIFIC
 track_openni_skeleton,            bool,      0
-kinect_output,                    int,       2
+kinect_output,                    int,       3
 detect_hands,                     bool,      0
 detect_pose,                      bool,      0
 label_type_enum,                  int,       0
@@ -18,7 +18,7 @@ render_kinect_fps,                bool,      1
 show_hand_model,                  bool,      0
 continuous_snapshot,              bool,      0
 continuous_cal_snapshot,          bool,      0
-cur_kinect,                       int,       0
+cur_kinect,                       int,       1
 //, either you sync the IR or the RGB, but not both.  Dont change after startup
 sync_ir_stream,                   bool,      0
 //, Also: Dont change flip image after startup!

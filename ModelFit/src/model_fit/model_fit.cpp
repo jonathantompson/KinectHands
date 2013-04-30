@@ -206,30 +206,40 @@ namespace model_fit {
   std::normal_distribution<float> dist;
 #endif
 
-  float ModelFit::calculateResidual(const float* coeff) {
+  void ModelFit::calculateResidual(const float* coeff, const uint32_t i_camera,
+    float* depth_term, float* penalty_term, float* interpen_term) {
     // Residue is calculated on the GPU
-    float data_term = cur_fit_->model_renderer_->calculateResidualDataTerm();
-    const uint32_t max_groups = cur_fit_->models_[0]->max_bsphere_groups();
-    float interpen_term = 
-      cur_fit_->model_renderer_->calcInterpenetrationTerm(max_groups);
+    if (depth_term) {
+      *depth_term += 
+        cur_fit_->model_renderer_->calculateResidualDataTerm(i_camera);
+    }
+    
+    if (interpen_term) {
+      const uint32_t max_groups = cur_fit_->models_[0]->max_bsphere_groups();
+      *interpen_term += 
+        cur_fit_->model_renderer_->calcInterpenetrationTerm(max_groups);
+    }
 
-    // Now calculate the penalty terms:
-    float penalty_term = calcPenalty(coeff);  // formally scaled by 0.1
-
-    // return penalty_term * (data_term + interpen_term);
-    return penalty_term * data_term * interpen_term;
+    if (penalty_term) {
+      *penalty_term += calcPenalty(coeff);  // formally scaled by 0.1
+    }
   }
 
-  void ModelFit::calculateResidualTiled(Vector<float>& residues, 
-    Vector<float*>& coeffs) {
+  void ModelFit::calculateResidualTiled(Vector<float>* depth_term, 
+    Vector<float>* penalty_term, Vector<float*>& coeffs, 
+    const uint32_t i_camera) {
     // Note: at this point interpenetration term is already calculated and is
     // sitting in residues[i]
-    cur_fit_->model_renderer_->calculateResidualDataTermTiled(residues);
+    if (depth_term) {
+      cur_fit_->model_renderer_->calculateResidualDataTermTiled(*depth_term, 
+        i_camera);
+    }
 
     // Now calculate the penalty terms:
-    for (uint32_t i = 0; i < coeffs.size(); i++) {
-      float penalty_term = calcPenalty(coeffs[i]);  // formally scaled by 0.1
-      residues[i] *= penalty_term;
+    if (penalty_term) {
+      for (uint32_t i = 0; i < coeffs.size(); i++) {
+        (*penalty_term)[i] += calcPenalty(coeffs[i]);
+      }
     }
   }
 
@@ -298,9 +308,23 @@ namespace model_fit {
   }
 
   float ModelFit::objectiveFunc(const float* coeff) {
-    cur_fit_->model_renderer_->drawDepthMap(coeff, 
-      cur_fit_->coeff_dim_per_model_, cur_fit_->models_, cur_fit_->num_models_);
-    return calculateResidual(coeff);
+    float depth_term = 0.0f;
+    float penalty_term = 0.0f;
+    float interpenetration_term = 0.0f;
+    for (uint32_t i_camera = 0; i_camera < cur_fit_->num_cameras_; i_camera++) {
+      cur_fit_->model_renderer_->drawDepthMap(coeff, 
+        cur_fit_->coeff_dim_per_model_, cur_fit_->models_, 
+        cur_fit_->num_models_, i_camera, false);
+      // Only calculate interpenetration and penalty terms on the first camera 
+      // angle to save computation time
+      if (i_camera == 0) {
+        calculateResidual(coeff, i_camera, &depth_term, &penalty_term, 
+          &interpenetration_term);
+      } else {
+        calculateResidual(coeff, i_camera, &depth_term, NULL, NULL);
+      }
+    }
+    return depth_term * penalty_term * interpenetration_term;
   }
 
   void ModelFit::objectiveFuncTiled(Vector<float>& residues, 
@@ -311,27 +335,44 @@ namespace model_fit {
     if (residues.capacity() < coeffs.size()) {
       residues.capacity(coeffs.size());
     }
+
+    // Zero out some accumulators
+    Vector<float> depth_term(coeffs.size());
+    Vector<float> penalty_term(coeffs.size());
+    Vector<float> interpenetration_term(coeffs.size());
+    for (uint32_t i = 0; i < coeffs.size(); i++) {
+      depth_term.pushBack(0);
+      penalty_term.pushBack(0);
+      interpenetration_term.pushBack(0);
+    }
+    
+    for (uint32_t i_camera = 0; i_camera < cur_fit_->num_cameras_; i_camera++) {
+      // Only calculate interpenetration and penalty terms on the first camera 
+      // angle to save computation time
+      if (i_camera == 0) {
+        cur_fit_->model_renderer_->drawDepthMapTiled(coeffs, 
+          cur_fit_->coeff_dim_per_model_, cur_fit_->models_, cur_fit_->num_models_, 
+          i_camera, &interpenetration_term, 
+          cur_fit_->models_[0]->max_bsphere_groups());
+      } else {
+        cur_fit_->model_renderer_->drawDepthMapTiled(coeffs, 
+          cur_fit_->coeff_dim_per_model_, cur_fit_->models_, cur_fit_->num_models_, 
+          i_camera, NULL, cur_fit_->models_[0]->max_bsphere_groups());
+      }
+      if (i_camera == 0) {
+        calculateResidualTiled(&depth_term, &penalty_term, coeffs, i_camera);
+      } else {
+        calculateResidualTiled(&depth_term, NULL, coeffs, i_camera);
+      }
+    }
+    func_eval_count_ += NTILES;
+
+    // Now calculate the final residue term
     residues.resize(0);
     for (uint32_t i = 0; i < coeffs.size(); i++) {
-      residues.pushBack(0);
+      residues.pushBack(depth_term[i] * penalty_term[i] * 
+        interpenetration_term[i]);
     }
-    cur_fit_->model_renderer_->drawDepthMapTiled(coeffs, 
-      cur_fit_->coeff_dim_per_model_, cur_fit_->models_, cur_fit_->num_models_, 
-      true, residues, cur_fit_->models_[0]->max_bsphere_groups());
-    func_eval_count_ += NTILES;
-    calculateResidualTiled(residues, coeffs);
-
-//#if defined(_DEBUG) || defined(DEBUG)
-//    // Very expensive, but double check that they are correct!
-//    for (uint32_t i = 0; i < coeffs.size(); i++) {
-//      float obj_func = objectiveFunc(coeffs[i]);
-//      if (abs(obj_func - residues[i]) / abs(residues[i]) > 1e-2) {
-//        cout << "tiled vs non-tiled obj function residue mismatch!" << endl;
-//        cout << obj_func << " vs " << residues[i] << endl;
-//        throw runtime_error("ERROR: tiled residue doesn't match single residue!");
-//      }
-//    }
-//#endif
   }
 
 }  // namespace hand_fit
