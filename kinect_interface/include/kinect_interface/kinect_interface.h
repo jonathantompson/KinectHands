@@ -68,7 +68,8 @@ namespace kinect_interface {
     const uint8_t* filteredDecisionForestLabels() const;  // NOT THREAD SAFE!  Use lockData()
     const uint8_t* rawDecisionForestLabels() const;  // NOT THREAD SAFE!  Use lockData()
     hand_detector::HandDetector* hand_detector() { return hand_detector_; }
-    OpenNIFuncs* openni_funcs() { return openni_funcs_; };
+    OpenNIFuncs* openni_funcs() { return openni_funcs_; }
+    double depth_frame_time() { return depth_frame_time_; }
 
     inline void lockData() { data_lock_.lock(); };
     inline void unlockData() { data_lock_.unlock(); };
@@ -91,6 +92,7 @@ namespace kinect_interface {
     static bool openni_init_;
     static std::mutex openni_static_lock_;
     static uint32_t openni_devices_open_;
+    static jtil::clk::Clk shared_clock_;
     bool device_initialized_;
    
     // Multi-threading
@@ -120,6 +122,7 @@ namespace kinect_interface {
     uint64_t depth_frame_number_;
     uint64_t rgb_frame_number_;
     uint64_t ir_frame_number_;
+    double depth_frame_time_;
     float max_depth_;
     bool sync_ir_stream_;  // We can either sync the IR or RGB but not both
     bool flip_image_;

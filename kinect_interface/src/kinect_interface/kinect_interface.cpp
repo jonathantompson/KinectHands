@@ -55,6 +55,7 @@ namespace kinect_interface {
   bool KinectInterface::openni_init_ = false;
   std::mutex KinectInterface::openni_static_lock_;
   uint32_t KinectInterface::openni_devices_open_ = 0;
+  jtil::clk::Clk KinectInterface::shared_clock_;
   KinectDeviceListener* KinectInterface::device_listener_ = NULL;
   Vector<KinectInterface*> KinectInterface::open_kinects_;
 
@@ -601,6 +602,7 @@ namespace kinect_interface {
           switch (i) {
           case DEPTH_STREAM:
             depth_frame_number_++;
+            depth_frame_time_ = 1e-6 * (double)frames_[i]->getTimestamp();
             break;
           case RGB_STREAM:
             rgb_frame_number_++;

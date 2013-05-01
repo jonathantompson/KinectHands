@@ -50,11 +50,13 @@ namespace app {
     double time_accum;
     double fps;
 
-    static double time_sec;
+    static double time_sec;  // Used to calculate the FPS for the UI. 
+                             // Timestamps for depth data are depth_frame_time1
 
     bool sync_ir_stream_;
     uint8_t rgb_ir[src_dim * 3];  
     uint8_t* registered_rgb;  // A ptr into rgb_depth_data_
+    double depth_frame_time;
     float xyz[src_dim * 3];
     uint8_t labels[src_dim];
     int16_t* depth;  // A ptr into rgb_depth_data_

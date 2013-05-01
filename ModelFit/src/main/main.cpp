@@ -48,22 +48,22 @@
 #include "jtil/math/icp.h"
 #include "jtil/image_util/image_util.h"
 
-#if defined(WIN32) || defined(_WIN32) 
+#if defined(WIN32) || defined(_WIN32)  
   #define snprintf _snprintf_s
   #pragma warning( disable : 4099 )
 #endif
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
-// #define CALIBRATION_RUN
-#define FILTER_SIZE 30  // Only in calibration mode
+#define CALIBRATION_RUN
+#define FILTER_SIZE 60  // Only in calibration mode
 #define PERFORM_ICP_FIT  // Only in calibration mode
 #define USE_ICP_NORMALS  // Only in calibration mode
 #define ICP_PC_MODEL_DIST_THRESH 15  // mm
-#define ICP_NUM_ITERATIONS 30
+#define ICP_NUM_ITERATIONS 60
 #define ICP_COS_NORM_THRESHOLD acosf((35.0f / 360.0f) * 2.0f * (float)M_PI);
 #define CALIBRATION_MAX_FILES 100
-#define MAX_ICP_PTS 10000
+#define MAX_ICP_PTS 15000
 
 // KINECT DATA
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Fit
@@ -77,6 +77,9 @@
 
 // PRIMESENSE DATA
 #define IM_DIR_BASE string("data/hand_depth_data/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Fit
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_2/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_3/")
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
 #define MAX_KINECTS 3
@@ -268,6 +271,28 @@ void quit() {
   exit(0);
 }
 
+uint32_t findClosestFrame(const uint32_t i_kinect) {
+  if (i_kinect == 0) {
+    return cur_image;
+  }
+  int64_t src_timestamp = im_files[0][cur_image].second;
+  const int64_t search_win_radius = 30;
+  int32_t i_start = std::max<int32_t>((int32_t)cur_image - search_win_radius, 0);
+  int32_t i_end = std::min<int32_t>((int32_t)cur_image - search_win_radius, 
+    (int32_t)im_files[i_kinect].size());
+
+  int32_t frame = i_start;
+  int64_t min_delta_t = std::abs(src_timestamp - im_files[i_kinect][frame].second);
+  for (int32_t i = i_start + 1; i <= i_end; i++) {
+    int64_t delta_t = std::abs(src_timestamp - im_files[i_kinect][i].second);
+    if (delta_t < min_delta_t) {
+      min_delta_t = delta_t;
+      frame = i;
+    }
+  }
+  return (uint32_t)frame;
+}
+
 void loadCurrentImage(bool print_to_screen = true) {
   char* file = im_files[0][cur_image].first;
   string full_filename = IM_DIR + string(file);
@@ -278,25 +303,15 @@ void loadCurrentImage(bool print_to_screen = true) {
   }
 #if defined(CALIBRATION_RUN)
   // Average the non-zero pixels over some temporal filter kernel
-  int32_t start_index[MAX_KINECTS] = {cur_image, 0};
+  int32_t start_index[MAX_KINECTS];
   int16_t cur_depth[FILTER_SIZE];
-  for (int32_t k = 1; k < MAX_KINECTS; k++) {
+  for (int32_t k = 0; k < MAX_KINECTS; k++) {
     if (im_files[k].size() == 0) {
       start_index[k] = MAX_UINT32;
     } else {
       // find the correct file (with smallest timestamp difference) - 
-      // Search in a window of 20 images
-      int64_t src_timestamp = im_files[0][cur_image].second;
-      start_index[k] = std::max<int32_t>(0, (int32_t)cur_image - 10);
-      int64_t min_delta_t = std::abs(src_timestamp - im_files[k][start_index[k]].second);
-      for (int32_t i = std::max<int32_t>(0, (int32_t)cur_image - 9); 
-        i < std::min<int32_t>((int32_t)im_files[k].size(), (int32_t)cur_image + 9); i++) {
-        int64_t delta_t = std::abs(src_timestamp - im_files[k][i].second);
-        if (delta_t < min_delta_t) {
-          min_delta_t = delta_t;
-          start_index[k] = i;
-        }
-      }
+      // Search in a window of radius 30 images
+      start_index[k] = findClosestFrame(k);
     }
   }
   for (int32_t k = 0; k < MAX_KINECTS; k++) {
@@ -380,23 +395,8 @@ void loadCurrentImage(bool print_to_screen = true) {
       memset(cur_label_data[k], 0, sizeof(cur_label_data[k][0]) * src_dim); 
       memset(cur_image_rgb[k], 0, sizeof(cur_image_rgb[k][0]) * src_dim * 3); 
     } else {
-      // find the correct file (with smallest timestamp difference) - O(n)
-      int64_t src_timestamp = im_files[0][cur_image].second;
-      uint32_t i_match = 0;
-      int64_t min_delta_t = src_timestamp - im_files[k][0].second;
-      if (min_delta_t < 0) {
-        min_delta_t *= -1;
-      }
-      for (uint32_t i = 1; i < im_files[k].size(); i++) {
-        int64_t delta_t = src_timestamp - im_files[k][i].second;
-        if (delta_t < 0) {
-          delta_t *= -1;
-        }
-        if (delta_t < min_delta_t) {
-          min_delta_t = delta_t;
-          i_match = i;
-        }
-      }
+      // find the correct file (with smallest timestamp difference) - O(60)
+      uint32_t i_match = findClosestFrame(k);
       // Now we've found the correct file, load it
       file = im_files[k][i_match].first;
       full_filename = IM_DIR + string(file);
@@ -1401,6 +1401,13 @@ int main(int argc, char *argv[]) {
         camera_view[k].identity();
       } else {
         LoadArrayFromFile<float>(camera_view[k].m, 16, ss.str());
+      }
+    }
+    // Now align the frame times by the zeroth frame to the 0th kinect
+    for (uint32_t k = 1; k < MAX_KINECTS; k++) {
+      int64_t delta_t = im_files[k][0].second - im_files[0][0].second;
+      for (uint32_t i = 0; i < im_files[k].size(); i++) {
+        im_files[k][i].second -= delta_t;
       }
     }
 

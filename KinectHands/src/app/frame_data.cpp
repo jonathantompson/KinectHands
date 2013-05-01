@@ -96,6 +96,7 @@ namespace app {
         }
       }
       if (depth_changed) {
+        depth_frame_time = kinect->depth_frame_time();
         memcpy(registered_rgb, kinect->registered_rgb(), 
           sizeof(registered_rgb[0]) * src_dim * 3);
         memcpy(xyz, kinect->xyz(), sizeof(xyz[0]) * src_dim * 3);
@@ -148,7 +149,7 @@ namespace app {
       return false;
     } else {
       std::stringstream ss;
-      int64_t time_ns = (int64_t)(time_sec * 1.0e9);
+      int64_t time_ns = (int64_t)(depth_frame_time * 1.0e9);
       if (calibration) {
         ss << "calb" << kinect_index << "_" << time_ns << ".bin"; 
       } else {
