@@ -46,8 +46,11 @@ using namespace renderer;
 namespace model_fit {
   
   ModelRenderer::ModelRenderer(const uint32_t num_cameras) {
-    num_cameras_ = num_cameras_;
-    depth_tmp_ = new float[src_dim * NTILES];
+    num_cameras_ = num_cameras;
+    depth_tmp_ = new float*[num_cameras_];
+    for (uint32_t i = 0; i < num_cameras_; i++) {
+      depth_tmp_[i] = new float[src_dim * NTILES];
+    }
     FloatQuat eye_rot; eye_rot.identity();
     Float3 eye_pos(0, 0, 0);
     float fov_vert_deg = 360.0f * OpenNIFuncs::fVFOV_primesense_109 / 
@@ -204,7 +207,12 @@ namespace model_fit {
   }
 
   ModelRenderer::~ModelRenderer() {
-    SAFE_DELETE(depth_tmp_);
+    if (depth_tmp_) {
+      for (uint32_t i = 0; i < num_cameras_; i++) {
+        SAFE_DELETE_ARR(depth_tmp_[i]);
+      }
+    }
+    SAFE_DELETE_ARR(depth_tmp_);
     if (cameras_) {
       for (uint32_t i = 0; i < num_cameras_; i++) {
         SAFE_DELETE(cameras_[i]);
@@ -372,25 +380,33 @@ namespace model_fit {
     }
   }
 
-  void ModelRenderer::visualizeDepthMap(windowing::Window* wnd, bool color) {
+  void ModelRenderer::visualizeDepthMap(windowing::Window* wnd, 
+    const uint32_t i_camera, const bool color) {
     // Get the depth data, and find the min and max values
     if (color) {
-      cdepth_texture_->getTexture0Data<float>(depth_tmp_);
+      cdepth_texture_->getTexture0Data<float>(depth_tmp_[i_camera]);
     } else {
-      depth_texture_->getTexture0Data<float>(depth_tmp_);
+      depth_texture_->getTexture0Data<float>(depth_tmp_[i_camera]);
     }
     float min_depth = std::numeric_limits<float>::infinity();
     float max_depth = -std::numeric_limits<float>::infinity();
     for (uint32_t i = 0; i < src_width * src_height; i++) {
       uint32_t index = color ? i * 4 : i;
-      if (depth_tmp_[index] > EPSILON) {
-        if (depth_tmp_[index] < min_depth) {
-          min_depth = depth_tmp_[index];
+      if (depth_tmp_[i_camera][index] > EPSILON) {
+        if (depth_tmp_[i_camera][index] < min_depth) {
+          min_depth = depth_tmp_[i_camera][index];
         }
-        if (depth_tmp_[index] > max_depth) {
-          max_depth = depth_tmp_[index];
+        if (depth_tmp_[i_camera][index] > max_depth) {
+          max_depth = depth_tmp_[i_camera][index];
         }
       }
+    }
+
+    if (min_depth == std::numeric_limits<float>::infinity()) {
+      min_depth = 10.0f;
+    }
+    if (max_depth == -std::numeric_limits<float>::infinity()) {
+      max_depth = 1000.0f;
     }
     
     // Render to the framebuffer
@@ -433,13 +449,13 @@ namespace model_fit {
   void ModelRenderer::uploadDepth(const uint32_t i_camera, 
     const int16_t* depth_vals) {
     for (uint32_t i = 0; i < src_dim; i++) {
-      depth_tmp_[i] = static_cast<float>(depth_vals[i]);
+      depth_tmp_[i_camera][i] = static_cast<float>(depth_vals[i]);
     }
 
     SAFE_DELETE(kinect_depth_textures_[i_camera]);
     kinect_depth_textures_[i_camera] = new Texture(GL_R32F, src_width,
       src_height, GL_RED, GL_FLOAT, 
-      reinterpret_cast<unsigned char*>(depth_tmp_), 
+      reinterpret_cast<unsigned char*>(depth_tmp_[i_camera]), 
       renderer::TEXTURE_WRAP_MODE::TEXTURE_CLAMP, false);
 
     for (uint32_t tile_y = 0; tile_y < NTILES_Y; tile_y++) {
@@ -451,7 +467,8 @@ namespace model_fit {
             uint32_t src_index = v * src_width + u;
             uint32_t dst_index = (y_offst + v) * (src_width * NTILES_X)
               + x_offst + u;
-            depth_tmp_[dst_index] = static_cast<float>(depth_vals[src_index]);
+            depth_tmp_[i_camera][dst_index] = 
+              static_cast<float>(depth_vals[src_index]);
           }
         }
       }
@@ -460,7 +477,7 @@ namespace model_fit {
     SAFE_DELETE(kinect_depth_textures_tiled_[i_camera]);
     kinect_depth_textures_tiled_[i_camera] = new Texture(GL_R32F, 
       src_width * NTILES_X, src_height * NTILES_Y, 
-      GL_RED, GL_FLOAT, reinterpret_cast<unsigned char*>(depth_tmp_), 
+      GL_RED, GL_FLOAT, reinterpret_cast<unsigned char*>(depth_tmp_[i_camera]), 
       renderer::TEXTURE_WRAP_MODE::TEXTURE_CLAMP, false);
   }
 
@@ -483,11 +500,6 @@ namespace model_fit {
 
     residue_texture_1_->end();
 
-    // TEMP CODE:
-    residue_texture_1_->getTexture0Data<float>(depth_tmp_);
-    jtil::file_io::SaveArrayToFile<float>(depth_tmp_, src_dim, "depth_texture.bin");
-    // END TEMP CODE
-
     // Now downsample and integrate to 1/160 the size in each dimension
     g_renderer_->downsample4IntegTexture(residue_texture_4_, residue_texture_1_);
     g_renderer_->downsample4IntegTexture(residue_texture_16_, residue_texture_4_);
@@ -496,7 +508,7 @@ namespace model_fit {
 
     // Now we need to finish the rest of the integration on the CPU since the 
     // resolution is now 4 x 3
-    residue_texture_160_->getTexture0Data<float>(depth_tmp_);
+    residue_texture_160_->getTexture0Data<float>(depth_tmp_[i_camera]);
 
 #ifdef DEPTH_ONLY_RESIDUE_FUNC
     float depth_integral = 0.0f;  // Integral(abs(d_kin - d_syn))
@@ -504,7 +516,7 @@ namespace model_fit {
     float o_s_intersect_r_s = 0.0f;  // intersection of kinect and depth pixels
     const int decimation = 4 * 4 * 2 * 5;
     for (uint32_t i = 0; i < src_dim / (decimation*decimation); i++) {
-      depth_integral += depth_tmp_[i];
+      depth_integral += depth_tmp_[i_camera][i];
     }
 #else
     float depth_integral = 0.0f;  // Integral(abs(d_kin - d_syn))
@@ -564,7 +576,7 @@ namespace model_fit {
 
     // Now we need to finish the rest of the integration on the CPU since the 
     // tile resolution is now 4 x 3
-    residue_texture_20_->getTexture0Data<float>(depth_tmp_);
+    residue_texture_20_->getTexture0Data<float>(depth_tmp_[i_camera]);
 
     const int decimation = 4 * 4 * 5 * 2;
     static float lambda = DATA_TERM_LAMBDA;
@@ -583,7 +595,7 @@ namespace model_fit {
           for (uint32_t v = 0; v < (src_height / decimation); v++) {
             for (uint32_t u = 0; u < (src_width / decimation); u++) {
               uint32_t i = (v_off + v) * ((NTILES_X * src_width) / decimation) + u_off + u;
-              depth_integral += depth_tmp_[i];
+              depth_integral += depth_tmp_[i_camera][i];
             }
           }
 #else
@@ -606,7 +618,7 @@ namespace model_fit {
           float data_term = lambda * (depth_integral / (o_s_union_r_s + EPSILON)) +
             (1.0f - (2.0f*o_s_intersect_r_s / (o_s_intersect_r_s + o_s_union_r_s)));
 #endif
-          residues[tile_v*NTILES_X + tile_u] *= data_term;
+          residues[tile_v*NTILES_X + tile_u] += data_term;
         }
       }
     }
@@ -615,7 +627,7 @@ namespace model_fit {
   void ModelRenderer::renderTexturedBonedMesh(GeometryTexturedBonedMesh* geom,
     const uint32_t i_camera, bool color) {
     // Calculate the model view matrix and bind it to the shader
-    Float4x4::mult(VW_mat_, *cameras_[i_camera]->view(), *geom->mat_hierarchy());
+    Float4x4::mult(VW_mat_, *(cameras_[i_camera]->view()), *geom->mat_hierarchy());
     if (color) {
       g_renderer_->bindFloat4x4(&VW_mat_, h_VW_mat_sp_cdepth_skinned_);
     } else {
@@ -623,7 +635,7 @@ namespace model_fit {
     }
 
     // Calculate model view projection matrix and bind it to the shader
-    Float4x4::mult(PVW_mat_, *cameras_[i_camera]->proj(), VW_mat_ );
+    Float4x4::mult(PVW_mat_, *(cameras_[i_camera]->proj()), VW_mat_ );
     if (color) {
       g_renderer_->bindFloat4x4(&PVW_mat_, h_PVW_mat_sp_cdepth_skinned_);
     } else {
@@ -675,7 +687,7 @@ namespace model_fit {
   void ModelRenderer::renderColoredBonedMesh(GeometryColoredBonedMesh* geom, 
     const uint32_t i_camera, bool color) {
     // Calculate the model view matrix and bind it to the shader
-    Float4x4::mult(VW_mat_, *cameras_[i_camera]->view(), *geom->mat_hierarchy());
+    Float4x4::mult(VW_mat_, *(cameras_[i_camera]->view()), *geom->mat_hierarchy());
     if (color) {
       g_renderer_->bindFloat4x4(&VW_mat_, h_VW_mat_sp_cdepth_skinned_);
     } else {
@@ -683,7 +695,7 @@ namespace model_fit {
     }
 
     // Calculate model view projection matrix and bind it to the shader
-    Float4x4::mult(PVW_mat_, *cameras_[i_camera]->proj(), VW_mat_ );
+    Float4x4::mult(PVW_mat_, *(cameras_[i_camera]->proj()), VW_mat_ );
     if (color) {
       g_renderer_->bindFloat4x4(&PVW_mat_, h_PVW_mat_sp_cdepth_skinned_);
     } else {
@@ -719,7 +731,7 @@ namespace model_fit {
   void ModelRenderer::renderColoredMesh(GeometryColoredMesh* geom, 
     const uint32_t i_camera, bool color) {
     // Calculate the model view matrix and bind it to the shader
-    Float4x4::mult(VW_mat_, *cameras_[i_camera]->view(), *geom->mat_hierarchy());
+    Float4x4::mult(VW_mat_, *(cameras_[i_camera]->view()), *(geom->mat_hierarchy()));
     if (color) {
       g_renderer_->bindFloat4x4(&VW_mat_, h_VW_mat_sp_cdepth_);
     } else {
@@ -727,7 +739,7 @@ namespace model_fit {
     }
 
     // Calculate model view projection matrix and bind it to the shader
-    Float4x4::mult(PVW_mat_, *cameras_[i_camera]->proj(), VW_mat_ );
+    Float4x4::mult(PVW_mat_, *(cameras_[i_camera]->proj()), VW_mat_ );
     if (color) {
       g_renderer_->bindFloat4x4(&PVW_mat_, h_PVW_mat_sp_cdepth_);
     } else {

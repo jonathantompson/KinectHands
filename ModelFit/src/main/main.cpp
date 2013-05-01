@@ -523,11 +523,18 @@ void MousePosCB(int x, int y) {
     }
 #if defined(CALIBRATION_RUN)
     if (shift_down) {
-      Float3& box_size = ((CalibrateGeometry*)models[0])->box_size();
-      box_size[cur_coeff % 3] -= theta_y;
-      ((CalibrateGeometry*)models[0])->updateBoxSize();
-      cout << "cur_coeff " << cur_coeff % 3;
-      cout << " --> " << box_size[cur_coeff % 3] << endl;
+      if (cal_type == BOX) {
+        Float3& box_size = ((CalibrateGeometry*)models[0])->box_size();
+        box_size[cur_coeff % 3] -= theta_y;
+        ((CalibrateGeometry*)models[0])->updateSize();
+        cout << "cur_coeff " << cur_coeff % 3;
+        cout << " --> " << box_size[cur_coeff % 3] << endl;
+      } else if (cal_type == ICOSAHEDRON) {
+        ((CalibrateGeometry*)models[0])->icosahedron_size() -= theta_y;
+        ((CalibrateGeometry*)models[0])->updateSize();
+        cout << "icosahedron_size --> " << 
+          ((CalibrateGeometry*)models[0])->icosahedron_size() << endl;
+      }
     } else {
       coeffs[kinect_to_modify][cur_image][cur_coeff] -= theta_y;
       cout << "cur_coeff " << cur_coeff;
@@ -1270,8 +1277,8 @@ void renderFrame(float dt) {
 #endif
 
     fit->model_renderer()->drawDepthMap(coeff, num_coeff_fit, models,
-      num_models, false);
-    fit->model_renderer()->visualizeDepthMap(wnd);
+      num_models, 0, false);
+    fit->model_renderer()->visualizeDepthMap(wnd, 0);
     break;
   default:
     throw runtime_error("ERROR: render_output is an incorrect value");
@@ -1429,9 +1436,14 @@ int main(int argc, char *argv[]) {
     // Create the optimizer that will fit the models
     fit = new ModelFit(num_models, num_coeff_fit, num_model_fit_cameras);
 
+#ifndef CALIBRATION_RUN
+    // TO DO: SET CAMERA VIEW properly (this version is broken since we need
+    // to look down the -z axis!)
+    throw std::wruntime_error("FIX THIS");
     for (uint32_t k = 0; k < num_model_fit_cameras; k++) {
       fit->setCameraView(k, camera_view[k]);
     }
+#endif
 
     // Load the coeffs from file
 #ifdef CALIBRATION_RUN

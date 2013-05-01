@@ -59,7 +59,7 @@ namespace model_fit {
       scene_graph_->addChild(box_);
 
       box_size_.set(BOX_SIDEA, BOX_SIDEB, BOX_SIDEC);
-      updateBoxSize();
+      updateSize();
       }
       break;
     case TENNIS:
@@ -118,6 +118,27 @@ namespace model_fit {
       icosahedron_ = GeometryManager::g_geom_manager()->loadFromFile("./models/",
         "icosahedron.dae", false);
       scene_graph_->addChild(icosahedron_);
+
+      // Measure a face size
+      Geometry* c0 = icosahedron_->getChild(0);
+      if (c0->type() != GEOMETRY_COLORED_MESH) {
+        throw std::wruntime_error("Icosahedron mesh is not the correct type!");
+      }
+      GeometryColoredMesh* c0_mesh = (GeometryColoredMesh*)c0;
+      jtil::data_str::Vector<jtil::math::Float3>& vert = *c0_mesh->vertices();
+      jtil::data_str::Vector<uint32_t>& ind = *c0_mesh->indices();
+      Float3 vec;
+      Float3::sub(vec, vert[ind[0]], vert[ind[1]]);
+      float length = vec.length();
+
+      icosahedron_size_ = ICOSAHEDRON_SIDE_LENGTH / length; 
+      updateSize();
+
+      for (uint32_t i = 0; i < icosahedron_->numChildren(); i++) {
+        Float4x4::euler2RotMat(*icosahedron_->getChild(i)->mat(),
+          -2.97f, 0.26f, -0.625f);
+      }
+
       break;
     }
 
@@ -139,12 +160,19 @@ namespace model_fit {
     // Note, ownership of all geometry is transfered to the renderer class
   }
 
-  void CalibrateGeometry::updateBoxSize() {
-    if (box_) {
+  void CalibrateGeometry::updateSize() {
+    switch (type_) {
+    case BOX:
       Float4x4::scaleMat(*box_->mat(), box_size_[0]/2.0f, box_size_[1]/2.0f,
         box_size_[2]/2.0f);
-    } else {
-      throw std::wruntime_error("updateBoxSize() - ERROR: box_ == NULL!");
+      break;
+    case ICOSAHEDRON:
+      Float4x4::scaleMat(*icosahedron_->mat(), icosahedron_size_, 
+        icosahedron_size_, icosahedron_size_);
+      break;
+    default:
+      throw std::wruntime_error("updateSize() not supported for this geometry"
+        " type!");
     }
   }
 
@@ -505,42 +533,72 @@ namespace model_fit {
   void CalibrateGeometry::findPointsCloseToModel(Vector<float>& pc, 
     const float* xyz, const float* coeff, const float dist_thresh) {
     float dist_thresh_sq = dist_thresh * dist_thresh;
-    // Iterate through the Kinect point cloud and find the points that are
-    // close to the model
-    if (box_ == NULL) {
-      throw std::wruntime_error("findPointsCloseToModel() - Only valid for "
-        "box model");
-    }
-    Float4x4 model_mat, model_mat_inv;
-    coeff2Mat(model_mat, coeff);
-    Float4x4::inverse(model_mat_inv, model_mat);
+    switch (type_) {
+    case BOX:
+      {
+        Float4x4 model_mat, model_mat_inv;
+        coeff2Mat(model_mat, coeff);
+        Float4x4::inverse(model_mat_inv, model_mat);
 
-    pc.resize(0);
+        pc.resize(0);
 
-    Float3 pt, pt_tranformed, pt_box, delta;
-    Float3 box_half_lengths(BOX_SIDEA/2.0f, BOX_SIDEB/2.0f, BOX_SIDEC/2.0f);
-    for (uint32_t i = 0; i < src_dim; i++) {
-      // Transform the point into the box's coordinate frame
-      pt.set(xyz[i * 3], xyz[i * 3 + 1], xyz[i * 3 + 2]);
-      Float3::affineTransformPos(pt_tranformed, model_mat_inv, pt);
-      // Force the tranformed point into the postive octant (flipping the
-      // axis wont change the distance computation, but makes our life easier)
-      pt_tranformed[0] = fabsf(pt_tranformed[0]);
-      pt_tranformed[1] = fabsf(pt_tranformed[1]);
-      pt_tranformed[2] = fabsf(pt_tranformed[2]);
-      // Find the closest point on the box to the transformed point in the 
-      // positive octant, we don't care about negative coeffs
-      pt_box[0] = std::min<float>(box_half_lengths[0], pt_tranformed[0]);
-      pt_box[1] = std::min<float>(box_half_lengths[1], pt_tranformed[1]);
-      pt_box[2] = std::min<float>(box_half_lengths[2], pt_tranformed[2]);
-      // Now calculate the squared distance:
-      Float3::sub(delta, pt_box, pt_tranformed);
-      float dist_sq = Float3::dot(delta, delta);
-      if (dist_sq <= dist_thresh_sq) {
-        pc.pushBack(xyz[i * 3]);
-        pc.pushBack(xyz[i * 3 + 1]);
-        pc.pushBack(xyz[i * 3 + 2]);
+        Float3 pt, pt_tranformed, pt_box, delta;
+        Float3 box_half_lengths(BOX_SIDEA/2.0f, BOX_SIDEB/2.0f, BOX_SIDEC/2.0f);
+        for (uint32_t i = 0; i < src_dim; i++) {
+          // Transform the point into the box's coordinate frame
+          pt.set(xyz[i * 3], xyz[i * 3 + 1], xyz[i * 3 + 2]);
+          Float3::affineTransformPos(pt_tranformed, model_mat_inv, pt);
+          // Force the tranformed point into the postive octant (flipping the
+          // axis wont change the distance computation, but makes our life easier)
+          pt_tranformed[0] = fabsf(pt_tranformed[0]);
+          pt_tranformed[1] = fabsf(pt_tranformed[1]);
+          pt_tranformed[2] = fabsf(pt_tranformed[2]);
+          // Find the closest point on the box to the transformed point in the 
+          // positive octant, we don't care about negative coeffs
+          pt_box[0] = std::min<float>(box_half_lengths[0], pt_tranformed[0]);
+          pt_box[1] = std::min<float>(box_half_lengths[1], pt_tranformed[1]);
+          pt_box[2] = std::min<float>(box_half_lengths[2], pt_tranformed[2]);
+          // Now calculate the squared distance:
+          Float3::sub(delta, pt_box, pt_tranformed);
+          float dist_sq = Float3::dot(delta, delta);
+          if (dist_sq <= dist_thresh_sq) {
+            pc.pushBack(xyz[i * 3]);
+            pc.pushBack(xyz[i * 3 + 1]);
+            pc.pushBack(xyz[i * 3 + 2]);
+          }
+        }
       }
+      break;
+    case ICOSAHEDRON:
+      {
+        Float4x4 model_mat, model_mat_inv;
+        coeff2Mat(model_mat, coeff);
+        Float4x4::inverse(model_mat_inv, model_mat);
+
+        // Just be lazy and do it by radius
+        // http://en.wikipedia.org/wiki/Icosahedron :
+        float radius = ICOSAHEDRON_SIDE_LENGTH * sinf(2.0f * (float)M_PI / 5.0f);
+        float radius_sq = radius * radius;
+
+        pc.resize(0);
+
+        Float3 pt, pt_tranformed, pt_box, delta;
+        for (uint32_t i = 0; i < src_dim; i++) {
+          // Transform the point into the box's coordinate frame
+          pt.set(xyz[i * 3], xyz[i * 3 + 1], xyz[i * 3 + 2]);
+          Float3::affineTransformPos(pt_tranformed, model_mat_inv, pt);
+          float dist_from_origion_sq = Float3::dot(pt_tranformed, pt_tranformed);
+          if (fabsf(dist_from_origion_sq - radius_sq) <= dist_thresh_sq) {
+            pc.pushBack(xyz[i * 3]);
+            pc.pushBack(xyz[i * 3 + 1]);
+            pc.pushBack(xyz[i * 3 + 2]);
+          }
+        }
+      }
+      break;
+    default:
+      throw std::wruntime_error("findPointsCloseToModel() - Not supported for"
+        " this model type");
     }
   }
 

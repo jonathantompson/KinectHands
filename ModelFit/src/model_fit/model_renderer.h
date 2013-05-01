@@ -61,7 +61,7 @@ namespace model_fit {
     // Top level functions
     void drawDepthMap(const float* coeff, const uint32_t num_coeff_per_model, 
       PoseModel** models, const uint32_t num_models, const uint32_t i_camera,
-      const bool color = false);
+      const bool color);
 
     // max_num_interpenetration_groups --> if the number of bounding sphere
     // groups is larger than you want to consider (ie, ignore all groups beyond n)
@@ -71,7 +71,8 @@ namespace model_fit {
       jtil::data_str::Vector<float>* interpenetration,
       const uint32_t max_num_interpenetration_groups);
 
-    void visualizeDepthMap(windowing::Window* wnd, bool color = false);
+    void visualizeDepthMap(windowing::Window* wnd, const uint32_t i_camera,
+      const bool color = false);
 
     float calculateResidualDataTerm(const uint32_t i_camera);
     void calculateResidualDataTermTiled(jtil::data_str::Vector<float>& residues,
@@ -81,7 +82,7 @@ namespace model_fit {
 
     inline renderer::TextureRenderable* depth_texture() { return depth_texture_; }
     inline renderer::TextureRenderable* cdepth_texture() { return cdepth_texture_; }
-    inline float* depth_tmp() { return depth_tmp_; }
+    inline float** depth_tmp() { return depth_tmp_; }
     inline renderer::Camera* camera(const uint32_t id) { return cameras_[id]; }
 
   private:
@@ -104,7 +105,7 @@ namespace model_fit {
     renderer::Texture** kinect_depth_textures_tiled_;
     renderer::TextureRenderable* cdepth_texture_;  // depth and color
 
-    float* depth_tmp_;  // DEPTH_IMAGE_DIM * NTILES
+    float** depth_tmp_;  // num_cameras * (DEPTH_IMAGE_DIM * NTILES)
 
     // Shader for rendering depth
     renderer::Shader* v_shader_depth_;

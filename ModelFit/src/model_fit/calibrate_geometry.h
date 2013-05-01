@@ -40,6 +40,9 @@
 #define BOX_SIDEB 315.2f
 #define BOX_SIDEC 102.68f
 
+#define ICOSAHEDRON_SIDE_LENGTH 180.0f
+#define ICOSAHEDRON_DEFAULT_SCALE 0.95f
+
 #define NUM_CAL_SPHERES 0
 namespace jtil { namespace math { class BFGS; } }
 
@@ -113,7 +116,8 @@ namespace model_fit {
       const float* xyz, const float* coeff, const float dist_thresh);
 
     jtil::math::Float3& box_size() { return box_size_; }
-    void updateBoxSize();
+    float& icosahedron_size() { return icosahedron_size_; }
+    void updateSize();
 
   private:
     CalibrateGeometryType type_;
@@ -131,6 +135,7 @@ namespace model_fit {
     jtil::math::Float3 box_size_;
 
     renderer::Geometry* icosahedron_;
+    float icosahedron_size_;
 
     jtil::data_str::Vector<renderer::BoundingSphere*> bspheres_;  // Attached to scene graph!
     bool renderer_attachment_;  // whether or not the model is attached to the 
