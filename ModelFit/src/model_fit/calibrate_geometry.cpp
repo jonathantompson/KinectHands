@@ -130,14 +130,16 @@ namespace model_fit {
       Float3 vec;
       Float3::sub(vec, vert[ind[0]], vert[ind[1]]);
       float length = vec.length();
-
-      icosahedron_size_ = ICOSAHEDRON_SIDE_LENGTH / length; 
-      updateSize();
+      float scale = ICOSAHEDRON_SIDE_LENGTH / length;
 
       for (uint32_t i = 0; i < icosahedron_->numChildren(); i++) {
         Float4x4::euler2RotMat(*icosahedron_->getChild(i)->mat(),
           -2.97f, 0.26f, -0.625f);
+        icosahedron_->getChild(i)->mat()->rightMultScale(scale, scale, scale);
       }
+
+      icosahedron_scale_ = ICOSAHEDRON_DEFAULT_SCALE; 
+      updateSize();
 
       break;
     }
@@ -167,8 +169,8 @@ namespace model_fit {
         box_size_[2]/2.0f);
       break;
     case ICOSAHEDRON:
-      Float4x4::scaleMat(*icosahedron_->mat(), icosahedron_size_, 
-        icosahedron_size_, icosahedron_size_);
+      Float4x4::scaleMat(*icosahedron_->mat(), icosahedron_scale_, 
+        icosahedron_scale_, icosahedron_scale_);
       break;
     default:
       throw std::wruntime_error("updateSize() not supported for this geometry"
@@ -530,8 +532,9 @@ namespace model_fit {
     Float4x4::mult(ret, model_base, model_query_inv);
   }
 
-  void CalibrateGeometry::findPointsCloseToModel(Vector<float>& pc, 
-    const float* xyz, const float* coeff, const float dist_thresh) {
+  void CalibrateGeometry::findPointsCloseToModel(Vector<float>& vert_ret, 
+      Vector<float>& norm_ret, const float* xyz_src, 
+      const float* norm_src, const float* coeff, const float dist_thresh) {
     float dist_thresh_sq = dist_thresh * dist_thresh;
     switch (type_) {
     case BOX:
@@ -540,13 +543,14 @@ namespace model_fit {
         coeff2Mat(model_mat, coeff);
         Float4x4::inverse(model_mat_inv, model_mat);
 
-        pc.resize(0);
+        vert_ret.resize(0);
+        norm_ret.resize(0);
 
         Float3 pt, pt_tranformed, pt_box, delta;
         Float3 box_half_lengths(BOX_SIDEA/2.0f, BOX_SIDEB/2.0f, BOX_SIDEC/2.0f);
         for (uint32_t i = 0; i < src_dim; i++) {
           // Transform the point into the box's coordinate frame
-          pt.set(xyz[i * 3], xyz[i * 3 + 1], xyz[i * 3 + 2]);
+          pt.set(xyz_src[i * 3], xyz_src[i * 3 + 1], xyz_src[i * 3 + 2]);
           Float3::affineTransformPos(pt_tranformed, model_mat_inv, pt);
           // Force the tranformed point into the postive octant (flipping the
           // axis wont change the distance computation, but makes our life easier)
@@ -562,36 +566,45 @@ namespace model_fit {
           Float3::sub(delta, pt_box, pt_tranformed);
           float dist_sq = Float3::dot(delta, delta);
           if (dist_sq <= dist_thresh_sq) {
-            pc.pushBack(xyz[i * 3]);
-            pc.pushBack(xyz[i * 3 + 1]);
-            pc.pushBack(xyz[i * 3 + 2]);
+            vert_ret.pushBack(xyz_src[i * 3]);
+            vert_ret.pushBack(xyz_src[i * 3 + 1]);
+            vert_ret.pushBack(xyz_src[i * 3 + 2]);
+            norm_ret.pushBack(norm_src[i * 3]);
+            norm_ret.pushBack(norm_src[i * 3 + 1]);
+            norm_ret.pushBack(norm_src[i * 3 + 2]);
+
           }
         }
       }
       break;
     case ICOSAHEDRON:
       {
-        Float4x4 model_mat, model_mat_inv;
-        coeff2Mat(model_mat, coeff);
-        Float4x4::inverse(model_mat_inv, model_mat);
+        coeff2Mat(*scene_graph_->mat(), coeff);
+        updateSize();
+        updateHeirachyMatrices();
+        Float4x4 model_mat_inv;
+        Float4x4::inverse(model_mat_inv, *icosahedron_->mat_hierarchy());
 
         // Just be lazy and do it by radius
         // http://en.wikipedia.org/wiki/Icosahedron :
         float radius = ICOSAHEDRON_SIDE_LENGTH * sinf(2.0f * (float)M_PI / 5.0f);
-        float radius_sq = radius * radius;
 
-        pc.resize(0);
+        vert_ret.resize(0);
+        norm_ret.resize(0);
 
         Float3 pt, pt_tranformed, pt_box, delta;
         for (uint32_t i = 0; i < src_dim; i++) {
           // Transform the point into the box's coordinate frame
-          pt.set(xyz[i * 3], xyz[i * 3 + 1], xyz[i * 3 + 2]);
+          pt.set(xyz_src[i * 3], xyz_src[i * 3 + 1], xyz_src[i * 3 + 2]);
           Float3::affineTransformPos(pt_tranformed, model_mat_inv, pt);
-          float dist_from_origion_sq = Float3::dot(pt_tranformed, pt_tranformed);
-          if (fabsf(dist_from_origion_sq - radius_sq) <= dist_thresh_sq) {
-            pc.pushBack(xyz[i * 3]);
-            pc.pushBack(xyz[i * 3 + 1]);
-            pc.pushBack(xyz[i * 3 + 2]);
+          float dist_from_origion = sqrtf(Float3::dot(pt_tranformed, pt_tranformed));
+          if ((dist_from_origion - dist_thresh) <= radius) {
+            vert_ret.pushBack(xyz_src[i * 3]);
+            vert_ret.pushBack(xyz_src[i * 3 + 1]);
+            vert_ret.pushBack(xyz_src[i * 3 + 2]);
+            norm_ret.pushBack(norm_src[i * 3]);
+            norm_ret.pushBack(norm_src[i * 3 + 1]);
+            norm_ret.pushBack(norm_src[i * 3 + 2]);
           }
         }
       }

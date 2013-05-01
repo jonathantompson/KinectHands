@@ -69,8 +69,9 @@ namespace model_fit {
 
   void ModelFit::prepareKinectData(int16_t** depth, uint8_t** label) {
     for (uint32_t i_camera = 0; i_camera < num_cameras_; i_camera++) {
-      memcpy(kinect_depth_masked_, depth[i_camera], 
-        sizeof(kinect_depth_masked_[0]) * src_dim);
+      int16_t* cur_depth = depth[i_camera];
+      memcpy(kinect_depth_masked_, cur_depth, sizeof(kinect_depth_masked_[0]) * 
+        src_dim);
   #ifdef DEPTH_ONLY_RESIDUE_FUNC
       // Do nothing
   #else
@@ -85,8 +86,10 @@ namespace model_fit {
   }
 
   void ModelFit::setCameraView(const uint32_t i_camera, 
-    const jtil::math::Float4x4& view) {
-    model_renderer_->camera(i_camera)->view()->set(view);
+    const jtil::math::FloatQuat& rot, const jtil::math::Float3& pos) {
+    model_renderer_->camera(i_camera)->eye_rot()->set(rot);
+    model_renderer_->camera(i_camera)->eye_pos()->set(pos);
+    model_renderer_->camera(i_camera)->updateView();
   }
 
   void ModelFit::fitModel(int16_t** depth, uint8_t** label, PoseModel** models, 

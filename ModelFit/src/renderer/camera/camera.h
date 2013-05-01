@@ -34,6 +34,7 @@ namespace renderer {
     inline void screen_width(float set_val) { screen_size_[0] = set_val; }
     inline void screen_height(float set_val) { screen_size_[1] = set_val; }
     inline jtil::math::Float3* eye_pos() { return &eye_pos_; }
+    inline jtil::math::FloatQuat* eye_rot() { return &eye_rot_; }
 
   private:
     jtil::math::FloatQuat eye_rot_;

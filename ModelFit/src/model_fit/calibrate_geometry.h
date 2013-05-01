@@ -41,7 +41,7 @@
 #define BOX_SIDEC 102.68f
 
 #define ICOSAHEDRON_SIDE_LENGTH 180.0f
-#define ICOSAHEDRON_DEFAULT_SCALE 0.95f
+#define ICOSAHEDRON_DEFAULT_SCALE 1.00f
 
 #define NUM_CAL_SPHERES 0
 namespace jtil { namespace math { class BFGS; } }
@@ -112,11 +112,12 @@ namespace model_fit {
     static void renormalizeCoeffs(float* coeff);
     static float calcAveCameraViewObjFunc(const float* coeff);
     static void calcAveCameraViewJacobFunc(float* jacob, const float* coeff);
-    void findPointsCloseToModel(jtil::data_str::Vector<float>& pc, 
-      const float* xyz, const float* coeff, const float dist_thresh);
+    void findPointsCloseToModel(jtil::data_str::Vector<float>& vert_ret, 
+      jtil::data_str::Vector<float>& norm_ret, const float* xyz_src, 
+      const float* norm_src, const float* coeff, const float dist_thresh);
 
     jtil::math::Float3& box_size() { return box_size_; }
-    float& icosahedron_size() { return icosahedron_size_; }
+    float& icosahedron_scale() { return icosahedron_scale_; }
     void updateSize();
 
   private:
@@ -135,7 +136,7 @@ namespace model_fit {
     jtil::math::Float3 box_size_;
 
     renderer::Geometry* icosahedron_;
-    float icosahedron_size_;
+    float icosahedron_scale_;
 
     jtil::data_str::Vector<renderer::BoundingSphere*> bspheres_;  // Attached to scene graph!
     bool renderer_attachment_;  // whether or not the model is attached to the 
