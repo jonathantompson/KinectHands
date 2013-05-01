@@ -55,7 +55,7 @@
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
-#define CALIBRATION_RUN
+// #define CALIBRATION_RUN
 #define FILTER_SIZE 60  // Only in calibration mode
 #define PERFORM_ICP_FIT  // Only in calibration mode
 #define USE_ICP_NORMALS  // Only in calibration mode
@@ -76,10 +76,8 @@
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Fit -> Training Data
 
 // PRIMESENSE DATA
-#define IM_DIR_BASE string("data/hand_depth_data/")
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Fit
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_2/")
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_3/")
+//#define IM_DIR_BASE string("data/hand_depth_data/")
+#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
 #define MAX_KINECTS 3
@@ -278,7 +276,7 @@ uint32_t findClosestFrame(const uint32_t i_kinect) {
   int64_t src_timestamp = im_files[0][cur_image].second;
   const int64_t search_win_radius = 30;
   int32_t i_start = std::max<int32_t>((int32_t)cur_image - search_win_radius, 0);
-  int32_t i_end = std::min<int32_t>((int32_t)cur_image - search_win_radius, 
+  int32_t i_end = std::min<int32_t>((int32_t)cur_image + search_win_radius, 
     (int32_t)im_files[i_kinect].size());
 
   int32_t frame = i_start;
@@ -1394,6 +1392,10 @@ int main(int argc, char *argv[]) {
       }
 #else
       image_io->GetFilesInDirectory(im_files[k], IM_DIR, k);
+      if (im_files[k].size() == 0) {
+        throw std::wruntime_error("ERROR: No frames exist for one of the "
+          "sensors!");
+      }
 #endif
       std::stringstream ss;
       ss << IM_DIR << "calibration_data" << k << ".bin";

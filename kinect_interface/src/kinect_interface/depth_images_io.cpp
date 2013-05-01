@@ -551,7 +551,7 @@ namespace kinect_interface {
     HANDLE hFind = FindFirstFile(szDir, &ffd);
     if (hFind == INVALID_HANDLE_VALUE) {
       cout << "GetFilesInDirectory error getting dir info. Check that ";
-      cout << "directory is not empty!";
+      cout << "directory is not empty!" << endl;
       return 0;
     }
 
