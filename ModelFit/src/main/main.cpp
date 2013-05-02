@@ -81,7 +81,7 @@
 // PRIMESENSE DATA
 //#define IM_DIR_BASE string("data/hand_depth_data/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit
-#define IM_DIR_BASE string("data/hand_depth_data_2013_05_02_1/")  // 
+#define IM_DIR_BASE string("data/hand_depth_data_2013_05_02_1/")  // Cal
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
 #define MAX_KINECTS 3
