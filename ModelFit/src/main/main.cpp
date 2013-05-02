@@ -388,6 +388,8 @@ void loadCurrentImage(bool print_to_screen = true) {
   openni_funcs.convertDepthToWorldCoordinates(cur_uvd_data[0], cur_xyz_data[0], 
     src_dim);
 #endif
+  CalcNormalImage(cur_norm_data[0], cur_xyz_data[0], src_width, src_height,
+    50, SimpleNormalApproximation);
 
   // Now load the other Kinect data
   for (uint32_t k = 1; k < MAX_KINECTS; k++) {
@@ -415,6 +417,8 @@ void loadCurrentImage(bool print_to_screen = true) {
       openni_funcs.convertDepthToWorldCoordinates(cur_uvd_data[k], cur_xyz_data[k], 
         src_dim);
 #endif
+      CalcNormalImage(cur_norm_data[k], cur_xyz_data[k], src_width, src_height,
+        50, SimpleNormalApproximation);
     }
   }
 #endif
@@ -1020,7 +1024,6 @@ void KeyboardCB(int key, int action) {
 #endif
       }
       break;
-
     case static_cast<int>('z'):
     case static_cast<int>('Z'): 
       if (action == RELEASED) {
