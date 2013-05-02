@@ -55,7 +55,7 @@
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
-// #define CALIBRATION_RUN
+#define CALIBRATION_RUN
 #define FILTER_SIZE 60  // Only in calibration mode
 #define PERFORM_ICP_FIT  // Only in calibration mode
 #define USE_ICP_NORMALS  // Only in calibration mode
@@ -77,7 +77,8 @@
 
 // PRIMESENSE DATA
 //#define IM_DIR_BASE string("data/hand_depth_data/")
-#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit
+#define IM_DIR_BASE string("data/hand_depth_data_2013_05_02_1/")  // Cal
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
 #define MAX_KINECTS 3
@@ -1053,60 +1054,80 @@ void KeyboardCB(int key, int action) {
         if (shift_down) {
           repeat = 10;
         }
+        {  // Closure
+          std::string full_im_filename[MAX_KINECTS];
+          std::string new_full_im_filename[MAX_KINECTS];
+          uint32_t i_del[MAX_KINECTS];
+          for (int i = 0; i < repeat; i++) {
+            for (uint32_t k = 0; k < MAX_KINECTS; k++) {
+              i_del[k] = findClosestFrame(k);
+              full_im_filename[k] = IM_DIR + string(im_files[k][i_del[k]].first);
+              new_full_im_filename[k] = IM_DIR + string("deleted_") + 
+                string(im_files[k][i_del[k]].first);
+            }
+            r_coeff_file = IM_DIR + string("coeffr_") + im_files[0][i_del[0]].first;
+            new_r_coeff_file = IM_DIR + string("deleted_") + string("coeffr_") + 
+              im_files[0][i_del[0]].first;
+            l_coeff_file = IM_DIR + string("coeffl_") + im_files[0][i_del[0]].first;
+            new_l_coeff_file = IM_DIR + string("deleted_") + string("coeffl_") + 
+              im_files[0][i_del[0]].first;
 
-        for (int i = 0; i < repeat; i++) {
-          full_im_filename = IM_DIR + string(im_files[0][cur_image].first);
-          new_full_im_filename = IM_DIR + string("deleted_") + 
-            string(im_files[0][cur_image].first);
-          r_coeff_file = IM_DIR + string("coeffr_") + im_files[0][cur_image].first;
-          new_r_coeff_file = IM_DIR + string("deleted_") + string("coeffr_") + 
-            im_files[0][cur_image].first;
-          l_coeff_file = IM_DIR + string("coeffl_") + im_files[0][cur_image].first;
-          new_l_coeff_file = IM_DIR + string("deleted_") + string("coeffl_") + 
-            im_files[0][cur_image].first;
-
-          if (delete_confirmed == 1) {
-            if(!MoveFile(full_im_filename.c_str(), new_full_im_filename.c_str()) 
-              || !MoveFile(r_coeff_file.c_str(), new_r_coeff_file.c_str()) ||
-              !MoveFile(l_coeff_file.c_str(), new_l_coeff_file.c_str())) {
-                cout << "Error moving files: " << endl;
-                cout << "    - " << full_im_filename.c_str() << endl;
+            if (delete_confirmed == 1) {
+              bool move_OK = 
+                MoveFile(r_coeff_file.c_str(), new_r_coeff_file.c_str()) &&
+                MoveFile(l_coeff_file.c_str(), new_l_coeff_file.c_str());
+              for (uint32_t k = 0; k < MAX_KINECTS && move_OK; k++) {
+                move_OK = move_OK && 
+                  MoveFile(full_im_filename[k].c_str(), new_full_im_filename[k].c_str());
+              }
+              if (!move_OK) {
+                  cout << "Error moving files: " << endl;
+                  for (uint32_t k = 0; k < MAX_KINECTS; k++) {
+                    cout << "    - " << full_im_filename[k].c_str() << endl;
+                  }
+                  cout << "    - " << r_coeff_file.c_str() << endl;
+                  cout << "    - " << l_coeff_file.c_str() << endl;
+                  cout << endl;
+              } else {
+                cout << "Files marked as deleted sucessfully: " << endl;
+                for (uint32_t k = 0; k < MAX_KINECTS; k++) {
+                  cout << "    - " << full_im_filename[k].c_str() << endl;
+                }
                 cout << "    - " << r_coeff_file.c_str() << endl;
                 cout << "    - " << l_coeff_file.c_str() << endl;
                 cout << endl;
-            } else {
-              cout << "Files marked as deleted sucessfully: " << endl;
-              cout << "    - " << full_im_filename.c_str() << endl;
-              cout << "    - " << r_coeff_file.c_str() << endl;
-              cout << "    - " << l_coeff_file.c_str() << endl;
-              cout << endl;
-              delete r_hand_coeffs[cur_image];
-              delete l_hand_coeffs[cur_image];
-              for (uint32_t i = cur_image; i < im_files[0].size() - 1; i++) {
-                r_hand_coeffs[i] = r_hand_coeffs[i+1];
-                l_hand_coeffs[i] = l_hand_coeffs[i+1];
+                delete r_hand_coeffs[i_del[0]];
+                delete l_hand_coeffs[i_del[0]];
+                for (uint32_t i = cur_image; i < im_files[0].size() - 1; i++) {
+                  r_hand_coeffs[i] = r_hand_coeffs[i+1];
+                  l_hand_coeffs[i] = l_hand_coeffs[i+1];
+                }
+                for (uint32_t k = 0; k < MAX_KINECTS; k++) {
+                  SAFE_DELETE(im_files[k][i_del[k]].first); 
+                  im_files[k].deleteAtAndShift(i_del[k]);
+                }
+                loadCurrentImage();
+                InitXYZPointsForRendering();
               }
-              SAFE_DELETE(im_files[0][cur_image].first); 
-              im_files[0].deleteAtAndShift((uint32_t)cur_image);
-              loadCurrentImage();
-              InitXYZPointsForRendering();
-            }
-            if (i == (repeat - 1)) {
-              delete_confirmed = 0;
-            }
-          } else {
-            if (i == 0) {
-              delete_confirmed++;
-              cout << "About to mark files as deleted: " << endl;
-              cout << "    - " << full_im_filename.c_str() << endl;
-              cout << "    - " << r_coeff_file.c_str() << endl;
-              cout << "    - " << l_coeff_file.c_str() << endl;
-              cout << endl;
-              cout << "Press 'd' again " << 2 - delete_confirmed;
-              cout << " times to confirm" << endl;
+              if (i == (repeat - 1)) {
+                delete_confirmed = 0;
+              }
+            } else {
+              if (i == 0) {
+                delete_confirmed++;
+                cout << "About to mark files as deleted: " << endl;
+                for (uint32_t k = 0; k < MAX_KINECTS; k++) {
+                  cout << "    - " << full_im_filename[k].c_str() << endl;
+                }
+                cout << "    - " << r_coeff_file.c_str() << endl;
+                cout << "    - " << l_coeff_file.c_str() << endl;
+                cout << endl;
+                cout << "Press 'd' again " << 2 - delete_confirmed;
+                cout << " times to confirm" << endl;
+              }
             }
           }
-        }
+        }  // // Closure
       }
 #else
       cout << "Move function not implemented for Mac OS X" << endl;

@@ -9,7 +9,7 @@
 //, *********** SETTINGS ***********
 //, APPLICATION SPECIFIC
 track_openni_skeleton,            bool,      0
-kinect_output,                    int,       1
+kinect_output,                    int,       2
 detect_hands,                     bool,      0
 detect_pose,                      bool,      0
 label_type_enum,                  int,       0
