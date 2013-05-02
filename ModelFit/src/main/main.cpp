@@ -56,7 +56,7 @@
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
 // CALIBRATION MODE ONLY SETTINGS:
-#define CALIBRATION_RUN
+//#define CALIBRATION_RUN
 #define FILTER_SIZE 60 
 #define PERFORM_ICP_FIT
 #define USE_ICP_NORMALS
@@ -870,7 +870,6 @@ void KeyboardCB(int key, int action) {
     case static_cast<int>('c'):
     case static_cast<int>('C'): 
       if (action == RELEASED) {
-#ifdef CALIBRATION_RUN
         if (cur_kinect == 0) {
           std::cout << "No calibration required for Kinect 0!" << std::endl;
           break;
@@ -961,34 +960,37 @@ void KeyboardCB(int key, int action) {
           npc2.pushBack(npc2_src[indices[i] * 3 + 2]);
         }
 
+#ifdef CALIBRATION_RUN
         // Approximate the camera by using the fitted model coeffs
         ((CalibrateGeometry*)models[0])->calcCameraView(
           camera_view[cur_kinect], 0, cur_kinect, 
           (const float***)&coeffs[0], cur_image);
+#endif
 
         // Now perform ICP for a tight fit
 #ifdef PERFORM_ICP_FIT
         icp.num_iterations = ICP_NUM_ITERATIONS;
         icp.cos_normal_threshold = ICP_COS_NORM_THRESHOLD;
         icp.min_distance_sq = ICP_MIN_DISTANCE_SQ;
-#ifdef ICP_USE_UMEYAMA
+  #ifdef ICP_USE_UMEYAMA
         icp.umeyama_on = true;
-#else
+  #else
         icp.umeyama_on = false;
-#endif
+  #endif
         std::cout << "Performing ICP on " << (pc1.size()/3) << " and ";
         std::cout << (pc2.size()/3) << " pts" << std::endl;
-#ifdef USE_ICP_NORMALS
+  #ifdef USE_ICP_NORMALS
         // Use Normals
         icp.match(camera_view[cur_kinect], &pc1[0], (pc1.size()/3), 
           &pc2[0], (pc2.size()/3), camera_view[cur_kinect], &npc1[0],
           &npc2[0]);
-#else
+  #else
         // Don't use normals
         icp.match(camera_view[cur_kinect], &pc1[0], (pc1.size()/3), 
           &pc2[0], (pc2.size()/3), camera_view[cur_kinect]);
-#endif
+  #endif
 
+  #ifdef CALIBRATION_RUN
         // Create lines geometry from the last correspondance points:
         float* pc2_transformed = icp.getLastPC2Transformed();
         int* correspondances = icp.getLastCorrespondances();
@@ -1004,6 +1006,7 @@ void KeyboardCB(int key, int action) {
           }
         }
         geometry_lines[cur_kinect-1]->syncVAO();
+  #endif
 #endif
 
         // Now save the results to file
@@ -1011,7 +1014,7 @@ void KeyboardCB(int key, int action) {
         ss << IM_DIR << "calibration_data" << cur_kinect << ".bin";
         SaveArrayToFile<float>(camera_view[cur_kinect].m, 16, ss.str());
         std::cout << "Calibration data saved to " << ss.str() << endl;
-
+#ifdef CALIBRATION_RUN
         last_icp_kinect = cur_kinect;
         cur_icp_mat = icp.getTransforms().size() - 1;
 #endif
