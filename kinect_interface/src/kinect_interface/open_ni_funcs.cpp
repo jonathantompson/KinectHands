@@ -24,8 +24,8 @@ namespace kinect_interface {
   const double OpenNIFuncs::fHFOV_kinect_ = 1.0144686707507438;
   const double OpenNIFuncs::fVFOV_kinect_ = 0.78980943449644714;
 
-  const float OpenNIFuncs::fHFOV_primesense_109 = 1.01707470885081f * 0.98f;  // openNI depth
-  const float OpenNIFuncs::fVFOV_primesense_109 = 0.791989554540429f * 0.98f;  // openNI depth
+  const float OpenNIFuncs::fHFOV_primesense_109 = 1.01707470885081f;  // openNI depth
+  const float OpenNIFuncs::fVFOV_primesense_109 = 0.791989554540429f;  // openNI depth
 
   //const float OpenNIFuncs::fHFOV_primesense_109 = 1.017314617897f;  // measured depth
   //const float OpenNIFuncs::fVFOV_primesense_109 = 0.795009466072f;  // measured depth

@@ -55,15 +55,18 @@
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
+// CALIBRATION MODE ONLY SETTINGS:
 #define CALIBRATION_RUN
-#define FILTER_SIZE 60  // Only in calibration mode
-#define PERFORM_ICP_FIT  // Only in calibration mode
-#define USE_ICP_NORMALS  // Only in calibration mode
+#define FILTER_SIZE 60 
+#define PERFORM_ICP_FIT
+#define USE_ICP_NORMALS
 #define ICP_PC_MODEL_DIST_THRESH 15  // mm
-#define ICP_NUM_ITERATIONS 60
+#define ICP_NUM_ITERATIONS 40
+#define ICP_USE_UMEYAMA
 #define ICP_COS_NORM_THRESHOLD acosf((35.0f / 360.0f) * 2.0f * (float)M_PI);
+#define ICP_MIN_DISTANCE_SQ 1.0f
 #define CALIBRATION_MAX_FILES 100
-#define MAX_ICP_PTS 15000
+#define MAX_ICP_PTS src_dim
 
 // KINECT DATA
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Fit
@@ -78,7 +81,7 @@
 // PRIMESENSE DATA
 //#define IM_DIR_BASE string("data/hand_depth_data/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit
-#define IM_DIR_BASE string("data/hand_depth_data_2013_05_02_1/")  // Cal
+#define IM_DIR_BASE string("data/hand_depth_data_2013_05_02_1/")  // 
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
 #define MAX_KINECTS 3
@@ -128,6 +131,7 @@ Float3 delta_pos;
 int mouse_x, mouse_y, mouse_x_prev, mouse_y_prev;
 bool camera_rotate = false;
 bool scale_coeff = false;
+bool middle_down = false;
 bool running = false;
 bool shift_down = false;
 
@@ -489,13 +493,19 @@ void MouseButtonCB(int button, int action) {
     if (action == RELEASED) {
       camera_rotate = false;
     }
-  }
-  else if (button == MOUSE_BUTTON_RIGHT) {
+  } else if (button == MOUSE_BUTTON_RIGHT) {
     if (action == PRESSED) {
       scale_coeff = true;
     }
     if (action == RELEASED) {
       scale_coeff = false;
+    }
+  } else if (button == MOUSE_BUTTON_MIDDLE) {
+    if (action == PRESSED) {
+      middle_down = true;
+    }
+    if (action == RELEASED) {
+      middle_down = false;
     }
   }
 }
@@ -554,6 +564,19 @@ void MousePosCB(int x, int y) {
     cout << "cur_coeff " << kinect_interface::hand_net::HandCoeffToString(cur_coeff);
     cout << " --> " << coeff_val - theta_y << endl;
 #endif
+  }
+  if (middle_down) {
+    int dy = mouse_y - mouse_y_prev;
+    float theta_y = dy * mouse_speed_rotation;
+    Float3 trans(0, 0, 0);
+    trans[cur_coeff % 3] -= theta_y;
+    camera_view[cur_kinect].leftMultTranslation(trans);
+
+    // Now save the results to file
+    std::stringstream ss;
+    ss << IM_DIR << "calibration_data" << cur_kinect << ".bin";
+    SaveArrayToFile<float>(camera_view[cur_kinect].m, 16, ss.str());
+    std::cout << "Calibration data saved to " << ss.str() << endl;
   }
 }
 
@@ -857,6 +880,7 @@ void KeyboardCB(int key, int action) {
         SaveArrayToFile<float>(camera_view[0].m, 16, cal_filename);
         std::cout << "Calibration data saved to " << cal_filename << endl;
 
+#ifndef ICP_USE_UMEYAMA
         // Collect the points that are just near the fitted model
         Vector<float> pc1_src, pc2_src, npc1_src, npc2_src;
         CalibrateGeometry* cal_model = (CalibrateGeometry*)models[0];
@@ -865,6 +889,29 @@ void KeyboardCB(int key, int action) {
         cal_model->findPointsCloseToModel(pc2_src, npc2_src, 
           cur_xyz_data[cur_kinect], cur_norm_data[cur_kinect],
           coeffs[cur_kinect][cur_image], ICP_PC_MODEL_DIST_THRESH);
+#else
+        Vector<float> pc1_src, pc2_src, npc1_src, npc2_src;
+        for (uint32_t i = 0; i < src_dim; i++) {
+          if (cur_xyz_data[0][i * 3 + 2] < GDT_MAX_DIST &&
+            cur_xyz_data[0][i * 3 + 2] > 0) {
+            pc1_src.pushBack(cur_xyz_data[0][i * 3]);
+            pc1_src.pushBack(cur_xyz_data[0][i * 3 + 1]);
+            pc1_src.pushBack(cur_xyz_data[0][i * 3 + 2]);
+            npc1_src.pushBack(cur_norm_data[0][i * 3]);
+            npc1_src.pushBack(cur_norm_data[0][i * 3 + 1]);
+            npc1_src.pushBack(cur_norm_data[0][i * 3 + 2]);
+          }
+          if (cur_xyz_data[cur_kinect][i * 3 + 2] < GDT_MAX_DIST &&
+            cur_xyz_data[cur_kinect][i * 3 + 2] > 0) {
+            pc2_src.pushBack(cur_xyz_data[cur_kinect][i * 3]);
+            pc2_src.pushBack(cur_xyz_data[cur_kinect][i * 3 + 1]);
+            pc2_src.pushBack(cur_xyz_data[cur_kinect][i * 3 + 2]);
+            npc2_src.pushBack(cur_norm_data[cur_kinect][i * 3]);
+            npc2_src.pushBack(cur_norm_data[cur_kinect][i * 3 + 1]);
+            npc2_src.pushBack(cur_norm_data[cur_kinect][i * 3 + 2]);
+          }
+        }
+#endif
 
         // Randomly permute the point clouds to find a subset
         Vector<float> pc1, npc1;
@@ -923,6 +970,12 @@ void KeyboardCB(int key, int action) {
 #ifdef PERFORM_ICP_FIT
         icp.num_iterations = ICP_NUM_ITERATIONS;
         icp.cos_normal_threshold = ICP_COS_NORM_THRESHOLD;
+        icp.min_distance_sq = ICP_MIN_DISTANCE_SQ;
+#ifdef ICP_USE_UMEYAMA
+        icp.umeyama_on = true;
+#else
+        icp.umeyama_on = false;
+#endif
         std::cout << "Performing ICP on " << (pc1.size()/3) << " and ";
         std::cout << (pc2.size()/3) << " pts" << std::endl;
 #ifdef USE_ICP_NORMALS
