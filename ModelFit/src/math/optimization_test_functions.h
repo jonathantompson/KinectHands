@@ -58,6 +58,11 @@ namespace math {
   float hw7_4b(const float* coeff);
   void hw7_4b_jacob(float* jacob, const float* coeff);
 
+  extern double dc_0_hw7_4b[NUM_COEFFS_HW7_4B];
+  extern double dc_answer_hw7_4b[NUM_COEFFS_HW7_4B];
+  double dhw7_4b(const double* coeff);
+  void dhw7_4b_jacob(double* jacob, const double* coeff);
+
 }  // namespace math
 }  // namespace jtil
 

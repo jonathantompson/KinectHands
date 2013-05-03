@@ -168,7 +168,7 @@ namespace kinect_interface {
   void DepthImagesIO::LoadDepthImagesFromDirectoryForDT(const string& directory, 
     DepthImageData*& train_data, DepthImageData*& test_data,
     const float frac_test_data, const uint32_t file_stride) {
-    Vector<Pair<char*, int64_t>> files_in_directory;
+    Vector<Triple<char*, int64_t, int64_t>> files_in_directory;
     uint32_t num_files = GetFilesInDirectory(files_in_directory, directory, 0,
       "processed_hands");
     if (num_files == 0) {
@@ -528,9 +528,9 @@ namespace kinect_interface {
   }
 
   uint32_t DepthImagesIO::GetFilesInDirectory(
-    jtil::data_str::Vector<Pair<char*, int64_t>>& files_in_directory, 
+    jtil::data_str::Vector<Triple<char*, int64_t, int64_t>>& files_in_directory, 
     const string& directory, const uint32_t kinect_num, const char* prefix) {
-    std::vector<Pair<char*, int64_t>> files;
+    std::vector<Triple<char*, int64_t, int64_t>> files;
 #if defined(WIN32) || defined(_WIN32)
     // Prepare string for use with FindFile functions.  First, copy the
     // string to a buffer, then append '\*' to the directory name.
@@ -562,7 +562,7 @@ namespace kinect_interface {
           jtil::string_util::ToNarrowString(std::wstring(ffd.cFileName));
         char* name = new char[cur_filename.length() + 1];
         strcpy(name, cur_filename.c_str());
-        files.push_back(Pair<char*, int64_t>(name, -1));
+        files.push_back(Triple<char*, int64_t, int64_t>(name, -1, -1));
       }
     } while (FindNextFile(hFind, &ffd) != 0);
     FindClose(hFind);
@@ -611,7 +611,7 @@ namespace kinect_interface {
     for (uint32_t i = 0; i < files.size(); i++) {
       std::string str = files.at(i).first;
       size_t i0 = str.find_first_of("0123456789");  // Kinect number
-      size_t i1 = str.find_first_of("0123456789", i0+1);  // Frame number
+      size_t i1 = str.find_first_of("0123456789", i0+1);  // Frame time
       if (i1 == string::npos) {
         throw std::wruntime_error("DepthImagesIO::GetFilesInDirectory() - "
           "ERROR: Couldn't parse filename!");
@@ -621,16 +621,27 @@ namespace kinect_interface {
         throw std::wruntime_error("DepthImagesIO::GetFilesInDirectory() - "
           "ERROR: Couldn't parse filename!");
       }
+      // Later formats also include a global frame time...  Look for it
+      size_t i3 = str.find_first_of("0123456789", i2+1);  // Global frame time
+      size_t i4 = (uint32_t)str.find_first_not_of("0123456789", i3);
       std::string num_str = str.substr(i1, i2-i1);
+      std::string global_num_str;
+      if (i3 != string::npos) {
+        global_num_str = str.substr(i3, i4-i3);
+      } else {
+        global_num_str = num_str;
+      }
       int64_t num = jtil::string_util::Str2Num<int64_t>(num_str);  // Potentially slow
+      int64_t global_num = jtil::string_util::Str2Num<int64_t>(global_num_str);  // Potentially slow
       files.at(i).second = num;
+      files.at(i).third = global_num;
     }
 
     // Now sort the files by their unique id
     // Third argument is an inline lambda expression (comparison function)
     std::cout << "sorting image filenames by timestamp..." << std::endl;
-    std::sort(files.begin(), files.end(), [](Pair<char*, int64_t>& a,
-      Pair<char*, int64_t>& b) { return b.second >= a.second; });
+    std::sort(files.begin(), files.end(), [](Triple<char*, int64_t, int64_t>& a,
+      Triple<char*, int64_t, int64_t>& b) { return b.second >= a.second; });
 
     // Now copy them into the output array
     files_in_directory.capacity((uint32_t)files.size());

@@ -288,7 +288,6 @@ namespace model_fit {
 #endif
   }
 
-
   // modulu - similar to matlab's mod()
   // result is always possitive. not similar to fmod()
   // Mod(-3,4)= 1   fmod(-3,4)= -3
@@ -429,91 +428,92 @@ namespace model_fit {
     }
   }
 
-  void CalibrateGeometry::calcAveCameraView(jtil::math::Float4x4& ret, 
-    const uint32_t i_base_cam, const uint32_t i_query_cam, 
-    const float*** coeffs, const uint32_t num_frames) {
-    std::cout << "calculating ave camera view" << std::endl;
-    // Following Murphy's suggestion.  We're going to use BFGS and solve the
-    // average transformation in a least sqs sense, that is we want to minimize
-    // sum_f=1:n ( sum_i=1,2,3 (||A vb_i,f - vq_i,f||_2) )
-    // - A is the affine transformation that goes from base coord to query
-    // - vq_i,f is one of the 3 correspondance points in query's coord frame
-    // - vb_i,f is the same correspondance point in base's coord frame
-    solver_ = new BFGS(CalibrateCoeff::NUM_PARAMETERS);
-    solver_->verbose = true;
-    solver_->eta_s = 1e-8;  // Aggressive sufficient descent condition
-    num_frames_ = num_frames;
-    for (uint32_t i = 0; i < 3; i++) {
-      vq_[i] = new Float3[num_frames_];
-      vb_[i] = new Float3[num_frames_];
-    }
+  //void CalibrateGeometry::calcAveCameraView(jtil::math::Float4x4& ret, 
+  //  const uint32_t i_base_cam, const uint32_t i_query_cam, 
+  //  const float*** coeffs, const uint32_t num_frames) {
+  //  std::cout << "calculating ave camera view" << std::endl;
+  //  // Following Murphy's suggestion.  We're going to use BFGS and solve the
+  //  // average transformation in a least sqs sense, that is we want to minimize
+  //  // sum_f=1:n ( sum_i=1,2,3 (||A vb_i,f - vq_i,f||_2) )
+  //  // - A is the affine transformation that goes from base coord to query
+  //  // - vq_i,f is one of the 3 correspondance points in query's coord frame
+  //  // - vb_i,f is the same correspondance point in base's coord frame
+  //  solver_ = new BFGS(CalibrateCoeff::NUM_PARAMETERS);
+  //  solver_->verbose = true;
+  //  solver_->eta_s = 1e-8;  // Aggressive sufficient descent condition
+  //  num_frames_ = num_frames;
+  //  for (uint32_t i = 0; i < 3; i++) {
+  //    vq_[i] = new Float3[num_frames_];
+  //    vb_[i] = new Float3[num_frames_];
+  //  }
 
-    // Calculate vq and vb for each camera
-    Float4x4 model_base;
-    Float4x4 model_query;
-    for (uint32_t f = 0; f < num_frames_; f++) {
-      coeff2Mat(model_base, coeffs[i_base_cam][f]);
-      coeff2Mat(model_query, coeffs[i_query_cam][f]);
-      for (uint32_t i = 0; i < 3; i++) {
-        Float3::affineTransformPos(vb_[i][f], model_base, vmodel_[i]);
-        Float3::affineTransformPos(vq_[i][f], model_query, vmodel_[i]);
-      }
-    }
-    
-    // Approximate a starting matrix by using the 0th frame's data
-    float c0_base[NUM_PARAMETERS];
-    float c0_query[NUM_PARAMETERS];
-    memcpy(c0_base, coeffs[i_base_cam][0], sizeof(c0_base[0])*NUM_PARAMETERS);
-    memcpy(c0_query, coeffs[i_query_cam][0], sizeof(c0_base[0])*NUM_PARAMETERS);
-    coeff2Mat(model_base, c0_base);
-    coeff2Mat(model_query, c0_query);
-    Float4x4 model_query_inv, mat0;
-    Float4x4::inverse(model_query_inv, model_query);
-    Float4x4::mult(mat0, model_base, model_query_inv);
+  //  // Calculate vq and vb for each camera
+  //  Float4x4 model_base;
+  //  Float4x4 model_query;
+  //  for (uint32_t f = 0; f < num_frames_; f++) {
+  //    coeff2Mat(model_base, coeffs[i_base_cam][f]);
+  //    coeff2Mat(model_query, coeffs[i_query_cam][f]);
+  //    for (uint32_t i = 0; i < 3; i++) {
+  //      Float3::affineTransformPos(vb_[i][f], model_base, vmodel_[i]);
+  //      Float3::affineTransformPos(vq_[i][f], model_query, vmodel_[i]);
+  //    }
+  //  }
+  //  
+  //  // Approximate a starting matrix by using the 0th frame's data
+  //  float c0_base[NUM_PARAMETERS];
+  //  float c0_query[NUM_PARAMETERS];
+  //  memcpy(c0_base, coeffs[i_base_cam][0], sizeof(c0_base[0])*NUM_PARAMETERS);
+  //  memcpy(c0_query, coeffs[i_query_cam][0], sizeof(c0_base[0])*NUM_PARAMETERS);
+  //  coeff2Mat(model_base, c0_base);
+  //  coeff2Mat(model_query, c0_query);
+  //  Float4x4 model_query_inv, mat0;
+  //  Float4x4::inverse(model_query_inv, model_query);
+  //  Float4x4::mult(mat0, model_base, model_query_inv);
 
-    // MAT0 is just rotations and translations --> easy to decompose (and is
-    // pretty close to the answer we want):
-    float c0[NUM_PARAMETERS];
-    Float4x4 rot0;
-    Float3 trans0, euler0;
-    Float4x4::getTranslation(trans0, mat0);
-    // Float4x4::extractRotation(rot0, mat0);  // Actually does polar decomp
-    Float4x4::rotMat2Euler(euler0[0], euler0[1], euler0[2], mat0);
-    c0[CALIB_POS_X] = trans0[0] / 1000.0f;
-    c0[CALIB_POS_Y] = trans0[1] / 1000.0f;
-    c0[CALIB_POS_Z] = trans0[2] / 1000.0f;
-    c0[CALIB_ORIENT_X] = euler0[0];
-    c0[CALIB_ORIENT_Y] = euler0[1];
-    c0[CALIB_ORIENT_Z] = euler0[2];
+  //  // MAT0 is just rotations and translations --> easy to decompose (and is
+  //  // pretty close to the answer we want):
+  //  float c0[NUM_PARAMETERS];
+  //  Float4x4 rot0;
+  //  Float3 trans0, euler0;
+  //  Float4x4::getTranslation(trans0, mat0);
+  //  // Float4x4::extractRotation(rot0, mat0);  // Actually does polar decomp
+  //  Float4x4::rotMat2Euler(euler0[0], euler0[1], euler0[2], mat0);
+  //  c0[CALIB_POS_X] = trans0[0] / 1000.0f;
+  //  c0[CALIB_POS_Y] = trans0[1] / 1000.0f;
+  //  c0[CALIB_POS_Z] = trans0[2] / 1000.0f;
+  //  c0[CALIB_ORIENT_X] = euler0[0];
+  //  c0[CALIB_ORIENT_Y] = euler0[1];
+  //  c0[CALIB_ORIENT_Z] = euler0[2];
 
-    std::cout << "Starting obj func value = " << calcAveCameraViewObjFunc(c0);
-    std::cout << std::endl;
+  //  std::cout << "Starting obj func value = " << calcAveCameraViewObjFunc(c0);
+  //  std::cout << std::endl;
 
-    float J0[NUM_PARAMETERS];
-    calcAveCameraViewJacobFunc(J0, c0);
-    std::cout << "Starting jacobian value = ";
-    for (uint32_t i = 0; i < NUM_PARAMETERS; i++) {
-      std::cout << J0[i] << " ";
-    }
-    std::cout << std::endl;
+  //  float J0[NUM_PARAMETERS];
+  //  calcAveCameraViewJacobFunc(J0, c0);
+  //  std::cout << "Starting jacobian value = ";
+  //  for (uint32_t i = 0; i < NUM_PARAMETERS; i++) {
+  //    std::cout << J0[i] << " ";
+  //  }
+  //  std::cout << std::endl;
 
-    float cfit[NUM_PARAMETERS];
-    solver_->minimize(cfit, c0, angle_coeffs_, calcAveCameraViewObjFunc,
-      calcAveCameraViewJacobFunc, renormalizeCoeffs);
+  //  float cfit[NUM_PARAMETERS];
+  //  solver_->minimize(cfit, c0, angle_coeffs_, calcAveCameraViewObjFunc,
+  //    calcAveCameraViewJacobFunc, renormalizeCoeffs);
 
-    coeffMeters2Mat(ret, cfit);
+  //  coeffMeters2Mat(ret, cfit);
 
-    // Clean up
-    SAFE_DELETE(solver_);
-    for (uint32_t i = 0; i < 3; i++) {
-      SAFE_DELETE_ARR(vq_[i]);
-      SAFE_DELETE_ARR(vb_[i]);
-    }
-  }
+  //  // Clean up
+  //  SAFE_DELETE(solver_);
+  //  for (uint32_t i = 0; i < 3; i++) {
+  //    SAFE_DELETE_ARR(vq_[i]);
+  //    SAFE_DELETE_ARR(vb_[i]);
+  //  }
+  //}
 
-  void CalibrateGeometry::calcCameraView(jtil::math::Float4x4& ret, 
-    const uint32_t i_base_cam, const uint32_t i_query_cam, 
-    const float*** coeffs, const uint32_t cur_frame) {
+  void CalibrateGeometry::calcCameraView(const jtil::math::Float4x4& mat_base,
+    jtil::math::Float4x4& mat_src, const uint32_t i_base_cam,
+    const uint32_t i_query_cam, const float*** coeffs, 
+    const uint32_t cur_frame) {
     std::cout << "calculating ave camera view" << std::endl;
 
     // Approximate a starting matrix by using the 0th frame's data
@@ -529,7 +529,9 @@ namespace model_fit {
     coeff2Mat(model_query, c0_query);
     Float4x4 model_query_inv;
     Float4x4::inverse(model_query_inv, model_query);
-    Float4x4::mult(ret, model_base, model_query_inv);
+    Float4x4 model_query_to_base;
+    Float4x4::mult(model_query_to_base, model_base, model_query_inv);
+    Float4x4::mult(mat_src, mat_base, model_query_to_base);
   }
 
   void CalibrateGeometry::findPointsCloseToModel(Vector<float>& vert_ret, 

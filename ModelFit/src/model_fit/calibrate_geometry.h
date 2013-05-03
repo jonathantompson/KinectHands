@@ -84,14 +84,15 @@ namespace model_fit {
 
     // From the fitted coeffs, find an "average" affine transformation that
     // describes i_query_cam in i_base_cam's coordinate system.
-    void calcAveCameraView(jtil::math::Float4x4& ret, 
-      const uint32_t i_base_cam, const uint32_t i_query_cam, 
-      const float*** coeffs, const uint32_t num_frames);
+    //void calcAveCameraView(jtil::math::Float4x4& ret, 
+    //  const uint32_t i_base_cam, const uint32_t i_query_cam, 
+    //  const float*** coeffs, const uint32_t num_frames);
     // The next version is simper than above and just finds the current frame
     // camera
-    void calcCameraView(jtil::math::Float4x4& ret, 
-      const uint32_t i_base_cam, const uint32_t i_query_cam, 
-      const float*** coeffs, const uint32_t cur_frame);
+    void calcCameraView(const jtil::math::Float4x4& mat_base,
+      jtil::math::Float4x4& mat_src, const uint32_t i_base_cam,
+      const uint32_t i_query_cam, const float*** coeffs, 
+      const uint32_t cur_frame);
 
     virtual void renderStackReset();
     virtual renderer::Geometry* renderStackPop();

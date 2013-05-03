@@ -539,7 +539,11 @@ namespace model_fit {
       (1.0f - (2.0f*o_s_intersect_r_s / (o_s_intersect_r_s + o_s_union_r_s)));
 #endif
 
+#ifdef EQUAL_CAMERA_IMPORTANCE
+    return data_term;
+#else
     return data_term / (i_camera + 1);
+#endif
   }
 
   void ModelRenderer::calculateResidualDataTermTiled(Vector<float>& residues, 
@@ -618,7 +622,11 @@ namespace model_fit {
           float data_term = lambda * (depth_integral / (o_s_union_r_s + EPSILON)) +
             (1.0f - (2.0f*o_s_intersect_r_s / (o_s_intersect_r_s + o_s_union_r_s)));
 #endif
+#ifdef EQUAL_CAMERA_IMPORTANCE
+          residues[tile_v*NTILES_X + tile_u] += data_term;
+#else
           residues[tile_v*NTILES_X + tile_u] += data_term / (i_camera + 1);
+#endif
         }
       }
     }

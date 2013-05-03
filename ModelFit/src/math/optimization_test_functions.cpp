@@ -27,6 +27,9 @@ namespace math {
   float c_answer_hw7_4b[NUM_COEFFS_HW7_4B] = {-1, -1, -0.1f , -0.01f};
   float c_0_hw7_4b[NUM_COEFFS_HW7_4B] = {-1.02f, -1.02f, -0.122f, -0.102f};
 
+  double dc_answer_hw7_4b[NUM_COEFFS_HW7_4B] = {-1, -1, -0.1 , -0.01};
+  double dc_0_hw7_4b[NUM_COEFFS_HW7_4B] = {-1.02, -1.02, -0.122, -0.102};
+
   // From: http://www.it.lut.fi/ip/evo/functions/node5.html
   // Unique min at [1, 1, ...., 1]
   float extendedRosenbrock(const float* coeff) {
@@ -122,6 +125,18 @@ namespace math {
     jacob[1] = coeff[1] + 1.0f;
     jacob[2] = 10.0f*coeff[2] + 1.0f;
     jacob[3] = 100.0f*coeff[3] + 1.0f;
+  }
+
+  double dhw7_4b(const double* coeff) {
+    return coeff[0] + coeff[1] + coeff[2] + coeff[3] + 0.5*(coeff[0]*coeff[0] +
+      coeff[1]*coeff[1] + 10.0*coeff[2]*coeff[2] + 100.0*coeff[3]*coeff[3]);
+  }
+  
+  void dhw7_4b_jacob(double* jacob, const double* coeff) {
+    jacob[0] = coeff[0] + 1.0;
+    jacob[1] = coeff[1] + 1.0;
+    jacob[2] = 10.0*coeff[2] + 1.0;
+    jacob[3] = 100.0*coeff[3] + 1.0;
   }
 }  // namespace math
 }  // namespace jtil

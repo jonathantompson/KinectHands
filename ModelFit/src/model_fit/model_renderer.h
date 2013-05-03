@@ -19,6 +19,7 @@
 #include "jtil/data_str/vector.h"
 
 #define DEPTH_ONLY_RESIDUE_FUNC  // Faster but less accurate
+#define EQUAL_CAMERA_IMPORTANCE  // Otherwise Residual = d / (i_cam + 1)
 #ifdef DEPTH_ONLY_RESIDUE_FUNC
   #define RESIDUE_INT_FORMAT GL_R32F
   #define RESIDUE_FORMAT GL_RED

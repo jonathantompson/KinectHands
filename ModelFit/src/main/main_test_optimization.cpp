@@ -140,14 +140,35 @@ int main(int argc, char *argv[]) {
     std::cout << ret_coeffs_bfgs2[i] << " ";
   }
   cout << "  --> with func value = ";
-  cout << hw7_4a(ret_coeffs_bfgs2) << endl;
+  cout << hw7_4b(ret_coeffs_bfgs2) << endl;
   
   cout << endl << "Expecting:" << endl;
   for (uint32_t i = 0; i < NUM_COEFFS_HW7_4B; i++) {
     std::cout << c_answer_hw7_4b[i] << " ";
   }
   cout << "  --> with func value = ";
-  cout << hw7_4a(c_answer_hw7_4b) << endl << endl;
+  cout << hw7_4b(c_answer_hw7_4b) << endl << endl;
+
+  // Now try with doubles
+  double dret_coeffs_bfgs2[NUM_COEFFS_HW7_4B];
+  
+  solver_bfgs2->minimize(dret_coeffs_bfgs2, dc_0_hw7_4b, NULL, dhw7_4b, 
+    dhw7_4b_jacob, NULL);
+  
+  cout << endl << "Final coeff values:" << endl;
+  for (uint32_t i = 0; i < NUM_COEFFS_HW7_4B; i++) {
+    std::cout << dret_coeffs_bfgs2[i] << " ";
+  }
+  cout << "  --> with func value = ";
+  cout << dhw7_4b(dret_coeffs_bfgs2) << endl;
+  
+  cout << endl << "Expecting:" << endl;
+  for (uint32_t i = 0; i < NUM_COEFFS_HW7_4B; i++) {
+    std::cout << dc_answer_hw7_4b[i] << " ";
+  }
+  cout << "  --> with func value = ";
+  cout << dhw7_4b(dc_answer_hw7_4b) << endl << endl;
+
   delete solver_bfgs2;
 
   #if defined(WIN32) || defined(_WIN32)

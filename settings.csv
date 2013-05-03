@@ -9,7 +9,7 @@
 //, *********** SETTINGS ***********
 //, APPLICATION SPECIFIC
 track_openni_skeleton,            bool,      0
-kinect_output,                    int,       2
+kinect_output,                    int,       1
 detect_hands,                     bool,      0
 detect_pose,                      bool,      0
 label_type_enum,                  int,       0
@@ -103,7 +103,7 @@ visualize_normals_length,         float,     0.25
 //, CAMERA
 //, Note camera near and far view planes are just Min and Max.  
 //, Frustum will be fitted to world objects and light volumes at runtime.
-fov_deg,                          float,     44
+fov_deg,                          float,     45
 view_plane_near,                  float,     -10.0
 view_plane_far,                   float,     -5000.0
 starting_eye_rot,                 FloatQuat, 0.0, 0.0, 0.0, -1.0

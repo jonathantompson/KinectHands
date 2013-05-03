@@ -150,10 +150,13 @@ namespace app {
     } else {
       std::stringstream ss;
       int64_t time_ns = (int64_t)(depth_frame_time * 1.0e9);
+      int64_t app_time_ns = (int64_t)(time_sec * 1.0e9);
       if (calibration) {
-        ss << "calb" << kinect_index << "_" << time_ns << ".bin"; 
+        ss << "calb" << kinect_index << "_" << time_ns << "_" << app_time_ns 
+          << ".bin"; 
       } else {
-        ss << "hands" << kinect_index << "_" << time_ns << ".bin";
+        ss << "hands" << kinect_index << "_" << time_ns << "_" << app_time_ns
+          << ".bin";
       }
 
       // Flag the user pixels (which for now are just pixels less than some 

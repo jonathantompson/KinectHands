@@ -13,6 +13,7 @@
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector.h"
 #include "jtil/data_str/pair.h"
+#include "jtil/data_str/triple.h"
 #include "kinect_interface/depth_image_data.h"
 
 #define src_width 640
@@ -54,7 +55,7 @@ namespace kinect_interface {
     // - load_processed_images = true --> hands_*.bin
     // - load_processed_images = false --> processed_hands_*.bin
     uint32_t GetFilesInDirectory(
-      jtil::data_str::Vector<jtil::data_str::Pair<char*, int64_t>>& files_names, 
+      jtil::data_str::Vector<jtil::data_str::Triple<char*, int64_t, int64_t>>& files_names, 
       const std::string& directory, const uint32_t kinect_num, 
       const char* prefix = NULL);
 

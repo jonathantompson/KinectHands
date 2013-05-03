@@ -58,15 +58,18 @@
 // CALIBRATION MODE ONLY SETTINGS:
 //#define CALIBRATION_RUN
 #define FILTER_SIZE 60 
+#define CALIBRATION_MAX_FILES 100
+#define ICP_PC_MODEL_DIST_THRESH 15  // mm
+#define ICP_USE_POINTS_NEAR_MODEL true
+
 #define PERFORM_ICP_FIT
 #define USE_ICP_NORMALS
-#define ICP_PC_MODEL_DIST_THRESH 15  // mm
-#define ICP_NUM_ITERATIONS 40
-#define ICP_USE_UMEYAMA
+#define ICP_NUM_ITERATIONS 15
+#define ICP_METHOD ICPMethod::BFGS_ICP
 #define ICP_COS_NORM_THRESHOLD acosf((35.0f / 360.0f) * 2.0f * (float)M_PI);
 #define ICP_MIN_DISTANCE_SQ 1.0f
-#define CALIBRATION_MAX_FILES 100
-#define MAX_ICP_PTS src_dim
+#define ICP_MAX_DISTANCE_SQ 1600.0f  // 4cm ^ 2 = 40mm ^ 2
+#define MAX_ICP_PTS 30000
 
 // KINECT DATA
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Fit
@@ -81,8 +84,7 @@
 // PRIMESENSE DATA
 //#define IM_DIR_BASE string("data/hand_depth_data/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit
-#define IM_DIR_BASE string("data/hand_depth_data_2013_05_02_1/")  // Cal
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_02_2/")
+#define IM_DIR_BASE string("data/hand_depth_data_2013_05_03_1/")
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
 #define MAX_KINECTS 3
@@ -140,6 +142,10 @@ bool shift_down = false;
 Float4x4 camera_view[MAX_KINECTS];
 PoseModel** models;
 int cur_kinect = 0;
+int cur_icp_dst_kinect = 0;
+uint32_t cur_icp_mat = 0;
+int32_t last_icp_kinect = -1;
+bool render_correspondances = true;
 #if defined(CALIBRATION_RUN)
   CalibrateGeometryType cal_type = CalibrateGeometryType::ICOSAHEDRON; 
   const float max_icp_dist = GDT_MAX_DIST;
@@ -151,9 +157,6 @@ int cur_kinect = 0;
   int16_t** depth_database[MAX_KINECTS] = {NULL, NULL};  // depth[kinect][frame][pix]
   uint8_t** rgb_database[MAX_KINECTS] = {NULL, NULL};
   uint8_t** label_database[MAX_KINECTS] = {NULL, NULL};
-  uint32_t cur_icp_mat = 0;
-  int32_t last_icp_kinect = -1;
-  bool render_correspondances = true;
   uint32_t num_model_fit_cameras = 1;
 #else
   HandModelCoeff** l_hand_coeffs = NULL;  // Left Hand coefficients
@@ -175,7 +178,7 @@ float** prev_coeff = NULL;
 
 // Kinect Image data 
 DepthImagesIO* image_io = NULL;
-Vector<Pair<char*, int64_t>> im_files[MAX_KINECTS];  
+Vector<Triple<char*, int64_t, int64_t>> im_files[MAX_KINECTS];  // filename, kinect time, global time
 float cur_xyz_data[MAX_KINECTS][src_dim*3];
 float cur_norm_data[MAX_KINECTS][src_dim*3];
 float cur_uvd_data[MAX_KINECTS][src_dim*3];
@@ -280,11 +283,8 @@ uint32_t findClosestFrame(const uint32_t i_kinect) {
     return cur_image;
   }
   int64_t src_timestamp = im_files[0][cur_image].second;
-  const int64_t search_win_radius = 30;
-  int32_t i_start = std::max<int32_t>((int32_t)cur_image - search_win_radius, 0);
-  int32_t i_end = std::min<int32_t>((int32_t)cur_image + search_win_radius, 
-    (int32_t)im_files[i_kinect].size());
-
+  int32_t i_start = 0;
+  int32_t i_end = (int32_t)im_files[i_kinect].size();
   int32_t frame = i_start;
   int64_t min_delta_t = std::abs(src_timestamp - im_files[i_kinect][frame].second);
   for (int32_t i = i_start + 1; i <= i_end; i++) {
@@ -371,10 +371,6 @@ void loadCurrentImage(bool print_to_screen = true) {
       openni_funcs.convertDepthToWorldCoordinates(cur_uvd_data[k], cur_xyz_data[k], 
         src_dim);
 #endif
-#ifdef CALIBRATION_RUN
-      CalcNormalImage(cur_norm_data[k], cur_xyz_data[k], src_width, src_height,
-        50, SimpleNormalApproximation);
-#endif
   }
 #else
   image_io->LoadCompressedImage(full_filename, 
@@ -389,8 +385,6 @@ void loadCurrentImage(bool print_to_screen = true) {
   openni_funcs.convertDepthToWorldCoordinates(cur_uvd_data[0], cur_xyz_data[0], 
     src_dim);
 #endif
-  CalcNormalImage(cur_norm_data[0], cur_xyz_data[0], src_width, src_height,
-    50, SimpleNormalApproximation);
 
   // Now load the other Kinect data
   for (uint32_t k = 1; k < MAX_KINECTS; k++) {
@@ -418,8 +412,6 @@ void loadCurrentImage(bool print_to_screen = true) {
       openni_funcs.convertDepthToWorldCoordinates(cur_uvd_data[k], cur_xyz_data[k], 
         src_dim);
 #endif
-      CalcNormalImage(cur_norm_data[k], cur_xyz_data[k], src_width, src_height,
-        50, SimpleNormalApproximation);
     }
   }
 #endif
@@ -875,47 +867,85 @@ void KeyboardCB(int key, int action) {
     case static_cast<int>('c'):
     case static_cast<int>('C'): 
       if (action == RELEASED) {
-        if (cur_kinect == 0) {
-          std::cout << "No calibration required for Kinect 0!" << std::endl;
+        if (cur_kinect == cur_icp_dst_kinect) {
+          std::cout << "Source and destination kinects are the same!" << std::endl;
           break;
         }
-        camera_view[0].identity();
-        string cal_filename = IM_DIR + string("calibration_data0.bin");
-        SaveArrayToFile<float>(camera_view[0].m, 16, cal_filename);
-        std::cout << "Calibration data saved to " << cal_filename << endl;
+        uint32_t k_dst = cur_icp_dst_kinect;  // This point cloud wont move
+        uint32_t k_src = cur_kinect;  // 
+        CalcNormalImage(cur_norm_data[k_src], cur_xyz_data[k_src], src_width, 
+          src_height, 50, SimpleNormalApproximation);
+        CalcNormalImage(cur_norm_data[k_dst], cur_xyz_data[k_dst], src_width, 
+          src_height, 50, SimpleNormalApproximation);
 
-#ifndef ICP_USE_UMEYAMA
-        // Collect the points that are just near the fitted model
+        // Since k_dst wont move, we can save it's data to file.
+        std::stringstream ss;
+        ss << IM_DIR << "calibration_data" << k_dst << ".bin";
+        SaveArrayToFile<float>(camera_view[k_dst].m, 16, ss.str());
+        std::cout << "Calibration data saved to " << ss.str() << endl;
+
         Vector<float> pc1_src, pc2_src, npc1_src, npc2_src;
-        CalibrateGeometry* cal_model = (CalibrateGeometry*)models[0];
-        cal_model->findPointsCloseToModel(pc1_src, npc1_src, cur_xyz_data[0], 
-          cur_norm_data[0], coeffs[0][cur_image], ICP_PC_MODEL_DIST_THRESH);
-        cal_model->findPointsCloseToModel(pc2_src, npc2_src, 
-          cur_xyz_data[cur_kinect], cur_norm_data[cur_kinect],
-          coeffs[cur_kinect][cur_image], ICP_PC_MODEL_DIST_THRESH);
+#ifdef CALIBRATION_RUN
+        bool use_points_near_model = ICP_USE_POINTS_NEAR_MODEL;
 #else
-        Vector<float> pc1_src, pc2_src, npc1_src, npc2_src;
-        for (uint32_t i = 0; i < src_dim; i++) {
-          if (cur_xyz_data[0][i * 3 + 2] < GDT_MAX_DIST &&
-            cur_xyz_data[0][i * 3 + 2] > 0) {
-            pc1_src.pushBack(cur_xyz_data[0][i * 3]);
-            pc1_src.pushBack(cur_xyz_data[0][i * 3 + 1]);
-            pc1_src.pushBack(cur_xyz_data[0][i * 3 + 2]);
-            npc1_src.pushBack(cur_norm_data[0][i * 3]);
-            npc1_src.pushBack(cur_norm_data[0][i * 3 + 1]);
-            npc1_src.pushBack(cur_norm_data[0][i * 3 + 2]);
-          }
-          if (cur_xyz_data[cur_kinect][i * 3 + 2] < GDT_MAX_DIST &&
-            cur_xyz_data[cur_kinect][i * 3 + 2] > 0) {
-            pc2_src.pushBack(cur_xyz_data[cur_kinect][i * 3]);
-            pc2_src.pushBack(cur_xyz_data[cur_kinect][i * 3 + 1]);
-            pc2_src.pushBack(cur_xyz_data[cur_kinect][i * 3 + 2]);
-            npc2_src.pushBack(cur_norm_data[cur_kinect][i * 3]);
-            npc2_src.pushBack(cur_norm_data[cur_kinect][i * 3 + 1]);
-            npc2_src.pushBack(cur_norm_data[cur_kinect][i * 3 + 2]);
+        bool use_points_near_model = false;
+#endif
+        if (use_points_near_model) {
+#ifdef CALIBRATION_RUN
+          // Collect the points that are just near the fitted model
+          CalibrateGeometry* cal_model = (CalibrateGeometry*)models[0];
+          cal_model->findPointsCloseToModel(pc1_src, npc1_src, 
+            cur_xyz_data[k_dst], cur_norm_data[k_dst], coeffs[k_dst][cur_image], 
+            ICP_PC_MODEL_DIST_THRESH);
+          cal_model->findPointsCloseToModel(pc2_src, npc2_src, 
+            cur_xyz_data[k_src], cur_norm_data[k_src], coeffs[k_src][cur_image], 
+            ICP_PC_MODEL_DIST_THRESH);
+#endif
+        } else {
+          for (uint32_t i = 0; i < src_dim; i++) {
+            if (cur_xyz_data[k_dst][i * 3 + 2] < GDT_MAX_DIST &&
+              cur_xyz_data[k_dst][i * 3 + 2] > 0) {
+              // We have to pre-transform PC1:
+  
+              pc1_src.pushBack(cur_xyz_data[k_dst][i * 3]);
+              pc1_src.pushBack(cur_xyz_data[k_dst][i * 3 + 1]);
+              pc1_src.pushBack(cur_xyz_data[k_dst][i * 3 + 2]);
+              npc1_src.pushBack(cur_norm_data[k_dst][i * 3]);
+              npc1_src.pushBack(cur_norm_data[k_dst][i * 3 + 1]);
+              npc1_src.pushBack(cur_norm_data[k_dst][i * 3 + 2]);
+            }
+            if (cur_xyz_data[k_src][i * 3 + 2] < GDT_MAX_DIST &&
+              cur_xyz_data[k_src][i * 3 + 2] > 0) {
+              pc2_src.pushBack(cur_xyz_data[k_src][i * 3]);
+              pc2_src.pushBack(cur_xyz_data[k_src][i * 3 + 1]);
+              pc2_src.pushBack(cur_xyz_data[k_src][i * 3 + 2]);
+              npc2_src.pushBack(cur_norm_data[k_src][i * 3]);
+              npc2_src.pushBack(cur_norm_data[k_src][i * 3 + 1]);
+              npc2_src.pushBack(cur_norm_data[k_src][i * 3 + 2]);
+            }
           }
         }
-#endif
+
+        // Now, since the PC2 point cloud gets transformed by it's matrix
+        // in the ICP routine, we have to pre-transform PC1 points by it's
+        // matrix incase the view matrix isn't identity
+        Float3 pt, pt_transformed, norm, norm_transformed;
+        Float4x4 normal_mat;
+        Float4x4::inverse(normal_mat, camera_view[k_dst]);
+        normal_mat.transpose();
+        for (uint32_t i = 0; i < pc1_src.size(); i+= 3) {
+          pt.set(&pc1_src[i]);
+          Float3::affineTransformPos(pt_transformed, camera_view[k_dst], pt);
+          pc1_src[i] = pt_transformed[0];
+          pc1_src[i + 1] = pt_transformed[1];
+          pc1_src[i + 2] = pt_transformed[2];
+          norm.set(&npc1_src[i]);
+          Float3::affineTransformVec(norm_transformed, normal_mat, norm);
+          norm_transformed.normalize();
+          npc1_src[i] = norm_transformed[0];
+          npc1_src[i + 1] = norm_transformed[1];
+          npc1_src[i + 2] = norm_transformed[2];
+        }
 
         // Randomly permute the point clouds to find a subset
         Vector<float> pc1, npc1;
@@ -968,7 +998,7 @@ void KeyboardCB(int key, int action) {
 #ifdef CALIBRATION_RUN
         // Approximate the camera by using the fitted model coeffs
         ((CalibrateGeometry*)models[0])->calcCameraView(
-          camera_view[cur_kinect], 0, cur_kinect, 
+          camera_view[k_dst], camera_view[k_src], k_dst, k_src, 
           (const float***)&coeffs[0], cur_image);
 #endif
 
@@ -977,72 +1007,61 @@ void KeyboardCB(int key, int action) {
         icp.num_iterations = ICP_NUM_ITERATIONS;
         icp.cos_normal_threshold = ICP_COS_NORM_THRESHOLD;
         icp.min_distance_sq = ICP_MIN_DISTANCE_SQ;
-  #ifdef ICP_USE_UMEYAMA
-        icp.umeyama_on = true;
-  #else
-        icp.umeyama_on = false;
-  #endif
+        icp.max_distance_sq = ICP_MAX_DISTANCE_SQ;
+        icp.icp_method = ICP_METHOD;
         std::cout << "Performing ICP on " << (pc1.size()/3) << " and ";
         std::cout << (pc2.size()/3) << " pts" << std::endl;
   #ifdef USE_ICP_NORMALS
         // Use Normals
-        icp.match(camera_view[cur_kinect], &pc1[0], (pc1.size()/3), 
-          &pc2[0], (pc2.size()/3), camera_view[cur_kinect], &npc1[0],
+        icp.match(camera_view[k_src], &pc1[0], (pc1.size()/3), 
+          &pc2[0], (pc2.size()/3), camera_view[k_src], &npc1[0],
           &npc2[0]);
   #else
         // Don't use normals
-        icp.match(camera_view[cur_kinect], &pc1[0], (pc1.size()/3), 
-          &pc2[0], (pc2.size()/3), camera_view[cur_kinect]);
+        icp.match(camera_view[k_src], &pc1[0], (pc1.size()/3), 
+          &pc2[0], (pc2.size()/3), camera_view[k_src]);
   #endif
 
-  #ifdef CALIBRATION_RUN
         // Create lines geometry from the last correspondance points:
         float* pc2_transformed = icp.getLastPC2Transformed();
         int* correspondances = icp.getLastCorrespondances();
         float* weights = icp.getLastWeights();
         float red[3] = {1, 0, 0};
         float blue[3] = {0, 0, 1};
-        SAFE_DELETE(geometry_lines[cur_kinect-1]);
-        geometry_lines[cur_kinect-1] = new GeometryColoredLines();
+        SAFE_DELETE(geometry_lines[k_src-1]);
+        geometry_lines[k_src-1] = new GeometryColoredLines();
         for (uint32_t i = 0; i < (pc2.size()/3); i++) {
           if (weights[i] > EPSILON) {
-            geometry_lines[cur_kinect-1]->addLine(&pc2_transformed[i * 3],
+            geometry_lines[k_src-1]->addLine(&pc2_transformed[i * 3],
               &pc1[correspondances[i] * 3], red, blue);
           }
         }
-        geometry_lines[cur_kinect-1]->syncVAO();
-  #endif
+        geometry_lines[k_src-1]->syncVAO();
 #endif
 
         // Now save the results to file
-        std::stringstream ss;
-        ss << IM_DIR << "calibration_data" << cur_kinect << ".bin";
-        SaveArrayToFile<float>(camera_view[cur_kinect].m, 16, ss.str());
+        ss.str("");
+        ss << IM_DIR << "calibration_data" << k_src << ".bin";
+        SaveArrayToFile<float>(camera_view[k_src].m, 16, ss.str());
         std::cout << "Calibration data saved to " << ss.str() << endl;
-#ifdef CALIBRATION_RUN
-        last_icp_kinect = cur_kinect;
+        last_icp_kinect = k_src;
         cur_icp_mat = icp.getTransforms().size() - 1;
-#endif
       }
       break;
     case static_cast<int>('z'):
     case static_cast<int>('Z'): 
       if (action == RELEASED) {
-#ifdef CALIBRATION_RUN
         if (icp.getTransforms().size() > 0) {
           cur_icp_mat = (cur_icp_mat + 1) % icp.getTransforms().size();
         }
         std::cout << "cur_icp_mat = " << cur_icp_mat << std::endl;
-#endif
       }
       break;
     case static_cast<int>('v'):
     case static_cast<int>('V'): 
       if (action == RELEASED) {
-#ifdef CALIBRATION_RUN
         render_correspondances = !render_correspondances;
         cout << "render_correspondances = " << render_correspondances << endl;
-#endif
       }
       break;
     case static_cast<int>('x'):
@@ -1063,8 +1082,13 @@ void KeyboardCB(int key, int action) {
     case static_cast<int>('i'):
     case static_cast<int>('I'):
       if (action == RELEASED) {
-        cur_kinect = (cur_kinect + 1) % MAX_KINECTS;
-        cout << "cur_kinect = " << cur_kinect << endl;
+        if (!shift_down) {
+          cur_kinect = (cur_kinect + 1) % MAX_KINECTS;
+          cout << "cur_kinect = " << cur_kinect << endl;
+        } else {
+          cur_icp_dst_kinect = (cur_icp_dst_kinect + 1) % MAX_KINECTS;
+          cout << "cur_icp_dst_kinect = " << cur_icp_dst_kinect << endl;
+        }
       }
       break;
     case KEY_SPACE:
@@ -1330,6 +1354,18 @@ void renderFrame(float dt) {
         }
 
       }
+#else
+      for (uint32_t k = 0; k < MAX_KINECTS; k++) {
+        if (k == last_icp_kinect && icp.getTransforms().size() > 0) {
+          render->renderColoredPointCloud(geometry_points[k], 
+            &icp.getTransforms()[cur_icp_mat], 
+            1.5f * static_cast<float>(settings.width) / 4.0f);
+        } else {
+          render->renderColoredPointCloud(geometry_points[k], 
+            &camera_view[k], 1.5f * static_cast<float>(settings.width) / 4.0f);
+        }
+      }
+#endif
       if (render_correspondances) {
         for (uint32_t k = 0; k < MAX_KINECTS - 1; k++) {
           if (geometry_lines[k] != NULL) {
@@ -1337,14 +1373,6 @@ void renderFrame(float dt) {
           }
         }
       }
-#else
-      for (uint32_t k = 0; k < MAX_KINECTS; k++) {
-        render->renderColoredPointCloud(geometry_points[k], 
-          &camera_view[k], 4.0f * static_cast<float>(settings.width) / 4.0f);
-      }
-      //render->renderColoredPointCloud(geometry_points[0], &identity,
-      //  4.0f * static_cast<float>(settings.width) / 4.0f);
-#endif
     }
     break;
   case 2:
@@ -1414,7 +1442,8 @@ int main(int argc, char *argv[]) {
   cout << "j - Query Objective Function Value" << endl;
   cout << "shift+12345 - Copy finger1234/thumb from last frame" << endl;
   cout << "k - (3 times) delete current file" << endl;
-  cout << "i - Change the current kinect" << endl << endl;
+  cout << "i - Change the current kinect (for ICP to move onto dst)" << endl;
+  cout << "I - Change the current dst kinect" << endl << endl;
   
   try {
     clk = new jtil::clk::Clk();
@@ -1486,11 +1515,21 @@ int main(int argc, char *argv[]) {
         LoadArrayFromFile<float>(camera_view[k].m, 16, ss.str());
       }
     }
-    // Now align the frame times by the zeroth frame to the 0th kinect
-    for (uint32_t k = 1; k < MAX_KINECTS; k++) {
-      int64_t delta_t = im_files[k][0].second - im_files[0][0].second;
+    // Now align the frame times and frame zero (so that frame zero is T=0)
+    for (uint32_t k = 0; k < MAX_KINECTS; k++) {
+      int64_t t0 = im_files[k][0].second;
       for (uint32_t i = 0; i < im_files[k].size(); i++) {
-        im_files[k][i].second -= delta_t;
+        im_files[k][i].second -= t0;
+      }
+    }
+    // Scale the frames so the time rate matches the global time rate (for drift)
+    for (uint32_t k = 0; k < MAX_KINECTS; k++) {
+      uint32_t len = im_files[k].size() - 1;
+      double local_time = (double)(im_files[k][0].second - im_files[k][len].second);
+      double global_time = (double)(im_files[k][0].third - im_files[k][len].third);
+      double time_scale = global_time / local_time;
+      for (uint32_t i = 0; i < im_files[k].size(); i++) {
+        im_files[k][i].second = (uint64_t)((double)im_files[k][i].second * time_scale);
       }
     }
 
