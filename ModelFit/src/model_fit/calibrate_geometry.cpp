@@ -590,6 +590,7 @@ namespace model_fit {
         // Just be lazy and do it by radius
         // http://en.wikipedia.org/wiki/Icosahedron :
         float radius = ICOSAHEDRON_SIDE_LENGTH * sinf(2.0f * (float)M_PI / 5.0f);
+        radius *= 0.9f;  // Shrink it in a bit to avoid noise.
 
         vert_ret.resize(0);
         norm_ret.resize(0);

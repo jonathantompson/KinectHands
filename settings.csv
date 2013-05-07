@@ -22,7 +22,7 @@ cur_kinect,                       int,       0
 //, either you sync the IR or the RGB, but not both.  Dont change after startup
 sync_ir_stream,                   bool,      0
 //, Also: Dont change flip image after startup!
-flip_image,                       bool,      1
+flip_image,                       bool,      0
 
 //, RENDERER
 screen_resolution_enum,           int,       8

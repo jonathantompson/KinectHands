@@ -35,7 +35,7 @@
 #include "jtil/clk/clk.h"
 #include "jtil/string_util/string_util.h"
 #include "kinect_interface/hand_net/hand_model_coeff.h"
-#include "model_fit/hand_geometry.h"
+#include "model_fit/hand_geometry_mesh.h"
 #include "model_fit/model_renderer.h"
 #include "model_fit/model_fit.h"
 #include "kinect_interface/depth_images_io.h"
@@ -51,21 +51,15 @@
 // *************************************************************
 // ******************* CHANGEABLE PARAMETERS *******************
 // *************************************************************
-// OLD MODEL FORMAT:
-#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Added *
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")  // Added *
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")  // Added *
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")  // Added *
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")  // Added *
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Added *
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Added *
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Added *
+#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405)
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_03_1/")  // Cal + Fit (6533)
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_1/")  // Cal + Fit (8709)
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_2/")  // Cal + Fit (8469)
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_3/")  // Cal (bad)
 
 #define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN/") 
 
-#define LOAD_OLD_MODEL  // Predates primesense 1.09 data --> Using Kinect
-
-#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
+//#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
 #define SAVE_FILES  // Only enabled when we're not loading processed images
 //#define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
 //                              // HandForests, but save synthetic data (only 
@@ -110,7 +104,7 @@ using namespace jtil::threading;
 using namespace kinect_interface::hand_net;
 using namespace kinect_interface::hand_detector;
 using namespace kinect_interface;
-using namespace hand_fit;
+using namespace model_fit;
 using renderer::Renderer;
 using renderer::Geometry;
 using renderer::GeometryManager;
@@ -134,19 +128,19 @@ Renderer* render = NULL;
 bool is_running = true;
 bool continuous_playback = false;
 bool found_hand = false;
+HandGeometryMesh* model;
 
 // Hand modelNUM_PARAMETERS
 HandModelCoeff* l_hand = NULL;  // Not using this yet
 HandModelCoeff* r_hand = NULL;
 ModelRenderer* hand_renderer = NULL;
-ModelFit* fit = NULL;
-Eigen::MatrixXf coeffs;
 uint8_t label[src_dim];
 
 // Kinect Image data
 DepthImagesIO* image_io = NULL;
-VectorManaged<char*> im_files;
+Vector<Triple<char*, int64_t, int64_t>> im_files;  // filename, kinect time, global time
 float cur_xyz_data[src_dim*3];
+float cur_uvd_data[src_dim*3];
 int16_t cur_depth_data[src_dim*3];
 float cur_synthetic_depth_data[src_dim*4];
 uint8_t cur_label_data[src_dim];
@@ -159,6 +153,7 @@ Texture* tex = NULL;
 uint8_t tex_data_hpf[HN_IM_SIZE * HN_IM_SIZE * 3];
 uint8_t tex_data_depth[HN_IM_SIZE * HN_IM_SIZE * 3];
 uint8_t tex_data[HN_IM_SIZE * HN_IM_SIZE * 3 * 2];
+OpenNIFuncs openni_funcs;
 
 // Decision forests
 HandDetector* hand_detect = NULL;
@@ -167,6 +162,7 @@ HandDetector* hand_detect = NULL;
 HandImageGenerator* hand_image_generator_ = NULL;
 float blank_coeff[HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
 float coeff_convnet[HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
+float coeffs[HandCoeff::NUM_PARAMETERS];
 
 // Multithreading
 ThreadPool* tp;
@@ -185,7 +181,7 @@ void quit() {
   }
   delete tex;
   delete hand_renderer;
-  delete fit;
+  delete model;
   delete wnd;
   delete geometry_points;
   delete hand_detect;
@@ -197,7 +193,7 @@ void quit() {
 }
 
 void loadCurrentImage() {
-  char* file = im_files[cur_image];
+  char* file = im_files[cur_image].first;
 #ifdef LOAD_PROCESSED_IMAGES
   string DIR = DST_IM_DIR;
 #else
@@ -233,31 +229,24 @@ void loadCurrentImage() {
   // Load in the image
   image_io->LoadCompressedImage(full_filename, 
     cur_depth_data, cur_label_data, cur_image_rgb);
-#ifdef LOAD_OLD_MODEL
-  DepthImagesIO::convertKinectSingleImageToXYZ(cur_xyz_data, cur_depth_data);
-#else 
-  DepthImagesIO::convertSingleImageToXYZ(cur_xyz_data, cur_depth_data);
-#endif
-  found_hand = hand_detect->findHandLabels(cur_depth_data, 
-    cur_xyz_data, HDLabelMethod::HDFloodfill, label);
+  openni_funcs.ConvertDepthImageToProjective((uint16_t*)cur_depth_data, 
+    cur_uvd_data);
+  openni_funcs.convertDepthToWorldCoordinates(cur_uvd_data, cur_xyz_data, 
+    src_dim);
 
   // Load in the coeffs
-  string src_file = im_files[cur_image];
+  string src_file = im_files[cur_image].first;
 #ifdef LOAD_PROCESSED_IMAGES
   src_file = src_file.substr(10, src_file.length());
 #endif
-#ifdef LOAD_OLD_MODEL
-  r_hand->loadOldModelFromFile(DIR, string("coeffr_") + src_file);
-#else
   r_hand->loadFromFile(DIR, string("coeffr_") + src_file);
-#endif
   if (cur_image % 100 == 0) {
     cout << "loaded image " << cur_image+1 << " of " << im_files.size() << endl;
   }
 
   if (!found_hand) {
     // skip this data point
-    std::cout << "Warning couldn't find hand in " << im_files[cur_image];
+    std::cout << "Warning couldn't find hand in " << im_files[cur_image].first;
     std::cout << std::endl;
   }
 
@@ -287,8 +276,9 @@ void loadCurrentImage() {
 
   // Correctly modify the coeff values to those that are learnable by the
   // convnet (for instance angles are bad --> store cos(x), sin(x) instead)
-  hand_renderer->handCoeff2CoeffConvnet(r_hand, coeff_convnet,
-    hand_image_generator_->hand_pos_wh(), hand_image_generator_->uvd_com());
+  model->handCoeff2CoeffConvnet(r_hand, coeff_convnet,
+    hand_image_generator_->hand_pos_wh(), hand_image_generator_->uvd_com(),
+    *render->camera()->proj());
 #endif
 }
 
@@ -313,7 +303,7 @@ void saveFrame() {
 #if defined(SAVE_DEPTH_IMAGES)
     jtil::file_io::SaveArrayToFile<float>(hand_image_generator_->hand_image(),
       hand_image_generator_->size_images(), DST_IM_DIR + 
-      string("processed_") + im_files[cur_image]);
+      string("processed_") + im_files[cur_image].first);
 #endif
 
     // Save the HPF images to file:
@@ -323,8 +313,8 @@ void saveFrame() {
       im_files[cur_image]);
 #endif
 
-    string r_hand_file = DST_IM_DIR + string("coeffr_") + im_files[cur_image];
-    string l_hand_file = DST_IM_DIR + string("coeffl_") + im_files[cur_image];
+    string r_hand_file = DST_IM_DIR + string("coeffr_") + im_files[cur_image].first;
+    string l_hand_file = DST_IM_DIR + string("coeffl_") + im_files[cur_image].first;
     jtil::file_io::SaveArrayToFile<float>(coeff_convnet,
       HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, r_hand_file);
     // Don't save it...  It's just blank anyway and will eat into our disk IO
@@ -439,7 +429,7 @@ void keyboardCB(int key, int action) {
 }
 
 void renderFrame() {
-  hand_renderer->setRendererAttachement(true);
+  model->setRendererAttachement(true);
 
   // Render the images for debugging
   const float* im = hand_image_generator_->hpf_hand_image();
@@ -551,9 +541,13 @@ int main(int argc, char *argv[]) {
     eye_rot.identity();
     Float3 eye_pos(0, 0, 0);
     render = new Renderer();
+    float fov_vert_deg = 360.0f * OpenNIFuncs::fVFOV_primesense_109 / 
+      (2.0f * (float)M_PI);
     render->init(eye_rot, eye_pos, settings.width, settings.height,
-      -HAND_CAMERA_VIEW_PLANE_NEAR, -HAND_CAMERA_VIEW_PLANE_FAR, 
-      HAND_CAMERA_FOV);
+      -HAND_MODEL_CAMERA_VIEW_PLANE_NEAR, -HAND_MODEL_CAMERA_VIEW_PLANE_FAR, 
+      fov_vert_deg);
+
+    model = new HandGeometryMesh(HandType::RIGHT);
     
     // Load the Kinect data for fitting from file and process it
     image_io = new DepthImagesIO();
@@ -575,9 +569,7 @@ int main(int argc, char *argv[]) {
       throw std::runtime_error("ERROR: This main routine only works with one "
         "hand (left or right)!");
     }
-    hand_renderer = new ModelRenderer(render, fit_left, fit_right);
-    fit = new ModelFit(hand_renderer, num_hands);
-    coeffs.resize(1, NUM_PARAMETERS * num_hands);
+    hand_renderer = new ModelRenderer(1);
     r_hand = new HandModelCoeff(HandType::RIGHT);
     l_hand = new HandModelCoeff(HandType::LEFT);
 

@@ -86,10 +86,14 @@ namespace model_fit {
   }
 
   void ModelFit::setCameraView(const uint32_t i_camera, 
-    const jtil::math::FloatQuat& rot, const jtil::math::Float3& pos) {
-    model_renderer_->camera(i_camera)->eye_rot()->set(rot);
-    model_renderer_->camera(i_camera)->eye_pos()->set(pos);
-    model_renderer_->camera(i_camera)->updateView();
+    const jtil::math::Float4x4& view) {
+    model_renderer_->camera(i_camera)->set_view_mat_directly = true;
+    model_renderer_->camera(i_camera)->view()->set(view);
+  }
+
+  void ModelFit::getCameraView(const uint32_t i_camera, 
+    jtil::math::Float4x4& view) {
+    view.set(*model_renderer_->camera(i_camera)->view());
   }
 
   void ModelFit::fitModel(int16_t** depth, uint8_t** label, PoseModel** models, 

@@ -32,6 +32,7 @@ namespace renderer {
     }
     near_far_[0] = near;
     near_far_[1] = far;
+    set_view_mat_directly = false;
   }
 
   Camera::~Camera() {
@@ -42,16 +43,20 @@ namespace renderer {
     // Before updating view, record the old value
     view_prev_frame_.set(view_);
     
-    // Find the inverse rotation using quaternion
-    FloatQuat::inverse(eye_rot_inv_, eye_rot_);  // Very fast
-    FloatQuat::quat2Mat4x4(view_, eye_rot_inv_);
+    if (!set_view_mat_directly) {
+      // Find the inverse rotation using quaternion
+      FloatQuat::inverse(eye_rot_inv_, eye_rot_);  // Very fast
+      FloatQuat::quat2Mat4x4(view_, eye_rot_inv_);
     
-    view_[2] *= -1.0f;
-    view_[6] *= -1.0f;
-    view_[10] *= -1.0f;
+      view_[2] *= -1.0f;
+      view_[6] *= -1.0f;
+      view_[10] *= -1.0f;
 
-    view_.rightMultTranslation(eye_pos_[0], eye_pos_[1], eye_pos_[2]);
-    Float4x4::affineRotationTranslationInverse(view_inverse_, view_);
+      view_.rightMultTranslation(eye_pos_[0], eye_pos_[1], eye_pos_[2]);
+      Float4x4::affineRotationTranslationInverse(view_inverse_, view_);
+    } else {
+      Float4x4::inverse(view_inverse_, view_);
+    }
   }
 
   void Camera::updateProjection() {

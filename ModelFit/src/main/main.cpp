@@ -57,19 +57,19 @@
 
 // CALIBRATION MODE ONLY SETTINGS:
 //#define CALIBRATION_RUN
-#define FILTER_SIZE 60 
+#define FILTER_SIZE 60  
 #define CALIBRATION_MAX_FILES 100
 #define ICP_PC_MODEL_DIST_THRESH 15  // mm
-#define ICP_USE_POINTS_NEAR_MODEL true
+#define ICP_USE_POINTS_NEAR_MODEL false
 
 #define PERFORM_ICP_FIT
 #define USE_ICP_NORMALS
-#define ICP_NUM_ITERATIONS 15
+#define ICP_NUM_ITERATIONS 100
 #define ICP_METHOD ICPMethod::BFGS_ICP
 #define ICP_COS_NORM_THRESHOLD acosf((35.0f / 360.0f) * 2.0f * (float)M_PI);
 #define ICP_MIN_DISTANCE_SQ 1.0f
 #define ICP_MAX_DISTANCE_SQ 1600.0f  // 4cm ^ 2 = 40mm ^ 2
-#define MAX_ICP_PTS 30000
+#define MAX_ICP_PTS 100000
 
 // KINECT DATA
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Fit
@@ -85,8 +85,9 @@
 //#define IM_DIR_BASE string("data/hand_depth_data/")
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405)
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_05_03_1/")  // Cal + Fit (6533)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_1/")  // Cal
-#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_2/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_1/")  // Cal + Fit (8709)
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_2/")  // Cal + Fit (8469)
+#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_3/")  // Cal (OK)
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
 #define MAX_KINECTS 3
@@ -375,21 +376,8 @@ void loadCurrentImage(bool print_to_screen = true) {
 #endif
   }
 #else
-  image_io->LoadCompressedImage(full_filename, 
-    cur_depth_data[0], cur_label_data[0], cur_image_rgb[0]);
-  memset(cur_label_data[0], 0, src_dim * sizeof(cur_label_data[0][0]));
-
-#ifdef KINECT_DATA
-  DepthImagesIO::convertSingleImageToXYZ(cur_xyz_data[0], cur_depth_data[0]);
-#else
-  openni_funcs.ConvertDepthImageToProjective((uint16_t*)cur_depth_data[0], 
-    cur_uvd_data[0]);
-  openni_funcs.convertDepthToWorldCoordinates(cur_uvd_data[0], cur_xyz_data[0], 
-    src_dim);
-#endif
-
   // Now load the other Kinect data
-  for (uint32_t k = 1; k < MAX_KINECTS; k++) {
+  for (uint32_t k = 0; k < MAX_KINECTS; k++) {
     if (im_files[k].size() == 0) {
       for (uint32_t j = 0; j < src_dim; j++) {
         cur_depth_data[k][j] = GDT_MAX_DIST;
@@ -1590,16 +1578,13 @@ int main(int argc, char *argv[]) {
     fit = new ModelFit(num_models, num_coeff_fit, num_model_fit_cameras);
 
 #ifndef CALIBRATION_RUN
-    // SET CAMERA VIEW properly (this version is broken since we need
-    // to look down the -z axis!)
-    FloatQuat cur_camera_quat;
-    Float3 cur_camera_trans;
+    Float4x4 old_view, cur_view, camera_view_inv;
 
     for (uint32_t k = 0; k < num_model_fit_cameras; k++) {
-      FloatQuat::orthMat4x42Quat(cur_camera_quat, camera_view[k]);
-      Float4x4::getTranslation(cur_camera_trans, camera_view[k]);
-      Float3::scale(cur_camera_trans, -1.0f);
-      fit->setCameraView(k, cur_camera_quat, cur_camera_trans);
+      fit->getCameraView(k, old_view);
+      Float4x4::inverse(camera_view_inv, camera_view[k]);
+      Float4x4::mult(cur_view, old_view, camera_view_inv);
+      fit->setCameraView(k, cur_view);
     }
 #endif
 

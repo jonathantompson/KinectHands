@@ -36,6 +36,9 @@ namespace renderer {
     inline jtil::math::Float3* eye_pos() { return &eye_pos_; }
     inline jtil::math::FloatQuat* eye_rot() { return &eye_rot_; }
 
+    bool set_view_mat_directly;  // Hack, allows us to set the view
+                                 // matrix directly without using quat + trans
+
   private:
     jtil::math::FloatQuat eye_rot_;
     jtil::math::FloatQuat eye_rot_inv_;

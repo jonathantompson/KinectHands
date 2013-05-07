@@ -69,7 +69,7 @@ namespace model_fit {
     ModelRenderer* model_renderer() { return model_renderer_; }
 
     void setCameraView(const uint32_t i_camera, 
-      const jtil::math::FloatQuat& rot, const jtil::math::Float3& pos);
+      const jtil::math::Float4x4& view);
     void getCameraView(const uint32_t i_camera, 
       jtil::math::Float4x4& view_ret);
 
