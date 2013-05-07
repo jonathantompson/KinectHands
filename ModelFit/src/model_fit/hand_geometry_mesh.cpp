@@ -774,26 +774,26 @@ namespace model_fit {
     -0.633f,  // THUMB_K1_THETA
     -1.253f,  // THUMB_K1_PHI
     -1.733f,  // THUMB_K2_PHI
-    -0.700f,  // F0_ROOT_THETA
-    -0.700f,  // F0_ROOT_PHI
+    -0.300f,  // F0_ROOT_THETA
+    -0.300f,  // F0_ROOT_PHI
     -0.800f,  // F0_THETA
     -1.443f,  // F0_PHI
     -1.400f,  // F0_KNUCKLE_MID  // Formally -1.363 4/12/2013
     -1.500f,  // F0_KNUCKLE_END  // Formally -1.363 4/12/2013
-    -0.700f,  // F1_ROOT_THETA
-    -0.700f,  // F1_ROOT_PHI
+    -0.300f,  // F1_ROOT_THETA
+    -0.300f,  // F1_ROOT_PHI
     -0.800f,  // F1_THETA
     -1.443f,  // F1_PHI
     -1.400f,  // F1_KNUCKLE_MID  // Formally -1.363 4/12/2013
     -1.500f,  // F1_KNUCKLE_END  // Formally -1.363 4/12/2013
-    -0.500f,  // F2_ROOT_THETA
-    -0.500f,  // F2_ROOT_PHI
+    -0.300f,  // F2_ROOT_THETA
+    -0.300f,  // F2_ROOT_PHI
     -0.800f,  // F2_THETA
     -1.443f,  // F2_PHI
     -1.400f,  // F2_KNUCKLE_MID  // Formally -1.363 4/12/2013
     -1.500f,  // F2_KNUCKLE_END  // Formally -1.363 4/12/2013
-    -0.400f,  // F3_ROOT_THETA
-    -0.400f,  // F3_ROOT_PHI
+    -0.300f,  // F3_ROOT_THETA
+    -0.300f,  // F3_ROOT_PHI
     -0.800f,  // F3_THETA
     -1.443f,  // F3_PHI
     -1.400f,  // F3_KNUCKLE_MID  // Formally -1.363 4/12/2013
@@ -821,26 +821,26 @@ namespace model_fit {
     0.700f,  // THUMB_K1_THETA
     0.750f,  // THUMB_K1_PHI
     0.500f,  // THUMB_K2_PHI
-    0.700f,  // F0_ROOT_THETA
-    0.700f,  // F0_ROOT_PHI
+    0.300f,  // F0_ROOT_THETA
+    0.300f,  // F0_ROOT_PHI
     0.600f,  // F0_THETA
     0.670f,  // F0_PHI
     0.560f,  // F0_KNUCKLE_MID
     0.560f,  // F0_KNUCKLE_END
-    0.700f,  // F1_ROOT_THETA
-    0.700f,  // F1_ROOT_PHI
+    0.300f,  // F1_ROOT_THETA
+    0.300f,  // F1_ROOT_PHI
     0.600f,  // F1_THETA
     0.670f,  // F1_PHI
     0.560f,  // F1_KNUCKLE_MID
     0.560f,  // F1_KNUCKLE_END
-    0.500f,  // F2_ROOT_THETA
-    0.500f,  // F2_ROOT_PHI
+    0.300f,  // F2_ROOT_THETA
+    0.300f,  // F2_ROOT_PHI
     0.600f,  // F2_THETA
     0.670f,  // F2_PHI
     0.560f,  // F2_KNUCKLE_MID
     0.560f,  // F2_KNUCKLE_END
-    0.400f,  // F3_ROOT_THETA
-    0.400f,  // F3_ROOT_PHI
+    0.300f,  // F3_ROOT_THETA
+    0.300f,  // F3_ROOT_PHI
     0.600f,  // F3_THETA
     0.670f,  // F3_PHI
     0.560f,  // F3_KNUCKLE_MID
