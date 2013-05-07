@@ -310,7 +310,7 @@ void saveFrame() {
 #if defined(SAVE_HPF_IMAGES)
     jtil::file_io::SaveArrayToFile<float>(hand_image_generator_->hpf_hand_image(),
       hand_image_generator_->size_images(), DST_IM_DIR + std::string("hpf_processed_") + 
-      im_files[cur_image]);
+      im_files[cur_image].first);
 #endif
 
     string r_hand_file = DST_IM_DIR + string("coeffr_") + im_files[cur_image].first;

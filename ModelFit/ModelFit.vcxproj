@@ -191,8 +191,8 @@
       <AdditionalOptions>/ignore:4099 /ignore:4204 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>COPY /Y $(ProjectDir)assimp_3.0.1270\lib_win7_64\assimp.dll $(ProjectDir)Build\ModelFit\$(Configuration)\assimp.dll
-COPY /Y $(ProjectDir)FreeImage3154\lib_win7_64\FreeImage.dll $(ProjectDir)Build\ModelFit\$(Configuration)\FreeImage.dll</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
