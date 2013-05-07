@@ -458,30 +458,36 @@ namespace model_fit {
     */
   }
 
+  Geometry* root = NULL;
   void HandGeometryMesh::handCoeff2CoeffConvnet(HandModelCoeff* hand,
     float* coeff_convnet, const Int4& hand_pos_wh, const Float3& uvd_com,
-    const Float4x4& proj_mat) {
+    const Float4x4& proj_mat, const Float4x4& view_mat) {
     // Thumb and finger angles are actually learned as salient points -->
     // Luckily we have a good way to get these.  Use the positions of some of
     // the key bounding sphere positions --> Then project these into UV.
+    root = NULL;
+    setRendererAttachement(false);
+    setCurrentStaticHandProperties(hand->coeff());
     updateMatrices(hand->coeff());
     updateHeirachyMatrices();
     fixBoundingSphereMatrices();
+    
+    //Float4x4::mult(VW_mat, view_mat, *(scene_graph_->mat_hierarchy()));
 
     // Project the XYZ position into UV space
     // Use the bounding sphere centers since they are already in good positions
     extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-      HandSphereIndices::PALM_3, HAND_POS1_U, proj_mat);
+      HandSphereIndices::PALM_3, HAND_POS1_U, proj_mat, view_mat);
     extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-      HandSphereIndices::PALM_1, HAND_POS2_U, proj_mat);
+      HandSphereIndices::PALM_1, HAND_POS2_U, proj_mat, view_mat);
     extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-      HandSphereIndices::PALM_2, HAND_POS3_U, proj_mat);
+      HandSphereIndices::PALM_2, HAND_POS3_U, proj_mat, view_mat);
     //extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
     //  HandSphereIndices::PALM_6, HAND_POS4_U);
 
     // Thumb
     extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-      HandSphereIndices::TH_KNU3_A, THUMB_TIP_U, proj_mat);
+      HandSphereIndices::TH_KNU3_A, THUMB_TIP_U, proj_mat, view_mat);
     //extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
     //  HandSphereIndices::TH_KNU3_B, THUMB_K3_U);
     //extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
@@ -489,11 +495,20 @@ namespace model_fit {
     //extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
     //  HandSphereIndices::TH_KNU1_B, THUMB_BASE_U);
 
+    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
+      HandSphereIndices::TH_KNU3_B, F0_TIP_U, proj_mat, view_mat);
+    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
+      HandSphereIndices::TH_KNU2_A, F1_TIP_U, proj_mat, view_mat);
+    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
+      HandSphereIndices::TH_KNU2_B, F2_TIP_U, proj_mat, view_mat);
+    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
+      HandSphereIndices::TH_KNU1_A, F3_TIP_U, proj_mat, view_mat);
+
     // Fingers
     for (uint32_t i = 0; i < 4; i++) {
-    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-      HandSphereIndices::F1_KNU3_A + NSPH_PER_GROUP * i, F0_TIP_U + 
-      FEATURE_SIZE * NUM_FEATS_PER_FINGER * i, proj_mat);
+    //extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
+    //  HandSphereIndices::F1_KNU3_A + NSPH_PER_GROUP * i, F0_TIP_U + 
+    //  FEATURE_SIZE * NUM_FEATS_PER_FINGER * i, proj_mat, view_mat);
     //extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
     //  HandSphereIndices::F1_KNU2_B + NSPH_PER_FING * i, F0_K2_U + 
     //  FEATURE_SIZE * NUM_FEATS_PER_FINGER * i);
@@ -503,17 +518,32 @@ namespace model_fit {
     }
   }
 
+  Float4x4 root_inverse, tmp;
   void HandGeometryMesh::extractPositionForConvnet(HandModelCoeff* hand, 
     float* coeff_convnet, const Int4& hand_pos_wh, const Float3& uvd_com,
     const uint32_t b_sphere_index, const uint32_t convnet_U_index,
-    const Float4x4& proj_mat) {
+    const Float4x4& proj_mat, const Float4x4& view_mat) {
     const float* coeff = hand->coeff();
     float dmin = uvd_com[2] - (HN_HAND_SIZE * 0.5f);
-    BoundingSphere* sphere = bspheres_[b_sphere_index];
+    BoundingSphere* sphere = PoseModel::g_b_spheres[b_sphere_index];
+    //BoundingSphere* sphere = bspheres_[b_sphere_index];
+
+    // This is a bit of a hack, but we have to undo the parent's root
+    // transform (by left multiplying by its inverse).
+    // Then we have to left multiply by the mesh node's transform
+    Geometry* cur_root = sphere->hand_root();
+    if (cur_root != root) {
+      Float4x4::inverse(root_inverse, *sphere->hand_root()->mat());
+      root = cur_root;
+    }
+    Float4x4::mult(tmp, root_inverse, *sphere->mat_hierarchy());
+    Float4x4::mult(*sphere->mat_hierarchy(), *sphere->mesh_node()->mat_hierarchy(), tmp);
+    
     sphere->transform();
+
     Float2 pos_uv;
     calcHandImageUVFromXYZ(*sphere->transformed_center(), pos_uv, hand_pos_wh,
-      proj_mat);
+      proj_mat, view_mat);
     coeff_convnet[convnet_U_index] = pos_uv[0];
     coeff_convnet[convnet_U_index+1] = pos_uv[1];
     if (FEATURE_SIZE >= 3) {
@@ -523,16 +553,18 @@ namespace model_fit {
   }
 
   void HandGeometryMesh::calcHandImageUVFromXYZ(Float3& xyz_pos, 
-    Float2& uv_pos, const Int4& hand_pos_wh, const Float4x4& proj_mat) {
+    Float2& uv_pos, const Int4& hand_pos_wh, const Float4x4& proj_mat, 
+    const Float4x4& view_mat) {
     Float4 pos(xyz_pos[0], xyz_pos[1], xyz_pos[2], 1.0f);
+    Float4 eye_pos;
+    Float4::mult(eye_pos, view_mat, pos);
     Float4 homog_pos;
-    Float4::mult(homog_pos, proj_mat, pos);
+    Float4::mult(homog_pos, proj_mat, eye_pos);
     uv_pos[0] = (homog_pos[0] / homog_pos[3]);  // NDC X: -1 --> 1
     uv_pos[1] = (homog_pos[1] / homog_pos[3]);  // NDC Y: -1 --> 1
     // http://www.songho.ca/opengl/gl_transform.html
-    // TO DO: figure out why uv[0] needs to be flipped.  It makes no sense!
-    uv_pos[0] = (float)src_width * 0.5f * (-uv_pos[0] + 1);  // Window X: 0 --> W
-    uv_pos[1] = (float)src_height * 0.5f * (uv_pos[1] + 1);  // Window Y: 0 --> H
+    uv_pos[0] = (float)src_width * 0.5f * (uv_pos[0] + 1);  // Window X: 0 --> W
+    uv_pos[1] = (float)src_height * 0.5f * (-uv_pos[1] + 1);  // Window Y: 0 --> H
     // Now figure out the fractional position in the hand sub-image 
     uv_pos[0] = (uv_pos[0] - (float)hand_pos_wh[0]) / (float)hand_pos_wh[2];
     uv_pos[1] = (uv_pos[1] - (float)hand_pos_wh[1]) / (float)hand_pos_wh[3];

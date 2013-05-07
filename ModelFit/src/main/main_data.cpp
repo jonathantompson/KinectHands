@@ -60,8 +60,8 @@
 #define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN/") 
 
 //#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
-#define SAVE_FILES  // Only enabled when we're not loading processed images
-//#define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
+//#define SAVE_FILES  // Only enabled when we're not loading processed images
+#define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
 //                              // HandForests, but save synthetic data (only 
 //                              // takes effect when not loading processed images)
 
@@ -92,6 +92,8 @@
 #if defined(WIN32) || defined(_WIN32)
   #define snprintf _snprintf_s
 #endif
+#define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
+#define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
 const bool fit_left = false;
 const bool fit_right = true; 
@@ -105,6 +107,7 @@ using namespace kinect_interface::hand_net;
 using namespace kinect_interface::hand_detector;
 using namespace kinect_interface;
 using namespace model_fit;
+using namespace jtil::file_io;
 using renderer::Renderer;
 using renderer::Geometry;
 using renderer::GeometryManager;
@@ -128,7 +131,7 @@ Renderer* render = NULL;
 bool is_running = true;
 bool continuous_playback = false;
 bool found_hand = false;
-HandGeometryMesh* model;
+HandGeometryMesh* model[2];
 
 // Hand modelNUM_PARAMETERS
 HandModelCoeff* l_hand = NULL;  // Not using this yet
@@ -154,6 +157,8 @@ uint8_t tex_data_hpf[HN_IM_SIZE * HN_IM_SIZE * 3];
 uint8_t tex_data_depth[HN_IM_SIZE * HN_IM_SIZE * 3];
 uint8_t tex_data[HN_IM_SIZE * HN_IM_SIZE * 3 * 2];
 OpenNIFuncs openni_funcs;
+Float4x4 camera_view;
+const uint32_t num_coeff_fit = HAND_NUM_COEFF;
 
 // Decision forests
 HandDetector* hand_detect = NULL;
@@ -162,7 +167,6 @@ HandDetector* hand_detect = NULL;
 HandImageGenerator* hand_image_generator_ = NULL;
 float blank_coeff[HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
 float coeff_convnet[HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
-float coeffs[HandCoeff::NUM_PARAMETERS];
 
 // Multithreading
 ThreadPool* tp;
@@ -170,6 +174,9 @@ ThreadPool* tp;
 void quit() {
   tp->stop();
   delete tp;
+  for (uint32_t i = 0; i < im_files.size(); i++) {
+    SAFE_DELETE_ARR(im_files[i].first);
+  }
   delete image_io;
   delete clk;
   delete render;
@@ -181,7 +188,7 @@ void quit() {
   }
   delete tex;
   delete hand_renderer;
-  delete model;
+  delete model[0];
   delete wnd;
   delete geometry_points;
   delete hand_detect;
@@ -207,11 +214,11 @@ void loadCurrentImage() {
 
   // Just load the processed image directly
   const float* im = hand_image_generator_->hand_image();
-  jtil::file_io::LoadArrayFromFile<float>(const_cast<float*>(im),
-    HN_IM_SIZE * HN_IM_SIZE, full_filename);
+  LoadArrayFromFile<float>(const_cast<float*>(im), HN_IM_SIZE * HN_IM_SIZE, 
+    full_filename);
   im = hand_image_generator_->hpf_hand_image();
-  jtil::file_io::LoadArrayFromFile<float>(const_cast<float*>(im),
-    HN_IM_SIZE * HN_IM_SIZE, full_hpf_im_filename);
+  LoadArrayFromFile<float>(const_cast<float*>(im), HN_IM_SIZE * HN_IM_SIZE, 
+    full_hpf_im_filename);
   memset(cur_depth_data, 0, src_dim * sizeof(cur_depth_data[0]));
   memset(cur_label_data, 0, src_dim * sizeof(cur_label_data[0]));
   memset(cur_image_rgb, 0, 3 * src_dim * sizeof(cur_image_rgb[0]));
@@ -220,7 +227,7 @@ void loadCurrentImage() {
   string src_file = im_files[cur_image];
   src_file = src_file.substr(10, src_file.length());
   string r_coeff_file = DST_IM_DIR + string("coeffr_") + src_file;
-  jtil::file_io::LoadArrayFromFile<float>(coeff_convnet,
+  LoadArrayFromFile<float>(coeff_convnet, 
     HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, r_coeff_file);
   if (cur_image % 100 == 0) {
     cout << "loaded image " << cur_image+1 << " of " << im_files.size() << endl;
@@ -233,6 +240,8 @@ void loadCurrentImage() {
     cur_uvd_data);
   openni_funcs.convertDepthToWorldCoordinates(cur_uvd_data, cur_xyz_data, 
     src_dim);
+  found_hand = hand_detect->findHandLabels(cur_depth_data, 
+    cur_xyz_data, HDLabelMethod::HDFloodfill, label);
 
   // Load in the coeffs
   string src_file = im_files[cur_image].first;
@@ -258,13 +267,15 @@ void loadCurrentImage() {
   const bool create_hpf_images = false;
 #endif
 
+  model[0]->setRendererAttachement(false);
+  HandGeometryMesh::setCurrentStaticHandProperties(r_hand->coeff());
+
 #ifdef SAVE_SYNTHETIC_IMAGE
-  HandModelCoeff* hands[2];
-  memcpy(coeffs.data(), r_hand->coeff(), 
-    NUM_PARAMETERS * sizeof(coeffs.data()[0]));
-  hands[0] = r_hand;
-  hands[1] = NULL;
-  hand_renderer->drawDepthMap(coeffs, hands, num_hands);
+  GLState::glsViewport(0, 0, 640, 480);
+  float coeff[num_hands * num_coeff_fit];
+  memcpy(coeff, r_hand->coeff(), sizeof(coeff[0])*num_coeff_fit);
+  hand_renderer->drawDepthMap(coeff, num_coeff_fit, (PoseModel**)model, 
+    num_hands, 0, false);
   hand_renderer->extractDepthMap(cur_synthetic_depth_data);
   hand_image_generator_->calcHandImage(cur_depth_data, label,
     create_hpf_images, tp, cur_synthetic_depth_data);
@@ -274,11 +285,12 @@ void loadCurrentImage() {
     create_hpf_images, tp);
 #endif
 
+  hand_renderer->camera(0)->updateProjection();
   // Correctly modify the coeff values to those that are learnable by the
   // convnet (for instance angles are bad --> store cos(x), sin(x) instead)
-  model->handCoeff2CoeffConvnet(r_hand, coeff_convnet,
+  model[0]->handCoeff2CoeffConvnet(r_hand, coeff_convnet,
     hand_image_generator_->hand_pos_wh(), hand_image_generator_->uvd_com(),
-    *render->camera()->proj());
+    *hand_renderer->camera(0)->proj(), *hand_renderer->camera(0)->view());
 #endif
 }
 
@@ -301,24 +313,24 @@ void saveFrame() {
   if (found_hand) {
     // Save the cropped image to file:
 #if defined(SAVE_DEPTH_IMAGES)
-    jtil::file_io::SaveArrayToFile<float>(hand_image_generator_->hand_image(),
+    SaveArrayToFile<float>(hand_image_generator_->hand_image(),
       hand_image_generator_->size_images(), DST_IM_DIR + 
       string("processed_") + im_files[cur_image].first);
 #endif
 
     // Save the HPF images to file:
 #if defined(SAVE_HPF_IMAGES)
-    jtil::file_io::SaveArrayToFile<float>(hand_image_generator_->hpf_hand_image(),
+    SaveArrayToFile<float>(hand_image_generator_->hpf_hand_image(),
       hand_image_generator_->size_images(), DST_IM_DIR + std::string("hpf_processed_") + 
       im_files[cur_image].first);
 #endif
 
     string r_hand_file = DST_IM_DIR + string("coeffr_") + im_files[cur_image].first;
     string l_hand_file = DST_IM_DIR + string("coeffl_") + im_files[cur_image].first;
-    jtil::file_io::SaveArrayToFile<float>(coeff_convnet,
+    SaveArrayToFile<float>(coeff_convnet,
       HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, r_hand_file);
     // Don't save it...  It's just blank anyway and will eat into our disk IO
-    //jtil::file_io::SaveArrayToFile<float>(blank_coeff,
+    //SaveArrayToFile<float>(blank_coeff,
     //  HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, l_hand_file);
   }
 #endif
@@ -429,7 +441,7 @@ void keyboardCB(int key, int action) {
 }
 
 void renderFrame() {
-  model->setRendererAttachement(true);
+  ((HandGeometryMesh*)model[0])->setRendererAttachement(true);
 
   // Render the images for debugging
   const float* im = hand_image_generator_->hpf_hand_image();
@@ -500,7 +512,7 @@ int main(int argc, char *argv[]) {
 #if defined(_DEBUG) && defined(_WIN32)
   jtil::debug::EnableMemoryLeakChecks();
   // jtil::debug::EnableAggressiveMemoryLeakChecks();
-  // jtil::debug::SetBreakPointOnAlocation(8634);
+  // jtil::debug::SetBreakPointOnAlocation(3734);
 #endif
 
   cout << "Usage:" << endl;
@@ -547,7 +559,7 @@ int main(int argc, char *argv[]) {
       -HAND_MODEL_CAMERA_VIEW_PLANE_NEAR, -HAND_MODEL_CAMERA_VIEW_PLANE_FAR, 
       fov_vert_deg);
 
-    model = new HandGeometryMesh(HandType::RIGHT);
+    model[0] = new HandGeometryMesh(HandType::RIGHT);
     
     // Load the Kinect data for fitting from file and process it
     image_io = new DepthImagesIO();
@@ -572,6 +584,15 @@ int main(int argc, char *argv[]) {
     hand_renderer = new ModelRenderer(1);
     r_hand = new HandModelCoeff(HandType::RIGHT);
     l_hand = new HandModelCoeff(HandType::LEFT);
+
+    LoadArrayFromFile<float>(camera_view.m, 16, IM_DIR + 
+      "calibration_data0.bin");
+    Float4x4 old_view, camera_view_inv, cur_view;
+    old_view.set(*hand_renderer->camera(0)->view());
+    Float4x4::inverse(camera_view_inv, camera_view);
+    Float4x4::mult(cur_view, old_view, camera_view_inv);
+    hand_renderer->camera(0)->view()->set(cur_view);
+    hand_renderer->camera(0)->set_view_mat_directly = true;
 
     std::cout << "Using a cropped source image of " << HN_SRC_IM_SIZE;
     std::cout << std::endl << "Final image size after processing is ";

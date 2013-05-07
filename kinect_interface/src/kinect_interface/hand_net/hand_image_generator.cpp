@@ -156,6 +156,10 @@ namespace hand_net {
         }
       }
     }
+    if (cnt == 0) {
+      throw std::wruntime_error("HandImageGenerator::calcCroppedHand() - "
+        "ERROR: There are no hand pixels!");
+    }
     Float3::scale(uvd_com_, 1.0f / (float)cnt);
     uvd_com_[0] = floor(uvd_com_[0]);
     uvd_com_[1] = floor(uvd_com_[1]);

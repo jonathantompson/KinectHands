@@ -61,7 +61,8 @@ namespace model_fit {
 
     void handCoeff2CoeffConvnet(kinect_interface::hand_net::HandModelCoeff* hand, 
       float* coeff_convnet, const jtil::math::Int4& hand_pos_wh, 
-      const jtil::math::Float3& uvd_com, const jtil::math::Float4x4& proj_mat);
+      const jtil::math::Float3& uvd_com, const jtil::math::Float4x4& proj_mat, 
+      const jtil::math::Float4x4& view_mat);
 
     virtual void renderStackReset();
     virtual renderer::Geometry* renderStackPop();
@@ -128,10 +129,12 @@ namespace model_fit {
     void extractPositionForConvnet(kinect_interface::hand_net::HandModelCoeff* hand, 
       float* coeff_convnet, const jtil::math::Int4& hand_pos_wh, 
       const jtil::math::Float3& uvd_com, const uint32_t b_sphere_index, 
-      const uint32_t convnet_U_index, const jtil::math::Float4x4& proj_mat);
+      const uint32_t convnet_U_index, const jtil::math::Float4x4& proj_mat, 
+      const jtil::math::Float4x4& view_mat);
     void calcHandImageUVFromXYZ(jtil::math::Float3& xyz_pos, 
-      jtil::math::Float2& uv_pos, const jtil::math::Int4& hand_pos_wh,
-      const jtil::math::Float4x4& proj_mat);
+      jtil::math::Float2& uv_pos, const jtil::math::Int4& hand_pos_wh, 
+      const jtil::math::Float4x4& proj_mat,
+      const jtil::math::Float4x4& view_mat);
 
     static const float coeff_min_limit_[HAND_NUM_COEFF];
     static const float coeff_max_limit_[HAND_NUM_COEFF];

@@ -39,6 +39,7 @@ namespace renderer {
     void transform();
     jtil::math::Float3* transformed_center() { return &transformed_center_; }
     float transformed_radius() { return transformed_radius_; }
+    inline const jtil::math::Float3& center() { return center_; }
 
   protected:
     float radius_;

@@ -1,0 +1,11 @@
+#!/bin/bash
+CURPATH=./hand_depth_data_2013_05_06_3/
+FILES=deleted_*
+PATH_FILES=$CURPATH$FILES
+for f in $PATH_FILES
+do
+  filename="${f##*/}"
+  newfilename=${filename:8} 
+  echo "moving $filename to $newfilename..."
+  mv $CURPATH$filename $CURPATH$newfilename
+done
