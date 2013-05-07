@@ -28,11 +28,15 @@ using kinect_interface::OpenNIFuncs;
 namespace kinect_interface {
 namespace hand_detector {
   const float c_r = HD_FILL_COARSE_RADIUS;
+  const float o_r = HD_FILL_OUSIDE_RADIUS;
   const float f_r = HD_FILL_FINE_RADIUS;
   const float HandDetector::floodFillKernel_[HD_N_PTS_FILL_KERNEL][2] = 
     {{-f_r, -f_r}, {-f_r, 0}, {-f_r, +f_r}, {0, +f_r}, {+f_r, +f_r}, {+f_r, 0}, 
-     {+f_r, -f_r}, {0, -f_r}, {-c_r, -c_r}, {-c_r, 0}, {-c_r, +c_r}, {0, +c_r},
-     {+c_r, +c_r}, {+c_r, 0}, {+c_r, -c_r}, {0, -c_r}};
+     {+f_r, -f_r}, {0, -f_r}, 
+     {-c_r, -c_r}, {-c_r, 0}, {-c_r, +c_r}, {0, +c_r}, {+c_r, +c_r}, {+c_r, 0},
+     {+c_r, -c_r}, {0, -c_r},
+     {-o_r, -o_r}, {-o_r, 0}, {-o_r, +o_r}, {0, +o_r}, {+o_r, +o_r}, {+o_r, 0},
+     {+o_r, -o_r}, {0, -o_r}};
 
   HandDetector::HandDetector(ThreadPool* tp) {
     stage2_med_filter_radius_ = HD_STARTING_MED_FILT_RAD;
@@ -612,7 +616,6 @@ namespace hand_detector {
           static_cast<float>(xyz[curPtIndex*3+2])));
         neighbourPtIndexUV[0] = curPtU + cur_rad_u;
         neighbourPtIndexUV[1] = curPtV + cur_rad_v;
-        //processNeighbour(neighbourPtIndexUV, curPtIndex, min_pt_xyz, xyz);
         processNeighbour(neighbourPtIndexUV, curPtIndex, pt_hand_xyz, xyz);
       }
     }

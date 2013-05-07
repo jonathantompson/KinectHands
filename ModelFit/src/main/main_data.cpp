@@ -51,17 +51,17 @@
 // *************************************************************
 // ******************* CHANGEABLE PARAMETERS *******************
 // *************************************************************
-#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_03_1/")  // Cal + Fit (6533)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_1/")  // Cal + Fit (8709)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_2/")  // Cal + Fit (8469)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_3/")  // Cal (bad)
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405) *
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_03_1/")  // Cal + Fit (6533) *
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_1/")  // Cal + Fit (8709) *
+#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_2/")  // Cal + Fit (8469) *
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_3/")  // Cal
 
 #define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN/") 
 
 //#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
-//#define SAVE_FILES  // Only enabled when we're not loading processed images
-#define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
+#define SAVE_FILES  // Only enabled when we're not loading processed images
+//#define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
 //                              // HandForests, but save synthetic data (only 
 //                              // takes effect when not loading processed images)
 
@@ -74,7 +74,7 @@
   #define DESIRED_PLAYBACK_FPS 30.0f  // fps
 #endif
 #define NUM_WORKER_THREADS 6
-#define DISPLAY_HPF_IMAGE
+
 // *************************************************************
 // *************** END OF CHANGEABLE PARAMETERS ****************
 // *************************************************************

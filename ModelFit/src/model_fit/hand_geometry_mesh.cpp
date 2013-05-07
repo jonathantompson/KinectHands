@@ -495,20 +495,11 @@ namespace model_fit {
     //extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
     //  HandSphereIndices::TH_KNU1_B, THUMB_BASE_U);
 
-    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-      HandSphereIndices::TH_KNU3_B, F0_TIP_U, proj_mat, view_mat);
-    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-      HandSphereIndices::TH_KNU2_A, F1_TIP_U, proj_mat, view_mat);
-    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-      HandSphereIndices::TH_KNU2_B, F2_TIP_U, proj_mat, view_mat);
-    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-      HandSphereIndices::TH_KNU1_A, F3_TIP_U, proj_mat, view_mat);
-
     // Fingers
     for (uint32_t i = 0; i < 4; i++) {
-    //extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-    //  HandSphereIndices::F1_KNU3_A + NSPH_PER_GROUP * i, F0_TIP_U + 
-    //  FEATURE_SIZE * NUM_FEATS_PER_FINGER * i, proj_mat, view_mat);
+      extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
+        HandSphereIndices::F1_KNU3_A + NSPH_PER_GROUP * i, F0_TIP_U + 
+        FEATURE_SIZE * NUM_FEATS_PER_FINGER * i, proj_mat, view_mat);
     //extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
     //  HandSphereIndices::F1_KNU2_B + NSPH_PER_FING * i, F0_K2_U + 
     //  FEATURE_SIZE * NUM_FEATS_PER_FINGER * i);

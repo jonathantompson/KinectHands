@@ -39,6 +39,7 @@
 #include "kinect_interface/depth_images_io.h"
 #include "kinect_interface/open_ni_funcs.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
+#include "kinect_interface/hand_detector/hand_detector.h"
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector.h"
 #include "jtil/clk/clk.h"
@@ -83,14 +84,15 @@
 
 // PRIMESENSE DATA
 //#define IM_DIR_BASE string("data/hand_depth_data/")
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405)
+#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405)
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_05_03_1/")  // Cal + Fit (6533)
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_1/")  // Cal + Fit (8709)
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_2/")  // Cal + Fit (8469)
-#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_3/")  // Cal (OK)
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_3/")  // Cal (OK)
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
 #define MAX_KINECTS 3
+#define NUM_WORKER_THREADS 6
 
 #if defined(__APPLE__)
   #define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
@@ -112,11 +114,13 @@ using namespace jtil::math;
 using namespace jtil::data_str;
 using namespace jtil::file_io;
 using namespace jtil::image_util;
+using namespace jtil::threading;
 using namespace model_fit;
 using namespace renderer;
 using namespace windowing;
 using namespace kinect_interface;
 using namespace kinect_interface::hand_net;
+using namespace kinect_interface::hand_detector;
 
 jtil::clk::Clk* clk = NULL;
 double t1, t0;
@@ -196,15 +200,27 @@ float temp_rgb[3 * src_dim];
 bool render_depth = true;
 int playback_step = 1;
 OpenNIFuncs openni_funcs;
+Texture* tex = NULL;
+uint8_t tex_data[src_dim * 3];
+
+// Decision forests
+HandDetector* hand_detect = NULL;
 
 // ICP
 jtil::math::ICP icp;
 
+// Multithreading
+ThreadPool* tp;
+
 void quit() {
+  tp->stop();
+  delete tp;
   for (uint32_t i = 0; i < num_models; i++) {
     models[i]->setRendererAttachement(true);  // Make sure Geometry manager deletes models
     SAFE_DELETE(models[i]);
   }
+  SAFE_DELETE(hand_detect);
+  SAFE_DELETE(tex);
   SAFE_DELETE_ARR(models);
   SAFE_DELETE_ARR(coeff);
   SAFE_DELETE_ARR(prev_coeff);
@@ -1355,6 +1371,29 @@ void renderFrame(float dt) {
     fit->model_renderer()->visualizeDepthMap(wnd, cur_kinect);
 #endif
     break;
+  case 3:
+    hand_detect->findHandLabels(cur_depth_data[cur_kinect], 
+      cur_xyz_data[cur_kinect], HDLabelMethod::HDFloodfill, 
+      cur_label_data[cur_kinect]);
+    for (uint32_t v = 0; v < src_height; v++) {
+      for (uint32_t u = 0; u < src_width; u++) {
+        uint32_t i = v * src_width + u;
+        uint32_t i_dst = (src_height - 1 - v) * src_width + u;
+        int16_t depth = cur_depth_data[cur_kinect][i];
+        uint8_t grey_val = (uint8_t)(depth >> 3);
+        tex_data[3 * i_dst] = grey_val;
+        tex_data[3 * i_dst + 1] = grey_val;
+        tex_data[3 * i_dst + 2] = grey_val;
+        if (cur_label_data[cur_kinect][i] != 0) {
+          tex_data[3 * i_dst] = 255;
+          tex_data[3 * i_dst + 1] = 0;
+          tex_data[3 * i_dst + 2] = 0;
+        }
+      }
+    }
+    tex->reloadData((unsigned char*)tex_data);
+    render->renderFullscreenQuad(tex);
+    break;
   default:
     throw runtime_error("ERROR: render_output is an incorrect value");
   }
@@ -1365,7 +1404,7 @@ int main(int argc, char *argv[]) {
   static_cast<void>(argc); static_cast<void>(argv);
 #if defined(_DEBUG) && defined(_WIN32)
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-  //_CrtSetBreakAlloc(9002);
+  // _CrtSetBreakAlloc(2997);
 #endif
 
   cout << "Usage:" << endl;
@@ -1400,6 +1439,8 @@ int main(int argc, char *argv[]) {
   cout << "I - Change the current dst kinect" << endl << endl;
   
   try {
+    tp = new ThreadPool(NUM_WORKER_THREADS);
+
     clk = new jtil::clk::Clk();
     t1 = clk->getTime();
     
@@ -1434,6 +1475,11 @@ int main(int argc, char *argv[]) {
       -HAND_MODEL_CAMERA_VIEW_PLANE_NEAR, -HAND_MODEL_CAMERA_VIEW_PLANE_FAR, 
       fov_vert_deg);
 
+    tex = new Texture(GL_RGB8, src_width, src_height, GL_RGB, 
+      GL_UNSIGNED_BYTE, (unsigned char*)tex_data, 
+      TEXTURE_WRAP_MODE::TEXTURE_CLAMP, false,
+      TEXTURE_FILTER_MODE::TEXTURE_NEAREST);
+
     // Initialize the XYZ points geometry
     for (uint32_t k = 0; k < MAX_KINECTS; k++) {
       geometry_points[k] = new GeometryColoredPoints;
@@ -1445,6 +1491,10 @@ int main(int argc, char *argv[]) {
     for (uint32_t k = 0; k < MAX_KINECTS-1; k++) {
       geometry_lines[k] = NULL;
     }
+
+    hand_detect = new HandDetector(tp);
+    hand_detect->init(src_width, src_height, KINECT_HANDS_ROOT +
+      FOREST_DATA_FILENAME);
  
     // Load the Kinect data for fitting from file and process it
     image_io = new DepthImagesIO();
