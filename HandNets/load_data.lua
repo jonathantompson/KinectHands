@@ -310,93 +310,91 @@ dofile("centered_gaussian.lua")
 -- im = image.centered_gaussian{sigma=(1/width), amplitude=1, normalize=true, width=96, height=96, center_x=0.75, center_y=0.25}
 -- image.display{image=im, zoom=5}
 -- Generate the heat maps
-if (use_heat_maps == 1) then
-  testData.heat_maps = torch.FloatTensor(testData:size(), num_features, height, width)
-  trainData.heat_maps = torch.FloatTensor(trainData:size(), num_features, height, width)
-  if (regenerate_heat_maps == 1) then
-    os.execute('mkdir -p ' .. heatmap_dir)
-    cur_heat_map = torch.FloatTensor(num_features, height, width)
+testData.heat_maps = torch.FloatTensor(testData:size(), num_features, heat_map_height, 
+  heat_map_width)
+trainData.heat_maps = torch.FloatTensor(trainData:size(), num_features, heat_map_height, 
+  heat_map_width)
+if (regenerate_heat_maps == 1) then
+  os.execute('mkdir -p ' .. heatmap_dir)
+  cur_heat_map = torch.FloatTensor(num_features, heat_map_height, heat_map_width)
 
-    print '==> Creating heat map images on test set and saving to disk'
-    for i=1,testData:size() do
-      -- disp progress
-      if (math.mod(i, 100) == 1 or i == testData:size()) then
-        progress(i, testData:size())
-      end
-
-      for f=1,num_features do
-        cur_uv = testData.labels[{i,{f*2-1, f*2}}]
-        cur_heat_map[{f,{},{}}] = image.centered_gaussian{amplitude=1,
-          normalize=true, width=width, height=height, center_x=cur_uv[1], 
-          center_y=cur_uv[2], sigma_horz=(1/width), sigma_vert=(1/height)}
-      end
-      filename = heatmap_dir .. 'heatmap_' .. testData.files[i]
-      heatmap_file = torch.DiskFile(filename, 'w')
-      heatmap_file:binary()
-      heatmap_file:writeFloat(cur_heat_map:storage())
-      heatmap_file:close()
-
-      testData.heat_maps[{i,f,{},{}}]:copy(cur_heat_map)
+  print '==> Creating heat map images on test set and saving to disk'
+  for i=1,testData:size() do
+    -- disp progress
+    if (math.mod(i, 100) == 1 or i == testData:size()) then
+      progress(i, testData:size())
     end
 
-    print '==> Creating heat map images on training set'
-    for i=1,trainData:size() do
-      -- disp progress
-      if (math.mod(i, 100) == 1 or i == trainData:size()) then
-        progress(i, trainData:size())
-      end
-
-      for f=1,num_features do
-        cur_uv = trainData.labels[{i,{f*2-1, f*2}}]
-        cur_heat_map[{f,{},{}}] = image.centered_gaussian{amplitude=1,
-          normalize=true, width=width, height=height, center_x=cur_uv[1], 
-          center_y=cur_uv[2], sigma_horz=(1/width), sigma_vert=(1/height)}
-      end
-      filename = heatmap_dir .. 'heatmap_' .. trainData.files[i] .. '.bin'
-      heatmap_file = torch.DiskFile(filename, 'w')
-      heatmap_file:binary()
-      heatmap_file:writeFloat(cur_heat_map:storage())
-      heatmap_file:close()
-
-      trainData.heat_maps[{i,f,{},{}}]:copy(cur_heat_map)
+    for f=1,num_features do
+      cur_uv = testData.labels[{i,{f*2-1, f*2}}]
+      cur_heat_map[{f,{},{}}] = image.centered_gaussian{amplitude=1,
+        normalize=true, width=heat_map_width, height=heat_map_height, center_x=cur_uv[1], 
+        center_y=cur_uv[2], sigma_horz=(1/heat_map_width), sigma_vert=(1/heat_map_height)}
     end
-  else
-    print '==> Loading test set heat maps from file'
-    for i=1,testData:size() do
-      -- disp progress
-      if (math.mod(i, 100) == 1 or i == testData:size()) then
-        progress(i, testData:size())
-      end
+    filename = heatmap_dir .. 'heatmap_' .. testData.files[i]
+    heatmap_file = torch.DiskFile(filename, 'w')
+    heatmap_file:binary()
+    heatmap_file:writeFloat(cur_heat_map:storage())
+    heatmap_file:close()
 
-      filename_num = string.gfind(testData.files[i], "(%d+)")()
-      filename = heatmap_dir .. 'heatmap_' .. filename_num .. '.bin'
-      heatmap_file = torch.DiskFile(filename, 'r')
-      heatmap_file:binary()
-      heatmap_data = heatmap_file:readFloat(num_features * width * height)
-      heatmap_file:close()
+    testData.heat_maps[{i,f,{},{}}]:copy(cur_heat_map)
+  end
+
+  print '==> Creating heat map images on training set'
+  for i=1,trainData:size() do
+    -- disp progress
+    if (math.mod(i, 100) == 1 or i == trainData:size()) then
+      progress(i, trainData:size())
+    end
+
+    for f=1,num_features do
+      cur_uv = trainData.labels[{i,{f*2-1, f*2}}]
+      cur_heat_map[{f,{},{}}] = image.centered_gaussian{amplitude=1,
+        normalize=true, width=heat_map_width, height=heat_map_height, center_x=cur_uv[1], 
+        center_y=cur_uv[2], sigma_horz=(1/heat_map_width), sigma_vert=(1/heat_map_height)}
+    end
+    filename = heatmap_dir .. 'heatmap_' .. trainData.files[i]
+    heatmap_file = torch.DiskFile(filename, 'w')
+    heatmap_file:binary()
+    heatmap_file:writeFloat(cur_heat_map:storage())
+    heatmap_file:close()
+
+    trainData.heat_maps[{i,f,{},{}}]:copy(cur_heat_map)
+  end
+else
+  print '==> Loading test set heat maps from file'
+  for i=1,testData:size() do
+    -- disp progress
+    if (math.mod(i, 100) == 1 or i == testData:size()) then
+      progress(i, testData:size())
+    end
+
+    filename = heatmap_dir .. 'heatmap_' .. testData.files[i]
+    heatmap_file = torch.DiskFile(filename, 'r')
+    heatmap_file:binary()
+    heatmap_data = heatmap_file:readFloat(num_features * heat_map_width * heat_map_height)
+    heatmap_file:close()
   
-      testData.heat_maps[{i,f,{},{}}]:copy(torch.FloatTensor(heatmap_data, 1,
-        torch.LongStorage{num_features, width, height}):float())
+    testData.heat_maps[{i,f,{},{}}]:copy(torch.FloatTensor(heatmap_data, 1,
+      torch.LongStorage{num_features, heat_map_width, heat_map_height}):float())
+  end
+  print '==> Loading training set heat maps from file'
+  for i=1,trainData:size() do
+    -- disp progress
+    if (math.mod(i, 1000) == 1 or i == trainData:size()) then
+      progress(i, trainData:size())
     end
-    print '==> Loading training set heat maps from file'
-    for i=1,trainData:size() do
-      -- disp progress
-      if (math.mod(i, 1000) == 1 or i == trainData:size()) then
-        progress(i, trainData:size())
-      end
 
-      filename_num = string.gfind(trainData.files[i], "(%d+)")()
-      filename = heatmap_dir .. 'heatmap_' .. filename_num .. '.bin'
-      heatmap_file = torch.DiskFile(filename, 'r')
-      heatmap_file:binary()
-      heatmap_data = heatmap_file:readFloat(num_features * width * height)
-      heatmap_file:close()
+    filename = heatmap_dir .. 'heatmap_' .. trainData.files[i]
+    heatmap_file = torch.DiskFile(filename, 'r')
+    heatmap_file:binary()
+    heatmap_data = heatmap_file:readFloat(num_features * heat_map_width * heat_map_height)
+    heatmap_file:close()
   
-      trainData.heat_maps[{i,f,{},{}}]:copy(torch.FloatTensor(heatmap_data, 1,
-        torch.LongStorage{num_features, width, height}):float())
-    end
-  end  -- if (regenerate_heat_maps == 1) then
-end  -- if (use_heat_maps == 1) then
+    trainData.heat_maps[{i,f,{},{}}]:copy(torch.FloatTensor(heatmap_data, 1,
+      torch.LongStorage{num_features, heat_map_width, heat_map_height}):float())
+  end
+end  -- if (regenerate_heat_maps == 1) then
 
 
 

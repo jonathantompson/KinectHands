@@ -35,6 +35,8 @@ print(cutorch.getDeviceProperties(cutorch.getDevice()))
 
 width = 96
 height = 96
+heat_map_width = width/4  -- Decimation should equal the convnet pooling
+heat_map_height = height/4
 num_hpf_banks = 3
 dim = width * height
 num_coeff = 16
@@ -42,7 +44,6 @@ num_coeff_per_feature = 2  -- UV = 2, UVD = 3
 num_features = num_coeff / num_coeff_per_feature
 frame_stride = 1  -- Only 1 works for now
 perform_training = 1
-use_heat_maps = 1
 regenerate_heat_maps = 0  -- Very slow, otherwise it will load them from file
 model_filename = 'handmodel.net'
 im_dir = "../data/hand_depth_data_processed_for_CN/"
@@ -67,6 +68,7 @@ dofile('visualize_data.lua')  -- Just define the function:
 if (visualize_data == 1) then
   VisualizeData(trainData)
   VisualizeData(testData)
+  VisualizeImage(trainData, 1)
 end
 
 -- ***************** Define Criterion (loss) function *****************
@@ -76,10 +78,10 @@ if (perform_training == 1) then
 
   -- ***************** define the model parameters ********************
   nfeats = 1
-  nstates = {{16, 48}, {16, 48}, {16, 48}}
-  nstates_nn = 2048
+  nstates = {{8, 20}, {8, 20}, {8, 20}}
+  -- nstates_nn = 2048  --> Trying just one linear layer for now
   filtsize = {{7, 6}, {7, 6}, {7, 5}}
-  poolsize = {{2, 4}, {2, 2}, {2, 1}}  -- Note: 1 = no pooling
+  poolsize = {{2, 2}, {2, 1}, {1, 1}}  -- Note: 1 = no pooling
   normkernel = torch.ones(5):float()
 
   -- *********************** define the model *************************
