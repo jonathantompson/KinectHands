@@ -30,7 +30,7 @@ function test()
       data = {},
       -- labels = torch.CudaTensor(cur_batch_size, num_coeff),
       size = function() return cur_batch_size end,
-      heat_maps = torch.FloatTensor(cur_batch_size, num_features, heat_map_height,
+      heat_maps = torch.FloatTensor(cur_batch_size, num_features * heat_map_height * 
         heat_map_width)
     }
     for j=1,num_hpf_banks do
@@ -43,7 +43,9 @@ function test()
         batchData.data[j][{out_i,{},{},{}}] = testData.data[j][{i,{},{},{}}]
       end
       --batchData.labels[{out_i,{}}] = testData.labels[i]
-      batchData.heat_maps[{out_i,{},{},{}}] = testData.heat_maps[{i,{},{},{}}]
+      batchData.heat_maps[{out_i,{}}] = torch.FloatTensor(
+        testData.heat_maps[{i,{},{},{}}]:storage(), 1, torch.LongStorage{num_features *
+        heat_map_height * heat_map_width})
       out_i = out_i + 1
     end
     for j=1,num_hpf_banks do
