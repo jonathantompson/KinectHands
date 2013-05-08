@@ -96,8 +96,10 @@ print(banks_total_output_size)
 nn_output_length = heat_map_width * heat_map_height * num_features
 model:add(nn.Linear(banks_total_output_size, nn_output_length))
 
-print("    Final output size")
+print("    Final output size (before reshape)")
 print(nn_output_length)
+
+model:add(nn.Reshape(num_features, heat_map_height, heat_map_width))
 
 print '==> Converting model to cuda'
 model:cuda()

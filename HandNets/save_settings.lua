@@ -6,7 +6,7 @@ set_file:ascii()
 -- Write the headers
 
 -- Input settings header
-set_file:writeString('W,H,#tr,#te,#coeff,num_banks,hpf_depth')
+set_file:writeString('W,H,HMW,HMH,#tr,#te,#coeff,num_banks,hpf_depth')
 for j=1,num_hpf_banks do
   -- Stage 1 settings header
   set_file:writeString('filt_rad,fan-in,#feat,non-lin,norm.,pooling,')
@@ -24,6 +24,7 @@ set_file:writeString('\n')
 
 -- Input settings
 set_file:writeString(string.format('%d,%d,', width, height))
+set_file:writeString(string.format('%d,%d,', heat_map_width, heat_map_height))
 set_file:writeString(string.format('%d,%d,', trainData.size(), testData.size()))
 set_file:writeString(string.format('%d,', num_coeff))
 set_file:writeString(string.format('%d,', num_hpf_banks))

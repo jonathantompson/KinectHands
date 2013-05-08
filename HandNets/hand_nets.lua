@@ -80,7 +80,7 @@ if (perform_training == 1) then
   -- ***************** define the model parameters ********************
   nfeats = 1
   nstates = {{16, 16}, {16, 16}, {16, 16}}  -- MUST BE MULTIPLES OF 16!
-  -- nstates_nn = 4096  --> Edit: May 8 2013: Only one linear stage for now
+  nstates_nn = 0  --> Edit: May 8 2013: Only one linear stage for now
   filtsize = {{7, 6}, {7, 6}, {7, 5}}
   poolsize = {{2, 2}, {2, 1}, {1, 1}}  -- Note: 1 = no pooling
 
@@ -128,6 +128,7 @@ if (perform_training == 1) then
   print '==> training!'
   test()
 
+  --[[
   function trainLoop()  
     c = parallel.fork()  -- Spawn a new thread for database manipulation
     c:exec(preturbThread)
@@ -160,6 +161,14 @@ if (perform_training == 1) then
   if not ok then print(err) end
 
   parallel.close()
+
+  --]]
+
+  -- Simple training loop: No per-epoch rotations
+  for i = 1,max_num_epochs do
+    train(trainData)
+    test()
+  end
 
 else  -- if perform_training
   -- *************** Calculate performance statistics *****************

@@ -28,8 +28,10 @@ function test()
     local batchData = {
       files = {},
       data = {},
-      labels = torch.CudaTensor(cur_batch_size, num_coeff),
-      size = function() return cur_batch_size end
+      -- labels = torch.CudaTensor(cur_batch_size, num_coeff),
+      size = function() return cur_batch_size end,
+      heat_maps = torch.FloatTensor(cur_batch_size, num_features, heat_map_height,
+        heat_map_width)
     }
     for j=1,num_hpf_banks do
       table.insert(batchData.data, torch.FloatTensor(cur_batch_size, 1, bank_dim[j][1], bank_dim[j][2]))
@@ -40,12 +42,14 @@ function test()
       for j=1,num_hpf_banks do
         batchData.data[j][{out_i,{},{},{}}] = testData.data[j][{i,{},{},{}}]
       end
-      batchData.labels[{out_i,{}}] = testData.labels[i]
+      --batchData.labels[{out_i,{}}] = testData.labels[i]
+      batchData.heat_maps[{out_i,{},{},{}}] = testData.heat_maps[{i,{},{},{}}]
       out_i = out_i + 1
     end
     for j=1,num_hpf_banks do
       batchData.data[j] = batchData.data[j]:cuda()
     end
+    batchData.heat_maps = batchData.heat_maps:cuda()
     t_minibatch = sys.clock() - t_minibatch
     total_t_minibatch = total_t_minibatch + t_minibatch
 
@@ -58,7 +62,7 @@ function test()
     cutorch.synchronize()
 
     local t_criterion = sys.clock()
-    local err = criterion:forward(pred, batchData.labels)
+    local err = criterion:forward(pred, batchData.heat_maps)
     t_criterion = sys.clock() - t_criterion
     total_t_criterion = total_t_criterion + t_criterion  
 
