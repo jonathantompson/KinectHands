@@ -19,6 +19,7 @@ dofile("modules_cc.lua")
 
 torch.setnumthreads(8)
 torch.manualSeed(1)
+math.randomseed(1)
 
 torch.setdefaulttensortype('torch.FloatTensor')
 print("GPU That will be used:")
@@ -44,12 +45,11 @@ num_coeff_per_feature = 2  -- UV = 2, UVD = 3
 num_features = num_coeff / num_coeff_per_feature
 frame_stride = 1  -- Only 1 works for now
 perform_training = 1
-regenerate_heat_maps = 0  -- Very slow, otherwise it will load them from file
+regenerate_heat_maps = 0  -- slow, otherwise it will load them from file
 model_filename = 'handmodel.net'
 im_dir = "../data/hand_depth_data_processed_for_CN/"
 test_im_dir = "../data/hand_depth_data_processed_for_CN_testset/"
 heatmap_dir = "../data/heatmaps/"
-test_data_rate = 20  -- this means 1 / 20 FROM THE TRAINING SET will be test
 use_hpf_depth = 1
 learning_rate = 3e-1  -- Default 1e-1
 l2_reg_param = 2e-4  -- Default 2e-4
@@ -69,6 +69,7 @@ if (visualize_data == 1) then
   VisualizeData(trainData)
   VisualizeData(testData)
   VisualizeImage(trainData, 1)
+  VisualizeImage(testData, 1)
 end
 
 -- ***************** Define Criterion (loss) function *****************
@@ -78,11 +79,10 @@ if (perform_training == 1) then
 
   -- ***************** define the model parameters ********************
   nfeats = 1
-  nstates = {{8, 20}, {8, 20}, {8, 20}}
-  -- nstates_nn = 2048  --> Trying just one linear layer for now
+  nstates = {{16, 16}, {16, 16}, {16, 16}}  -- MUST BE MULTIPLES OF 16!
+  -- nstates_nn = 4096  --> Edit: May 8 2013: Only one linear stage for now
   filtsize = {{7, 6}, {7, 6}, {7, 5}}
   poolsize = {{2, 2}, {2, 1}, {1, 1}}  -- Note: 1 = no pooling
-  normkernel = torch.ones(5):float()
 
   -- *********************** define the model *************************
   dofile('define_model.lua')
@@ -172,6 +172,11 @@ if false then
   table.insert(input, torch.FloatTensor(1, 96, 96):zero():cuda())
   table.insert(input, torch.FloatTensor(1, 96/2, 96/2):zero():cuda())
   table.insert(input, torch.FloatTensor(1, 96/4, 96/4):zero():cuda())
+
+  batch_input = {}
+  table.insert(batch_input, torch.rand(128, 4, 96, 96):cuda())
+  table.insert(batch_input, torch.rand(128, 4, 96/2, 96/2):cuda())
+  table.insert(batch_input, torch.rand(128, 4, 96/4, 96/4):cuda())
 end
 
 

@@ -9,11 +9,6 @@ banks_total_output_size = 0
 for j=1,num_hpf_banks do
   table.insert(banks, nn.Sequential())
   tensor_dim = {1, bank_dim[j][1], bank_dim[j][2]}
-
-  -- TO DO: Switch to this:
-  -- nn.SpatialConvolutionCUDA
-  -- nn.Threshold
-  -- nn.SpatialMaxPoolingCUDA
   
   -- Stage 1
   -- banks[j]:add(nn.SpatialConvolution(nfeats, nstates[j][1], 
@@ -75,29 +70,34 @@ model:add(parallel_stages)
 model:add(nn.JoinTable(2))  -- Take the table of tensors and concat them
 
 -- stage 3 : standard 2-layer neural network
+-- Temporary edit May 8 2013 --> Now only using one stage network
 
+--[[
 print("    Neural net first stage input size")
 print(banks_total_output_size)
 
-model:add(nn.Linear(banks_total_output_size, nstates_nn))
+model:add(nn.Linear(banks_total_output_size, (nstates_nn))
 model:get(3).bias:add(-model:get(3).bias:min()) -- Set up the initial condition
 model:add(nn.Threshold())
 
 print("    Neural net first stage output size")
 print(nstates_nn)
 
--- EXTRA LINEAR LAYER
--- model:add(nn.Linear(nstates_nn, nstates_nn))
--- model:get(5).bias:add(-model:get(5).bias:min()) -- Set up the initial condition
--- model:add(nn.Threshold())
--- print("    Neural net second stage output size")
--- print(nstates_nn)
--- END EXTRA LINEAR LAYER
-
-model:add(nn.Linear(nstates_nn, num_coeff))
+nn_output_length = heat_map_width * heat_map_height * num_features
+model:add(nn.Linear(nstates_nn, nn_output_length))
 
 print("    Final output size")
-print(num_coeff)
+print(nn_output_length)
+--]]
+
+print("    Neural net first stage input size")
+print(banks_total_output_size)
+
+nn_output_length = heat_map_width * heat_map_height * num_features
+model:add(nn.Linear(banks_total_output_size, nn_output_length))
+
+print("    Final output size")
+print(nn_output_length)
 
 print '==> Converting model to cuda'
 model:cuda()

@@ -140,14 +140,8 @@ end
 
 -- ************ Load data from Disk ***************
 print '==> Loading hand data from directory...'
-nfiles = math.floor(#im_files / frame_stride)
-tesize = math.floor(nfiles / test_data_rate) + 1
-trsize = nfiles - tesize
-tesize = tesize + #test_im_files  -- Also add in the training files from the separate dir
-if tesize <= 0 then
-  print("test set size is <= 0")
-  return
-end
+trsize = #im_files
+tesize = #test_im_files
 trainData = {
   files = {},
   data = {},  -- Multi-bank input (usually 3)
@@ -172,60 +166,41 @@ end
 
 -- LOAD IN TRAINING SET DIRECTORY --> SOME IMAGES GO TO TEST SET AS WELL!
 itr = 1
-ite = 1
-for i=1,nfiles do
+for i=1,#im_files do
   -- disp progress
-  if (math.mod(i, 1000) == 1 or i == nfiles) then
-    progress(i, nfiles)
+  if (math.mod(i, 1000) == 1 or i == #im_files) then
+    progress(i, #im_files)
   end
 
   -- Read in the sample
-  coeff_file = torch.DiskFile(im_dir .. coeffr_files[i*frame_stride], 'r')
+  coeff_file = torch.DiskFile(im_dir .. coeffr_files[i], 'r')
   coeff_file:binary()
   coeff_data = coeff_file:readFloat(num_coeff)
   coeff_file:close()
 
-  hpf_depth_file = torch.DiskFile(im_dir .. im_files[i*frame_stride],'r')
+  hpf_depth_file = torch.DiskFile(im_dir .. im_files[i],'r')
   hpf_depth_file:binary()
   hpf_depth_data = hpf_depth_file:readFloat(data_file_size)
   hpf_depth_file:close()
 
-  if math.mod(i, test_data_rate) ~= 0 then
-    if itr <= trsize then
-      -- this sample is training data
-      -- We need to split the long vector
-      ind = 1
-      for j=1,num_hpf_banks do
-        trainData.data[j][{itr, 1, {}, {}}] = torch.FloatTensor(
-          hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
-          bank_dim[j][2]}):float()
-        ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
-      end
-      trainData.labels[{itr, {}}] = torch.FloatTensor(coeff_data, 1,
-        torch.LongStorage{num_coeff}):float()
-      trainData.files[itr] = im_files[i]
-      itr = itr + 1
-    end
-  else
-    if ite <= tesize then
-      -- this sample is test data
-      -- We need to split the long vector
-      ind = 1
-      for j=1,num_hpf_banks do
-        testData.data[j][{ite, 1, {}, {}}] = torch.FloatTensor(
-          hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
-          bank_dim[j][2]})
-        ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
-      end
-      testData.labels[{ite, {}}] = torch.FloatTensor(coeff_data, 1,
-        torch.LongStorage{num_coeff}):float()
-      testData.files[ite] = im_files[i*frame_stride]
-      ite = ite + 1
-    end
+  -- this sample is training data
+  -- We need to split the long vector
+  ind = 1
+  for j=1,num_hpf_banks do
+    trainData.data[j][{itr, 1, {}, {}}] = torch.FloatTensor(
+      hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
+      bank_dim[j][2]}):float()
+    ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
   end
+  trainData.labels[{itr, {}}] = torch.FloatTensor(coeff_data, 1,
+    torch.LongStorage{num_coeff}):float()
+  trainData.files[itr] = im_files[i]
+  itr = itr + 1
 end
+itr = itr - 1
 
 -- NOW LOAD IN TEST SET DIRECTORY
+ite = 1
 for i=1,#test_im_files do
   -- disp progress
   if (math.mod(i, 100) == 1 or i == #test_im_files) then
@@ -242,43 +217,22 @@ for i=1,#test_im_files do
   hpf_depth_file:binary()
   hpf_depth_data = hpf_depth_file:readFloat(data_file_size)
   hpf_depth_file:close()
-  if ite <= tesize then
-    -- this sample is test data
-    -- We need to split the long vector
-    ind = 1
-    for j=1,num_hpf_banks do
-      testData.data[j][{ite, 1, {}, {}}] = torch.FloatTensor(
-        hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
-        bank_dim[j][2]})
-      ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
-    end
-    testData.labels[{ite, {}}] = torch.FloatTensor(coeff_data, 1,
-      torch.LongStorage{num_coeff}):float()
-    testData.files[ite] = test_im_files[i]
-    ite = ite + 1
-  end
-end
 
------ Hack: something goes wrong for certain cases, just redefine what we loaded
-tesize = ite - 1
-trsize = itr - 1
-nfiles = tesize + trsize
-for i=trsize+1,#trainData.files do
-  table.remove(trainData.files, trsize+1)
+  -- this sample is test data
+  -- We need to split the long vector
+  ind = 1
+  for j=1,num_hpf_banks do
+    testData.data[j][{ite, 1, {}, {}}] = torch.FloatTensor(
+      hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], 
+      bank_dim[j][2]})
+    ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
+  end
+  testData.labels[{ite, {}}] = torch.FloatTensor(coeff_data, 1,
+    torch.LongStorage{num_coeff}):float()
+  testData.files[ite] = test_im_files[i]
+  ite = ite + 1
 end
-for j=1,num_hpf_banks do
-  trainData.data[j] = trainData.data[j][{{1,trsize}, {}, {}, {}}]
-end
-trainData.labels = trainData.labels[{{1,trsize}, {}}]
-trainData.size = function() return trsize end
-for i=tesize+1,#testData.files do
-  table.remove(testData.files, tesize+1)
-end
-for j=1,num_hpf_banks do
-  testData.data[j] = testData.data[j][{{1,tesize}, {}, {}, {}}]
-end
-testData.labels = testData.labels[{{1,tesize}, {}}]
-testData.size = function() return tesize end
+ite = ite - 1
 
 print(string.format("    Loaded %d test set images and %d training set images", 
   tesize, trsize))
@@ -340,7 +294,7 @@ if (regenerate_heat_maps == 1) then
     testData.heat_maps[{i,f,{},{}}]:copy(cur_heat_map)
   end
 
-  print '==> Creating heat map images on training set'
+  print '==> Creating heat map images on training set and saving to disk'
   for i=1,trainData:size() do
     -- disp progress
     if (math.mod(i, 100) == 1 or i == trainData:size()) then
@@ -368,7 +322,7 @@ else
     if (math.mod(i, 100) == 1 or i == testData:size()) then
       progress(i, testData:size())
     end
-
+    
     filename = heatmap_dir .. 'heatmap_' .. testData.files[i]
     heatmap_file = torch.DiskFile(filename, 'r')
     heatmap_file:binary()
