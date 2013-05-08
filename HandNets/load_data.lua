@@ -38,13 +38,13 @@ hpf_depth_files = {}
 depth_files = {}
 for i=1,#files,1 do
   if files[i] ~= nil then
-    if string.find(files[i], "coeffr_hands_") ~= nil then
+    if string.find(files[i], "coeffr_") ~= nil then
       table.insert(coeffr_files, files[i])
 --    elseif string.find(files[i], "coeffl_hands_") ~= nil then
 --      table.insert(coeffl_files, files[i])
-    elseif string.find(files[i], "hpf_processed_hands_") ~= nil then
+    elseif string.find(files[i], "hpf_processed_") ~= nil then
       table.insert(hpf_depth_files, files[i])
-    elseif string.find(files[i], "processed_hands_") ~= nil then
+    elseif string.find(files[i], "processed_") ~= nil then
       table.insert(depth_files, files[i])
     end
   end
@@ -67,13 +67,13 @@ test_hpf_depth_files = {}
 test_depth_files = {}
 for i=1,#files,1 do
   if files[i] ~= nil then
-    if string.find(files[i], "coeffr_hands_") ~= nil then
+    if string.find(files[i], "coeffr_") ~= nil then
       table.insert(test_coeffr_files, files[i])
 --    elseif string.find(files[i], "coeffl_hands_") ~= nil then
 --      table.insert(coeffl_files, files[i])
-    elseif string.find(files[i], "hpf_processed_hands_") ~= nil then
+    elseif string.find(files[i], "hpf_processed_") ~= nil then
       table.insert(test_hpf_depth_files, files[i])
-    elseif string.find(files[i], "processed_hands_") ~= nil then
+    elseif string.find(files[i], "processed_") ~= nil then
       table.insert(test_depth_files, files[i])
     end
   end
@@ -111,16 +111,31 @@ shuffle_files_right(test_coeffr_files, test_im_files)
 print("==> Verifying the file order...")
 for i=1,#im_files do
   local tFinal = {}
-  if (string.gfind(im_files[i], "(%d+)")() ~= string.gfind(coeffr_files[i], "(%d+)")()) then
-    print("Image file " .. string.format("%d", i) .. " doesn't match coeff file number!")
-    return
-  end
+  funca = string.gfind(im_files[i], "(%d+)")  -- Returns an iterator that will parse each number
+  funcb = string.gfind(coeffr_files[i], "(%d+)")
+  -- All numbers should match
+  repeat
+    numa = funca()
+    numb = funcb()
+    if (numa ~= numb) then
+      print("Image file " .. string.format("%d", i) .. " doesn't match coeff file number!")
+      return
+    end
+  until numa == nil
 end
- for i=1,#test_im_files do
-  if (string.gfind(test_im_files[i], "(%d+)")() ~= string.gfind(test_coeffr_files[i], "(%d+)")()) then
-    print("Image file " .. string.format("%d", i) .. " doesn't match coeff file number!")
-    return
-  end
+for i=1,#test_im_files do
+  local tFinal = {}
+  funca = string.gfind(test_im_files[i], "(%d+)")  -- Returns an iterator that will parse each number
+  funcb = string.gfind(test_coeffr_files[i], "(%d+)")
+  -- All numbers should match
+  repeat
+    numa = funca()
+    numb = funcb()
+    if (numa ~= numb) then
+      print("Image file " .. string.format("%d", i) .. " doesn't match coeff file number!")
+      return
+    end
+  until numa == nil
 end
 
 -- ************ Load data from Disk ***************
@@ -315,8 +330,7 @@ if (use_heat_maps == 1) then
           normalize=true, width=width, height=height, center_x=cur_uv[1], 
           center_y=cur_uv[2], sigma_horz=(1/width), sigma_vert=(1/height)}
       end
-      filename_num = string.gfind(testData.files[i], "(%d+)")()
-      filename = heatmap_dir .. 'heatmap_' .. filename_num .. '.bin'
+      filename = heatmap_dir .. 'heatmap_' .. testData.files[i]
       heatmap_file = torch.DiskFile(filename, 'w')
       heatmap_file:binary()
       heatmap_file:writeFloat(cur_heat_map:storage())
@@ -338,8 +352,7 @@ if (use_heat_maps == 1) then
           normalize=true, width=width, height=height, center_x=cur_uv[1], 
           center_y=cur_uv[2], sigma_horz=(1/width), sigma_vert=(1/height)}
       end
-      filename_num = string.gfind(trainData.files[i], "(%d+)")()
-      filename = heatmap_dir .. 'heatmap_' .. filename_num .. '.bin'
+      filename = heatmap_dir .. 'heatmap_' .. trainData.files[i] .. '.bin'
       heatmap_file = torch.DiskFile(filename, 'w')
       heatmap_file:binary()
       heatmap_file:writeFloat(cur_heat_map:storage())
