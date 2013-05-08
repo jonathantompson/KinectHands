@@ -17,9 +17,9 @@
 
 #define SKEL_NJOINTS 25
 #define SKELETON_SMOOTHING 0.05f
-#define MIRROR true  // true if you want OPEN to mirror all kinect data
+#define MIRROR true  // true if you want to mirror all kinect data
 #define KINECT_INTERFACE_NUM_WORKER_THREADS 4
-#define KINECT_INTERFACE_NUM_CONVERTER_THREADS 1  // cannot be > NUM_WORKER_THREADS
+#define KINECT_INTERFACE_NUM_CONVERTER_THREADS 4  // cannot be > NUM_WORKER_THREADS
 #define OPENNI_WAIT_TIMEOUT 50  // Maybe ms?
 
 namespace jtil { namespace clk { class Clk; } }

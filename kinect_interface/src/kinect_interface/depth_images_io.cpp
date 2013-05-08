@@ -4,7 +4,7 @@
   #include <stdio.h>
   #include <strsafe.h>
   #pragma comment(lib, "User32.lib")
-  #else
+#else
   #include <sys/types.h>
   #include <dirent.h>
 #endif
@@ -568,6 +568,7 @@ namespace kinect_interface {
     FindClose(hFind);
 
 #else
+    throw std::wruntime_error("Apple version needs updating!");
     string name_preamble;
     uint32_t preamble_length;
     if (!load_processed_images) {
@@ -641,7 +642,7 @@ namespace kinect_interface {
     // Third argument is an inline lambda expression (comparison function)
     std::cout << "sorting image filenames by timestamp..." << std::endl;
     std::sort(files.begin(), files.end(), [](Triple<char*, int64_t, int64_t>& a,
-      Triple<char*, int64_t, int64_t>& b) { return b.second >= a.second; });
+      Triple<char*, int64_t, int64_t>& b) { return b.second > a.second; });
 
     // Now copy them into the output array
     files_in_directory.capacity((uint32_t)files.size());

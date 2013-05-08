@@ -5,6 +5,17 @@
 //  classifier.
 //
 
+#if defined(WIN32) || defined(_WIN32)
+  #include <windows.h>
+  #include <tchar.h> 
+  #include <stdio.h>
+  #include <strsafe.h>
+  #pragma comment(lib, "User32.lib")
+#else
+  #include <sys/types.h>
+  #include <dirent.h>
+#endif
+
 #if defined(_WIN32) && defined(_DEBUG)
   #include <Windows.h>
   #include <crtdbg.h>  // for _CrtSetDbgFlag
@@ -16,6 +27,8 @@
 #include <iostream>
 #include <iomanip>
 #include <limits>
+#include <vector>
+#include <algorithm>
 
 #include "renderer/open_gl_common.h"
 #include "renderer/renderer.h"
@@ -47,19 +60,23 @@
 #include "jtil/file_io/file_io.h"
 #include "jtil/threading/thread_pool.h"
 #include "jtil/debug_util/debug_util.h"
+#include "jtil/data_str/hash_funcs.h"
+#include "jtil/math/math_base.h"  // for NextPrime
 
 // *************************************************************
 // ******************* CHANGEABLE PARAMETERS *******************
 // *************************************************************
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405) *
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_03_1/")  // Cal + Fit (6533) *
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_1/")  // Cal + Fit (8709) *
-#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_2/")  // Cal + Fit (8469) *
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_3/")  // Cal
+#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit + Proc (5405)
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_03_1/")  // Cal + Fit + Proc (6533)
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_1/")  // Cal + Fit + Proc (8709)
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_2/")  // Cal + Fit + Proc (8469)
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_3/")  // Cal + Fit + Proc (5815)  Total: 34931 
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_07_1/")  // Cal + Fit + Proc (2440) (Tr-data)
 
 #define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN/") 
+//#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN_testset/") 
 
-//#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
+#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
 #define SAVE_FILES  // Only enabled when we're not loading processed images
 //#define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
 //                              // HandForests, but save synthetic data (only 
@@ -108,6 +125,7 @@ using namespace kinect_interface::hand_detector;
 using namespace kinect_interface;
 using namespace model_fit;
 using namespace jtil::file_io;
+using namespace jtil::string_util;
 using renderer::Renderer;
 using renderer::Geometry;
 using renderer::GeometryManager;
@@ -140,6 +158,7 @@ ModelRenderer* hand_renderer = NULL;
 uint8_t label[src_dim];
 
 // Kinect Image data
+uint32_t IM_DIR_hash = HashString(MAX_UINT32, IM_DIR);
 DepthImagesIO* image_io = NULL;
 Vector<Triple<char*, int64_t, int64_t>> im_files;  // filename, kinect time, global time
 float cur_xyz_data[src_dim*3];
@@ -210,7 +229,7 @@ void loadCurrentImage() {
   //std::cout << "loading image: " << full_filename << std::endl;
 
 #ifdef LOAD_PROCESSED_IMAGES
-  string full_hpf_im_filename = DIR + std::string("hpf_") + im_files[cur_image];
+  string full_hpf_im_filename = DIR + std::string("hpf_") + im_files[cur_image].first;
 
   // Just load the processed image directly
   const float* im = hand_image_generator_->hand_image();
@@ -224,7 +243,7 @@ void loadCurrentImage() {
   memset(cur_image_rgb, 0, 3 * src_dim * sizeof(cur_image_rgb[0]));
   memset(cur_xyz_data, 0, 3 * src_dim * sizeof(cur_xyz_data[0]));
 
-  string src_file = im_files[cur_image];
+  string src_file = im_files[cur_image].first;
   src_file = src_file.substr(10, src_file.length());
   string r_coeff_file = DST_IM_DIR + string("coeffr_") + src_file;
   LoadArrayFromFile<float>(coeff_convnet, 
@@ -311,32 +330,38 @@ void saveFrame() {
   }
 
   if (found_hand) {
+    std::stringstream ss;
+    
     // Save the cropped image to file:
 #if defined(SAVE_DEPTH_IMAGES)
+    ss << DST_IM_DIR << "processed_" << IM_DIR_hash << "_" << im_files[cur_image].first;
     SaveArrayToFile<float>(hand_image_generator_->hand_image(),
-      hand_image_generator_->size_images(), DST_IM_DIR + 
-      string("processed_") + im_files[cur_image].first);
+      hand_image_generator_->size_images(), ss.str());
 #endif
 
     // Save the HPF images to file:
 #if defined(SAVE_HPF_IMAGES)
+    ss.str(string(""));
+    ss << DST_IM_DIR << "hpf_processed_" << IM_DIR_hash << "_" << im_files[cur_image].first;
     SaveArrayToFile<float>(hand_image_generator_->hpf_hand_image(),
-      hand_image_generator_->size_images(), DST_IM_DIR + std::string("hpf_processed_") + 
-      im_files[cur_image].first);
+      hand_image_generator_->size_images(), ss.str());
 #endif
 
-    string r_hand_file = DST_IM_DIR + string("coeffr_") + im_files[cur_image].first;
-    string l_hand_file = DST_IM_DIR + string("coeffl_") + im_files[cur_image].first;
+    ss.str(string(""));
+    ss << DST_IM_DIR << "coeffr_" << IM_DIR_hash << "_" << im_files[cur_image].first;
     SaveArrayToFile<float>(coeff_convnet,
-      HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, r_hand_file);
-    // Don't save it...  It's just blank anyway and will eat into our disk IO
+      HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, ss.str());
+
+    // Don't save LHand data...  It's just blank anyway and will eat into our 
+    // disk IO
+    //ss.str(string(""));
+    //ss << DST_IM_DIR << "coeffl_" << IM_DIR_hash << "_" << im_files[cur_image].first;
     //SaveArrayToFile<float>(blank_coeff,
-    //  HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, l_hand_file);
+    //  HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, ss.str());
   }
 #endif
 }
 
-int delete_confirmed = 0;
 void keyboardCB(int key, int action) {
   string full_im_filename;
   string full_hpf_im_filename;
@@ -344,9 +369,6 @@ void keyboardCB(int key, int action) {
   string l_coeff_file;
   string src_file;
 
-  if (key != 'd' && key != 'D') {
-    delete_confirmed = 0;
-  }
   if (action == RELEASED) {
     switch (key) {
     case 'P':
@@ -387,45 +409,33 @@ void keyboardCB(int key, int action) {
   case 'D':
   case 'd':
 #if defined(WIN32) || defined(_WIN32)
-    full_im_filename = DST_IM_DIR + string(im_files[cur_image]);
-    full_hpf_im_filename = DST_IM_DIR + std::string("hpf_") + im_files[cur_image];
-    src_file = im_files[cur_image];
+    full_im_filename = DST_IM_DIR + string(im_files[cur_image].first);
+    full_hpf_im_filename = DST_IM_DIR + std::string("hpf_") + 
+      im_files[cur_image].first;
+    src_file = im_files[cur_image].first;
     src_file = src_file.substr(10, src_file.length());
     r_coeff_file = DST_IM_DIR + string("coeffr_") + src_file;
     //l_coeff_file = DST_IM_DIR + string("coeffl_") + src_file;
 
-    if (delete_confirmed == 1) {
-      if(!DeleteFile(full_im_filename.c_str()) ||
-        !DeleteFile(r_coeff_file.c_str()) /*||
-        !DeleteFile(l_coeff_file.c_str())*/ ||
-        !DeleteFile(full_hpf_im_filename.c_str())) {
-        cout << "Error deleting files: " << endl;
-        cout << "    - " << full_im_filename.c_str() << endl;
-        cout << "    - " << r_coeff_file.c_str() << endl;
-        //cout << "    - " << l_coeff_file.c_str() << endl;
-        cout << "    - " << full_hpf_im_filename.c_str() << endl;
-        cout << endl;
-      } else {
-        cout << "Files deleted sucessfully: " << endl;
-        cout << "    - " << full_im_filename.c_str() << endl;
-        cout << "    - " << r_coeff_file.c_str() << endl;
-        //cout << "    - " << l_coeff_file.c_str() << endl;
-        cout << "    - " << full_hpf_im_filename.c_str() << endl;
-        cout << endl;
-        im_files.deleteAtAndShift((uint32_t)cur_image);
-        loadCurrentImage();
-      }
-      delete_confirmed = 0;
-    } else {
-      delete_confirmed++;
-      cout << "About to delete files: " << endl;
+    if(!DeleteFile(full_im_filename.c_str()) ||
+      !DeleteFile(r_coeff_file.c_str()) /*||
+      !DeleteFile(l_coeff_file.c_str())*/ ||
+      !DeleteFile(full_hpf_im_filename.c_str())) {
+      cout << "Error deleting files: " << endl;
       cout << "    - " << full_im_filename.c_str() << endl;
       cout << "    - " << r_coeff_file.c_str() << endl;
       //cout << "    - " << l_coeff_file.c_str() << endl;
       cout << "    - " << full_hpf_im_filename.c_str() << endl;
       cout << endl;
-      cout << "Press 'd' again " << 2 - delete_confirmed;
-      cout << " times to confirm" << endl;
+    } else {
+      cout << "Files deleted sucessfully: " << endl;
+      cout << "    - " << full_im_filename.c_str() << endl;
+      cout << "    - " << r_coeff_file.c_str() << endl;
+      //cout << "    - " << l_coeff_file.c_str() << endl;
+      cout << "    - " << full_hpf_im_filename.c_str() << endl;
+      cout << endl;
+      im_files.deleteAtAndShift((uint32_t)cur_image);
+      loadCurrentImage();
     }
 #else
     cout << "Delete function not implemented for Mac OS X" << endl;
@@ -502,6 +512,82 @@ void renderFrame() {
   wnd->swapBackBuffer();
 }
 
+uint32_t GetProcessedFilesInDirectory(
+    jtil::data_str::Vector<Triple<char*, int64_t, int64_t>>& files_in_directory, 
+    const string& directory, const uint32_t kinect_num) {
+    std::vector<Triple<char*, int64_t, int64_t>> files;
+#if defined(WIN32) || defined(_WIN32)
+    // Prepare string for use with FindFile functions.  First, copy the
+    // string to a buffer, then append '\*' to the directory name.
+    TCHAR szDir[MAX_PATH];
+    StringCchCopy(szDir, MAX_PATH, directory.c_str());
+    std::stringstream ss;
+    ss << "\\processed_*_hands" << kinect_num << "_*.bin";
+    StringCchCat(szDir, MAX_PATH, ss.str().c_str());
+
+    // Find the first file in the directory.
+    WIN32_FIND_DATA ffd;
+    HANDLE hFind = FindFirstFile(szDir, &ffd);
+    if (hFind == INVALID_HANDLE_VALUE) {
+      cout << "GetFilesInDirectory error getting dir info. Check that ";
+      cout << "directory is not empty!" << endl;
+      return 0;
+    }
+
+    do {
+      if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+      } else {
+        std::string cur_filename = ffd.cFileName;
+        char* name = new char[cur_filename.length() + 1];
+        strcpy(name, cur_filename.c_str());
+        files.push_back(Triple<char*, int64_t, int64_t>(name, -1, -1));
+      }
+    } while (FindNextFile(hFind, &ffd) != 0);
+    FindClose(hFind);
+
+#else
+    throw std::wruntime_error("Apple version needs updating!");
+#endif
+    // Now Parse the filenames and get their unique ID number
+    for (uint32_t i = 0; i < files.size(); i++) {
+      std::string str = files.at(i).first;
+      size_t i0 = str.find_first_of("0123456789");  // Database hash start
+      size_t i1 = (uint32_t)str.find_first_not_of("0123456789", i0);  // Database hash end
+      size_t i2 = str.find_first_of("0123456789", i1+1);  // Kinect Number
+      size_t i3 = str.find_first_of("0123456789", i2+1);  // Frame time start
+      size_t i4 = (uint32_t)str.find_first_not_of("0123456789", i3);  // Frame time end
+
+      if (i0 == string::npos || i1 == string::npos || i2 == string::npos || 
+        i3 == string::npos || i4 == string::npos) {
+        throw std::wruntime_error("DepthImagesIO::GetFilesInDirectory() - "
+          "ERROR: Couldn't parse filename!");
+      }
+      std::string database_str = str.substr(i0, i1-i0);
+      std::string frametime_str = str.substr(i3, i4-i3);
+
+      int64_t database_num = jtil::string_util::Str2Num<int64_t>(database_str);
+      int64_t frametime_num = jtil::string_util::Str2Num<int64_t>(frametime_str);
+      files.at(i).second = database_num;
+      files.at(i).third = frametime_num;
+    }
+
+    // Now sort the files by their unique id
+    // Third argument is an inline lambda expression (comparison function)
+    std::cout << "sorting image filenames by timestamp..." << std::endl;
+
+    // Now sort by both dataset and frame number
+    std::sort(files.begin(), files.end(), [](Triple<char*, int64_t, int64_t>& a,
+      Triple<char*, int64_t, int64_t>& b) { return b.second > a.second ? true : b.third > a.third; });
+
+    // Now copy them into the output array
+    files_in_directory.capacity((uint32_t)files.size());
+    for (uint32_t i = 0; i < files.size(); i++) {
+      files_in_directory.pushBack(files.at(i));
+    }
+
+    return files_in_directory.size();
+  };
+
 using std::cout;
 using std::endl;
 Float4x4 mat_tmp;
@@ -564,9 +650,9 @@ int main(int argc, char *argv[]) {
     // Load the Kinect data for fitting from file and process it
     image_io = new DepthImagesIO();
 #ifdef LOAD_PROCESSED_IMAGES
-    image_io->GetFilesInDirectory(im_files, DST_IM_DIR, true);
+    GetProcessedFilesInDirectory(im_files, DST_IM_DIR, 0);
 #else
-    image_io->GetFilesInDirectory(im_files, IM_DIR, false);
+    image_io->GetFilesInDirectory(im_files, IM_DIR, 0, NULL);
 #endif
 
     // Attach callback functions for event handling

@@ -80,15 +80,16 @@
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")  // Fit
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Fit
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Fit
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Fit -> Training Data
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Fit (Tr-data)
 
 // PRIMESENSE DATA
 //#define IM_DIR_BASE string("data/hand_depth_data/")
-#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_03_1/")  // Cal + Fit (6533)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_1/")  // Cal + Fit (8709)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_2/")  // Cal + Fit (8469)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_3/")  // Cal (OK)
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit + Proc (5405)
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_03_1/")  // Cal + Fit + Proc (6533)
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_1/")  // Cal + Fit + Proc (8709)
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_2/")  // Cal + Fit + Proc (8469)
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_3/")  // Cal + Fit + Proc (5815)  Total: 34931 
+#define IM_DIR_BASE string("data/hand_depth_data_2013_05_07_1/")  // Cal (Tr-data)
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
 #define MAX_KINECTS 3

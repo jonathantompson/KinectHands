@@ -249,6 +249,7 @@ namespace app {
       GET_SETTING("label_type_enum", int, label_type_enum);
 
       // Copy over the data from all the kinect threads
+      new_data_ = false;
       executeThreadCallbacks(tp_, kinect_update_cbs_);
 
       std::stringstream ss;
@@ -311,6 +312,37 @@ namespace app {
               im_[i*3] = val;
               im_[i*3+1] = val;
               im_[i*3+2] = val;
+            }
+          }
+          break;
+        case OUTPUT_DEPTH_ALL_VIEWS:
+          {
+            const uint32_t n_tiles_x = 
+              (uint32_t)std::ceil(sqrtf((float)MAX_NUM_KINECTS));
+            const uint32_t n_tiles_y = MAX_NUM_KINECTS / n_tiles_x;
+            const uint32_t tile_res_x = src_width / n_tiles_x;
+            const uint32_t tile_res_y = src_height / n_tiles_y;
+            uint32_t k = 0;
+            for (uint32_t vtile = 0; vtile < n_tiles_y; vtile++) {
+              for (uint32_t utile = 0; utile < n_tiles_x; utile++, k++) {
+                // Just point sample the kinects (no need to get fancy)
+                uint32_t v_dst = vtile * tile_res_y;
+                uint32_t v_src = 0;
+                for (; v_dst < ((vtile + 1) * tile_res_y) && v_src < src_height;
+                  v_dst++, v_src+=n_tiles_y) {
+                  uint32_t u_dst = utile * tile_res_x;
+                  uint32_t u_src = 0;
+                  for (; u_dst < ((utile + 1) * tile_res_x) && u_src < src_width;
+                    u_dst++, u_src+=n_tiles_x) {
+                    uint32_t i_src = v_src * src_width + u_src;
+                    uint32_t i_dst = v_dst * src_width + u_dst;
+                    const uint8_t val = ((kdata_[k]->depth[i_src] & 0x7fff) / 5) % 255;
+                    im_[i_dst*3] = val;
+                    im_[i_dst*3+1] = val;
+                    im_[i_dst*3+2] = val;
+                  }
+                }
+              }
             }
           }
           break;
@@ -508,6 +540,8 @@ namespace app {
       ui::UIEnumVal(OUTPUT_RGB_REGISTERED, "RGB Registered"));
     ui->addSelectboxItem("kinect_output", 
       ui::UIEnumVal(OUTPUT_DEPTH, "Depth"));
+    ui->addSelectboxItem("kinect_output",
+      ui::UIEnumVal(OUTPUT_DEPTH_ALL_VIEWS, "Depth (all views)"));
     ui->addSelectboxItem("kinect_output", 
       ui::UIEnumVal(OUTPUT_DEPTH_RAINBOW, "Depth Rainbow"));
     ui->addSelectboxItem("kinect_output", 
@@ -655,7 +689,7 @@ namespace app {
     GET_SETTING("cur_kinect", int, cur_kinect);
     GET_SETTING("kinect_output", int, kinect_output);
     if (index == cur_kinect) {
-      new_data_ = kdata_[index]->syncWithKinect(kinect_[index], 
+      new_data_ |= kdata_[index]->syncWithKinect(kinect_[index], 
         kinect_output == OUTPUT_HAND_DETECTOR_DEPTH, render_labels_);
     } else {
       kdata_[index]->syncWithKinect(kinect_[index],
