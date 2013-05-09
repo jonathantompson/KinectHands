@@ -127,7 +127,8 @@ print '    Average Test Set Error Value:'
 print(te_crit_error:mean())
 
 -- ********************** Show the heat map of an output ***********************
-trImage_index = 1
+trImage_index = 410
+print(string.format('Training set image: %d', trImage_index))
 trImage = {
   files = {},
   data = {},
@@ -139,17 +140,48 @@ for j=1,num_hpf_banks do
   table.insert(trImage.data, trainData.data[j][{{trImage_index},{},{},{}}])
 end
 dofile('visualize_data.lua')  -- Just in case it hasn't been loaded
-VisualizeImage(trImage, 1)
+--VisualizeImage(trImage, 1)
 for j=1,num_hpf_banks do
   trImage.data[j] = trImage.data[j]:cuda()
 end
+target_heat_map_vec = torch.FloatTensor(
+  trImage.heat_maps:storage(), 1, torch.LongStorage{num_features *
+  heat_map_height * heat_map_width})
 trImage.heat_maps = model:forward(trImage.data):float()
 for j=1,num_hpf_banks do
   trImage.data[j] = trImage.data[j]:float()
 end
-trImage.heat_maps = torch.FloatTensor(trImage.heat_maps:storage(), 1, 
+delta_heat_map_vec = target_heat_map_vec - trImage.heat_maps
+delta_heat_map_vec = delta_heat_map_vec:abs()
+trImage.heat_maps = torch.FloatTensor(delta_heat_map_vec:storage(), 1, 
   torch.LongStorage{1, num_features, heat_map_height, heat_map_width})
 VisualizeImage(trImage, 1)
+
+teImage_index = 410
+print(string.format('Test set image: %d', teImage_index))
+teImage = {
+  files = {},
+  data = {},
+  labels = testData.labels[{{teImage_index},{}}],
+  size = function() return 1 end,
+  heat_maps = testData.heat_maps[{{teImage_index},{},{},{}}]
+}
+for j=1,num_hpf_banks do
+  table.insert(teImage.data, testData.data[j][{{teImage_index},{},{},{}}])
+end
+VisualizeImage(teImage, 1)
+for j=1,num_hpf_banks do
+  teImage.data[j] = teImage.data[j]:cuda()
+end
+teImage.heat_maps = model:forward(teImage.data):float()
+for j=1,num_hpf_banks do
+  teImage.data[j] = teImage.data[j]:float()
+end
+teImage.heat_maps = torch.FloatTensor(teImage.heat_maps:storage(), 1, 
+  torch.LongStorage{1, num_features, heat_map_height, heat_map_width})
+VisualizeImage(teImage, 1)
+
+
 
 
 

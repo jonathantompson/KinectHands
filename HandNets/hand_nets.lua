@@ -44,7 +44,7 @@ num_coeff = 16
 num_coeff_per_feature = 2  -- UV = 2, UVD = 3
 num_features = num_coeff / num_coeff_per_feature
 frame_stride = 1  -- Only 1 works for now
-perform_training = 1
+perform_training = 0
 regenerate_heat_maps = 0  -- slow, otherwise it will load them from file
 model_filename = 'handmodel.net'
 im_dir = "../data/hand_depth_data_processed_for_CN/"
@@ -79,8 +79,7 @@ if (perform_training == 1) then
 
   -- ***************** define the model parameters ********************
   nfeats = 1
-  nstates = {{16, 16}, {16, 16}, {16, 16}}  -- MUST BE MULTIPLES OF 16!
-  nstates_nn = 0  --> Edit: May 8 2013: Only one linear stage for now
+  nstates = {{16, 32}, {16, 32}, {16, 32}}  -- MUST BE MULTIPLES OF 16!
   filtsize = {{7, 6}, {7, 6}, {7, 5}}
   poolsize = {{2, 2}, {2, 1}, {1, 1}}  -- Note: 1 = no pooling
 

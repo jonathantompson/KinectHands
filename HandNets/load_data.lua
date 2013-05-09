@@ -283,7 +283,7 @@ if (regenerate_heat_maps == 1) then
       cur_uv = testData.labels[{i,{f*2-1, f*2}}]
       cur_heat_map[{f,{},{}}] = image.centered_gaussian{amplitude=1,
         normalize=true, width=heat_map_width, height=heat_map_height, center_x=cur_uv[1], 
-        center_y=cur_uv[2], sigma_horz=(1/heat_map_width), sigma_vert=(1/heat_map_height)}
+        center_y=cur_uv[2], sigma_horz=(0.5/heat_map_width), sigma_vert=(0.5/heat_map_height)}
     end
     filename = heatmap_dir .. 'heatmap_' .. testData.files[i]
     heatmap_file = torch.DiskFile(filename, 'w')
@@ -305,7 +305,7 @@ if (regenerate_heat_maps == 1) then
       cur_uv = trainData.labels[{i,{f*2-1, f*2}}]
       cur_heat_map[{f,{},{}}] = image.centered_gaussian{amplitude=1,
         normalize=true, width=heat_map_width, height=heat_map_height, center_x=cur_uv[1], 
-        center_y=cur_uv[2], sigma_horz=(1/heat_map_width), sigma_vert=(1/heat_map_height)}
+        center_y=cur_uv[2], sigma_horz=(0.5/heat_map_width), sigma_vert=(0.5/heat_map_height)}
     end
     filename = heatmap_dir .. 'heatmap_' .. trainData.files[i]
     heatmap_file = torch.DiskFile(filename, 'w')

@@ -11,7 +11,9 @@ function round(num)
 end
 
 function VisualizeData(x, plot_labels, num_banks, n_tiles, zoom_factor)
-  plot_labels = plot_labels or 1
+  if (plot_labels == nil) then
+    plot_labels = 1
+  end
   n_tiles = n_tiles or 10
   num_banks = num_banks or 3
   local n_images = math.min(x.size(), n_tiles * n_tiles)
@@ -19,11 +21,11 @@ function VisualizeData(x, plot_labels, num_banks, n_tiles, zoom_factor)
   for j=1,num_banks do
     local im = {
       data = x.data[j][{{1,n_images}, {}, {}, {}}],
-      labels = x.labels[{{1,n_images}, {}}]
     }
     im.data = im.data:double()
-    im.labels = im.labels:double()
     if (j == 1 and plot_labels == 1) then
+      im.labels = x.labels[{{1,n_images}, {}}]
+      im.labels = im.labels:double()
       for i=1,n_images do
         local max_val = im.data[{i,{},{},{}}]:max()
         for k=1,num_coeff-1,num_coeff_per_feature do
@@ -70,7 +72,6 @@ function VisualizeImage(x, index, plot_labels, num_banks, n_tiles, zoom_factor)
   end
   im.data = im.data:double()
   im.labels = im.labels:double()
-  
 
   if (plot_labels == 1) then
     local max_val = im.data[{1,{},{},{}}]:max()
@@ -101,6 +102,8 @@ function VisualizeImage(x, index, plot_labels, num_banks, n_tiles, zoom_factor)
   
   -- Now display the heatmaps
   zoom_factor = 0.5 * zoom_factor * height / heat_map_height
-  image.display{image=x.heat_maps[{index,{},{},{}}], padding=2, nrow=4, zoom=zoom_factor,
+  
+  im.heat_maps = torch.Tensor(num_features, heat_map_height, heat_map_width):copy(x.heat_maps[{index,{},{},{}}])
+  image.display{image=im.heat_maps, padding=2, nrow=4, zoom=zoom_factor,
     scaleeach=false}
 end
