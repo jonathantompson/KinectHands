@@ -36,7 +36,7 @@ function train(data)
     local batchData = {
       files = {},
       data = {},
-      labels = torch.CudaTensor(cur_batch_size, num_coeff),
+      -- labels = torch.CudaTensor(cur_batch_size, num_coeff),
       size = function() return cur_batch_size end,
       heat_maps = torch.FloatTensor(cur_batch_size, num_features * heat_map_height * 
         heat_map_width)
@@ -51,7 +51,7 @@ function train(data)
       for j=1,num_hpf_banks do
         batchData.data[j][{out_i,{},{},{}}] = data.data[j][{cur_i,{},{},{}}]
       end
-      batchData.labels[{out_i,{}}] = data.labels[cur_i]
+      -- batchData.labels[{out_i,{}}] = data.labels[cur_i]
       batchData.heat_maps[{out_i,{}}]:copy(torch.FloatTensor(
         data.heat_maps[{cur_i,{},{},{}}], 1, torch.LongStorage{num_features *
         heat_map_height * heat_map_width}))

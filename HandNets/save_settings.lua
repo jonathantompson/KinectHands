@@ -50,6 +50,7 @@ end
 
 -- Neural net settings
 set_file:writeString('full,')
+nstates_nn = nstates_nn or -1
 set_file:writeString(string.format('%d,', nstates_nn))
 set_file:writeString('full,')
 

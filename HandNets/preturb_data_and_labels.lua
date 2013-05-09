@@ -2,7 +2,7 @@
 
 -- preturbDataLabels --> Helper function.  Rotates one image only.
 -- if deg_rot is not set, then a random rotation is chosen (between min and max with uniform dist)
-function preturbDataAndLabels(im, labels, deg_rot, shift_frac_u, shift_frac_v)
+function preturbDataAndLabels(im, labels, heat_maps, deg_rot, shift_frac_u, shift_frac_v)
   local min_max_rotation_deg = 60
   if (im:dim() ~= 3) then
     error("im dimension is not 3!")
@@ -39,6 +39,24 @@ function preturbDataAndLabels(im, labels, deg_rot, shift_frac_u, shift_frac_v)
     labels_rotate:mul(0.5)
   end
 
+  -- Rotate the heat maps:
+  local heat_maps_rotate = nil
+  if (heat_maps ~= nil) then
+    
+    if (heat_maps_pad ~= nil) then
+      if (heat_maps_pad:size()[1] ~= heat_maps:size()[1] or
+        heat_maps_pad:size()[2] ~= heat_maps:size()[2]+2 or
+        heat_maps_pad:size()[3] ~= heat_maps:size()[3]+2) then
+        heat_maps_pad = nil  -- for a resize of the variable
+      end
+    end
+    heat_maps_pad = heat_maps_pad or torch.zeros(heat_maps:size()[1], 
+      heat_maps:size()[2]+2, heat_maps:size()[3]+2):float()
+    heat_maps_pad[{{},{2,1+heat_maps:size()[2]}, {2,1+heat_maps:size()[3]}}] = heat_maps
+    heat_maps_rotate = distort(heat_maps_pad, 0.0, 0.0, 1.0, min_max_rotation_deg, rotation_angle)
+    heat_maps_rotate = heat_maps_rotate[{{}, {2,1 + heat_maps:size()[2]}, {2,1 + heat_maps:size()[3]}}]
+  end
+
   -- Now randomly shift the image
   if (shift_frac_u == nil or shift_frac_v == nil) then
     local min_max_shift_u = 0.2 -- Percentage of image
@@ -48,6 +66,6 @@ function preturbDataAndLabels(im, labels, deg_rot, shift_frac_u, shift_frac_v)
   end
   
 
-  return im_rotate, labels_rotate, rotation_angle, shift_frac_u, shift_frac_v
+  return im_rotate, labels_rotate, heat_maps_rotate, rotation_angle, shift_frac_u, shift_frac_v
 end
 

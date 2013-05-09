@@ -2,11 +2,6 @@
 require 'image'
 
 -- distort function
-flow,flow1,flow2,flow3,result
-   = torch.FloatTensor(),torch.FloatTensor(),
-     torch.FloatTensor(),torch.FloatTensor(),
-     torch.FloatTensor()
-
 -- With probabilities, distort will flip, scale and rotate the image
 -- The rotation angle is a random value between:
 --   -deg_rot_bounds --> deg_rot_bounds
@@ -19,6 +14,11 @@ function distort(i, prob_flip, prob_scale, prob_rot, deg_rot_bounds, deg_rot)
    -- x/y grids
    local grid_y = torch.ger( torch.linspace(-1,1,height), torch.ones(width) )
    local grid_x = torch.ger( torch.ones(height), torch.linspace(-1,1,width) )
+
+   local flow = torch.FloatTensor()
+--   local flow1 = torch.FloatTensor()
+--   local flow2 = torch.FloatTensor()
+   local flow3 = torch.FloatTensor()
 
    -- global flow:
    flow:resize(2,height,width)
@@ -81,6 +81,7 @@ function distort(i, prob_flip, prob_scale, prob_rot, deg_rot_bounds, deg_rot)
    flow:add(flow3)
 
    -- apply field
+   local result = torch.FloatTensor()
    image.warp(result,i,flow,'bilinear')
    return result, rot_angle, rotmat
 end

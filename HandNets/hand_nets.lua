@@ -44,7 +44,7 @@ num_coeff = 16
 num_coeff_per_feature = 2  -- UV = 2, UVD = 3
 num_features = num_coeff / num_coeff_per_feature
 frame_stride = 1  -- Only 1 works for now
-perform_training = 0
+perform_training = 1
 regenerate_heat_maps = 0  -- slow, otherwise it will load them from file
 model_filename = 'handmodel.net'
 im_dir = "../data/hand_depth_data_processed_for_CN/"
@@ -79,7 +79,7 @@ if (perform_training == 1) then
 
   -- ***************** define the model parameters ********************
   nfeats = 1
-  nstates = {{16, 32}, {16, 32}, {16, 32}}  -- MUST BE MULTIPLES OF 16!
+  nstates = {{16, 16}, {16, 16}, {16, 16}}  -- MUST BE MULTIPLES OF 16!
   filtsize = {{7, 6}, {7, 6}, {7, 5}}
   poolsize = {{2, 2}, {2, 1}, {1, 1}}  -- Note: 1 = no pooling
 
@@ -127,7 +127,6 @@ if (perform_training == 1) then
   print '==> training!'
   test()
 
-  --[[
   function trainLoop()  
     c = parallel.fork()  -- Spawn a new thread for database manipulation
     c:exec(preturbThread)
@@ -161,13 +160,13 @@ if (perform_training == 1) then
 
   parallel.close()
 
-  --]]
-
   -- Simple training loop: No per-epoch rotations
+  --[[
   for i = 1,max_num_epochs do
     train(trainData)
     test()
   end
+  --]]
 
 else  -- if perform_training
   -- *************** Calculate performance statistics *****************
