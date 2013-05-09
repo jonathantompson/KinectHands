@@ -36,23 +36,23 @@ print(cutorch.getDeviceProperties(cutorch.getDevice()))
 
 width = 96
 height = 96
-heat_map_width = width/4  -- Decimation should equal the convnet pooling
-heat_map_height = height/4
+heat_map_width = 24  -- Decimation should equal the convnet pooling
+heat_map_height = 24
+heat_map_sigma = 1.0
 num_hpf_banks = 3
 dim = width * height
-num_coeff = 16
+num_coeff = 8
 num_coeff_per_feature = 2  -- UV = 2, UVD = 3
 num_features = num_coeff / num_coeff_per_feature
-frame_stride = 1  -- Only 1 works for now
 perform_training = 1
-regenerate_heat_maps = 0  -- slow, otherwise it will load them from file
+regenerate_heat_maps = 1  -- otherwise it will load them from file
 model_filename = 'handmodel.net'
 im_dir = "../data/hand_depth_data_processed_for_CN/"
 test_im_dir = "../data/hand_depth_data_processed_for_CN_testset/"
 heatmap_dir = "../data/heatmaps/"
 use_hpf_depth = 1
 learning_rate = 3e-1  -- Default 1e-1
-l2_reg_param = 2e-4  -- Default 2e-4
+l2_reg_param = 1e-5  -- Default 2e-4
 learning_rate_decay = 1e-7  -- Default 1e-7
 learning_momentum = 0.9 -- Default 0.9 --> Clement suggestion
 max_num_epochs = 250
@@ -79,8 +79,8 @@ if (perform_training == 1) then
 
   -- ***************** define the model parameters ********************
   nfeats = 1
-  nstates = {{16, 16}, {16, 16}, {16, 16}}  -- MUST BE MULTIPLES OF 16!
-  filtsize = {{7, 6}, {7, 6}, {7, 5}}
+  nstates = {{16, 32}, {16, 32}, {16, 32}}  -- MUST BE MULTIPLES OF 16!
+  filtsize = {{5, 5}, {5, 5}, {5, 5}}
   poolsize = {{2, 2}, {2, 1}, {1, 1}}  -- Note: 1 = no pooling
 
   -- *********************** define the model *************************
@@ -127,6 +127,7 @@ if (perform_training == 1) then
   print '==> training!'
   test()
 
+  --[[
   function trainLoop()  
     c = parallel.fork()  -- Spawn a new thread for database manipulation
     c:exec(preturbThread)
@@ -159,14 +160,13 @@ if (perform_training == 1) then
   if not ok then print(err) end
 
   parallel.close()
+  --]]
 
   -- Simple training loop: No per-epoch rotations
-  --[[
   for i = 1,max_num_epochs do
     train(trainData)
     test()
   end
-  --]]
 
 else  -- if perform_training
   -- *************** Calculate performance statistics *****************

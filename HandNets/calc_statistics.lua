@@ -22,8 +22,7 @@ for t=1,testData:size(),batch_size do
     data = {},
     -- labels = torch.CudaTensor(cur_batch_size, num_coeff),
     size = function() return cur_batch_size end,
-    heat_maps = torch.FloatTensor(cur_batch_size, num_features * heat_map_height * 
-      heat_map_width)
+    heat_maps = torch.FloatTensor(cur_batch_size, num_features, heat_map_height, heat_map_width)
   }
   for j=1,num_hpf_banks do
     table.insert(batchData.data, torch.FloatTensor(cur_batch_size, 1, 
@@ -37,9 +36,7 @@ for t=1,testData:size(),batch_size do
       batchData.data[j][{out_i,{},{},{}}] = testData.data[j][{i,{},{},{}}]
     end
     -- batchData.labels[{out_i,{}}] = testData.labels[i]
-    batchData.heat_maps[{out_i,{}}] = torch.FloatTensor(
-      testData.heat_maps[{i,{},{},{}}], 1, torch.LongStorage{num_features *
-      heat_map_height * heat_map_width})
+    batchData.heat_maps[{out_i,{},{},{}}] = testData.heat_maps[{i,{},{},{}}]
     out_i = out_i + 1
   end
   for j=1,num_hpf_banks do
@@ -82,8 +79,7 @@ for t=1,trainData:size(),batch_size do
     data = {},
     -- labels = torch.CudaTensor(cur_batch_size, num_coeff),
     size = function() return cur_batch_size end,
-    heat_maps = torch.FloatTensor(cur_batch_size, num_features * heat_map_height * 
-        heat_map_width)
+    heat_maps = torch.FloatTensor(cur_batch_size, num_features, heat_map_height, heat_map_width)
   }
   for j=1,num_hpf_banks do
     table.insert(batchData.data, torch.FloatTensor(cur_batch_size, 1,
@@ -96,9 +92,7 @@ for t=1,trainData:size(),batch_size do
       batchData.data[j][{out_i,{},{},{}}] = trainData.data[j][{i,{},{},{}}]
     end
     -- batchData.labels[{out_i,{}}] = trainData.labels[i]
-    batchData.heat_maps[{out_i,{}}] = torch.FloatTensor(
-      trainData.heat_maps[{i,{},{},{}}], 1, torch.LongStorage{num_features *
-      heat_map_height * heat_map_width})
+    batchData.heat_maps[{out_i,{},{},{}}] = trainData.heat_maps[{i,{},{},{}}]
     out_i = out_i + 1
   end
   for j=1,num_hpf_banks do
@@ -144,9 +138,6 @@ dofile('visualize_data.lua')  -- Just in case it hasn't been loaded
 for j=1,num_hpf_banks do
   trImage.data[j] = trImage.data[j]:cuda()
 end
-target_heat_map_vec = torch.FloatTensor(
-  trImage.heat_maps, 1, torch.LongStorage{num_features *
-  heat_map_height * heat_map_width})
 trImage.heat_maps = model:forward(trImage.data):float()
 for j=1,num_hpf_banks do
   trImage.data[j] = trImage.data[j]:float()
@@ -165,7 +156,7 @@ teImage = {
 for j=1,num_hpf_banks do
   table.insert(teImage.data, testData.data[j][{{teImage_index},{},{},{}}])
 end
-VisualizeImage(teImage, 1)
+--VisualizeImage(teImage, 1)
 for j=1,num_hpf_banks do
   teImage.data[j] = teImage.data[j]:cuda()
 end
