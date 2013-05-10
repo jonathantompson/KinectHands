@@ -134,7 +134,7 @@ for j=1,num_hpf_banks do
   table.insert(trImage.data, trainData.data[j][{{trImage_index},{},{},{}}])
 end
 dofile('visualize_data.lua')  -- Just in case it hasn't been loaded
---VisualizeImage(trImage, 1)
+VisualizeImage(trImage, 1, 1)
 for j=1,num_hpf_banks do
   trImage.data[j] = trImage.data[j]:cuda()
 end
@@ -142,7 +142,7 @@ trImage.heat_maps = model:forward(trImage.data):float()
 for j=1,num_hpf_banks do
   trImage.data[j] = trImage.data[j]:float()
 end
-VisualizeImage(trImage, 1)
+VisualizeImage(trImage, 1, 0)
 
 teImage_index = 410
 print(string.format('Test set image: %d', teImage_index))
@@ -156,7 +156,7 @@ teImage = {
 for j=1,num_hpf_banks do
   table.insert(teImage.data, testData.data[j][{{teImage_index},{},{},{}}])
 end
---VisualizeImage(teImage, 1)
+VisualizeImage(teImage, 1, 1)
 for j=1,num_hpf_banks do
   teImage.data[j] = teImage.data[j]:cuda()
 end
@@ -164,7 +164,7 @@ teImage.heat_maps = model:forward(teImage.data):float()
 for j=1,num_hpf_banks do
   teImage.data[j] = teImage.data[j]:float()
 end
-VisualizeImage(teImage, 1)
+VisualizeImage(teImage, 1, 0)
 
 
 

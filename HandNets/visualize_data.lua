@@ -57,8 +57,9 @@ function VisualizeData(x, plot_labels, num_banks, n_tiles, zoom_factor)
   end
 end
 
-function VisualizeImage(x, index, plot_labels, num_banks, n_tiles, zoom_factor)
+function VisualizeImage(x, index, plot_image, plot_labels, num_banks, n_tiles, zoom_factor)
   plot_labels = plot_labels or 1
+  plot_image = plot_image or 1
   n_tiles = n_tiles or 10
   num_banks = num_banks or 3
   local n_images = 1
@@ -98,7 +99,9 @@ function VisualizeImage(x, index, plot_labels, num_banks, n_tiles, zoom_factor)
       end
     end
   end
-  image.display{image=im.data, padding=2, nrow=3, zoom=zoom_factor, scaleeach=false}
+  if (plot_image == 1) then
+    image.display{image=im.data, padding=2, nrow=3, zoom=zoom_factor, scaleeach=false}
+  end
   
   -- Now display the heatmaps
   zoom_factor = 0.5 * zoom_factor * height / heat_map_height
