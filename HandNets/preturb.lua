@@ -36,6 +36,8 @@ function preturbThread()
   print('preturbThread(): database recieved starting loop...')
 
   while true do
+    collectgarbage()
+
     m = parallel.yield()
     if m == 'break' then break end
 
@@ -61,7 +63,7 @@ function preturbThread()
   print('preturbThread(): quiting...')
 end
 
-function preturbManual(database)
+function preturbManual(database, size, num_coeff)
   local t0 = sys.clock()
 
   dofile("distort.lua")
@@ -71,7 +73,7 @@ function preturbManual(database)
   local data_rotated = {
     data = { },
     labels = database.labels:clone():float(),
-    size = function() return trsize end,
+    size = function() return size end,
     heat_maps = database.heat_maps:clone():float(),
   }
   num_hpf_banks = #database.data

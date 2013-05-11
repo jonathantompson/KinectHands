@@ -74,16 +74,16 @@ model:add(nn.JoinTable(2))  -- Take the table of tensors and concat them
 print("    Neural net first stage input size")
 print(banks_total_output_size)
 
-nn_output_length = heat_map_width * heat_map_height * num_features
-model:add(nn.Linear(banks_total_output_size, nn_output_length))
+model:add(nn.Linear(banks_total_output_size, nn_stg1_out_size))
 
 model:get(3).bias:add(-model:get(3).bias:min()) -- Set up the initial condition
 model:add(nn.Threshold())
 
 print("    Neural net second stage input size")
-print(nn_output_length)
+print(nn_stg1_out_size)
 
-model:add(nn.Linear(nn_output_length, nn_output_length))
+nn_output_length = heat_map_width * heat_map_height * num_features
+model:add(nn.Linear(nn_stg1_out_size, nn_output_length))
 
 print("    Final output size (before reshape if it exists)")
 print(nn_output_length)

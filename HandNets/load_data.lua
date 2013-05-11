@@ -285,6 +285,8 @@ if (regenerate_heat_maps == 1) then
         normalize=true, width=heat_map_width, height=heat_map_height, center_x=cur_uv[1], 
         center_y=cur_uv[2], sigma_horz=(heat_map_sigma/heat_map_width), sigma_vert=(heat_map_sigma/heat_map_height)}
     end
+    cur_heat_map:add(-cur_heat_map:mean())
+    cur_heat_map:div(cur_heat_map:std())
     filename = heatmap_dir .. 'heatmap_' .. testData.files[i]
     heatmap_file = torch.DiskFile(filename, 'w')
     heatmap_file:binary()
@@ -307,6 +309,8 @@ if (regenerate_heat_maps == 1) then
         normalize=true, width=heat_map_width, height=heat_map_height, center_x=cur_uv[1], 
         center_y=cur_uv[2], sigma_horz=(heat_map_sigma/heat_map_width), sigma_vert=(heat_map_sigma/heat_map_height)}
     end
+    cur_heat_map:add(-cur_heat_map:mean())
+    cur_heat_map:div(cur_heat_map:std())
     filename = heatmap_dir .. 'heatmap_' .. trainData.files[i]
     heatmap_file = torch.DiskFile(filename, 'w')
     heatmap_file:binary()
