@@ -88,7 +88,7 @@ model:add(nn.Linear(nn_stg1_out_size, nn_output_length))
 print("    Final output size (before reshape if it exists)")
 print(nn_output_length)
 
-model:add(nn.Reshape(num_features, heat_map_height, heat_map_width))
+-- model:add(nn.Reshape(num_features, heat_map_height, heat_map_width))
 
 print '==> Converting model to cuda'
 model:cuda()

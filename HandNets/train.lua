@@ -1,3 +1,4 @@
+
 print '==> defining training procedure'
 function train(data)
 
@@ -15,6 +16,16 @@ function train(data)
   -- shuffle at each epoch
   local shuffle = torch.randperm(trsize)
 
+  local batchData = {
+    files = {},
+    data = {},
+    size = 0,
+    heat_maps = torch.CudaTensor(batch_size, num_features * heat_map_height * heat_map_width)
+  }
+  for j=1,num_hpf_banks do
+    table.insert(batchData.data, torch.CudaTensor(batch_size, 1, bank_dim[j][1], bank_dim[j][2]))
+  end
+
   -- do one epoch
   print('==> doing epoch on training data:')
   print("==> online epoch # " .. epoch .. ' [batchSize = ' .. batch_size .. ']')
@@ -22,6 +33,8 @@ function train(data)
   local nsamples = 0
   local next_progress = 50
   for t = 1,data:size(),batch_size do
+    collectgarbage()
+
     -- disp progress
     if (t >= next_progress or t == data:size()) then
       progress(t, data:size())
@@ -33,32 +46,19 @@ function train(data)
     local cur_batch_start = t
     local cur_batch_end = math.min(t + batch_size - 1, data:size())
     local cur_batch_size = cur_batch_end - cur_batch_start + 1
-    local batchData = {
-      files = {},
-      data = {},
-      -- labels = torch.CudaTensor(cur_batch_size, num_coeff),
-      size = function() return cur_batch_size end,
-      heat_maps = torch.FloatTensor(cur_batch_size, num_features, heat_map_height, heat_map_width)
-    }
-    for j=1,num_hpf_banks do
-      table.insert(batchData.data, torch.FloatTensor(cur_batch_size, 1, bank_dim[j][1], bank_dim[j][2]))
-    end
+    batchData.size = function() return cur_batch_size end
     local out_i = 1
     for i = cur_batch_start,cur_batch_end do    
       -- Collect the current image and put it into the data slot
       local cur_i = shuffle[i]
       for j=1,num_hpf_banks do
-        batchData.data[j][{out_i,{},{},{}}] = data.data[j][{cur_i,{},{},{}}]
+        batchData.data[j][{out_i,{},{},{}}]:copy(data.data[j][{cur_i,{},{},{}}])
       end
-      -- batchData.labels[{out_i,{}}] = data.labels[cur_i]
-      batchData.heat_maps[{out_i,{},{},{}}] = data.heat_maps[{cur_i,{},{},{}}]
+      batchData.heat_maps[{out_i,{}}]:copy(torch.FloatTensor(
+        data.heat_maps[{cur_i,{},{},{}}], 1, torch.LongStorage{num_features *
+        heat_map_height * heat_map_width}))
       out_i = out_i + 1
     end
-    for j=1,num_hpf_banks do
-      batchData.data[j] = batchData.data[j]:cuda()
-    end
-    -- batchData.labels = batchData.labels:cuda()
-    batchData.heat_maps = batchData.heat_maps:cuda()
     t_minibatch = sys.clock() - t_minibatch
     total_t_minibatch = total_t_minibatch + t_minibatch
 

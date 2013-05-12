@@ -1,5 +1,5 @@
 print '==> defining loss function'
-print '   using ABS criterion'
+-- print '    using ABS criterion'
 -- criterion = nn.AbsCriterion()
 -- criterion.sizeAverage = false
 print '    using MSE criterion'
