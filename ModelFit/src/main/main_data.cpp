@@ -671,8 +671,13 @@ int main(int argc, char *argv[]) {
     r_hand = new HandModelCoeff(HandType::RIGHT);
     l_hand = new HandModelCoeff(HandType::LEFT);
 
-    LoadArrayFromFile<float>(camera_view.m, 16, IM_DIR + 
-      "calibration_data0.bin");
+    try {
+      LoadArrayFromFile<float>(camera_view.m, 16, IM_DIR + 
+        "calibration_data0.bin");
+    } catch (std::wruntime_error e) {
+      std::cout << "WARNING: calibration_data0.bin doesn't exist.  ";
+      std::cout << "Identity camera matrix." << std::endl;
+    }
     Float4x4 old_view, camera_view_inv, cur_view;
     old_view.set(*hand_renderer->camera(0)->view());
     Float4x4::inverse(camera_view_inv, camera_view);
