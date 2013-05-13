@@ -56,7 +56,7 @@ l2_reg_param = 1e-4  -- Default 2e-4
 learning_rate_decay = 1e-6  -- Default 1e-7
 learning_momentum = 0.6 -- Default 0.9 --> Clement suggestion
 max_num_epochs = 250
-batch_size = 32  -- Default 128
+batch_size = 64  -- Default 128 (BUT MAYBE 32 IS BETTER!)
 
 -- ********************** Load data from Disk *************************
 dofile('load_data.lua')
