@@ -57,7 +57,12 @@ namespace kinect_interface {
 	  halfResY_ = nYRes_ / 2;
 	  coeffX_ = nXRes_ / xzFactor_;
 	  coeffY_ = nYRes_ / yzFactor_;
-    loadCalibrationData();
+    try {
+      loadCalibrationData();
+    } catch (std::exception e) {
+      std::cout << "Warning: Calibration file does not exist.  Some ";
+      std::cout << "functionality might be disabled." << std::endl;
+    }
   }
 
   OpenNIFuncs::OpenNIFuncs() {
@@ -72,7 +77,13 @@ namespace kinect_interface {
 	  halfResY_ = nYRes_ / 2.0f;
 	  coeffX_ = nXRes_ / xzFactor_;
 	  coeffY_ = nYRes_ / yzFactor_;
-    loadCalibrationData();
+    cal_data_ = NULL;
+    try {
+      loadCalibrationData();
+    } catch (std::exception e) {
+      std::cout << "Warning: Calibration file does not exist.  Some ";
+      std::cout << "functionality might be disabled." << std::endl;
+    }
   }
 
   OpenNIFuncs::~OpenNIFuncs() {
@@ -185,6 +196,9 @@ namespace kinect_interface {
 
   bool OpenNIFuncs::TranslateSinglePixel(const uint32_t x, const uint32_t y, 
     uint16_t z, int& imageX, int& imageY, const bool m_isMirrored) {
+    if (cal_data_ == NULL) {
+      throw std::wruntime_error("ERROR: calibration data wasn't loaded!");
+    }
     imageX = 0;
     imageY = 0;
 
