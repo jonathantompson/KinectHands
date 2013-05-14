@@ -25,8 +25,7 @@ namespace jtorch {
     virtual ~Sequential();
 
     virtual TorchStageType type() const { return SEQUENTIAL_STAGE; }
-    virtual void forwardProp(TorchData& input, 
-      jtil::threading::ThreadPool& tp);
+    virtual void forwardProp(TorchData& input);
 
     void add(TorchStage* stage);
     TorchStage* get(const uint32_t i);

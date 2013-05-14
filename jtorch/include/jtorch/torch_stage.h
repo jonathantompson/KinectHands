@@ -50,8 +50,7 @@ namespace jtorch {
     virtual ~TorchStage();
 
     virtual TorchStageType type() const { return UNDEFINED_STAGE; }
-    virtual void forwardProp(TorchData& input, 
-      jtil::threading::ThreadPool& tp) = 0;  // Pure virtual
+    virtual void forwardProp(TorchData& input) = 0;  // Pure virtual
 
     // Top level read-write
     static TorchStage* loadFromFile(const std::string& file);

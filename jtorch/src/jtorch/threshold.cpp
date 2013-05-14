@@ -1,4 +1,5 @@
 #include "jtorch/threshold.h"
+#include "jtorch/jtorch.h"
 #include "jtorch/float_tensor.h"
 #include "jtil/exceptions/wruntime_error.h"
 #include "jtil/threading/thread.h"
@@ -17,79 +18,49 @@ namespace jtorch {
 
   Threshold::Threshold() : TorchStage() {
     output = NULL;
-    thread_cbs_ = NULL;
     threshold = 1e-6f;
     val = 0;
   }
 
   Threshold::~Threshold() {
     SAFE_DELETE(output);
-    SAFE_DELETE(thread_cbs_);
   }
 
-  void Threshold::init(TorchData& input, jtil::threading::ThreadPool& tp)  {
+  void Threshold::init(TorchData& input)  {
     if (input.type() != TorchDataType::FLOAT_TENSOR_DATA) {
       throw std::wruntime_error("Threshold::init() - "
         "FloatTensor expected!");
     }
     FloatTensor& in = (FloatTensor&)input;
     if (output != NULL) {
-      if (!Int4::equal(in.dim(), ((FloatTensor*)output)->dim())) {
+      if (!Int3::equal(in.dim(), ((FloatTensor*)output)->dim())) {
         // Input dimension has changed!
         delete output;
         output = NULL;
-        delete thread_cbs_;
-        thread_cbs_ = NULL;
       }
     }
     if (output == NULL) {
       output = new FloatTensor(in.dim());
-    }
-    if (thread_cbs_ == NULL) {
-      int32_t n_threads = tp.num_workers();
-      // pix_per_thread is rounded up (so we always cover the correct amount)
-      int32_t input_size = input.dataSize();
-      int32_t pix_per_thread = 1 + input.dataSize() / n_threads;
-      thread_cbs_ = new VectorManaged<Callback<void>*>(n_threads);
-      for (int32_t i = 0; i < n_threads; i++) {
-        int32_t start = i * pix_per_thread;
-        // Note: end is inclusive
-        int32_t end = std::min<int32_t>((i + 1) * pix_per_thread - 1,
-          input_size - 1);
-        thread_cbs_->pushBack(MakeCallableMany(&Threshold::forwardPropThread, 
-          this, start, end));
+      for (uint32_t i = 0; i < 3; i++) {
+        local_worgroup_size[i] = std::min<int>(jtorch::max_local_workgroup_size,
+          ((FloatTensor*)output)->dim()[i]);
+        while (((FloatTensor*)output)->dim()[i] % local_worgroup_size[i] != 0) {
+          local_worgroup_size[i]--;
+        }
       }
     }
   }
 
-  void Threshold::forwardProp(TorchData& input, ThreadPool& tp) { 
-    init(input, tp);
-    cur_input_ = ((FloatTensor&)input).data();
-    cur_output_ = ((FloatTensor*)output)->data();
-    threads_finished_ = 0;
-    for (uint32_t i = 0; i < thread_cbs_->size(); i++) {
-      tp.addTask((*thread_cbs_)[i]);
-    } 
-
-    // Wait for all threads to finish
-    std::unique_lock<std::mutex> ul(thread_update_lock_);  // Get lock
-    while (threads_finished_ != thread_cbs_->size()) {
-      not_finished_.wait(ul);
-    }
-    ul.unlock();  // Release lock
-  }
-
-  void Threshold::forwardPropThread(const int32_t start, const int32_t end) {
-    for (int32_t i = start; i <= end; i++) {
-      // HERE IS THE CORE OF THE THRESHOLD FUNCTION
-      cur_output_[i] = cur_input_[i] > threshold ? cur_input_[i] : val;
-    }
-
-    // Signify to main thread that we're done
-    std::unique_lock<std::mutex> ul(thread_update_lock_);
-    threads_finished_++;
-    not_finished_.notify_all();  // Signify that all threads might have finished
-    ul.unlock();
+  void Threshold::forwardProp(TorchData& input) { 
+    init(input);
+    std::string kernel = jtorch::jtorch_path + "kernels/threshold.cl";
+    cl_context->useKernel(kernel.c_str(), "Threshold");
+    cl_context->setArg(0, ((FloatTensor&)input).data());
+    cl_context->setArg(1, ((FloatTensor*)output)->data());
+    cl_context->setArg(2, threshold);
+    cl_context->setArg(3, val);
+    cl_context->runKernel3D(jtorch::deviceid, ((FloatTensor*)output)->dim(),
+      local_worgroup_size, false);
   }
 
   TorchStage* Threshold::loadFromFile(std::ifstream& file) {

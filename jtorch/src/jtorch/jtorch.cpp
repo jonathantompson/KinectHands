@@ -10,14 +10,20 @@ namespace jtorch {
 
   jcl::JCL* cl_context = NULL;
   std::mutex cl_context_lock_;
+  std::string jtorch_path;
 
-  void InitJTorch() {
+  void InitJTorch(const std::string& path_to_jtorch) {
     std::lock_guard<std::mutex> lck(cl_context_lock_);
     if (cl_context != NULL) {
       throw std::wruntime_error("jtorch::InitJTorch() - ERROR: Init called "
         "twice!");
     }
     cl_context = new jcl::JCL(jcl::CLDeviceCPU, jcl::CLVendorAny);
+    jtorch_path = path_to_jtorch;
+    if (jtorch_path.at(jtorch_path.size()-1) != '\\' && 
+      jtorch_path.at(jtorch_path.size()-1) != '/') {
+      jtorch_path = jtorch_path + '/';
+    }
   }
 
   void ShutdownJTorch() {

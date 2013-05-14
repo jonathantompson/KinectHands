@@ -47,8 +47,8 @@ const uint32_t width = 10;
 const uint32_t height = 10;
 const uint32_t filt_height = 5;
 const uint32_t filt_width = 5;
-float* data_in;
-float* data_out;
+float din[width * height * num_feats_in];
+float dout[width * height * num_feats_out];;
 
 int main(int argc, char *argv[]) {  
 #if defined(_DEBUG) || defined(DEBUG)
@@ -58,9 +58,7 @@ int main(int argc, char *argv[]) {
 #endif
 
   try {
-    jtorch::InitJTorch();
-
-    ThreadPool tp(NUM_WORKER_THREADS);
+    jtorch::InitJTorch("../jtorch");
 
 #ifdef TEST_MODULES
     FloatTensor data_in(Int3(width, height, num_feats_in));
@@ -70,11 +68,12 @@ int main(int argc, char *argv[]) {
       float val = (f+1) - (float)(width * height) / 16.0f;
       for (uint32_t v = 0; v < height; v++) {
         for (uint32_t u = 0; u < width; u++) {
-          data_in(u, v, f, 0) = val;
+          din[f * width * height + v * width + u] = val;
           val += 1.0f / 8.0f;
         }
       }
     }
+    data_in.setData(din);
     std::cout << "Data In:" << std::endl;
     data_in.print();
 
@@ -83,10 +82,11 @@ int main(int argc, char *argv[]) {
     // ***********************************************
     // Test Tanh
     stages.add(new Tanh());
-    stages.forwardProp(data_in, tp);
+    stages.forwardProp(data_in);
     std::cout << endl << endl << "Tanh output:" << std::endl;
     stages.output->print();
 
+    
     // ***********************************************
     // Test Threshold
     const float threshold = 0.5f;
@@ -94,11 +94,11 @@ int main(int argc, char *argv[]) {
     stages.add(new Threshold());
     ((Threshold*)stages.get(1))->threshold = threshold;
     ((Threshold*)stages.get(1))->val = val;
-    stages.forwardProp(data_in, tp);
+    stages.forwardProp(data_in);
     std::cout << endl << endl << "Threshold output:" << std::endl;
     stages.output->print();
 
-  
+    /*
     // ***********************************************
     // Test SpatialConvolutionMap
     stages.add(new SpatialConvolutionMap(num_feats_in, num_feats_out, fan_in,
@@ -206,6 +206,7 @@ int main(int argc, char *argv[]) {
 
     delete kernel;
     delete kernel2;
+    */
 #endif
 
 #ifdef TEST_MODEL
@@ -262,7 +263,6 @@ int main(int argc, char *argv[]) {
     delete hand_image;
 #endif
 
-    tp.stop();
   } catch (std::wruntime_error e) {
     std::cout << "Exception caught!" << std::endl;
     std::cout << jtil::string_util::ToNarrowString(e.errorMsg()) << std::endl;

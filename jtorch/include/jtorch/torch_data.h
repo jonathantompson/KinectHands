@@ -32,10 +32,9 @@ namespace jtorch {
 
     virtual TorchDataType type() const { return UNDEFINED_DATA; }
     virtual uint32_t dataSize() const = 0;  // Pure virtual
-    virtual void print() const = 0;
+    virtual void print() = 0;
 
   protected:
-
     // Non-copyable, non-assignable.
     TorchData(TorchData&);
     TorchData& operator=(const TorchData&);

@@ -33,24 +33,56 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\jtorch\float_tensor.cpp" />
-    <ClCompile Include="src\jtorch\join_table.cpp" />
+    <ClCompile Include="src\jtorch\join_table.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\jtorch\jtorch.cpp" />
-    <ClCompile Include="src\jtorch\linear.cpp" />
-    <ClCompile Include="src\jtorch\parallel.cpp" />
-    <ClCompile Include="src\jtorch\reshape.cpp" />
-    <ClCompile Include="src\jtorch\sequential.cpp" />
-    <ClCompile Include="src\jtorch\spatial_contrastive_normalization.cpp" />
-    <ClCompile Include="src\jtorch\spatial_convolution_map.cpp" />
-    <ClCompile Include="src\jtorch\spatial_divisive_normalization.cpp" />
-    <ClCompile Include="src\jtorch\spatial_lp_pooling.cpp" />
-    <ClCompile Include="src\jtorch\spatial_max_pooling.cpp" />
-    <ClCompile Include="src\jtorch\spatial_subtractive_normalization.cpp" />
-    <ClCompile Include="src\jtorch\table.cpp" />
+    <ClCompile Include="src\jtorch\linear.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\jtorch\parallel.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\jtorch\reshape.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\jtorch\sequential.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\jtorch\spatial_contrastive_normalization.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\jtorch\spatial_convolution_map.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\jtorch\spatial_divisive_normalization.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\jtorch\spatial_lp_pooling.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\jtorch\spatial_max_pooling.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\jtorch\spatial_subtractive_normalization.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\jtorch\table.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\jtorch\tanh.cpp" />
-    <ClCompile Include="src\jtorch\threshold.cpp" />
+    <ClCompile Include="src\jtorch\threshold.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\jtorch\torch_data.cpp" />
     <ClCompile Include="src\jtorch\torch_stage.cpp" />
-    <ClCompile Include="src\jtorch\transpose.cpp" />
+    <ClCompile Include="src\jtorch\transpose.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="kernels\tanh.cl" />
+    <None Include="kernels\threshold.cl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{287F2B7F-A92D-4144-B56D-B0A87E5883EE}</ProjectGuid>

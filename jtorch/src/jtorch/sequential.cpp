@@ -44,16 +44,15 @@ namespace jtorch {
     return ret;
   }
 
-  void Sequential::forwardProp(TorchData& input, 
-    ThreadPool& tp) {
+  void Sequential::forwardProp(TorchData& input) {
     if (network_ == NULL) {
       throw std::wruntime_error("Sequential::forwardProp() - ERROR: "
         "Network is empty!");
     }
-    (*network_)[0]->forwardProp(input, tp);
+    (*network_)[0]->forwardProp(input);
     for (uint32_t i = 1; i < network_->size(); i++) {
       TorchData* cur_input = (*network_)[i-1]->output;
-      (*network_)[i]->forwardProp(*cur_input, tp);
+      (*network_)[i]->forwardProp(*cur_input);
     }
     output = (*network_)[network_->size()-1]->output;
   }

@@ -20,7 +20,7 @@ namespace jtorch {
     n_inputs_ = n_inputs;
     n_outputs_ = n_outputs;
 
-    output = new FloatTensor(Int4(n_outputs_, 1, 1, 1));
+    output = new FloatTensor(Int3(n_outputs_, 1, 1));
     thread_cbs_ = NULL;
 
     int32_t n_weights = n_outputs_ * n_inputs_;

@@ -13,18 +13,21 @@
 #ifndef JTORCH_JTORCH_HEADER
 #define JTORCH_JTORCH_HEADER
 
-#include <iostream>
-#include <iomanip>
-#include <fstream>
+#include <string>
 
 namespace jcl { class JCL; }
 
 namespace jtorch {
 
-  void InitJTorch();
+  // path_to_jtorch should be the path to "KinectHands/jtorch"
+  void InitJTorch(const std::string& path_to_jtorch);
   void ShutdownJTorch();
 
+  // Some constants and globals for the jtorch instance
   extern jcl::JCL* cl_context;
+  extern std::string jtorch_path;
+  const int max_local_workgroup_size = 8;
+  const uint32_t deviceid = 0;
 
 };  // namespace jtorch
 

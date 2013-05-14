@@ -53,6 +53,9 @@ namespace jtorch {
   }
 
   TorchStage* TorchStage::loadFromFile(std::ifstream& ifile) { 
+    // TEMP CODE
+    return NULL;
+    /*
     // Read in the enum type:
     int type;
     ifile.read(reinterpret_cast<char*>(&type), sizeof(type));
@@ -103,6 +106,7 @@ namespace jtorch {
       throw std::wruntime_error("TorchStage::loadFromFile() - ERROR: "
         "Node type not recognized!");
     }
+    */
   }
 
 }  // namespace jtorch

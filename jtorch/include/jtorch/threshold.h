@@ -24,8 +24,7 @@ namespace jtorch {
     virtual ~Threshold();
 
     virtual TorchStageType type() const { return THRESHOLD_STAGE; }
-    virtual void forwardProp(TorchData& input, 
-      jtil::threading::ThreadPool& tp);
+    virtual void forwardProp(TorchData& input);
 
     float threshold;  // Single threshold value
     float val;  // Single output value (when input < threshold)
@@ -33,17 +32,8 @@ namespace jtorch {
     static TorchStage* loadFromFile(std::ifstream& file);
 
   protected:
-    // Multithreading primatives and functions
-    float* cur_input_;
-    float* cur_output_;
-    int32_t threads_finished_;
-    std::mutex thread_update_lock_;
-    std::condition_variable not_finished_;
-    jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* thread_cbs_;  
-
-    void forwardPropThread(const int32_t start, const int32_t end);
-
-    void init(TorchData& input, jtil::threading::ThreadPool& tp);
+    void init(TorchData& input);
+    jtil::math::Int3 local_worgroup_size;
 
     // Non-copyable, non-assignable.
     Threshold(Threshold&);

@@ -24,23 +24,13 @@ namespace jtorch {
     virtual ~Tanh();
 
     virtual TorchStageType type() const { return TANH_STAGE; }
-    virtual void forwardProp(TorchData& input, 
-      jtil::threading::ThreadPool& tp);
+    virtual void forwardProp(TorchData& input);
 
     static TorchStage* loadFromFile(std::ifstream& file);
 
   protected:
-    // Multithreading primatives and functions
-    float* cur_input_;
-    float* cur_output_;
-    int32_t threads_finished_;
-    std::mutex thread_update_lock_;
-    std::condition_variable not_finished_;
-    jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* thread_cbs_; 
-
-    void forwardPropThread(const int32_t start, const int32_t end);
-
-    void init(TorchData& input, jtil::threading::ThreadPool& tp);
+    void init(TorchData& input);
+    jtil::math::Int3 local_worgroup_size;
 
     // Non-copyable, non-assignable.
     Tanh(Tanh&);

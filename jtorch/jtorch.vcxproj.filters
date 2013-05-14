@@ -15,6 +15,9 @@
     <Filter Include="Source Files\jtorch">
       <UniqueIdentifier>{68901a2d-8774-41d3-be3f-56eda17cd13b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="kernels">
+      <UniqueIdentifier>{8942c00e-628f-4277-bb44-8444447049c5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\jtorch\float_tensor.h">
@@ -133,5 +136,13 @@
     <ClCompile Include="src\jtorch\jtorch.cpp">
       <Filter>Source Files\jtorch</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="kernels\tanh.cl">
+      <Filter>kernels</Filter>
+    </None>
+    <None Include="kernels\threshold.cl">
+      <Filter>kernels</Filter>
+    </None>
   </ItemGroup>
 </Project>
