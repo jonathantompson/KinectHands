@@ -141,5 +141,8 @@
     <None Include="kernels\threshold.cl">
       <Filter>kernels</Filter>
     </None>
+    <None Include="kernels\spatial_convolution_map.cl">
+      <Filter>kernels</Filter>
+    </None>
   </ItemGroup>
 </Project>

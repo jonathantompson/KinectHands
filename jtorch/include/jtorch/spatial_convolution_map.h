@@ -24,6 +24,8 @@
 namespace jtil { namespace data_str { template <typename T> class VectorManaged; } }
 
 namespace jtorch {
+
+  template <typename T> class Tensor;
   
   class SpatialConvolutionMap : public TorchStage {
   public:
@@ -55,7 +57,8 @@ namespace jtorch {
     Tensor<float>* weights_;
     // biases_buf_:     dim[0] --> feats_out_t
     Tensor<float>* biases_;
-    // conn_table_buf_: dim[1] --> feats_out_t
+    // conn_table_buf_: dim[2] --> feats_out_t
+    //                  dim[1] --> input index (0 to fan_in-1) (size = fan_in_)
     //                  dim[0] --> 2 (0 is the input feature and 1 is the matrix index)
     Tensor<int>* conn_table_;
 
