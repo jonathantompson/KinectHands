@@ -19,6 +19,7 @@
 #include "jtil/math/math_types.h"
 #include "jtil/threading/callback.h"
 #include "jtorch/torch_stage.h"
+#include "jcl/jcl.h"  // For jcl::JCLBuffer
 
 namespace jtil { namespace data_str { template <typename T> class VectorManaged; } }
 
@@ -33,14 +34,11 @@ namespace jtorch {
     virtual ~SpatialConvolutionMap();
 
     virtual TorchStageType type() const { return SPATIAL_CONVOLUTION_MAP_STAGE; }
-    virtual void forwardProp(TorchData& input, 
-      jtil::threading::ThreadPool& tp);
+    virtual void forwardProp(TorchData& input);
 
-    float** weights;
-    float* biases;
-    int16_t** conn_table;  // This is the same as conn_table_rev in Torch
-                           // For each output: [0] is input feature and [1]
-                           // is the weight matrix (filter) to use
+    void setWeights(const float* weights);
+    void setBiases(const float* biases);
+    void setConnTable(const int* conn_table);
 
     static TorchStage* loadFromFile(std::ifstream& file);
 
@@ -51,19 +49,19 @@ namespace jtorch {
     int32_t feats_out_;
     int32_t fan_in_;
 
-    // Multithreading primatives and functions
-    float* cur_input_;
-    int32_t cur_input_width_;
-    int32_t cur_input_height_;
-    float* cur_output_;
-    int32_t threads_finished_;
-    std::mutex thread_update_lock_;
-    std::condition_variable not_finished_;
-    jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* thread_cbs_; 
+    // weights_buf_:    dim[2] --> matrix_index (size = feats_out_ * fan_in_) 
+    //                  dim[1] --> filter height
+    //                  dim[0] --> filter width
+    Tensor<float>* weights_;
+    // biases_buf_:     dim[0] --> feats_out_t
+    Tensor<float>* biases_;
+    // conn_table_buf_: dim[1] --> feats_out_t
+    //                  dim[0] --> 2 (0 is the input feature and 1 is the matrix index)
+    Tensor<int>* conn_table_;
 
-    void forwardPropThread(const int32_t outf);
+    jtil::math::Int3 local_worgroup_size;
 
-    void init(TorchData& input, jtil::threading::ThreadPool& tp);
+    void init(TorchData& input);
 
     // Non-copyable, non-assignable.
     SpatialConvolutionMap(SpatialConvolutionMap&);

@@ -1,5 +1,6 @@
 #include "jtorch/spatial_convolution_map.h"
-#include "jtorch/float_tensor.h"
+#include "jtorch/tensor.h"
+#include "jtorch/jtorch.h"
 #include "jtil/exceptions/wruntime_error.h"
 #include "jtil/threading/thread.h"
 #include "jtil/threading/callback.h"
@@ -12,6 +13,7 @@
 using namespace jtil::threading;
 using namespace jtil::math;
 using namespace jtil::data_str;
+using namespace jcl;
 
 namespace jtorch {
 
@@ -26,36 +28,22 @@ namespace jtorch {
     fan_in_ = fan_in;
 
     output = NULL;
-    thread_cbs_ = NULL;
 
-    weights = new float*[feats_out_ * fan_in_];
-    for (int32_t i = 0; i < feats_out_ * fan_in_; i++) {
-      weights[i] = new float[filt_width_ * filt_height_];
-    }
-    conn_table = new int16_t*[feats_out_];
-    for (int32_t i = 0; i < feats_out_; i++) {
-      conn_table[i] = new int16_t[fan_in_ * 2];
-    }
-    biases = new float[feats_out_];
+    weights_ = new Tensor<float>(Int3(feats_out_ * fan_in_, filt_height_,
+      filt_width_));
+    biases_ = new Tensor<float>(feats_out_);
+    conn_table_ = new Tensor<int>(Int2(feats_out_, 2));
   }
 
   SpatialConvolutionMap::~SpatialConvolutionMap() {
     SAFE_DELETE(output);
-    SAFE_DELETE(thread_cbs_);
-    for (int32_t i = 0; i < feats_out_ * fan_in_; i++) {
-      SAFE_DELETE_ARR(weights[i]);
-    }
-    SAFE_DELETE(weights);
-    for (int32_t i = 0; i < feats_out_; i++) {
-      SAFE_DELETE_ARR(conn_table[i]);
-    }
-    SAFE_DELETE(conn_table);
-    SAFE_DELETE_ARR(biases);
+    SAFE_DELETE(weights_);
+    SAFE_DELETE(biases_);
+    SAFE_DELETE(conn_table_);
   }
 
-  void SpatialConvolutionMap::init(TorchData& input, 
-    jtil::threading::ThreadPool& tp)  {
-    if (input.type() != TorchDataType::FLOAT_TENSOR_DATA) {
+  void SpatialConvolutionMap::init(TorchData& input)  {
+    if (input.type() != TorchDataType::TENSOR_DATA) {
       throw std::wruntime_error("SpatialConvolutionMap::init() - "
         "FloatTensor expected!");
     }
@@ -65,14 +53,13 @@ namespace jtorch {
         "incorrect number of input features!");
     }
     if (output != NULL) {
-      Int4 out_dim(in.dim());
+      Int3 out_dim(in.dim());
       out_dim[0] = out_dim[0] - filt_width_ + 1;
       out_dim[1] = out_dim[1] - filt_height_ + 1;
       out_dim[2] = feats_out_;
-      if (!Int4::equal(out_dim, ((FloatTensor*)output)->dim())) {
+      if (!Int3::equal(out_dim, ((FloatTensor*)output)->dim())) {
         // Input dimension has changed!
         SAFE_DELETE(output);
-        SAFE_DELETE(thread_cbs_);
       }
     }
     if (output == NULL) {

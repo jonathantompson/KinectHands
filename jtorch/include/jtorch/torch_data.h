@@ -21,7 +21,7 @@ namespace jtorch {
   typedef enum {
     UNDEFINED_DATA = 0,
     TABLE_DATA = 1,
-    FLOAT_TENSOR_DATA = 2,
+    TENSOR_DATA = 2,
   } TorchDataType;
 
   class TorchData {

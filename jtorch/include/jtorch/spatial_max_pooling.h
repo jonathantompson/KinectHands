@@ -36,13 +36,6 @@ namespace jtorch {
     int32_t poolsize_v_;
     int32_t poolsize_u_;
 
-    // Multithreading primatives and functions
-    FloatTensor* cur_input_;
-    int32_t threads_finished_;
-    std::mutex thread_update_lock_;
-    std::condition_variable not_finished_;
-    jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* thread_cbs_; 
-
     void forwardPropThread(const int32_t outf, const int32_t outb);
 
     void init(TorchData& input, jtil::threading::ThreadPool& tp);

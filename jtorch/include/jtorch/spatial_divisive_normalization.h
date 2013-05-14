@@ -23,12 +23,12 @@ namespace jtil { namespace data_str { template <typename T> class VectorManaged;
 
 namespace jtorch {
 
-  class FloatTensor;
+  template <typename T> class Tensor;
   
   class SpatialDivisiveNormalization : public TorchStage {
   public:
     // Constructor / Destructor
-    SpatialDivisiveNormalization(const FloatTensor& kernel1d, 
+    SpatialDivisiveNormalization(const Tensor<float>& kernel1d, 
       const float threshold = 1e-4f);
     virtual ~SpatialDivisiveNormalization();
 
@@ -39,8 +39,8 @@ namespace jtorch {
     static TorchStage* loadFromFile(std::ifstream& file);
 
   protected:
-    FloatTensor* kernel1d_;
-    FloatTensor* kernel1d_norm_;  // kernel normalization depends on input size
+    Tensor<float>* kernel1d_;
+    Tensor<float>* kernel1d_norm_;  // kernel normalization depends on input size
     float* std_coef_;
     float* std_accum_;
     float* filt_tmp_;

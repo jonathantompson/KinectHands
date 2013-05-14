@@ -1,6 +1,6 @@
 #include "jtorch/tanh.h"
 #include "jtorch/jtorch.h"
-#include "jtorch/float_tensor.h"
+#include "jtorch/tensor.h"
 #include "jtil/exceptions/wruntime_error.h"
 #include "jtil/threading/thread.h"
 #include "jtil/threading/callback.h"
@@ -25,24 +25,24 @@ namespace jtorch {
   }
 
   void Tanh::init(TorchData& input)  {
-    if (input.type() != TorchDataType::FLOAT_TENSOR_DATA) {
+    if (input.type() != TorchDataType::TENSOR_DATA) {
       throw std::wruntime_error("Tanh::init() - FloatTensor expected!");
     }
-    FloatTensor& in = (FloatTensor&)input;
+    Tensor<float>& in = (Tensor<float>&)input;
     if (output != NULL) {
-      if (!Int3::equal(in.dim(), ((FloatTensor*)output)->dim())) {
+      if (!Int3::equal(in.dim(), ((Tensor<float>*)output)->dim())) {
         // Input dimension has changed!
         SAFE_DELETE(output);
       }
     }
     if (output == NULL) {
-      output = new FloatTensor(in.dim());
+      output = new Tensor<float>(in.dim());
       // Find the maximum local_work_group size that is divisible by the output
       // dimension.
       for (uint32_t i = 0; i < 3; i++) {
         local_worgroup_size[i] = std::min<int>(jtorch::max_local_workgroup_size,
-          ((FloatTensor*)output)->dim()[i]);
-        while (((FloatTensor*)output)->dim()[i] % local_worgroup_size[i] != 0) {
+          ((Tensor<float>*)output)->dim()[i]);
+        while (((Tensor<float>*)output)->dim()[i] % local_worgroup_size[i] != 0) {
           local_worgroup_size[i]--;
         }
       }
@@ -53,9 +53,9 @@ namespace jtorch {
     init(input);
     std::string kernel = jtorch::jtorch_path + "kernels/tanh.cl";
     cl_context->useKernel(kernel.c_str(), "TanH");
-    cl_context->setArg(0, ((FloatTensor&)input).data());
-    cl_context->setArg(1, ((FloatTensor*)output)->data());
-    cl_context->runKernel3D(jtorch::deviceid, ((FloatTensor*)output)->dim(),
+    cl_context->setArg(0, ((Tensor<float>&)input).data());
+    cl_context->setArg(1, ((Tensor<float>*)output)->data());
+    cl_context->runKernel3D(jtorch::deviceid, ((Tensor<float>*)output)->dim(),
       local_worgroup_size, false);
   }
 

@@ -1,5 +1,5 @@
 #include "jtorch/spatial_max_pooling.h"
-#include "jtorch/float_tensor.h"
+#include "jtorch/tensor.h"
 #include "jtil/exceptions/wruntime_error.h"
 #include "jtil/threading/thread.h"
 #include "jtil/threading/callback.h"
@@ -29,7 +29,7 @@ namespace jtorch {
   }
 
   void SpatialMaxPooling::init(TorchData& input, ThreadPool& tp)  {
-    if (input.type() != TorchDataType::FLOAT_TENSOR_DATA) {
+    if (input.type() != TorchDataType::TENSOR_DATA) {
       throw std::wruntime_error("SpatialMaxPooling::init() - "
         "FloatTensor expected!");
     }

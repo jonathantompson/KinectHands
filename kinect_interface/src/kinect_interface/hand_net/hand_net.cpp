@@ -11,7 +11,7 @@
 #include "jtorch/parallel.h"
 #include "jtorch/sequential.h"
 #include "jtorch/table.h"
-#include "jtorch/float_tensor.h"
+#include "jtorch/tensor.h"
 #include "kinect_interface/hand_net/hand_model_coeff.h"  // for HandCoeff
 #include "kinect_interface/open_ni_funcs.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"  // for GDT_MAX_DIST

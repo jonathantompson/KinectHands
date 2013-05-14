@@ -1,3 +1,5 @@
+// THE CPP FUNCTIONALITY HERE IS TO BE TESTED AGAINST "jtorch_test.lua" SCRIPT
+
 #include <stdlib.h>
 #include <cmath>
 #include <thread>
@@ -5,7 +7,7 @@
 #include <limits>
 #include "jtorch/torch_stage.h"
 #include "jtorch/jtorch.h"
-#include "jtorch/float_tensor.h"
+#include "jtorch/tensor.h"
 #include "jtorch/spatial_convolution_map.h"
 #include "jtorch/spatial_lp_pooling.h"
 #include "jtorch/spatial_max_pooling.h"
@@ -18,7 +20,6 @@
 #include "jtorch/threshold.h"
 #include "jtorch/sequential.h"
 #include "jtorch/table.h"
-#include "kinect_interface/hand_net/hand_image_generator.h"
 #include "jtil/threading/thread_pool.h"
 #include "jtil/data_str/vector_managed.h"
 #include "jtil/debug_util/debug_util.h"
@@ -34,7 +35,6 @@
 // #define TEST_MODEL
 
 using namespace std;
-using namespace kinect_interface::hand_net;
 using namespace jtorch;
 using namespace jtil::threading;
 using namespace jtil::math;
@@ -48,7 +48,7 @@ const uint32_t height = 10;
 const uint32_t filt_height = 5;
 const uint32_t filt_width = 5;
 float din[width * height * num_feats_in];
-float dout[width * height * num_feats_out];;
+float dout[width * height * num_feats_out];
 
 int main(int argc, char *argv[]) {  
 #if defined(_DEBUG) || defined(DEBUG)
@@ -61,8 +61,8 @@ int main(int argc, char *argv[]) {
     jtorch::InitJTorch("../jtorch");
 
 #ifdef TEST_MODULES
-    FloatTensor data_in(Int3(width, height, num_feats_in));
-    FloatTensor data_out(Int3(width, height, num_feats_out));
+    Tensor<float> data_in(Int3(width, height, num_feats_in));
+    Tensor<float> data_out(Int3(width, height, num_feats_out));
 
     for (uint32_t f = 0; f < num_feats_in; f++) {
       float val = (f+1) - (float)(width * height) / 16.0f;
@@ -99,6 +99,7 @@ int main(int argc, char *argv[]) {
     stages.output->print();
 
     /*
+    
     // ***********************************************
     // Test SpatialConvolutionMap
     stages.add(new SpatialConvolutionMap(num_feats_in, num_feats_out, fan_in,
@@ -129,10 +130,10 @@ int main(int argc, char *argv[]) {
         cur_filt++;
       }
     }
-    stages.forwardProp(data_in, tp);
+    stages.get(stages.size
+    stages.forwardProp(data_in);
     std::cout << endl << endl << "SpatialConvolutionMap output:" << std::endl;
     stages.output->print();
-
   
     // ***********************************************
     // Test SpatialLPPooling

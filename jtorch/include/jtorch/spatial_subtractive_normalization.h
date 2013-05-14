@@ -19,12 +19,12 @@ namespace jtil { namespace data_str { template <typename T> class VectorManaged;
 
 namespace jtorch {
 
-  class FloatTensor;
+  template <typename T> class Tensor;
   
   class SpatialSubtractiveNormalization : public TorchStage {
   public:
     // Constructor / Destructor
-    SpatialSubtractiveNormalization(const FloatTensor& kernel1d);
+    SpatialSubtractiveNormalization(const Tensor<float>& kernel1d);
     virtual ~SpatialSubtractiveNormalization();
 
     virtual TorchStageType type() const { return SPATIAL_SUBTRACTIVE_NORMALIZATION_STAGE; }
@@ -34,7 +34,7 @@ namespace jtorch {
     static TorchStage* loadFromFile(std::ifstream& file);
 
   protected:
-    FloatTensor* kernel1d_;
+    Tensor<float>* kernel1d_;
     float* mean_coef_;
     float* mean_accum_;
     float* filt_tmp_;

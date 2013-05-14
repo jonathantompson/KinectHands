@@ -30,7 +30,7 @@
 namespace jtil { namespace threading { class ThreadPool; } }
 namespace jtil { namespace data_str { template <typename T> class Vector; } }
 namespace jtorch {  
-  class FloatTensor;
+  template <typename T> class Tensor;
   class SpatialContrastiveNormalization;
   class SpatialSubtractiveNormalization;
 }
@@ -86,7 +86,7 @@ namespace hand_net {
     jtil::math::Int4 hand_pos_wh_;  // Lower left pos and width/height of the hand image
     double* im_temp_double_;
     jtorch::TorchStage** norm_module_;  // One per bank
-    jtorch::FloatTensor** norm_module_input_;
+    jtorch::Tensor<float>** norm_module_input_;
     jtil::data_str::Vector<jtil::math::Int3> hand_mesh_indices_;
     jtil::data_str::Vector<jtil::math::Float3> hand_mesh_vertices_;
     jtil::data_str::Vector<jtil::math::Float3> hand_mesh_normals_;

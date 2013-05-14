@@ -29,6 +29,7 @@ namespace jtorch {
 
     void add(TorchStage* stage);
     TorchStage* get(const uint32_t i);
+    uint32_t size() const;
 
     static TorchStage* loadFromFile(std::ifstream& file);
 

@@ -1,5 +1,5 @@
 #include "jtorch/sequential.h"
-#include "jtorch/float_tensor.h"
+#include "jtorch/tensor.h"
 #include "jtil/exceptions/wruntime_error.h"
 #include "jtil/threading/thread.h"
 #include "jtil/threading/callback.h"
@@ -31,6 +31,10 @@ namespace jtorch {
 
   TorchStage* Sequential::get(const uint32_t i) {
     return (*network_)[i];
+  }
+
+  uint32_t Sequential::size() const { 
+    return network_->size();
   }
 
   TorchStage* Sequential::loadFromFile(std::ifstream& file) {

@@ -41,7 +41,6 @@ namespace jtorch {
   } TorchStageType;
 
   class TorchData;
-  class FloatTensor;
   
   class TorchStage {
   public:

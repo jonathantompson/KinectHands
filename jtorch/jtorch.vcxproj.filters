@@ -20,9 +20,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\jtorch\float_tensor.h">
-      <Filter>Header Files\jtorch</Filter>
-    </ClInclude>
     <ClInclude Include="include\jtorch\join_table.h">
       <Filter>Header Files\jtorch</Filter>
     </ClInclude>
@@ -77,11 +74,11 @@
     <ClInclude Include="include\jtorch\jtorch.h">
       <Filter>Header Files\jtorch</Filter>
     </ClInclude>
+    <ClInclude Include="include\jtorch\tensor.h">
+      <Filter>Header Files\jtorch</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\jtorch\float_tensor.cpp">
-      <Filter>Source Files\jtorch</Filter>
-    </ClCompile>
     <ClCompile Include="src\jtorch\join_table.cpp">
       <Filter>Source Files\jtorch</Filter>
     </ClCompile>

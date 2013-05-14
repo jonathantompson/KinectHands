@@ -11,7 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\jtorch\float_tensor.h" />
+    <ClInclude Include="include\jtorch\tensor.h" />
     <ClInclude Include="include\jtorch\join_table.h" />
     <ClInclude Include="include\jtorch\jtorch.h" />
     <ClInclude Include="include\jtorch\linear.h" />
@@ -32,7 +32,6 @@
     <ClInclude Include="include\jtorch\transpose.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\jtorch\float_tensor.cpp" />
     <ClCompile Include="src\jtorch\join_table.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>

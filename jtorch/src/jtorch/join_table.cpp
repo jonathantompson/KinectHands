@@ -1,5 +1,5 @@
 #include "jtorch/join_table.h"
-#include "jtorch/float_tensor.h"
+#include "jtorch/tensor.h"
 #include "jtorch/table.h"
 #include "jtil/exceptions/wruntime_error.h"
 #include "jtil/threading/thread.h"
@@ -46,7 +46,7 @@ namespace jtorch {
 
     // Check that it is a table of FloatTensors (since tables can be nested)
     for (uint32_t i = 0; i < in.tableSize(); i++) {
-      if (in(i)->type() != FLOAT_TENSOR_DATA) {
+      if (in(i)->type() != TENSOR_DATA) {
         throw std::wruntime_error("Parallel::forwardProp() - "
           "Table of float tensors expected!");
       }
