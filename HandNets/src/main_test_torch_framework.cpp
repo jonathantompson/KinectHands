@@ -36,8 +36,8 @@
 #endif
 
 #define NUM_WORKER_THREADS 1
-//#define TEST_MODULES
-#define TEST_MODEL
+#define TEST_MODULES
+// #define TEST_MODEL
 
 using namespace std;
 using namespace kinect_interface::hand_net;

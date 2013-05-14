@@ -11,6 +11,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "jtil", "..\PRenderer2\jtil\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "kinect_interface", "kinect_interface\kinect_interface.vcxproj", "{A6E0728B-50C6-4F44-88FA-AAF932B769DF}"
 	ProjectSection(ProjectDependencies) = postProject
+		{7DBA1597-6CC7-45CC-AC82-7B7C69F569C2} = {7DBA1597-6CC7-45CC-AC82-7B7C69F569C2}
 		{B6B147F5-C7F9-4E94-A58C-1B4855967A48} = {B6B147F5-C7F9-4E94-A58C-1B4855967A48}
 	EndProjectSection
 EndProject
@@ -52,6 +53,12 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestTorchFramework", "HandNets\TestTorchFramework.vcxproj", "{CD3A45CC-3DF2-45FA-A444-ED26CE254410}"
 	ProjectSection(ProjectDependencies) = postProject
 		{A6E0728B-50C6-4F44-88FA-AAF932B769DF} = {A6E0728B-50C6-4F44-88FA-AAF932B769DF}
+		{7DBA1597-6CC7-45CC-AC82-7B7C69F569C2} = {7DBA1597-6CC7-45CC-AC82-7B7C69F569C2}
+		{B6B147F5-C7F9-4E94-A58C-1B4855967A48} = {B6B147F5-C7F9-4E94-A58C-1B4855967A48}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "jcl", "..\PRenderer2\jcl\jcl.vcxproj", "{7DBA1597-6CC7-45CC-AC82-7B7C69F569C2}"
+	ProjectSection(ProjectDependencies) = postProject
 		{B6B147F5-C7F9-4E94-A58C-1B4855967A48} = {B6B147F5-C7F9-4E94-A58C-1B4855967A48}
 	EndProjectSection
 EndProject
@@ -101,6 +108,10 @@ Global
 		{CD3A45CC-3DF2-45FA-A444-ED26CE254410}.Debug|x64.Build.0 = Debug|x64
 		{CD3A45CC-3DF2-45FA-A444-ED26CE254410}.Release|x64.ActiveCfg = Release|x64
 		{CD3A45CC-3DF2-45FA-A444-ED26CE254410}.Release|x64.Build.0 = Release|x64
+		{7DBA1597-6CC7-45CC-AC82-7B7C69F569C2}.Debug|x64.ActiveCfg = Debug|x64
+		{7DBA1597-6CC7-45CC-AC82-7B7C69F569C2}.Debug|x64.Build.0 = Debug|x64
+		{7DBA1597-6CC7-45CC-AC82-7B7C69F569C2}.Release|x64.ActiveCfg = Release|x64
+		{7DBA1597-6CC7-45CC-AC82-7B7C69F569C2}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
