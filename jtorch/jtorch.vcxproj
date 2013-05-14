@@ -11,53 +11,50 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\kinect_interface\depth_images_io.cpp" />
-    <ClCompile Include="src\kinect_interface\hand_detector\common_tree_funcs.cpp" />
-    <ClCompile Include="src\kinect_interface\hand_detector\evaluate_decision_forest.cpp" />
-    <ClCompile Include="src\kinect_interface\hand_detector\forest_io.cpp" />
-    <ClCompile Include="src\kinect_interface\hand_detector\generate_decision_tree.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_detector\hand_detector.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\hand_image_generator.cpp" />
-    <ClCompile Include="src\kinect_interface\hand_net\hand_model_coeff.cpp" />
-    <ClCompile Include="src\kinect_interface\hand_net\hand_net.cpp" />
-    <ClCompile Include="src\kinect_interface\kinect_device_listener.cpp" />
-    <ClCompile Include="src\kinect_interface\kinect_interface.cpp" />
-    <ClCompile Include="src\kinect_interface\open_ni_funcs.cpp" />
+    <ClInclude Include="include\jtorch\float_tensor.h" />
+    <ClInclude Include="include\jtorch\join_table.h" />
+    <ClInclude Include="include\jtorch\jtorch.h" />
+    <ClInclude Include="include\jtorch\linear.h" />
+    <ClInclude Include="include\jtorch\parallel.h" />
+    <ClInclude Include="include\jtorch\reshape.h" />
+    <ClInclude Include="include\jtorch\sequential.h" />
+    <ClInclude Include="include\jtorch\spatial_contrastive_normalization.h" />
+    <ClInclude Include="include\jtorch\spatial_convolution_map.h" />
+    <ClInclude Include="include\jtorch\spatial_divisive_normalization.h" />
+    <ClInclude Include="include\jtorch\spatial_lp_pooling.h" />
+    <ClInclude Include="include\jtorch\spatial_max_pooling.h" />
+    <ClInclude Include="include\jtorch\spatial_subtractive_normalization.h" />
+    <ClInclude Include="include\jtorch\table.h" />
+    <ClInclude Include="include\jtorch\tanh.h" />
+    <ClInclude Include="include\jtorch\threshold.h" />
+    <ClInclude Include="include\jtorch\torch_data.h" />
+    <ClInclude Include="include\jtorch\torch_stage.h" />
+    <ClInclude Include="include\jtorch\transpose.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\kinect_interface\calibration_data.h" />
-    <ClInclude Include="include\kinect_interface\depth_images_io.h" />
-    <ClInclude Include="include\kinect_interface\depth_image_data.h" />
-    <ClInclude Include="include\kinect_interface\hand_detector\common_tree_funcs.h" />
-    <ClInclude Include="include\kinect_interface\hand_detector\decision_tree_func.h" />
-    <ClInclude Include="include\kinect_interface\hand_detector\decision_tree_structs.h" />
-    <ClInclude Include="include\kinect_interface\hand_detector\evaluate_decision_forest.h" />
-    <ClInclude Include="include\kinect_interface\hand_detector\forest_io.h" />
-    <ClInclude Include="include\kinect_interface\hand_detector\generate_decision_tree.h" />
-    <ClInclude Include="include\kinect_interface\hand_detector\hand_detector.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\hand_image_generator.h" />
-    <ClInclude Include="include\kinect_interface\hand_net\hand_model_coeff.h" />
-    <ClInclude Include="include\kinect_interface\hand_net\hand_net.h" />
-    <ClInclude Include="include\kinect_interface\kinect_device_listener.h" />
-    <ClInclude Include="include\kinect_interface\kinect_interface.h" />
-    <ClInclude Include="include\kinect_interface\open_ni_funcs.h" />
+    <ClCompile Include="src\jtorch\float_tensor.cpp" />
+    <ClCompile Include="src\jtorch\join_table.cpp" />
+    <ClCompile Include="src\jtorch\jtorch.cpp" />
+    <ClCompile Include="src\jtorch\linear.cpp" />
+    <ClCompile Include="src\jtorch\parallel.cpp" />
+    <ClCompile Include="src\jtorch\reshape.cpp" />
+    <ClCompile Include="src\jtorch\sequential.cpp" />
+    <ClCompile Include="src\jtorch\spatial_contrastive_normalization.cpp" />
+    <ClCompile Include="src\jtorch\spatial_convolution_map.cpp" />
+    <ClCompile Include="src\jtorch\spatial_divisive_normalization.cpp" />
+    <ClCompile Include="src\jtorch\spatial_lp_pooling.cpp" />
+    <ClCompile Include="src\jtorch\spatial_max_pooling.cpp" />
+    <ClCompile Include="src\jtorch\spatial_subtractive_normalization.cpp" />
+    <ClCompile Include="src\jtorch\table.cpp" />
+    <ClCompile Include="src\jtorch\tanh.cpp" />
+    <ClCompile Include="src\jtorch\threshold.cpp" />
+    <ClCompile Include="src\jtorch\torch_data.cpp" />
+    <ClCompile Include="src\jtorch\torch_stage.cpp" />
+    <ClCompile Include="src\jtorch\transpose.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{A6E0728B-50C6-4F44-88FA-AAF932B769DF}</ProjectGuid>
-    <RootNamespace>kinect_interface</RootNamespace>
+    <ProjectGuid>{287F2B7F-A92D-4144-B56D-B0A87E5883EE}</ProjectGuid>
+    <RootNamespace>jcl</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -97,10 +94,11 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)..\..\PRenderer2\jtil\include;$(ProjectDir)..\include\WIN7\nite;$(ProjectDir)..\include\WIN7\ni;$(ProjectDir)..\include\WIN7\zmq</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)..\..\PRenderer2\jtil\include;$(ProjectDir)..\..\PRenderer2\jcl\include</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4996; 4290</DisableSpecificWarnings>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <PreprocessorDefinitions>_AMD64_;WIN32;BREAK_ON_EXCEPTION_INT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BREAK_ON_EXCEPTION_INT;FREEIMAGE_LIB;GLEW_STATIC;UNICODE;_UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <OpenMPSupport>true</OpenMPSupport>
       <ProgramDataBaseFileName>$(TargetDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ObjectFileName>$(IntDir)</ObjectFileName>
@@ -109,8 +107,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\lib\WIN7;$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>jtil_d.lib;OpenNI2.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\;$(ProjectDir)..\..\PRenderer2\jcl\build\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>jcl_d.lib;jtil_d.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <AdditionalOptions>/ignore:4006 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
@@ -128,10 +126,11 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)..\..\PRenderer2\jtil\include;$(ProjectDir)..\include\WIN7\nite;$(ProjectDir)..\include\WIN7\ni;$(ProjectDir)..\include\WIN7\zmq</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)..\..\PRenderer2\jtil\include;$(ProjectDir)..\..\PRenderer2\jcl\include</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4996; 4290</DisableSpecificWarnings>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <PreprocessorDefinitions>_AMD64_;WIN32;BREAK_ON_EXCEPTION_INT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BREAK_ON_EXCEPTION_INT;FREEIMAGE_LIB;GLEW_STATIC;UNICODE;_UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <OpenMPSupport>true</OpenMPSupport>
       <ProgramDataBaseFileName>$(TargetDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ObjectFileName>$(IntDir)</ObjectFileName>
@@ -142,8 +141,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\lib\WIN7;$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>jtil.lib;OpenNI2.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\;$(ProjectDir)..\..\PRenderer2\jcl\build\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>jcl.lib;jtil.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <AdditionalOptions>/ignore:4006 %(AdditionalOptions)</AdditionalOptions>
     </Lib>

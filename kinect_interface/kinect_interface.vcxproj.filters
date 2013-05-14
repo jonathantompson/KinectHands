@@ -51,66 +51,6 @@
     <ClCompile Include="src\kinect_interface\hand_detector\evaluate_decision_forest.cpp">
       <Filter>Source Files\kinect_interface\hand_detector</Filter>
     </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\torch_stage.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\tanh.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\threshold.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\spatial_convolution_map.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\linear.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\reshape.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\spatial_lp_pooling.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\OLD_nn_stage.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\OLD_conv_stage.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\spatial_max_pooling.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\spatial_subtractive_normalization.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\spatial_divisive_normalization.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\sequential.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\spatial_contrastive_normalization.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\parallel.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\float_tensor.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\table.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\torch_data.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\join_table.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\transpose.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
     <ClCompile Include="src\kinect_interface\kinect_interface.cpp">
       <Filter>Source Files\kinect_interface</Filter>
     </ClCompile>
@@ -157,66 +97,6 @@
     </ClInclude>
     <ClInclude Include="include\kinect_interface\hand_detector\evaluate_decision_forest.h">
       <Filter>Header Files\kinect_interface\hand_detector</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\torch_stage.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\tanh.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\threshold.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\spatial_convolution_map.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\linear.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\reshape.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\spatial_lp_pooling.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\OLD_nn_stage.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\OLD_conv_stage.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\spatial_max_pooling.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\spatial_subtractive_normalization.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\spatial_divisive_normalization.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\sequential.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\spatial_contrastive_normalization.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\parallel.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\float_tensor.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\torch_data.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\table.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\join_table.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\transpose.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
     </ClInclude>
     <ClInclude Include="include\kinect_interface\kinect_interface.h">
       <Filter>Header Files\kinect_interface</Filter>

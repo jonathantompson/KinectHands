@@ -29,13 +29,14 @@
 
 namespace jtil { namespace threading { class ThreadPool; } }
 namespace jtil { namespace data_str { template <typename T> class Vector; } }
-
-namespace kinect_interface {
-namespace hand_net {
-
+namespace jtorch {  
   class FloatTensor;
   class SpatialContrastiveNormalization;
   class SpatialSubtractiveNormalization;
+}
+
+namespace kinect_interface {
+namespace hand_net {
 
   typedef enum {
     BasicNormalApproximation,  // average normals (no weighting)
@@ -84,8 +85,8 @@ namespace hand_net {
     jtil::math::Float3 uvd_com_;  // UV COM of the hand image.
     jtil::math::Int4 hand_pos_wh_;  // Lower left pos and width/height of the hand image
     double* im_temp_double_;
-    TorchStage** norm_module_;  // One per bank
-    FloatTensor** norm_module_input_;
+    jtorch::TorchStage** norm_module_;  // One per bank
+    jtorch::FloatTensor** norm_module_input_;
     jtil::data_str::Vector<jtil::math::Int3> hand_mesh_indices_;
     jtil::data_str::Vector<jtil::math::Float3> hand_mesh_vertices_;
     jtil::data_str::Vector<jtil::math::Float3> hand_mesh_normals_;
