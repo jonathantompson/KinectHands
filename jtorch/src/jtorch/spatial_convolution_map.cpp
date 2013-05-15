@@ -175,7 +175,7 @@ namespace jtorch {
     for (int32_t i = 0; i < n_output_features; i++) {
       file.read((char*)cur_conn_table, 
         sizeof(cur_conn_table[0]) * filt_fan_in * 2);
-      for (uint32_t j = 0; j < filt_fan_in * 2; j++) {
+      for (int32_t j = 0; j < filt_fan_in * 2; j++) {
         conn_table[i * filt_fan_in * 2 + j] = (int)cur_conn_table[j];
       }
     }
