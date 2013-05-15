@@ -46,7 +46,7 @@ namespace jtorch {
       ret = TorchStage::loadFromFile(ifile);
     } else {
       std::stringstream ss;
-      ss << "HandNet::loadFromFile() - ERROR: Could not open convnet";
+      ss << "HandNet::loadFromFile() - ERROR: Could not open modelfile";
       ss << " file " << file << std::endl;
       throw std::wruntime_error(ss.str());
     }
@@ -54,9 +54,6 @@ namespace jtorch {
   }
 
   TorchStage* TorchStage::loadFromFile(std::ifstream& ifile) { 
-    // TEMP CODE
-    return NULL;
-    /*
     // Read in the enum type:
     int type;
     ifile.read(reinterpret_cast<char*>(&type), sizeof(type));
@@ -64,9 +61,9 @@ namespace jtorch {
     case SEQUENTIAL_STAGE:
       std::cout << "  Loading Sequential..." << std::endl;
       return Sequential::loadFromFile(ifile);
-    case PARALLEL_STAGE:
-      std::cout << "  Loading Parallel..." << std::endl;
-      return Parallel::loadFromFile(ifile);
+    //case PARALLEL_STAGE:
+    //  std::cout << "  Loading Parallel..." << std::endl;
+    //  return Parallel::loadFromFile(ifile);
     case TANH_STAGE:
       std::cout << "  Loading Tanh..." << std::endl;
       return Tanh::loadFromFile(ifile);
@@ -100,9 +97,9 @@ namespace jtorch {
     case SPATIAL_CONTRASTIVE_NORMALIZATION_STAGE:
       std::cout << "  Loading SpatialContrastiveNormalization..." << std::endl;
       return SpatialContrastiveNormalization::loadFromFile(ifile);
-    case JOIN_TABLE_STAGE:
-      std::cout << "  Loading JoinTable..." << std::endl;
-      return JoinTable::loadFromFile(ifile);
+    //case JOIN_TABLE_STAGE:
+    //  std::cout << "  Loading JoinTable..." << std::endl;
+    //  return JoinTable::loadFromFile(ifile);
     case TRANSPOSE_STAGE:
       std::cout << "  Loading Transpose..." << std::endl;
       return Transpose::loadFromFile(ifile);
@@ -110,7 +107,6 @@ namespace jtorch {
       throw std::wruntime_error("TorchStage::loadFromFile() - ERROR: "
         "Node type not recognized!");
     }
-    */
   }
 
 }  // namespace jtorch

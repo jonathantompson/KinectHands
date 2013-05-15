@@ -32,8 +32,8 @@
 #endif
 
 #define NUM_WORKER_THREADS 1
-#define TEST_MODULES
-// #define TEST_MODEL
+// #define TEST_MODULES
+#define TEST_MODEL
 
 using namespace std;
 using namespace jtorch;
@@ -71,7 +71,6 @@ int main(int argc, char *argv[]) {
   try {
     jtorch::InitJTorch("../jtorch");
 
-#ifdef TEST_MODULES
     Tensor<float> data_in(Int3(width, height, num_feats_in));
     Tensor<float> data_out(Int3(width, height, num_feats_out));
 
@@ -88,6 +87,7 @@ int main(int argc, char *argv[]) {
     std::cout << "Data In:" << std::endl;
     data_in.print();
 
+#ifdef TEST_MODULES
     Sequential stages;
 
     // ***********************************************
@@ -256,53 +256,18 @@ int main(int argc, char *argv[]) {
 #ifdef TEST_MODEL
     // ***********************************************
     // Test Loading a model
-    TorchStage* m = TorchStage::loadFromFile("../data/handmodel.net.convnet");
+    TorchStage* model = TorchStage::loadFromFile("./testmodel.bin");
 
-    // Lets create a fake input image (of zeros) and make sure it passes through
-    uint32_t w = HN_IM_SIZE;
-    uint32_t h = HN_IM_SIZE;
-    uint32_t data_file_size = 0;
-    Table* hand_image = new Table();
-    for (uint32_t i = 0; i < HN_DEFAULT_NUM_CONV_BANKS; i++) {
-      data_file_size += w * h;
-      FloatTensor* cur_image = new FloatTensor(Int2(h, w));
-      hand_image->add(cur_image);
-      w = w / 2;
-      h = h / 2;
-    }
-
-    float* im = new float[data_file_size];
-    jtil::file_io::LoadArrayFromFile<float>(im, data_file_size, 
-      "kinect_hpf_depth_image_uncompressed.bin");
-    
-    w = HN_IM_SIZE;
-    h = HN_IM_SIZE;
-    float* ptr = im;
-    for (uint32_t i = 0; i < HN_DEFAULT_NUM_CONV_BANKS; i++) {
-      float* internal_data = ((FloatTensor*)(*hand_image)(i))->data();
-      memcpy(internal_data, ptr, sizeof(internal_data[0]) * w * h);
-      ptr = &ptr[w*h];
-      w = w / 2;
-      h = h / 2;
-    }
-
-    m->forwardProp(*hand_image, tp);
+    model->forwardProp(data_in);
     std::cout << "Model Output = " << std::endl;
-    m->output->print();
+    model->output->print();
 
     // Some debugging if things go wrong:
-    if (m->type() != SEQUENTIAL_STAGE) {
+    if (model->type() != SEQUENTIAL_STAGE) {
       throw std::wruntime_error("main() - ERROR: Expecting sequential!");
     }
-    TorchStage* join_table = ((Sequential*)m)->get(1);
-    if (join_table->type() != JOIN_TABLE_STAGE) {
-      throw std::wruntime_error("main() - ERROR: Expecting JoinTable!");
-    }
-    FloatTensor* join_table_out = (FloatTensor*)join_table->output;
 
-    delete m;
-    delete im;
-    delete hand_image;
+    delete model;
 #endif
 
   } catch (std::wruntime_error e) {
