@@ -1,5 +1,6 @@
 #include "jtorch/spatial_convolution_map.h"
 #include "jtorch/tensor.h"
+#include "jtorch/jtorch.h"
 #include "jtil/exceptions/wruntime_error.h"
 #include "jtil/threading/thread.h"
 #include "jtil/threading/callback.h"
@@ -12,6 +13,7 @@
 using namespace jtil::threading;
 using namespace jtil::math;
 using namespace jtil::data_str;
+using namespace jcl;
 
 namespace jtorch {
 
@@ -25,48 +27,34 @@ namespace jtorch {
     feats_out_ = feats_out;
     fan_in_ = fan_in;
 
-    std::cout << "WARNING: SPATIALCONVOLUTIONMAP IS SLOW.  All computation is";
-    std::cout << " done on the CPU and incurs large transfer penalties!";
-    std::cout << std::endl;
-
     output = NULL;
-    thread_cbs_ = NULL;
-    output_cpu_ = NULL;
-    input_cpu_ = NULL;
 
-    weights = new float*[feats_out_ * fan_in_];
-    for (int32_t i = 0; i < feats_out_ * fan_in_; i++) {
-      weights[i] = new float[filt_width_ * filt_height_];
-    }
-    conn_table = new int16_t*[feats_out_];
-    for (int32_t i = 0; i < feats_out_; i++) {
-      conn_table[i] = new int16_t[fan_in_ * 2];
-    }
-    biases = new float[feats_out_];
-
-    tp_ = new ThreadPool(JTIL_SPATIAL_CONVOLUTION_MAP_NTHREADS);
+    weights_ = new Tensor<float>(Int3(feats_out_ * fan_in_, filt_height_,
+      filt_width_));
+    biases_ = new Tensor<float>(feats_out_);
+    conn_table_ = new Tensor<int>(Int3(feats_out_, fan_in_, 2));
   }
 
   SpatialConvolutionMap::~SpatialConvolutionMap() {
-    tp_->stop();
-    SAFE_DELETE(tp_);
     SAFE_DELETE(output);
-    SAFE_DELETE_ARR(output_cpu_);
-    SAFE_DELETE_ARR(input_cpu_);
-    SAFE_DELETE(thread_cbs_);
-    for (int32_t i = 0; i < feats_out_ * fan_in_; i++) {
-      SAFE_DELETE_ARR(weights[i]);
-    }
-    SAFE_DELETE(weights);
-    for (int32_t i = 0; i < feats_out_; i++) {
-      SAFE_DELETE_ARR(conn_table[i]);
-    }
-    SAFE_DELETE(conn_table);
-    SAFE_DELETE_ARR(biases);
+    SAFE_DELETE(weights_);
+    SAFE_DELETE(biases_);
+    SAFE_DELETE(conn_table_);
   }
 
-  void SpatialConvolutionMap::init(TorchData& input, 
-    jtil::threading::ThreadPool& tp)  {
+  void SpatialConvolutionMap::setWeights(const float* weights) {
+    weights_->setData(weights);
+  }
+
+  void SpatialConvolutionMap::setBiases(const float* biases) {
+    biases_->setData(biases);
+  }
+
+  void SpatialConvolutionMap::setConnTable(const int* conn_table) {
+    conn_table_->setData(conn_table);
+  }
+
+  void SpatialConvolutionMap::init(TorchData& input)  {
     if (input.type() != TorchDataType::TENSOR_DATA) {
       throw std::wruntime_error("SpatialConvolutionMap::init() - "
         "FloatTensor expected!");
@@ -84,9 +72,6 @@ namespace jtorch {
       if (!Int3::equal(out_dim, ((Tensor<float>*)output)->dim())) {
         // Input dimension has changed!
         SAFE_DELETE(output);
-        SAFE_DELETE_ARR(output_cpu_);
-        SAFE_DELETE_ARR(input_cpu_);
-        SAFE_DELETE(thread_cbs_);
       }
     }
     if (output == NULL) {
@@ -95,54 +80,35 @@ namespace jtorch {
       out_dim[1] = out_dim[1] - filt_height_ + 1;
       out_dim[2] = feats_out_;
       output = new Tensor<float>(out_dim);
-      input_cpu_ = new float[input.dataSize()];
-      output_cpu_ = new float[output->dataSize()];
-    }
-    if (thread_cbs_ == NULL) {
-      int32_t n_feats = feats_out_;
-      int32_t n_threads = n_feats;
-      thread_cbs_ = new VectorManaged<Callback<void>*>(n_threads);
-      for (int32_t dim2 = 0; dim2 < n_feats; dim2++) {
-        thread_cbs_->pushBack(MakeCallableMany(
-          &SpatialConvolutionMap::forwardPropThread, 
-          this, dim2));
+      // Find the maximum local_work_group size that is divisible by the output
+      // dimension.
+      for (uint32_t i = 0; i < 3; i++) {
+        local_worgroup_size[i] = std::min<int>(jtorch::max_local_workgroup_size,
+          ((Tensor<float>*)output)->dim()[i]);
+        while (((Tensor<float>*)output)->dim()[i] % local_worgroup_size[i] != 0) {
+          local_worgroup_size[i]--;
+        }
       }
     }
   }
 
   void SpatialConvolutionMap::forwardProp(TorchData& input) { 
-    init(input, *tp_);
+    init(input);
     Tensor<float>& in = (Tensor<float>&)input;
-    Tensor<float>* out = (Tensor<float>*)output;
-    in.getData(input_cpu_);  // Expensive O(n) copy from the GPU
-    const int32_t n_banks = 1;  // No longer using 4D data
-    const uint32_t in_bank_size = in.dim()[0] * in.dim()[1] * in.dim()[2];
-    const uint32_t out_bank_size = out->dim()[0] * out->dim()[1] * out->dim()[2];
-    for (int32_t bank = 0; bank < n_banks; bank++) {
-      cur_input_ = &input_cpu_[bank * in_bank_size];
-      cur_output_ = &output_cpu_[bank * out_bank_size];
-      cur_input_width_ = in.dim()[0];
-      cur_input_height_ = in.dim()[1];
-
-      threads_finished_ = 0;
-      for (int32_t i = 0; i < feats_out_; i++) {
-        tp_->addTask((*thread_cbs_)[i]);
-      } 
-
-      // Wait for all threads to finish
-      std::unique_lock<std::mutex> ul(thread_update_lock_);  // Get lock
-      while (threads_finished_ != feats_out_) {
-        not_finished_.wait(ul);
-      }
-      ul.unlock();  // Release lock
-    }
-    // Now copy the results up to the GPU
-    out->setData(output_cpu_);
+    const int32_t n_banks = in.dim()[3];
+    std::string kernel = jtorch::jtorch_path + 
+      "kernels/spatial_convolution_map.cl";
+    cl_context->useKernel(kernel.c_str(), "SpatialConvolutionMap");
+    cl_context->setArg(0, ((Tensor<float>&)input).data());
+    cl_context->setArg(1, ((Tensor<float>*)output)->data());
+    cl_context->runKernel3D(jtorch::deviceid, ((Tensor<float>*)output)->dim(),
+      local_worgroup_size, false);
   }
 
+  /*
   void SpatialConvolutionMap::forwardPropThread(const int32_t outf) {
-    const int32_t out_w = ((Tensor<float>*)output)->dim()[0];
-    const int32_t out_h = ((Tensor<float>*)output)->dim()[1];
+    const int32_t out_w = ((FloatTensor*)output)->dim()[0];
+    const int32_t out_h = ((FloatTensor*)output)->dim()[1];
     const int32_t out_dim = out_w * out_h;
     const int32_t in_dim = cur_input_width_ * cur_input_height_;
 
@@ -181,6 +147,7 @@ namespace jtorch {
     not_finished_.notify_all();  // Signify that all threads might have finished
     ul.unlock();
   }
+  */
 
   TorchStage* SpatialConvolutionMap::loadFromFile(std::ifstream& file) {
     int32_t filt_width, filt_height, n_input_features, n_output_features;
@@ -195,16 +162,32 @@ namespace jtorch {
       n_output_features, filt_fan_in, filt_height, filt_width);
 
     int32_t filt_dim = filt_width * filt_height;
+    float* weights = new float[n_output_features * filt_fan_in * filt_dim];
     for (int32_t i = 0; i < n_output_features * filt_fan_in; i++) {
-      file.read((char*)(ret->weights[i]), sizeof(ret->weights[i][0]) * filt_dim);
+      float* bank = &weights[i * filt_dim];
+      file.read((char*)(bank), sizeof(bank[0]) * filt_dim);
     }
+    ret->setWeights(weights);
+    delete[] weights;
 
+    uint16_t* cur_conn_table = new uint16_t[filt_fan_in * 2];
+    int* conn_table = new int[n_output_features * filt_fan_in * 2];
     for (int32_t i = 0; i < n_output_features; i++) {
-      file.read((char*)(ret->conn_table[i]), 
-        sizeof(ret->conn_table[i][0]) * filt_fan_in * 2);
+      file.read((char*)cur_conn_table, 
+        sizeof(cur_conn_table[0]) * filt_fan_in * 2);
+      for (int32_t j = 0; j < filt_fan_in * 2; j++) {
+        conn_table[i * filt_fan_in * 2 + j] = (int)cur_conn_table[j];
+      }
     }
+    ret->setConnTable(conn_table);
+    delete[] cur_conn_table;
+    delete[] conn_table;
 
-    file.read((char*)(ret->biases), sizeof(ret->biases[0]) * n_output_features);
+    float* biases = new float[n_output_features];
+    file.read((char*)(biases), sizeof(biases[0]) * n_output_features);
+    ret->setBiases(biases);
+    delete[] biases;
+
     return ret;
   }
 

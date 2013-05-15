@@ -1,8 +1,6 @@
-__kernel void SpatialConvolutionMap(const __global  float * pInput,
-  __constant float * pFilter,
-  __global  float * pOutput,
-  const int nInWidth,
-  const int nFilterWidth) {
+__kernel void SpatialConvolutionMap(const __global  float* input,
+  __global  float* pOutput, __constant float* weights, __constant float* biases,
+  const int input_w, const int input_h, const int filt_width) {
 	/*
 	// Work on CPU
 	if (get_global_id(0) == 0 && get_global_id(1) == 0) {

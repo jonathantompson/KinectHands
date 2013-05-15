@@ -17,6 +17,7 @@
 #include "jcl/jcl.h"  // For jcl::JCLBuffer
 #include "jtil/math/math_types.h"
 #include "jtorch/torch_data.h"
+#include "jtorch/jtorch.h"
 
 namespace jtil { namespace threading { class ThreadPool; } }
 

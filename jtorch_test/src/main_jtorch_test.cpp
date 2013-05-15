@@ -95,16 +95,51 @@ int main(int argc, char *argv[]) {
     // Test Threshold
     const float threshold = 0.5f;
     const float val = 0.1f;
-    stages.add(new Threshold());
-    ((Threshold*)stages.get(1))->threshold = threshold;
-    ((Threshold*)stages.get(1))->val = val;
+    stages.add(new jtorch::Threshold());
+    ((jtorch::Threshold*)stages.get(1))->threshold = threshold;
+    ((jtorch::Threshold*)stages.get(1))->val = val;
     stages.forwardProp(data_in);
     std::cout << endl << endl << "Threshold output:" << std::endl;
     stages.output->print();
     
     // ***********************************************
-    // Test SpatialConvolutionMap
+    // Test SpatialConvolutionMap --> THIS STAGE IS STILL ON THE CPU!!
     stages.add(new SpatialConvolutionMap(num_feats_in, num_feats_out, fan_in,
+      filt_height, filt_width));
+    for (int32_t i = 0; i < num_feats_out; i++) {
+      ((SpatialConvolutionMap*)stages.get(2))->biases[i] = (float)(i+1) / 
+        (float)num_feats_out - 0.5f;
+    }
+    const float sigma_x_sq = 1.0f;
+    const float sigma_y_sq = 1.0f;
+    for (int32_t i = 0; i < num_feats_out * fan_in; i++) {
+      float scale = ((float)(i + 1) / (float)(num_feats_out * fan_in));
+      for (int32_t v = 0; v < filt_height; v++) {
+        for (int32_t u = 0; u < filt_width; u++) {
+          float x = (float)u - (float)(filt_width-1) / 2.0f;
+          float y = (float)v - (float)(filt_height-1) / 2.0f;
+          ((SpatialConvolutionMap*)stages.get(2))->weights[i][v * filt_width + u] = 
+            scale * expf(-((x*x)/(2.0f*sigma_x_sq) + (y*y)/(2.0f*sigma_y_sq)));
+        }
+      }
+    }
+    int32_t cur_filt = 0;
+    for (int32_t f_out = 0; f_out < num_feats_out; f_out++) {
+      for (int32_t f_in = 0; f_in < fan_in; f_in++) {
+        ((SpatialConvolutionMap*)stages.get(2))->conn_table[f_out][f_in * 2 + 1] = cur_filt;
+        int32_t cur_f_in = (f_out + f_in) % num_feats_in;
+        ((SpatialConvolutionMap*)stages.get(2))->conn_table[f_out][f_in * 2] = cur_f_in;
+        cur_filt++;
+      }
+    }
+    stages.forwardProp(data_in);
+    std::cout << endl << endl << "SpatialConvolutionMap output:" << std::endl;
+    stages.output->print();
+
+    /*
+    // ***********************************************
+    // Test SpatialConvolution
+    stages.add(new SpatialConvolution(num_feats_in, num_feats_out, fan_in,
       filt_height, filt_width));
     for (int32_t i = 0; i < num_feats_out; i++) {
       biases[i] = (float)(i+1) / (float)num_feats_out - 0.5f;
@@ -139,7 +174,6 @@ int main(int argc, char *argv[]) {
     std::cout << endl << endl << "SpatialConvolutionMap output:" << std::endl;
     stages.output->print();
   
-    /*
     // ***********************************************
     // Test SpatialLPPooling
     const float pnorm = 2;

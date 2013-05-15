@@ -7,8 +7,9 @@
 //  connected to the input features (so we need to keep around a connection
 //  table).
 //
-//  Multithreading is not all that efficient:  Threads are split up per output 
-//  feature.
+//  Multithreading is NOT all that efficient:  Threads are split up per output 
+//  feature.  This has not been implemented in OpenCL yet (since I no longer
+//  use this stage).
 //
 
 #ifndef JTORCH_SPATIAL_CONVOLUTION_MAP_HEADER
@@ -19,13 +20,12 @@
 #include "jtil/math/math_types.h"
 #include "jtil/threading/callback.h"
 #include "jtorch/torch_stage.h"
-#include "jcl/jcl.h"  // For jcl::JCLBuffer
+
+#define JTIL_SPATIAL_CONVOLUTION_MAP_NTHREADS 4
 
 namespace jtil { namespace data_str { template <typename T> class VectorManaged; } }
 
 namespace jtorch {
-
-  template <typename T> class Tensor;
   
   class SpatialConvolutionMap : public TorchStage {
   public:
@@ -38,33 +38,37 @@ namespace jtorch {
     virtual TorchStageType type() const { return SPATIAL_CONVOLUTION_MAP_STAGE; }
     virtual void forwardProp(TorchData& input);
 
-    void setWeights(const float* weights);
-    void setBiases(const float* biases);
-    void setConnTable(const int* conn_table);
+    float** weights;
+    float* biases;
+    int16_t** conn_table;  // This is the same as conn_table_rev in Torch
+                           // For each output: [0] is input feature and [1]
+                           // is the weight matrix (filter) to use
 
     static TorchStage* loadFromFile(std::ifstream& file);
 
   protected:
+    float* input_cpu_;
+    float* output_cpu_;
     int32_t filt_width_;
     int32_t filt_height_;
     int32_t feats_in_;
     int32_t feats_out_;
     int32_t fan_in_;
 
-    // weights_buf_:    dim[2] --> matrix_index (size = feats_out_ * fan_in_) 
-    //                  dim[1] --> filter height
-    //                  dim[0] --> filter width
-    Tensor<float>* weights_;
-    // biases_buf_:     dim[0] --> feats_out_t
-    Tensor<float>* biases_;
-    // conn_table_buf_: dim[2] --> feats_out_t
-    //                  dim[1] --> input index (0 to fan_in-1) (size = fan_in_)
-    //                  dim[0] --> 2 (0 is the input feature and 1 is the matrix index)
-    Tensor<int>* conn_table_;
+    // Multithreading primatives and functions
+    jtil::threading::ThreadPool* tp_;
+    float* cur_input_;
+    int32_t cur_input_width_;
+    int32_t cur_input_height_;
+    float* cur_output_;
+    int32_t threads_finished_;
+    std::mutex thread_update_lock_;
+    std::condition_variable not_finished_;
+    jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* thread_cbs_; 
 
-    jtil::math::Int3 local_worgroup_size;
+    void forwardPropThread(const int32_t outf);
 
-    void init(TorchData& input);
+    void init(TorchData& input, jtil::threading::ThreadPool& tp);
 
     // Non-copyable, non-assignable.
     SpatialConvolutionMap(SpatialConvolutionMap&);
