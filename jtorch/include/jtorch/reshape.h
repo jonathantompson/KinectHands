@@ -28,13 +28,12 @@ namespace jtorch {
     virtual ~Reshape();
 
     virtual TorchStageType type() const { return RESHAPE_STAGE; }
-    virtual void forwardProp(TorchData& input, 
-      jtil::threading::ThreadPool& tp);
+    virtual void forwardProp(TorchData& input);
 
     static TorchStage* loadFromFile(std::ifstream& file);
 
   protected:
-    void init(TorchData& input, jtil::threading::ThreadPool& tp);
+    void init(TorchData& input);
 
     // Non-copyable, non-assignable.
     Reshape(Reshape&);

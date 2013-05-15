@@ -23,7 +23,6 @@ namespace jtorch {
   Transpose::~Transpose() {
   }
 
-
   TorchStage* Transpose::loadFromFile(std::ifstream& file) {
     int32_t num_permutations;
     file.read((char*)(&num_permutations), sizeof(num_permutations));
@@ -35,7 +34,7 @@ namespace jtorch {
     return ret_val;
   }
 
-  void Transpose::forwardProp(TorchData& input, ThreadPool& tp) {
+  void Transpose::forwardProp(TorchData& input) {
     output = &input;
   }
 

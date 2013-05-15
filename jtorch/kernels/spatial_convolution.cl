@@ -1,12 +1,13 @@
-__kernel void SpatialConvolution(const __global  float* input,  // 0
-								 __global  float* output,       // 1 
-								 __constant float* weights,     // 2
-								 __constant float* biases,      // 3
-								 const int input_nfeats,        // 4
-								 const int input_height,        // 5
-								 const int input_width,         // 6
-								 const int filt_height,			// 7
-								 const int filt_width) {        // 8
+__kernel void SpatialConvolution(
+  const __global  float* input,  // 0
+  __global  float* output,       // 1 
+  __constant float* weights,     // 2
+  __constant float* biases,      // 3
+  const int input_nfeats,        // 4
+  const int input_height,        // 5
+  const int input_width,         // 6
+  const int filt_height,			// 7
+  const int filt_width) {        // 8
 
   const int width = get_global_size(0);
   const int height = get_global_size(1);

@@ -27,8 +27,10 @@ namespace jtorch {
     virtual TorchStageType type() const { return LINEAR_STAGE; }
     virtual void forwardProp(TorchData& input);
 
-    float* weights;
-    float* bias;
+    void setWeights(const float* weights);
+    void setBiases(const float* biases);
+    Tensor<float>* weights() { return weights_; }
+    Tensor<float>* biases() { return biases_; }
 
     static TorchStage* loadFromFile(std::ifstream& file);
 
@@ -36,7 +38,12 @@ namespace jtorch {
     int32_t n_inputs_;
     int32_t n_outputs_;
 
-    void init(TorchData& input, jtil::threading::ThreadPool& tp);
+    Tensor<float>* weights_;
+    Tensor<float>* biases_;
+
+    jtil::math::Int3 local_worgroup_size;
+
+    void init(TorchData& input);
 
     // Non-copyable, non-assignable.
     Linear(Linear&);

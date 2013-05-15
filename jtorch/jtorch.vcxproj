@@ -38,13 +38,15 @@
     </ClCompile>
     <ClCompile Include="src\jtorch\jtorch.cpp" />
     <ClCompile Include="src\jtorch\linear.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="src\jtorch\parallel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="src\jtorch\reshape.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="src\jtorch\sequential.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
@@ -82,16 +84,21 @@
     <ClCompile Include="src\jtorch\torch_data.cpp" />
     <ClCompile Include="src\jtorch\torch_stage.cpp" />
     <ClCompile Include="src\jtorch\transpose.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="kernels\linear.cl" />
     <None Include="kernels\spatial_convolution.cl" />
     <None Include="kernels\spatial_divisive_normalization.cl" />
     <None Include="kernels\spatial_max_pooling.cl" />
     <None Include="kernels\spatial_subtractive_normalization.cl" />
     <None Include="kernels\tanh.cl" />
     <None Include="kernels\threshold.cl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="README.txt" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{287F2B7F-A92D-4144-B56D-B0A87E5883EE}</ProjectGuid>

@@ -52,8 +52,14 @@ float din[width * height * num_feats_in];
 float dout[width * height * num_feats_out];
 
 // CPU weights and biases for SpatialConvolution stage
-float weights[num_feats_out * num_feats_in * filt_height * filt_width];
-float biases[num_feats_out];
+float cweights[num_feats_out * num_feats_in * filt_height * filt_width];
+float cbiases[num_feats_out];
+
+// CPU weights and biases for Linear stage
+const int32_t lin_size_in = num_feats_in * width * height;
+const int32_t lin_size_out = 20;
+float lweights[lin_size_in * lin_size_out];
+float lbiases[lin_size_out];
 
 int main(int argc, char *argv[]) {  
 #if defined(_DEBUG) || defined(DEBUG)
@@ -142,7 +148,7 @@ int main(int argc, char *argv[]) {
     SpatialConvolution* conv = new SpatialConvolution(num_feats_in, 
       num_feats_out, filt_height, filt_width);
     for (int32_t i = 0; i < num_feats_out; i++) {
-      biases[i] = (float)(i+1) / (float)num_feats_out - 0.5f;
+      cbiases[i] = (float)(i+1) / (float)num_feats_out - 0.5f;
     }
     const uint32_t filt_dim = filt_width * filt_height;
     for (int32_t fout = 0; fout < num_feats_out; fout++) {
@@ -153,14 +159,14 @@ int main(int argc, char *argv[]) {
           for (int32_t u = 0; u < filt_width; u++) {
             float x = (float)u - (float)(filt_width-1) / 2.0f;
             float y = (float)v - (float)(filt_height-1) / 2.0f;
-            weights[fout * filt_dim * num_feats_in + fin * filt_dim + v * filt_width + u] =
+            cweights[fout * filt_dim * num_feats_in + fin * filt_dim + v * filt_width + u] =
               scale * expf(-((x*x)/(2.0f*sigma_x_sq) + (y*y)/(2.0f*sigma_y_sq)));
           }
         }
       }
     }
-    conv->setWeights(weights);
-    conv->setBiases(biases);
+    conv->setWeights(cweights);
+    conv->setBiases(cbiases);
     conv->forwardProp(*stages.get(1)->output);
     std::cout << endl << endl << "SpatialConvolution output:" << std::endl;
     conv->output->print();
@@ -224,36 +230,33 @@ int main(int argc, char *argv[]) {
       lena_width * lena_height, "lena_image_processed.bin");
     delete[] cont_norm_output_cpu;
 
-    /*
     // ***********************************************
     // Test Linear
     Sequential lin_stage;
     lin_stage.add(new Reshape());
-    int32_t lin_size = num_feats_in * width * height;
-    int32_t lin_size_out = 20;
-    lin_stage.add(new Linear(lin_size, lin_size_out));
-    for (int32_t i = 0; i < lin_size * lin_size_out; i++) {
-      ((Linear*)lin_stage.get(1))->weights[i] = (float)(i+1) / 
-        (float)(lin_size * lin_size_out);
+
+    Linear* lin = new Linear(lin_size_in, lin_size_out);
+    lin_stage.add(lin);
+    for (int32_t i = 0; i < lin_size_in * lin_size_out; i++) {
+      lweights[i] = (float)(i+1) / (float)(lin_size_in * lin_size_out);
     }
     for (int32_t i = 0; i < lin_size_out; i++) {
-      ((Linear*)lin_stage.get(1))->bias[i] = (float)(i+1) / (float)(lin_size_out);
+      lbiases[i] = (float)(i+1) / (float)(lin_size_out);
     }
-    lin_stage.forwardProp(data_in, tp);
+    lin->setBiases(lbiases);
+    lin->setWeights(lweights);
+    lin_stage.forwardProp(data_in);
     std::cout << endl << endl << "Linear output:" << std::endl;
     lin_stage.output->print();
 
     delete kernel;
     delete kernel2;
-    */
 #endif
 
 #ifdef TEST_MODEL
     // ***********************************************
     // Test Loading a model
     TorchStage* m = TorchStage::loadFromFile("../data/handmodel.net.convnet");
-
-
 
     // Lets create a fake input image (of zeros) and make sure it passes through
     uint32_t w = HN_IM_SIZE;

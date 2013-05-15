@@ -20,32 +20,35 @@ namespace jtorch {
   }
 
   Reshape::~Reshape() {
-    SAFE_DELETE(output);
+    //  SAFE_DELETE(output);
+    // EDIT: output is NOT owned here, this is just a pass through.
   }
 
-  void Reshape::init(TorchData& input, ThreadPool& tp)  {
-    if (input.type() != TorchDataType::TENSOR_DATA) {
-      throw std::wruntime_error("Reshape::init() - "
-        "FloatTensor expected!");
-    }
-    FloatTensor& in = (FloatTensor&)input;
-    if (output != NULL) {
-      if (!Int4::equal(in.dim(), ((FloatTensor*)output)->dim())) {
-        // Input dimension has changed!
-        SAFE_DELETE(output);
-      }
-    }
-    if (output == NULL) {
-      Int4 out_dim(in.dataSize(), 1, 1, 1);
-      output = new FloatTensor(out_dim);
-    }
+  void Reshape::init(TorchData& input)  { 
+    //if (input.type() != TorchDataType::TENSOR_DATA) {
+    //  throw std::wruntime_error("Reshape::init() - "
+    //    "FloatTensor expected!");
+    //}
+    //Tensor<float>& in = (Tensor<float>&)input;
+    //if (output != NULL) {
+
+    //  if (in.dataSize() != ((Tensor<float>*)output)->dim()[0]) {
+    //    // Input dimension has changed!
+    //    SAFE_DELETE(output);
+    //  }
+    //}
+    //if (output == NULL) {
+    //  Int3 out_dim(in.dataSize(), 1, 1);
+    //  output = new Tensor<float>(out_dim);
+
+    //  jtil::math::Int3 local_worgroup_size;
+    //}
+    // EDIT: Nothing to do:  This is just a passthrough stage
   }
 
-  void Reshape::forwardProp(TorchData& input, ThreadPool& tp) { 
-    init(input, tp);
-    memcpy(((FloatTensor*)output)->data(), ((FloatTensor&)input).data(), 
-      ((FloatTensor*)output)->dim()[0] * 
-      sizeof(((FloatTensor*)output)->data()[0]));
+  void Reshape::forwardProp(TorchData& input) { 
+    init(input);
+    output = &input;
   }
 
   TorchStage* Reshape::loadFromFile(std::ifstream& file) {
