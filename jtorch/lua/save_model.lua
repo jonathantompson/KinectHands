@@ -9,7 +9,7 @@ function saveModel(model, model_filename)
   model = model:float()
 
   -- Open an output file
-  ofile = torch.DiskFile(model_filename .. ".convnet", 'w')
+  ofile = torch.DiskFile(model_filename, 'w')
   ofile:binary()
 
   -- Now recursively save the network
