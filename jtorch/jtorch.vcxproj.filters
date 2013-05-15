@@ -150,5 +150,8 @@
     <None Include="kernels\spatial_convolution.cl">
       <Filter>kernels</Filter>
     </None>
+    <None Include="kernels\spatial_max_pooling.cl">
+      <Filter>kernels</Filter>
+    </None>
   </ItemGroup>
 </Project>

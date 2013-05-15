@@ -25,10 +25,6 @@ namespace jtorch {
     feats_out_ = feats_out;
     fan_in_ = fan_in;
 
-    std::cout << "WARNING: SPATIALCONVOLUTIONMAP IS SLOW.  All computation is";
-    std::cout << " done on the CPU and incurs large transfer penalties!";
-    std::cout << std::endl;
-
     output = NULL;
     thread_cbs_ = NULL;
     output_cpu_ = NULL;
@@ -45,6 +41,10 @@ namespace jtorch {
     biases = new float[feats_out_];
 
     tp_ = new ThreadPool(JTIL_SPATIAL_CONVOLUTION_MAP_NTHREADS);
+
+    std::cout << "WARNING: SPATIALCONVOLUTIONMAP IS SLOW.  All computation is";
+    std::cout << " done on the CPU and incurs large transfer penalties!";
+    std::cout << std::endl;
   }
 
   SpatialConvolutionMap::~SpatialConvolutionMap() {

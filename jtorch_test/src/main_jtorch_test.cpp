@@ -8,6 +8,7 @@
 #include "jtorch/torch_stage.h"
 #include "jtorch/jtorch.h"
 #include "jtorch/tensor.h"
+#include "jtorch/spatial_convolution.h"
 #include "jtorch/spatial_convolution_map.h"
 #include "jtorch/spatial_lp_pooling.h"
 #include "jtorch/spatial_max_pooling.h"
@@ -50,8 +51,8 @@ const uint32_t filt_width = 5;
 float din[width * height * num_feats_in];
 float dout[width * height * num_feats_out];
 
-int conn_table[num_feats_out * fan_in * 2];
-float weights[num_feats_out * fan_in * filt_height * filt_width];
+// CPU weights and biases for SpatialConvolution stage
+float weights[num_feats_out * num_feats_in * filt_height * filt_width];
 float biases[num_feats_out];
 
 int main(int argc, char *argv[]) {  
@@ -136,73 +137,65 @@ int main(int argc, char *argv[]) {
     std::cout << endl << endl << "SpatialConvolutionMap output:" << std::endl;
     stages.output->print();
 
-    /*
     // ***********************************************
     // Test SpatialConvolution
-    stages.add(new SpatialConvolution(num_feats_in, num_feats_out, fan_in,
-      filt_height, filt_width));
+    SpatialConvolution* conv = new SpatialConvolution(num_feats_in, 
+      num_feats_out, filt_height, filt_width);
     for (int32_t i = 0; i < num_feats_out; i++) {
       biases[i] = (float)(i+1) / (float)num_feats_out - 0.5f;
     }
-    const float sigma_x_sq = 1.0f;
-    const float sigma_y_sq = 1.0f;
     const uint32_t filt_dim = filt_width * filt_height;
-    for (int32_t i = 0; i < num_feats_out * fan_in; i++) {
-      float scale = ((float)(i + 1) / (float)(num_feats_out * fan_in));
-      for (int32_t v = 0; v < filt_height; v++) {
-        for (int32_t u = 0; u < filt_width; u++) {
-          float x = (float)u - (float)(filt_width-1) / 2.0f;
-          float y = (float)v - (float)(filt_height-1) / 2.0f;
-          weights[i * filt_dim + v * filt_width + u] = 
-            scale * expf(-((x*x)/(2.0f*sigma_x_sq) + (y*y)/(2.0f*sigma_y_sq)));
+    for (int32_t fout = 0; fout < num_feats_out; fout++) {
+      for (int32_t fin = 0; fin < num_feats_in; fin++) {
+        int32_t i = fout * num_feats_out + fin;
+        float scale = ((float)(i + 1) / (float)(num_feats_out * num_feats_in));
+        for (int32_t v = 0; v < filt_height; v++) {
+          for (int32_t u = 0; u < filt_width; u++) {
+            float x = (float)u - (float)(filt_width-1) / 2.0f;
+            float y = (float)v - (float)(filt_height-1) / 2.0f;
+            weights[fout * filt_dim * num_feats_in + fin * filt_dim + v * filt_width + u] =
+              scale * expf(-((x*x)/(2.0f*sigma_x_sq) + (y*y)/(2.0f*sigma_y_sq)));
+          }
         }
       }
     }
-    int32_t cur_filt = 0;
-    for (int32_t f_out = 0; f_out < num_feats_out; f_out++) {
-      for (int32_t f_in = 0; f_in < fan_in; f_in++) {
-        conn_table[f_out * num_feats_out * fan_in + f_in * 2 + 1] = cur_filt;
-        int32_t cur_f_in = (f_out + f_in) % num_feats_in;
-        conn_table[f_out * num_feats_out * fan_in + f_in * 2] = cur_f_in;
-        cur_filt++;
-      }
-    }
-    ((SpatialConvolutionMap*)stages.get(2))->setWeights(biases);
-    ((SpatialConvolutionMap*)stages.get(2))->setBiases(biases);
-    ((SpatialConvolutionMap*)stages.get(2))->setConnTable(conn_table);
-    stages.forwardProp(data_in);
-    std::cout << endl << endl << "SpatialConvolutionMap output:" << std::endl;
-    stages.output->print();
+    conv->setWeights(weights);
+    conv->setBiases(biases);
+    conv->forwardProp(*stages.get(1)->output);
+    std::cout << endl << endl << "SpatialConvolution output:" << std::endl;
+    conv->output->print();
   
+    
     // ***********************************************
     // Test SpatialLPPooling
     const float pnorm = 2;
     const int32_t pool_u = 2;
     const int32_t pool_v = 2;
     stages.add(new SpatialLPPooling(pnorm, pool_v, pool_u));
-    stages.forwardProp(data_in, tp);
+    stages.forwardProp(data_in);
     std::cout << endl << endl << "SpatialLPPooling output:" << std::endl;
     stages.output->print();
 
     // ***********************************************
     // Test SpatialMaxPooling
     SpatialMaxPooling max_pool_stage(pool_v, pool_u);
-    max_pool_stage.forwardProp(data_in, tp);
-    std::cout << endl << endl << "SpatialLPPooling output:" << std::endl;
+    max_pool_stage.forwardProp(data_in);
+    std::cout << endl << endl << "SpatialMaxPooling output:" << std::endl;
     max_pool_stage.output->print();
   
     // ***********************************************
     // Test SpatialSubtractiveNormalization
     uint32_t gauss_size = 7;
-    FloatTensor* kernel = FloatTensor::gaussian1D(gauss_size);
+    Tensor<float>* kernel = Tensor<float>::gaussian1D(gauss_size);
     std::cout << "kernel1D:" << std::endl;
     kernel->print();
 
     SpatialSubtractiveNormalization sub_norm_stage(*kernel);
-    sub_norm_stage.forwardProp(data_in, tp);
+    sub_norm_stage.forwardProp(data_in);
     std::cout << endl << endl << "SpatialSubtractiveNormalization output:" << endl;
     sub_norm_stage.output->print();
 
+    /*
     // ***********************************************
     // Test SpatialDivisiveNormalization
     SpatialDivisiveNormalization div_norm_stage(*kernel);

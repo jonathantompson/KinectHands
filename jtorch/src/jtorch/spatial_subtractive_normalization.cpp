@@ -18,7 +18,7 @@ namespace jtorch {
   // kernel1d default is either TorchStage::gaussian1D<float>(n) or just a
   // vector of 1 values.
   SpatialSubtractiveNormalization::SpatialSubtractiveNormalization(
-    const FloatTensor& kernel1d) : TorchStage() {
+    const Tensor<float>& kernel1d) : TorchStage() {
     if (kernel1d.dataSize() % 2 == 0 || kernel1d.dim()[1] != 1 ||
       kernel1d.dim()[2] != 1 || kernel1d.dim()[3] != 1) {
       throw std::wruntime_error("SpatialSubtractiveNormalization() - ERROR: "
@@ -26,20 +26,19 @@ namespace jtorch {
     }
 
     kernel1d_ = kernel1d.copy();
+    float* kernel_cpu;
+    kernel1d_->getData(kernel_cpu);
     // Now normalize the kernel!
     float sum = 0.0f;
     for (int32_t i = 0; i < kernel1d_->dim()[0]; i++) {
-      sum += kernel1d_->data()[i];
+      sum += kernel_cpu[i];
     }
     for (int32_t i = 0; i < kernel1d_->dim()[0]; i++) {
-      kernel1d_->data()[i] /= sum;
+      kernel_cpu[i] /= sum;
     }
+    kernel1d_->setData(kernel_cpu);
 
     output = NULL;
-    mean_coef_ = NULL;
-    mean_accum_ = NULL;
-    filt_tmp_ = NULL;
-    thread_cbs_ = NULL;
   }
 
   void SpatialSubtractiveNormalization::init(TorchData& input, 
@@ -48,23 +47,20 @@ namespace jtorch {
       throw std::wruntime_error("SpatialSubtractiveNormalization::init() - "
         "FloatTensor expected!");
     }
-    FloatTensor& in = (FloatTensor&)input;
+    Tensor<float>& in = (Tensor<float>&)input;
     if (output != NULL) {
-      if (!Int4::equal(in.dim(), ((FloatTensor*)output)->dim())) {
+      if (!Int3::equal(in.dim(), ((Tensor<float>*)output)->dim())) {
         // Input dimension has changed!
         SAFE_DELETE(output);
-        SAFE_DELETE_ARR(mean_coef_);
-        SAFE_DELETE_ARR(mean_accum_);
-        SAFE_DELETE_ARR(filt_tmp_);
-        SAFE_DELETE(thread_cbs_);
       }
     }
     if (output == NULL) {
-      output = new FloatTensor(in.dim());
+      output = new Tensor<float>(in.dim());
     }
     if (mean_coef_ == NULL) {
-      mean_coef_ = new float[((FloatTensor*)output)->dim()[0] * 
-        ((FloatTensor*)output)->dim()[1]];
+      float* mean_coef_cpu_ = new float[((Tensor<float>*)output)->dim()[0] * 
+        ((Tensor<float>*)output)->dim()[1]];
+      mean_coef_ = new Tensor<float>(Int2(
       // Filter an image of all 1 values to create the normalization constants
       // See norm_test.lua for proof that this works as well as:
       // https://github.com/andresy/torch/blob/master/extra/nn/SpatialSubtractiveNormalization.lua

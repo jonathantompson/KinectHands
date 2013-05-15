@@ -32,7 +32,8 @@ namespace jtorch {
 
     void setWeights(const float* weights);
     void setBiases(const float* biases);
-    void setConnTable(const int* conn_table);
+    Tensor<float>* weights() { return weights_; }
+    Tensor<float>* biases() { return biases_; }
 
     static TorchStage* loadFromFile(std::ifstream& file);
 
@@ -41,9 +42,8 @@ namespace jtorch {
     int32_t filt_height_;
     int32_t feats_in_;
     int32_t feats_out_;
-    int32_t fan_in_;
 
-    // weights_buf_:    dim[2] --> matrix_index (size = feats_out_ * fan_in_) 
+    // weights_buf_:    dim[2] --> matrix_index (size = feats_out_ * feats_in) 
     //                  dim[1] --> filter height
     //                  dim[0] --> filter width
     Tensor<float>* weights_;

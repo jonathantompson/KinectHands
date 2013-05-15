@@ -28,24 +28,17 @@ namespace jtorch {
     virtual ~SpatialSubtractiveNormalization();
 
     virtual TorchStageType type() const { return SPATIAL_SUBTRACTIVE_NORMALIZATION_STAGE; }
-    virtual void forwardProp(TorchData& input, 
-      jtil::threading::ThreadPool& tp);
+    virtual void forwardProp(TorchData& input);
 
     static TorchStage* loadFromFile(std::ifstream& file);
 
   protected:
     Tensor<float>* kernel1d_;
-    float* mean_coef_;
-    float* mean_accum_;
-    float* filt_tmp_;
+    Tensor<float>* mean_coef_;
 
-    // Multithreading primatives and functions
-    float* cur_input_;
-    float* cur_output_;
-    int32_t threads_finished_;
-    std::mutex thread_update_lock_;
-    std::condition_variable not_finished_;
-    jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* thread_cbs_; 
+    //float* mean_coef_;
+    //float* mean_accum_;
+    //float* filt_tmp_;
 
     void normalizeFeature(const int32_t feat);
 
