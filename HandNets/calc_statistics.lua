@@ -134,10 +134,9 @@ trImage = {
   data = {},
   labels = trainData.labels[{{trImage_index},{}}],
   size = function() return 1 end,
-  heat_maps = torch.FloatTensor(
-    trainData.heat_maps[{trImage_index,{},{},{}}], 1, torch.LongStorage{num_features *
-    heat_map_height * heat_map_width})
+  heat_maps = torch.FloatTensor(1, num_features * heat_map_height * heat_map_width)
 }
+trImage.heat_maps:copy(torch.FloatTensor(trainData.heat_maps[{trImage_index,{},{},{}}], 1, torch.LongStorage{num_features * heat_map_height * heat_map_width}))
 for j=1,num_hpf_banks do
   table.insert(trImage.data, trainData.data[j][{{trImage_index},{},{},{}}])
 end
@@ -152,17 +151,16 @@ for j=1,num_hpf_banks do
 end
 VisualizeImage(trImage, 1, 0, 1, num_hpf_banks)
 
-teImage_index = 410
+teImage_index = 101
 print(string.format('Test set image: %d', teImage_index))
 teImage = {
   files = {},
   data = {},
   labels = testData.labels[{{teImage_index},{}}],
   size = function() return 1 end,
-  heat_maps = torch.FloatTensor(
-    testData.heat_maps[{teImage_index,{},{},{}}], 1, torch.LongStorage{num_features *
-    heat_map_height * heat_map_width})
+  heat_maps = torch.FloatTensor(1, num_features * heat_map_height * heat_map_width)
 }
+teImage.heat_maps:copy(torch.FloatTensor(testData.heat_maps[{teImage_index,{},{},{}}], 1, torch.LongStorage{num_features * heat_map_height * heat_map_width}))
 for j=1,num_hpf_banks do
   table.insert(teImage.data, testData.data[j][{{teImage_index},{},{},{}}])
 end

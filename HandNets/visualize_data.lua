@@ -112,8 +112,13 @@ function VisualizeImage(x, index, plot_image, plot_labels, num_banks, n_tiles, z
   -- Now display the heatmaps
   zoom_factor = 0.5 * zoom_factor * height / heat_map_height
   
-  im.heat_maps = torch.Tensor(num_features, heat_map_height, heat_map_width):copy(
-    x.heat_maps[{index, {}}])
+  if (x.heat_maps:dim() == 4) then
+    im.heat_maps = torch.Tensor(num_features, heat_map_height, heat_map_width):copy(
+      x.heat_maps[{{index}, {}, {}, {}}])
+  else
+    im.heat_maps = torch.Tensor(num_features, heat_map_height, heat_map_width):copy(
+      x.heat_maps[{{index}, {}}])
+  end
   image.display{image=im.heat_maps, padding=2, nrow=4, zoom=zoom_factor,
     scaleeach=false}
 end
