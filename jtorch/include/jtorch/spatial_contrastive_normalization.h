@@ -22,7 +22,7 @@
 #include "jtorch/torch_stage.h"
 
 namespace jtorch {
-  
+  template <typename T> class Tensor;
   class Sequential;
 
   class SpatialContrastiveNormalization : public TorchStage {
@@ -34,8 +34,7 @@ namespace jtorch {
     virtual ~SpatialContrastiveNormalization();
 
     virtual TorchStageType type() const { return SPATIAL_CONTRASTIVE_NORMALIZATION_STAGE; }
-    virtual void forwardProp(TorchData& input, 
-      jtil::threading::ThreadPool& tp);
+    virtual void forwardProp(TorchData& input);
 
     static TorchStage* loadFromFile(std::ifstream& file);
 

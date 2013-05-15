@@ -3,8 +3,6 @@
 //
 //  Created by Jonathan Tompson on 4/1/13.
 //
-//  This stage is only partially multi-threaded!
-//
 //  Note that just like the torch stage, this divisive stage assumes zero
 //  input mean.  That is, it does not subtract off the mean per element when 
 //  estimating the standard deviation.
@@ -33,30 +31,23 @@ namespace jtorch {
     virtual ~SpatialDivisiveNormalization();
 
     virtual TorchStageType type() const { return SPATIAL_DIVISIVE_NORMALIZATION_STAGE; }
-    virtual void forwardProp(TorchData& input, 
-      jtil::threading::ThreadPool& tp);
+    virtual void forwardProp(TorchData& input);
 
     static TorchStage* loadFromFile(std::ifstream& file);
 
   protected:
     Tensor<float>* kernel1d_;
     Tensor<float>* kernel1d_norm_;  // kernel normalization depends on input size
-    float* std_coef_;
-    float* std_accum_;
-    float* filt_tmp_;
+    Tensor<float>* std_coef_;
+    Tensor<float>* std_;        // 2D
+    Tensor<float>* std_pass1_;  // 3D - Horizontal pass
+    Tensor<float>* std_pass2_;  // 3D - Vertical + normalization pass
     float threshold_;
 
-    // Multithreading primatives and functions
-    float* cur_input_;
-    float* cur_output_;
-    int32_t threads_finished_;
-    std::mutex thread_update_lock_;
-    std::condition_variable not_finished_;
-    jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* thread_cbs_; 
+    jtil::math::Int3 local_worgroup_size_3d;
+    jtil::math::Int3 local_worgroup_size_2d;
 
-    void normalizeFeature(const int32_t outf);
-
-    void init(TorchData& input, jtil::threading::ThreadPool& tp);
+    void init(TorchData& input);
 
     // Non-copyable, non-assignable.
     SpatialDivisiveNormalization(SpatialDivisiveNormalization&);

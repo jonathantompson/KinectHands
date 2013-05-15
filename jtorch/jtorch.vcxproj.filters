@@ -153,5 +153,11 @@
     <None Include="kernels\spatial_max_pooling.cl">
       <Filter>kernels</Filter>
     </None>
+    <None Include="kernels\spatial_subtractive_normalization.cl">
+      <Filter>kernels</Filter>
+    </None>
+    <None Include="kernels\spatial_divisive_normalization.cl">
+      <Filter>kernels</Filter>
+    </None>
   </ItemGroup>
 </Project>

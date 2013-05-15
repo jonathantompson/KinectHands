@@ -21,17 +21,17 @@ namespace jtorch {
   // kernel1d default is either TorchStage::gaussian1D<float>(n) or just a
   // vector of 1 values.
   SpatialContrastiveNormalization::SpatialContrastiveNormalization(
-    const FloatTensor* kernel1d, const float threshold) : TorchStage() {
-    const FloatTensor* kernel;
+    const Tensor<float>* kernel1d, const float threshold) : TorchStage() {
+    const Tensor<float>* kernel;
     if (kernel1d) {
       if (kernel1d->dataSize() % 2 == 0 || kernel1d->dim()[1] != 1 ||
-        kernel1d->dim()[2] != 1 || kernel1d->dim()[3] != 1) {
+        kernel1d->dim()[2] != 1) {
         throw std::wruntime_error("SpatialSubtractiveNormalization() - ERROR: "
           "Averaging kernel must be 1D and have odd size!");
       }
       kernel = kernel1d;
     } else {
-      kernel = FloatTensor::ones1D(7);
+      kernel = Tensor<float>::ones1D(7);
     }
 
     network_ = new Sequential();
@@ -49,21 +49,26 @@ namespace jtorch {
     SAFE_DELETE(network_);
   }
 
-  void SpatialContrastiveNormalization::forwardProp(TorchData& input, 
-    jtil::threading::ThreadPool& tp) {
-    network_->forwardProp(input, tp);
+  void SpatialContrastiveNormalization::forwardProp(TorchData& input) {
+    network_->forwardProp(input);
     output = network_->output;
   }
 
   TorchStage* SpatialContrastiveNormalization::loadFromFile(std::ifstream& file) {
+    // This whole thing is a little wasteful.  I copy to GPU here, and then
+    // I copy it back down in the constructor anyway...  But it's good enough
+    // for now.
     int32_t kernel_size;
     file.read((char*)(&kernel_size), sizeof(kernel_size));
-    FloatTensor* kernel = new FloatTensor(kernel_size);
-    file.read((char*)(kernel->data()), kernel_size * sizeof(*kernel->data()));
+    Tensor<float>* kernel = new Tensor<float>(kernel_size);
+    float* kernel_cpu = new float[kernel_size];
+    file.read((char*)(kernel_cpu), kernel_size * sizeof(*kernel_cpu));
+    kernel->setData(kernel_cpu);
     float threshold;
     file.read((char*)(&threshold), sizeof(threshold));
     TorchStage* ret = new SpatialContrastiveNormalization(kernel, threshold);
     delete kernel;
+    delete[] kernel_cpu;
     return ret;
   }
 

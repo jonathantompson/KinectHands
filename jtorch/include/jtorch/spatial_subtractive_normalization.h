@@ -3,8 +3,6 @@
 //
 //  Created by Jonathan Tompson on 4/1/13.
 //
-//  This stage is only partially multi-threaded!
-//
 
 #ifndef JTORCH_SPATIAL_SUBTRACTIVE_NORMALIZATION_HEADER
 #define JTORCH_SPATIAL_SUBTRACTIVE_NORMALIZATION_HEADER
@@ -35,14 +33,14 @@ namespace jtorch {
   protected:
     Tensor<float>* kernel1d_;
     Tensor<float>* mean_coef_;
+    Tensor<float>* mean_;        // 2D
+    Tensor<float>* mean_pass1_;  // 3D - Horizontal pass
+    Tensor<float>* mean_pass2_;  // 3D - Vertical + normalization pass
 
-    //float* mean_coef_;
-    //float* mean_accum_;
-    //float* filt_tmp_;
+    jtil::math::Int3 local_worgroup_size_3d;
+    jtil::math::Int3 local_worgroup_size_2d;
 
-    void normalizeFeature(const int32_t feat);
-
-    void init(TorchData& input, jtil::threading::ThreadPool& tp);
+    void init(TorchData& input);
 
     // Non-copyable, non-assignable.
     SpatialSubtractiveNormalization(SpatialSubtractiveNormalization&);

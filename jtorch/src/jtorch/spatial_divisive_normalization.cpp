@@ -18,21 +18,21 @@ namespace jtorch {
   // kernel1d default is either TorchStage::gaussian1D<float>(n) or just a
   // vector of 1 values.
   SpatialDivisiveNormalization::SpatialDivisiveNormalization(
-    const FloatTensor& kernel1d, const float threshold) : TorchStage() {
+    const Tensor<float>& kernel1d, const float threshold) : TorchStage() {
     if (kernel1d.dataSize() % 2 == 0 || kernel1d.dim()[1] != 1 ||
-      kernel1d.dim()[2] != 1 || kernel1d.dim()[3] != 1) {
+      kernel1d.dim()[2] != 1) {
       throw std::wruntime_error("SpatialDivisiveNormalization() - ERROR: "
         "Averaging kernel must be 1D and have odd size!");
     }
 
-    kernel1d_ = kernel1d.copy();
+    kernel1d_ = kernel1d.copy();  // Normalization is input size dependant
     kernel1d_norm_ = NULL;
 
     output = NULL;
     std_coef_ = NULL;
-    std_accum_ = NULL;
-    filt_tmp_ = NULL;
-    thread_cbs_ = NULL;
+    std_pass1_ = NULL;
+    std_pass2_ = NULL;
+    std_ = NULL;
 
     threshold_ = threshold;
   }
@@ -41,48 +41,70 @@ namespace jtorch {
     SAFE_DELETE(output);
     SAFE_DELETE(kernel1d_);
     SAFE_DELETE(kernel1d_norm_);
-    SAFE_DELETE_ARR(std_coef_);
-    SAFE_DELETE_ARR(std_accum_);
-    SAFE_DELETE_ARR(filt_tmp_);
-    SAFE_DELETE(thread_cbs_);
+    SAFE_DELETE(std_coef_);
+    SAFE_DELETE(std_pass1_);
+    SAFE_DELETE(std_pass2_);
+    SAFE_DELETE(std_);
   }
 
-  void SpatialDivisiveNormalization::init(TorchData& input, 
-    jtil::threading::ThreadPool& tp)  {
+  void SpatialDivisiveNormalization::init(TorchData& input)  {
     if (input.type() != TorchDataType::TENSOR_DATA) {
       throw std::wruntime_error("SpatialDivisiveNormalization::init() - "
         "FloatTensor expected!");
     }
-    FloatTensor& in = (FloatTensor&)input;
+    Tensor<float>& in = (Tensor<float>&)input;
     if (output != NULL) {
-      if (!Int4::equal(in.dim(), ((FloatTensor*)output)->dim())) {
+      if (!Int3::equal(in.dim(), ((Tensor<float>*)output)->dim())) {
         // Input dimension has changed!
         SAFE_DELETE(output);
+        SAFE_DELETE(kernel1d_);
         SAFE_DELETE(kernel1d_norm_);
-        SAFE_DELETE_ARR(std_coef_);
-        SAFE_DELETE_ARR(std_accum_);
-        SAFE_DELETE_ARR(filt_tmp_);
-        SAFE_DELETE(thread_cbs_);
+        SAFE_DELETE(std_coef_);
+        SAFE_DELETE(std_pass1_);
+        SAFE_DELETE(std_pass2_);
+        SAFE_DELETE(std_);
       }
     }
     if (output == NULL) {
-      output = new FloatTensor(in.dim());
+      output = new Tensor<float>(in.dim());
+      std_pass1_ = new Tensor<float>(in.dim());
+      std_pass2_ = new Tensor<float>(in.dim());
+
+      // Find the maximum local_work_group size that is divisible by the output
+      // dimension.
+      for (uint32_t i = 0; i < 3; i++) {
+        local_worgroup_size_3d[i] = std::min<int>(jtorch::max_local_workgroup_size,
+          ((Tensor<float>*)output)->dim()[i]);
+        while (((Tensor<float>*)output)->dim()[i] % local_worgroup_size_3d[i] != 0) {
+          local_worgroup_size_3d[i]--;
+        }
+      }
     }
     if (kernel1d_norm_ == NULL) {
       kernel1d_norm_ = kernel1d_->copy();
+      float* kernel1d_norm_cpu = new float[kernel1d_norm_->dataSize()];
+      kernel1d_norm_->getData(kernel1d_norm_cpu);
       // Now normalize the kernel!
       const float n_feats = (float)in.dim()[2];
       float sum = 0.0f;
       for (int32_t i = 0; i < kernel1d_norm_->dim()[0]; i++) {
-        sum += kernel1d_norm_->data()[i];
+        sum += kernel1d_norm_cpu[i];
       }
       for (int32_t i = 0; i < kernel1d_norm_->dim()[0]; i++) {
-        kernel1d_norm_->data()[i] /= (sum * sqrtf(n_feats));
+        kernel1d_norm_cpu[i] /= (sum * sqrtf(n_feats));
       }
+      kernel1d_norm_->setData(kernel1d_norm_cpu);
+      delete[] kernel1d_norm_cpu;
     }
     if (std_coef_ == NULL) {
-      std_coef_ = new float[((FloatTensor*)output)->dim()[0] * 
-        ((FloatTensor*)output)->dim()[1]];
+      Int3 std_coeff_dim(((Tensor<float>*)output)->dim());
+      std_coeff_dim[2] = 1;  // This tensor is only 2D
+      std_coef_ = new Tensor<float>(std_coeff_dim);
+
+      float* std_coef_cpu = new float[std_coef_->dataSize()];
+      float* kernel1d_norm_cpu = new float[kernel1d_norm_->dataSize()];
+      kernel1d_norm_->getData(kernel1d_norm_cpu);
+
       // Filter an image of all 1 values to create the normalization constants
       // See norm_test.lua for proof that this works as well as:
       // https://github.com/andresy/torch/blob/master/extra/nn/SpatialSubtractiveNormalization.lua
@@ -90,51 +112,91 @@ namespace jtorch {
       // we only do this once on startup.  --> O(n * m)
       int32_t kernel1d_size = kernel1d_->dim()[0];
       int32_t filt_rad = (kernel1d_size - 1) / 2;
-      int32_t n_feats = ((FloatTensor*)output)->dim()[2];
-      int32_t height = ((FloatTensor*)output)->dim()[1];
-      int32_t width = ((FloatTensor*)output)->dim()[0];
-      float* kernel = kernel1d_norm_->data();
+      int32_t n_feats = ((Tensor<float>*)output)->dim()[2];
+      int32_t height = ((Tensor<float>*)output)->dim()[1];
+      int32_t width = ((Tensor<float>*)output)->dim()[0];
       for (int32_t v = 0; v < height; v++) {
         for (int32_t u = 0; u < width; u++) {
-          std_coef_[v * width + u] = 0.0f;
+          std_coef_cpu[v * width + u] = 0.0f;
           for (int32_t v_filt = -filt_rad; v_filt <= filt_rad; v_filt++) {
             for (int32_t u_filt = -filt_rad; u_filt <= filt_rad; u_filt++) {
               int32_t u_in = u + u_filt;
               int32_t v_in = v + v_filt;
               if (u_in >= 0 && u_in < width && v_in >= 0 && v_in < height) {
                 // Pixel is inside --> We'll effectively clamp zeros elsewhere.
-                std_coef_[v * width + u] += 
-                  (kernel[v_filt + filt_rad] * kernel[u_filt + filt_rad]);
+                std_coef_cpu[v * width + u] += 
+                  (kernel1d_norm_cpu[v_filt + filt_rad] * 
+                   kernel1d_norm_cpu[u_filt + filt_rad]);
               }
             }
           }
-          std_coef_[v * width + u] /= n_feats;
+          std_coef_cpu[v * width + u] /= n_feats;
         }
       }
+      std_coef_->setData(std_coef_cpu);
+      delete[] std_coef_cpu;
+      delete[] kernel1d_norm_cpu;
     }
-    if (std_accum_ == NULL) {
-      std_accum_ = new float[((FloatTensor*)output)->dim()[0] * 
-        ((FloatTensor*)output)->dim()[1]];
-    }
-    if (filt_tmp_ == NULL) {
-      filt_tmp_ = new float[((FloatTensor*)output)->dim()[0] * 
-        ((FloatTensor*)output)->dim()[1]];
-    }
-    if (thread_cbs_ == NULL) {
-      int32_t n_feats = in.dim()[2];
-      int32_t n_threads = n_feats;
-      thread_cbs_ = new VectorManaged<Callback<void>*>(n_threads);
-      for (int32_t dim2 = 0; dim2 < (int32_t)in.dim()[2]; dim2++) {
-        thread_cbs_->pushBack(MakeCallableMany(
-          &SpatialDivisiveNormalization::normalizeFeature, 
-          this, dim2));
+    if (std_ == NULL) {
+      Int3 std_coeff_dim(((Tensor<float>*)output)->dim());
+      std_coeff_dim[2] = 1;  // This tensor is only 2D
+      std_ = new Tensor<float>(std_coeff_dim);
+      // Find the maximum local_work_group size that is divisible by the output
+      // dimension.
+      for (uint32_t i = 0; i < 3; i++) {
+        local_worgroup_size_2d[i] = std::min<int>(jtorch::max_local_workgroup_size,
+          std_->dim()[i]);
+        while (std_->dim()[i] % local_worgroup_size_2d[i] != 0) {
+          local_worgroup_size_2d[i]--;
+        }
       }
     }
   }
 
-  void SpatialDivisiveNormalization::forwardProp(TorchData& input, 
-    ThreadPool& tp) { 
-    init(input, tp);
+  void SpatialDivisiveNormalization::forwardProp(TorchData& input) { 
+    init(input);
+    int32_t filt_rad = (kernel1d_norm_->dim()[0] - 1) / 2;
+    
+    // Perform horizontal filter pass
+    Tensor<float>& in = (Tensor<float>&)input;
+    Tensor<float>* out = (Tensor<float>*)output;
+    std::string kernel = jtorch::jtorch_path + "kernels/spatial_divisive_normalization.cl";
+    cl_context->useKernel(kernel.c_str(), "SpatialDivisiveNormalizationHoriz");
+    cl_context->setArg(0, in.data());
+    cl_context->setArg(1, std_pass1_->data());
+    cl_context->setArg(2, kernel1d_norm_->data());
+    cl_context->setArg(3, filt_rad);
+    cl_context->runKernel3D(jtorch::deviceid, std_pass1_->dim(), 
+      local_worgroup_size_3d, false);
+
+    // Perform vertical filter pass
+    cl_context->useKernel(kernel.c_str(), "SpatialDivisiveNormalizationVert");
+    cl_context->setArg(0, std_pass1_->data());
+    cl_context->setArg(1, std_pass2_->data());
+    cl_context->setArg(2, kernel1d_norm_->data());
+    cl_context->setArg(3, filt_rad);
+    cl_context->runKernel3D(jtorch::deviceid, std_pass2_->dim(), 
+      local_worgroup_size_3d, false);
+
+    // Perform accumulation and division pass
+    cl_context->useKernel(kernel.c_str(), "SpatialDivisiveNormalizationAccumDiv");
+    cl_context->setArg(0, std_pass2_->data());
+    cl_context->setArg(1, std_->data());
+    cl_context->setArg(2, std_coef_->data());
+    cl_context->setArg(3, out->dim()[2]);
+    cl_context->setArg(4, threshold_);
+    cl_context->runKernel3D(jtorch::deviceid, std_->dim(), 
+      local_worgroup_size_2d, false);
+
+    // Perform normalization pass
+    cl_context->useKernel(kernel.c_str(), "SpatialDivisiveNormalization");
+    cl_context->setArg(0, in.data());
+    cl_context->setArg(1, out->data());
+    cl_context->setArg(2, std_->data());
+    cl_context->runKernel3D(jtorch::deviceid, out->dim(), 
+      local_worgroup_size_3d, false);
+
+    /*
     FloatTensor& in = (FloatTensor&)input;
     const int32_t width = in.dim()[0];
     const int32_t height = in.dim()[1];
@@ -219,33 +281,24 @@ namespace jtorch {
       }
       ul.unlock();  // Release lock
     }
-  }
-
-  void SpatialDivisiveNormalization::normalizeFeature(const int32_t outf) {
-    const int32_t width = (int32_t)((FloatTensor*)output)->dim()[0];
-    const int32_t height = (int32_t)((FloatTensor*)output)->dim()[1];
-    const int32_t im_dim = width * height;
-    for (int32_t v = 0; v < height; v++) {
-      for (int32_t u = 0; u < width; u++) {
-        cur_output_[outf * im_dim + v * width + u] = 
-          cur_input_[outf * im_dim + v * width + u] / std_accum_[v * width + u];
-      }
-    }
-    std::unique_lock<std::mutex> ul(thread_update_lock_);
-    threads_finished_++;
-    not_finished_.notify_all();  // Signify that all threads might have finished
-    ul.unlock();
+    */
   }
 
   TorchStage* SpatialDivisiveNormalization::loadFromFile(std::ifstream& file) {
+    // This whole thing is a little wasteful.  I copy to GPU here, and then
+    // I copy it back down in the constructor anyway...  But it's good enough
+    // for now.
     int32_t kernel_size;
     file.read((char*)(&kernel_size), sizeof(kernel_size));
-    FloatTensor* kernel = new FloatTensor(kernel_size);
-    file.read((char*)(kernel->data()), kernel_size * sizeof(*kernel->data()));
+    Tensor<float>* kernel = new Tensor<float>(kernel_size);
+    float* kernel_cpu = new float[kernel_size];
+    file.read((char*)(kernel_cpu), kernel_size * sizeof(*kernel_cpu));
     float threshold;
     file.read((char*)(&threshold), sizeof(threshold));
+    kernel->setData(kernel_cpu);
     TorchStage* ret = new SpatialDivisiveNormalization(*kernel, threshold);
     delete kernel;
+    delete[] kernel_cpu;
     return ret;
   }
 

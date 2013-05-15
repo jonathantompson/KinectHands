@@ -195,11 +195,10 @@ int main(int argc, char *argv[]) {
     std::cout << endl << endl << "SpatialSubtractiveNormalization output:" << endl;
     sub_norm_stage.output->print();
 
-    /*
     // ***********************************************
     // Test SpatialDivisiveNormalization
     SpatialDivisiveNormalization div_norm_stage(*kernel);
-    div_norm_stage.forwardProp(data_in, tp);
+    div_norm_stage.forwardProp(data_in);
     std::cout << endl << endl << "SpatialDivisiveNormalization output:" << endl;
     div_norm_stage.output->print();
 
@@ -207,18 +206,25 @@ int main(int argc, char *argv[]) {
     // Test SpatialContrastiveNormalization
     const int32_t lena_width = 512;
     const int32_t lena_height = 512;
-    FloatTensor lena(Int2(lena_width, lena_height));
-    jtil::file_io::LoadArrayFromFile<float>(lena.data(), 
+    Tensor<float> lena(Int2(lena_width, lena_height));
+    float* lena_cpu = new float[lena.dataSize()];
+    jtil::file_io::LoadArrayFromFile<float>(lena_cpu, 
       lena_width * lena_height, "lena_image.bin");
+    lena.setData(lena_cpu);
+    delete[] lena_cpu;
     uint32_t kernel_size = 7;
-    FloatTensor* kernel2 = FloatTensor::ones1D(kernel_size);
+    Tensor<float>* kernel2 = Tensor<float>::ones1D(kernel_size);
     SpatialContrastiveNormalization cont_norm_stage(kernel2);
-    cont_norm_stage.forwardProp(lena, tp);
+    cont_norm_stage.forwardProp(lena);
     std::cout << endl << endl << "SpatialContrastiveNormalization output saved ";
     std::cout << "to lena_image_processed.bin" << endl;
-    jtil::file_io::SaveArrayToFile<float>(((FloatTensor*)cont_norm_stage.output)->data(), 
+    float* cont_norm_output_cpu = new float[cont_norm_stage.output->dataSize()];
+    ((Tensor<float>*)cont_norm_stage.output)->getData(cont_norm_output_cpu);
+    jtil::file_io::SaveArrayToFile<float>(cont_norm_output_cpu, 
       lena_width * lena_height, "lena_image_processed.bin");
+    delete[] cont_norm_output_cpu;
 
+    /*
     // ***********************************************
     // Test Linear
     Sequential lin_stage;

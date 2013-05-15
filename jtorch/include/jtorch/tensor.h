@@ -46,7 +46,7 @@ namespace jtorch {
       const jtil::math::Int2& interval1, 
       const jtil::math::Int2& interval2);
 
-    // Deep copy --> EXPENSIVE
+    // Deep copy --> EXPENSIVE (copies to CPU memory then back to GPU)
     Tensor<T>* copy() const;
 
     // gaussian1D In torch: >> normkernel = image.gaussian1D(n)
@@ -208,7 +208,10 @@ namespace jtorch {
   Tensor<T>* Tensor<T>::copy() const {
     Tensor<T>* ret = new Tensor<T>(dim_);
     T* data = new T[dataSize()];
-    ret->setData(data);
+    // Const cast here is naughty, but I know that getData DOES NOT corrupt
+    // or alter the current GPU state at all.
+    const_cast<Tensor<T>*>(this)->getData(data);  // Copy to the CPU Memory
+    ret->setData(data);  // Copy back to the OpenCL Device
     delete[] data;
     return ret;
   }
