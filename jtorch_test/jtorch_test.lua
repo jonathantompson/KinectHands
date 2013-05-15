@@ -188,6 +188,8 @@ image.display(lena_processed)
 err = lena_processed - res
 err_abs = torch.abs(err)
 image.display(err_abs)
+print('Maximum error')
+print(err_abs:max())
 
 -- Test the local contrast normalization of the hand image generator
 normkernel = torch.Tensor(11):fill(1)
@@ -228,59 +230,27 @@ print('Linear result')
 print(res)
 
 -- Test model
-require 'nn'
-require 'cunn'
-require 'image'
-require 'torch'
-require 'cutorch'
-require 'optim'
-require 'sys'
-require 'xlua'
-torch.setdefaulttensortype('torch.FloatTensor')
-model = torch.load('handmodel.net')
-data_file_size = 0
-bank_dim = {}
-dim = 96
-num_coeff = 40
-num_hpf_banks = 3
-for i = 1,num_hpf_banks do
-  table.insert(bank_dim, {dim, dim})
-  data_file_size = data_file_size + dim * dim
-  dim = dim / 2
-end
+test_model = nn.Sequential()
+n_states_in = num_feats_in
+n_states_out = num_feats_out
+fan_in = n_states_in
+filt_width = 5
+filt_height = 5
+test_model:add(nn.SpatialConvolution(n_states_in, n_states_out, filt_width, filt_height))
+test_model:add(nn.Tanh())
+test_model:add(nn.Threshold())
+test_model:add(nn.SpatialMaxPooling(poolsize_u, poolsize_v, poolsize_u, poolsize_v))
+width_out = (width - filt_width + 1) / 2
+height_out = (height - filt_height + 1) / 2
+lin_size_in = n_states_out * height_out * width_out
+test_model:add(nn.Reshape(lin_size_in))
+test_model:add(nn.Linear(lin_size_in, 6))
+res = test_model:forward(data_in)
+print('Test model result')
+print(res)
 
-hpf_depth_file = torch.DiskFile('kinect_hpf_depth_image_uncompressed.bin','r')
-hpf_depth_file:binary()
-hpf_depth_data = hpf_depth_file:readFloat(data_file_size)
-hpf_depth_file:close()
-
-data = {}
-input = {
-  data = {},
-  labels = torch.FloatTensor(1, num_coeff),
-  size = function() return 1 end
-}
-ind = 1
-for j=1,num_hpf_banks do
-  table.insert(data, torch.FloatTensor(hpf_depth_data, ind, 
-    torch.LongStorage{bank_dim[j][1], bank_dim[j][2]}):float())
-  ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
-  table.insert(input.data, torch.FloatTensor(1, 1, 
-    bank_dim[j][1], bank_dim[j][2]))
-  input.data[j][{1,1,{},{}}] = data[j]
-  input.data[j] = input.data[j]:cuda()
-end
-
-input.labels = model:forward(input.data)
-
-print(input.labels)
-
--- Some non-zero outputs
-join_table = model:get(2)
-return join_table.output[{1,{501,600}}]
-
-dofile('visualize_data.lua')  -- Just define the function
-VisualizeData(input, visualize_data_labels)
-
-
+-- Save the Test model
+jtorch_root = "../jtorch/"
+dofile("../jtorch/jtorch.lua")
+saveModel(test_model, "testmodel.bin")
 

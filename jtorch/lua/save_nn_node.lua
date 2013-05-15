@@ -1,25 +1,25 @@
-dofile('save_sequential_node.lua')
-dofile('save_parallel_node.lua')
-dofile('save_tanh_node.lua')
-dofile('save_threshold_node.lua')
-dofile('save_linear_node.lua')
-dofile('save_reshape_node.lua')
-dofile('save_spatial_convolution_node.lua')
-dofile('save_spatial_convolution_cuda_node.lua')
-dofile('save_spatial_convolution_map_node.lua')
-dofile('save_spatial_lp_pooling_node.lua')
-dofile('save_spatial_max_pooling_node.lua')
-dofile('save_spatial_max_pooling_cuda_node.lua')
-dofile('save_spatial_subtractive_normalization_node.lua')
-dofile('save_spatial_divisive_normalization_node.lua')
-dofile('save_spatial_contrastive_normalization_node.lua')
-dofile('save_join_table_node.lua')
-dofile('save_transpose_node.lua')
+dofile(jtorch_root..'/lua/save_sequential_node.lua')
+dofile(jtorch_root..'/lua/save_parallel_node.lua')
+dofile(jtorch_root..'/lua/save_tanh_node.lua')
+dofile(jtorch_root..'/lua/save_threshold_node.lua')
+dofile(jtorch_root..'/lua/save_linear_node.lua')
+dofile(jtorch_root..'/lua/save_reshape_node.lua')
+dofile(jtorch_root..'/lua/save_spatial_convolution_node.lua')
+dofile(jtorch_root..'/lua/save_spatial_convolution_cuda_node.lua')
+dofile(jtorch_root..'/lua/save_spatial_convolution_map_node.lua')
+dofile(jtorch_root..'/lua/save_spatial_lp_pooling_node.lua')
+dofile(jtorch_root..'/lua/save_spatial_max_pooling_node.lua')
+dofile(jtorch_root..'/lua/save_spatial_max_pooling_cuda_node.lua')
+dofile(jtorch_root..'/lua/save_spatial_subtractive_normalization_node.lua')
+dofile(jtorch_root..'/lua/save_spatial_divisive_normalization_node.lua')
+dofile(jtorch_root..'/lua/save_spatial_contrastive_normalization_node.lua')
+dofile(jtorch_root..'/lua/save_join_table_node.lua')
+dofile(jtorch_root..'/lua/save_transpose_node.lua')
 
 function saveNNNode(node, ofile)
   -- Just send the node off to the correct routine depending on it's type
   -- Note that the type enum must match 
-  -- kinect_interface/include/kinect_interface/hand_net/torch_stage.h
+  -- jtorch/torch_stage.h
   class_str = torch.typename(node)
   print("saving " .. class_str .. "...")
   if (class_str == "nn.Sequential") then
@@ -41,13 +41,11 @@ function saveNNNode(node, ofile)
      ofile:writeInt(6)
      saveReshapeNode(node, ofile)
   elseif (class_str == "nn.SpatialConvolution") then
-     -- Note: SpatialConvolution gets saved with same index 
-     --       as SpatialConvolutionMap
      ofile:writeInt(7)
      saveSpatialConvolutionNode(node, ofile)
   elseif (class_str == "nn.SpatialConvolutionCUDA") then
      -- Note: SpatialConvolutionCUDA gets saved with same index
-     --       as SpatialConvolutionMap
+     --       as SpatialConvolution
      ofile:writeInt(7)
      saveSpatialConvolutionCUDANode(node, ofile)
   elseif (class_str == "nn.SpatialConvolutionMap") then
