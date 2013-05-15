@@ -55,16 +55,16 @@ for f_out=1,num_feats_out do
     conn_table[{(f_out-1) * fan_in + f_in, 1}] = cur_f_in
   end
 end
-print('Spatial Convolution Connection Table')
+print('Spatial Convolution Map Connection Table')
 print(conn_table)
-spat_conv = nn.SpatialConvolutionMap(conn_table, filt_width, filt_height)
-print('Spatial Convolution Connection Table Rev')
-print(spat_conv.connTableRev)
+spat_conv_map = nn.SpatialConvolutionMap(conn_table, filt_width, filt_height)
+print('Spatial Convolution Map Connection Table Rev')
+print(spat_conv_map.connTableRev)
 for f_out=1,num_feats_out do
-  spat_conv.bias[{f_out}] = f_out / num_feats_out - 0.5
+  spat_conv_map.bias[{f_out}] = f_out / num_feats_out - 0.5
 end
-print('Spatial Convolution Biases')
-print(spat_conv.bias)
+print('Spatial Convolution Map Biases')
+print(spat_conv_map.bias)
 num_filt = fan_in * num_feats_out
 sigma_x_sq = 1
 sigma_y_sq = 1
@@ -73,16 +73,50 @@ for filt=1,num_filt do
     for u=1,filt_width do
       x = u - 1 - (filt_width-1) / 2
       y = v - 1 - (filt_height-1) / 2
-      spat_conv.weight[{filt, v, u}] = (filt / num_filt) * math.exp(-((x*x) / (2*sigma_x_sq) + 
+      spat_conv_map.weight[{filt, v, u}] = (filt / num_filt) * math.exp(-((x*x) / (2*sigma_x_sq) + 
         (y*y) / (2*sigma_y_sq)))
+    end
+  end
+end
+print('Spatial Convolution Map Weights')
+print(spat_conv_map.weight)
+model:add(spat_conv_map)
+res = model:forward(data_in)
+print('Spatial Convolution Map result')
+print(res)
+
+-- Test SpatialConvolution
+n_states_in = num_feats_in
+n_states_out = num_feats_out
+fan_in = n_states_in
+filt_width = 5
+filt_height = 5
+spat_conv = nn.SpatialConvolution(n_states_in, n_states_out, filt_width, filt_height)
+for f_out=1,num_feats_out do
+  spat_conv.bias[{f_out}] = f_out / num_feats_out - 0.5
+end
+print('Spatial Convolution Biases')
+print(spat_conv.bias)
+num_filt = num_feats_out * num_feats_in
+sigma_x_sq = 1
+sigma_y_sq = 1
+for fout=1,num_feats_out do
+  for fin=1,num_feats_in do
+    for v=1,filt_height do
+      for u=1,filt_width do
+        filt = (fout-1) * num_feats_out + (fin - 1) + 1
+        x = u - 1 - (filt_width-1) / 2
+        y = v - 1 - (filt_height-1) / 2
+        spat_conv.weight[{fout, fin, v, u}] = (filt / num_filt) * math.exp(-((x*x) / (2*sigma_x_sq) + 
+          (y*y) / (2*sigma_y_sq)))
+      end
     end
   end
 end
 print('Spatial Convolution Weights')
 print(spat_conv.weight)
-model:add(spat_conv)
-res = model:forward(data_in)
-print('Spatial Convolution Map result')
+res = spat_conv:forward(model:get(2).output)
+print('Spatial Convolution result')
 print(res)
 
 -- Test SpatialLPPooling
@@ -101,7 +135,7 @@ model3 = nn.Sequential()
 max_pool_stage = nn.SpatialMaxPooling(poolsize_u, poolsize_v, poolsize_u, poolsize_v)
 model3:add(max_pool_stage)
 res = model3:forward(data_in)
-print('SpatialLPPooling result')
+print('SpatialMaxPooling result')
 print(res)
 
 -- Test SpatialSubtractiveNormalization
