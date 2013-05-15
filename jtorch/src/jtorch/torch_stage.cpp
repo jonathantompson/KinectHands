@@ -8,6 +8,7 @@
 #include "jtorch/reshape.h"
 #include "jtorch/sequential.h"
 #include "jtorch/spatial_contrastive_normalization.h"
+#include "jtorch/spatial_convolution.h"
 #include "jtorch/spatial_convolution_map.h"
 #include "jtorch/spatial_divisive_normalization.h"
 #include "jtorch/spatial_lp_pooling.h"
@@ -78,6 +79,9 @@ namespace jtorch {
     case RESHAPE_STAGE:
       std::cout << "  Loading Reshape..." << std::endl;
       return Reshape::loadFromFile(ifile);
+    case SPATIAL_CONVOLUTION_STAGE:
+      std::cout << "  Loading SpatialConvolution..." << std::endl;
+      return SpatialConvolution::loadFromFile(ifile);
     case SPATIAL_CONVOLUTION_MAP_STAGE:
       std::cout << "  Loading SpatialConvolutionMap..." << std::endl;
       return SpatialConvolutionMap::loadFromFile(ifile);

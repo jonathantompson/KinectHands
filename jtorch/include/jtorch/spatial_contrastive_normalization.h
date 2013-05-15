@@ -29,7 +29,7 @@ namespace jtorch {
   public:
     // Constructor / Destructor
     // Note if kernel1d is NULL, then a rectangular filter kernel is used
-    SpatialContrastiveNormalization(const FloatTensor* kernel1d = NULL, 
+    SpatialContrastiveNormalization(const Tensor<float>* kernel1d = NULL, 
       const float threshold = 1e-4f);
     virtual ~SpatialContrastiveNormalization();
 

@@ -1,5 +1,5 @@
 #include "jtorch/transpose.h"
-#include "jtorch/float_tensor.h"
+#include "jtorch/tensor.h"
 #include "jtorch/table.h"
 #include "jtil/exceptions/wruntime_error.h"
 #include "jtil/threading/thread.h"

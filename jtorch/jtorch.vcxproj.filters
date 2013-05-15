@@ -20,9 +20,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\jtorch\float_tensor.h">
-      <Filter>Header Files\jtorch</Filter>
-    </ClInclude>
     <ClInclude Include="include\jtorch\join_table.h">
       <Filter>Header Files\jtorch</Filter>
     </ClInclude>
@@ -77,11 +74,14 @@
     <ClInclude Include="include\jtorch\jtorch.h">
       <Filter>Header Files\jtorch</Filter>
     </ClInclude>
+    <ClInclude Include="include\jtorch\tensor.h">
+      <Filter>Header Files\jtorch</Filter>
+    </ClInclude>
+    <ClInclude Include="include\jtorch\spatial_convolution.h">
+      <Filter>Header Files\jtorch</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\jtorch\float_tensor.cpp">
-      <Filter>Source Files\jtorch</Filter>
-    </ClCompile>
     <ClCompile Include="src\jtorch\join_table.cpp">
       <Filter>Source Files\jtorch</Filter>
     </ClCompile>
@@ -136,12 +136,21 @@
     <ClCompile Include="src\jtorch\jtorch.cpp">
       <Filter>Source Files\jtorch</Filter>
     </ClCompile>
+    <ClCompile Include="src\jtorch\spatial_convolution.cpp">
+      <Filter>Source Files\jtorch</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="kernels\tanh.cl">
       <Filter>kernels</Filter>
     </None>
     <None Include="kernels\threshold.cl">
+      <Filter>kernels</Filter>
+    </None>
+    <None Include="kernels\spatial_convolution.cl">
+      <Filter>kernels</Filter>
+    </None>
+    <None Include="kernels\spatial_max_pooling.cl">
       <Filter>kernels</Filter>
     </None>
   </ItemGroup>

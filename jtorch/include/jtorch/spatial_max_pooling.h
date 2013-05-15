@@ -27,8 +27,7 @@ namespace jtorch {
     virtual ~SpatialMaxPooling();
 
     virtual TorchStageType type() const { return SPATIAL_MAX_POOLING_STAGE; }
-    virtual void forwardProp(TorchData& input, 
-      jtil::threading::ThreadPool& tp);
+    virtual void forwardProp(TorchData& input);
 
     static TorchStage* loadFromFile(std::ifstream& file);
 
@@ -36,16 +35,8 @@ namespace jtorch {
     int32_t poolsize_v_;
     int32_t poolsize_u_;
 
-    // Multithreading primatives and functions
-    FloatTensor* cur_input_;
-    int32_t threads_finished_;
-    std::mutex thread_update_lock_;
-    std::condition_variable not_finished_;
-    jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* thread_cbs_; 
-
-    void forwardPropThread(const int32_t outf, const int32_t outb);
-
-    void init(TorchData& input, jtil::threading::ThreadPool& tp);
+    jtil::math::Int3 local_worgroup_size;
+    void init(TorchData& input);
 
     // Non-copyable, non-assignable.
     SpatialMaxPooling(SpatialMaxPooling&);

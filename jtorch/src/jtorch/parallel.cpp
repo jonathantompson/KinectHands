@@ -1,5 +1,5 @@
 #include "jtorch/parallel.h"
-#include "jtorch/float_tensor.h"
+#include "jtorch/tensor.h"
 #include "jtorch/table.h"
 #include "jtil/exceptions/wruntime_error.h"
 #include "jtil/threading/thread.h"
@@ -48,7 +48,7 @@ namespace jtorch {
       Table* out = (Table*)output;
       bool data_ok = out->tableSize() == network_->size();
       for (uint32_t i = 0; i < out->tableSize() && data_ok; i++) {
-        if ((*network_)[i]->output->type() != FLOAT_TENSOR_DATA) {
+        if ((*network_)[i]->output->type() != TENSOR_DATA) {
           throw std::wruntime_error("Parallel::forwardProp() - ERROR: "
             "Float Tensor output required!");
         }
@@ -65,7 +65,7 @@ namespace jtorch {
       output = new Table();
       Table* out = (Table*)output;
       for (uint32_t i = 0; i < network_->size(); i++) {
-        if ((*network_)[i]->output->type() != FLOAT_TENSOR_DATA) {
+        if ((*network_)[i]->output->type() != TENSOR_DATA) {
           throw std::wruntime_error("Parallel::forwardProp() - ERROR: "
             "Float Tensor output required for now!");
         }

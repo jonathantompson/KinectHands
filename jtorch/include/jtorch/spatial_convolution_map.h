@@ -7,8 +7,9 @@
 //  connected to the input features (so we need to keep around a connection
 //  table).
 //
-//  Multithreading is not all that efficient:  Threads are split up per output 
-//  feature.
+//  Multithreading is NOT all that efficient:  Threads are split up per output 
+//  feature.  This has not been implemented in OpenCL yet (since I no longer
+//  use this stage).
 //
 
 #ifndef JTORCH_SPATIAL_CONVOLUTION_MAP_HEADER
@@ -19,6 +20,8 @@
 #include "jtil/math/math_types.h"
 #include "jtil/threading/callback.h"
 #include "jtorch/torch_stage.h"
+
+#define JTIL_SPATIAL_CONVOLUTION_MAP_NTHREADS 4
 
 namespace jtil { namespace data_str { template <typename T> class VectorManaged; } }
 
@@ -33,8 +36,7 @@ namespace jtorch {
     virtual ~SpatialConvolutionMap();
 
     virtual TorchStageType type() const { return SPATIAL_CONVOLUTION_MAP_STAGE; }
-    virtual void forwardProp(TorchData& input, 
-      jtil::threading::ThreadPool& tp);
+    virtual void forwardProp(TorchData& input);
 
     float** weights;
     float* biases;
@@ -45,6 +47,8 @@ namespace jtorch {
     static TorchStage* loadFromFile(std::ifstream& file);
 
   protected:
+    float* input_cpu_;
+    float* output_cpu_;
     int32_t filt_width_;
     int32_t filt_height_;
     int32_t feats_in_;
@@ -52,6 +56,7 @@ namespace jtorch {
     int32_t fan_in_;
 
     // Multithreading primatives and functions
+    jtil::threading::ThreadPool* tp_;
     float* cur_input_;
     int32_t cur_input_width_;
     int32_t cur_input_height_;

@@ -16,7 +16,7 @@ namespace jtil { namespace data_str { template <typename T> class VectorManaged;
 
 namespace jtorch {
 
-  class FloatTensor;
+  template <typename T> class Tensor;
   
   class Linear : public TorchStage {
   public:

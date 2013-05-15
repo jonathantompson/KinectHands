@@ -11,7 +11,7 @@
 #include "kinect_interface/hand_detector/decision_tree_structs.h"  // for GDT_MAX_DIST
 #include "jtorch/spatial_contrastive_normalization.h"
 #include "jtorch/spatial_subtractive_normalization.h"
-#include "jtorch/float_tensor.h"
+#include "jtorch/tensor.h"
 #include "jtil/image_util/image_util.h"
 #include "jtil/renderer/colors/colors.h"
 #include "jtil/exceptions/wruntime_error.h"

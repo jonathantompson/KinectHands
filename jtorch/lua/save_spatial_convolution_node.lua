@@ -8,10 +8,8 @@ function saveSpatialConvolutionNode(node, ofile)
   -- 2. filter height (int)
   -- 3. filter input features (int)
   -- 4. filter output features (int)
-  -- 5. filter fan in (int)
-  -- 6. filter weights (float array)
-  -- 7. filter connection table (short array)
-  -- 8. filter Biases (float)
+  -- 5. filter weights (float array)
+  -- 6. filter Biases (float)
 
   ofile:writeInt(node.kW)
   ofile:writeInt(node.kH)
@@ -19,7 +17,6 @@ function saveSpatialConvolutionNode(node, ofile)
   ofile:writeInt(node.nOutputPlane)
 
   local fanin = node.nInputPlane
-  ofile:writeInt(fanin)
 
   for i=1,(node.nOutputPlane) do
     for j=1,(node.nInputPlane) do
@@ -28,15 +25,6 @@ function saveSpatialConvolutionNode(node, ofile)
           ofile:writeFloat(node.weight[{i, j, v, u}])
         end
       end
-    end
-  end
-
-  local cur_mat = 0;
-  for i=1,node.nOutputPlane do
-    for j=1,(node.nInputPlane) do
-      ofile:writeShort(j - 1)  -- input feature
-      ofile:writeShort(cur_mat)  -- weight matrix
-      cur_mat = cur_mat + 1
     end
   end
 

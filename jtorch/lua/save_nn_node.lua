@@ -51,33 +51,33 @@ function saveNNNode(node, ofile)
      ofile:writeInt(7)
      saveSpatialConvolutionCUDANode(node, ofile)
   elseif (class_str == "nn.SpatialConvolutionMap") then
-     ofile:writeInt(7)
+     ofile:writeInt(8)
      saveSpatialConvolutionMapNode(node, ofile)
   elseif (class_str == "nn.SpatialLPPooling") then
-     ofile:writeInt(8)
+     ofile:writeInt(9)
      saveSpatialLPPoolingNode(node, ofile)
   elseif (class_str == "nn.SpatialMaxPooling") then
-     ofile:writeInt(9)
+     ofile:writeInt(10)
      saveSpatialMaxPoolingNode(node, ofile)
   elseif (class_str == "nn.SpatialMaxPoolingCUDA") then
      -- Note: SpatialMaxPoolingCUDA gets saved with the same index
      --       as SpatialMaxPooling
-     ofile:writeInt(9)
+     ofile:writeInt(10)
      saveSpatialMaxPoolingCUDANode(node, ofile)
   elseif (class_str == "nn.SpatialSubtractiveNormalization") then
-     ofile:writeInt(10)
+     ofile:writeInt(11)
      saveSpatialSubtractiveNormalizationNode(node, ofile)
   elseif (class_str == "nn.SpatialDivisiveNormalization") then
-     ofile:writeInt(11)
+     ofile:writeInt(12)
      saveSpatialDivisiveNormalizationNode(node, ofile)
   elseif (class_str == "nn.SpatialContrastiveNormalization") then
-     ofile:writeInt(12)
+     ofile:writeInt(13)
      saveSpatialContrastiveNormalizationNode(node, ofile)
   elseif (class_str == "nn.JoinTable") then
-     ofile:writeInt(13)
+     ofile:writeInt(14)
      saveJoinTableNode(node, ofile)
   elseif (class_str == "nn.Transpose") then
-     ofile:writeInt(14)
+     ofile:writeInt(15)
      saveTransposeNode(node, ofile)
   else
      error('Node type ' .. class_str .. ' is not recognized.')

@@ -1,5 +1,5 @@
 #include "jtorch/spatial_lp_pooling.h"
-#include "jtorch/float_tensor.h"
+#include "jtorch/tensor.h"
 #include "jtil/exceptions/wruntime_error.h"
 #include "jtil/threading/thread.h"
 #include "jtil/threading/callback.h"
@@ -22,24 +22,38 @@ namespace jtorch {
     poolsize_u_ = poolsize_u;
     output = NULL;
     thread_cbs_ = NULL;
+    output_cpu_ = NULL;
+    input_cpu_ = NULL;
+
+    tp_ = new ThreadPool(JTIL_SPATIAL_LP_POOLING_NTHREADS);
+
+    std::cout << "WARNING: SPATIALLPPOOLING IS SLOW.  All computation is";
+    std::cout << " done on the CPU and incurs large transfer penalties!";
+    std::cout << std::endl;
   }
 
   SpatialLPPooling::~SpatialLPPooling() {
+    tp_->stop();
+    SAFE_DELETE(tp_);
+    SAFE_DELETE_ARR(output_cpu_);
+    SAFE_DELETE_ARR(input_cpu_);
     SAFE_DELETE(output);
     SAFE_DELETE(thread_cbs_);
   }
 
   void SpatialLPPooling::init(TorchData& input, ThreadPool& tp)  {
-    if (input.type() != TorchDataType::FLOAT_TENSOR_DATA) {
+    if (input.type() != TorchDataType::TENSOR_DATA) {
       throw std::wruntime_error("SpatialLPPooling::init() - "
         "FloatTensor expected!");
     }
-    FloatTensor& in = (FloatTensor&)input;
+    Tensor<float>& in = (Tensor<float>&)input;
     if (output != NULL) {
-      if (!Int4::equal(in.dim(), ((FloatTensor*)output)->dim())) {
+      if (!Int3::equal(in.dim(), ((Tensor<float>*)output)->dim())) {
         // Input dimension has changed!
         SAFE_DELETE(output);
         SAFE_DELETE(thread_cbs_);
+        SAFE_DELETE_ARR(output_cpu_);
+        SAFE_DELETE_ARR(input_cpu_);
       }
     }
     if (output == NULL) {
@@ -48,32 +62,33 @@ namespace jtorch {
         throw std::wruntime_error("width or height is not a multiple of "
           "the poolsize!");
       }
-      Int4 out_dim(in.dim());
+      Int3 out_dim(in.dim());
       out_dim[0] /= poolsize_u_;
       out_dim[1] /= poolsize_v_;
-      output = new FloatTensor(out_dim);
+      output = new Tensor<float>(out_dim);
+      input_cpu_ = new float[input.dataSize()];
+      output_cpu_ = new float[output->dataSize()];
     }
 
     if (thread_cbs_ == NULL) {
-      int32_t n_threads = ((FloatTensor*)output)->dim()[2] * 
-        ((FloatTensor*)output)->dim()[3];
+      int32_t n_threads = ((Tensor<float>*)output)->dim()[2];
       thread_cbs_ = new VectorManaged<Callback<void>*>(n_threads);
-      for (int32_t b = 0; b < ((FloatTensor*)output)->dim()[3]; b++) {
-        for (int32_t f = 0; f < ((FloatTensor*)output)->dim()[2]; f++) {
-          thread_cbs_->pushBack(MakeCallableMany(
-            &SpatialLPPooling::forwardPropThread, this, f, b));
-        }
+      for (int32_t f = 0; f < ((Tensor<float>*)output)->dim()[2]; f++) {
+        thread_cbs_->pushBack(MakeCallableMany(
+          &SpatialLPPooling::forwardPropThread, this, f));
       }
     }
   }
 
-  void SpatialLPPooling::forwardProp(TorchData& input, 
-    jtil::threading::ThreadPool& tp) { 
-    init(input, tp);
-    cur_input_ = &((FloatTensor&)input);
+  void SpatialLPPooling::forwardProp(TorchData& input) { 
+    init(input, *tp_);
+    Tensor<float>*in = &((Tensor<float>&)input);
+    in->getData(input_cpu_);
+    cur_in_w = in->dim()[0];
+    cur_in_h = in->dim()[1];
     threads_finished_ = 0;
     for (uint32_t i = 0; i < thread_cbs_->size(); i++) {
-      tp.addTask((*thread_cbs_)[i]);
+      tp_->addTask((*thread_cbs_)[i]);
     } 
 
     // Wait for all threads to finish
@@ -82,18 +97,19 @@ namespace jtorch {
       not_finished_.wait(ul);
     }
     ul.unlock();  // Release lock
+    ((Tensor<float>*)output)->setData(output_cpu_);
   }
 
-  void SpatialLPPooling::forwardPropThread(const int32_t outf, 
-    const int32_t outb) {
-    const int32_t out_w = ((FloatTensor*)output)->dim()[0];
-    const int32_t out_h = ((FloatTensor*)output)->dim()[1];
-    const int32_t in_w = cur_input_->dim()[0];
+  void SpatialLPPooling::forwardPropThread(const int32_t outf) {
+    const int32_t out_w = ((Tensor<float>*)output)->dim()[0];
+    const int32_t out_h = ((Tensor<float>*)output)->dim()[1];
+    const int32_t in_w = cur_in_w;
+    const int32_t in_h = cur_in_h;
     const float one_over_p_norm = 1.0f / p_norm_;
 
-    float* out = &(*((FloatTensor*)output))(0, 0, outf, outb);
-    float* in = &(*cur_input_)(0, 0, outf, outb);
-
+    float* out = &output_cpu_[outf * out_w * out_h];
+    float* in = &input_cpu_[outf * in_w * in_h];
+      
     for (int32_t outv = 0; outv < out_h; outv++) {
       for (int32_t outu = 0; outu < out_w; outu++) {
         int32_t out_index = outv * out_w + outu;
