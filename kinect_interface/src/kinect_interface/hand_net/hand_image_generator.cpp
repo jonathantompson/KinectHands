@@ -90,6 +90,10 @@ namespace hand_net {
     im_temp_double_ = new double[HN_SRC_IM_SIZE * HN_SRC_IM_SIZE];
 
     // OpenCL structures
+    if (jtorch::cl_context == NULL) {
+      throw std::wruntime_error("HandImageGenerator::initHandImageData() - "
+        "ERROR: jtorch has not been initialized!"); 
+    }
     hand_image_ = new Table();
 #if defined(DEBUG) || defined(_DEBUG)
     if (HN_RECT_KERNEL_SIZE % 2 == 0) {

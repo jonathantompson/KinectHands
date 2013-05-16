@@ -62,6 +62,7 @@
 #include "jtil/debug_util/debug_util.h"
 #include "jtil/data_str/hash_funcs.h"
 #include "jtil/math/math_base.h"  // for NextPrime
+#include "jtorch/jtorch.h"
 
 // *************************************************************
 // ******************* CHANGEABLE PARAMETERS *******************
@@ -71,13 +72,13 @@
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_1/")  // Cal + Fit + Proc (8709)
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_2/")  // Cal + Fit + Proc (8469)
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_3/")  // Cal + Fit + Proc (5815)  Total: 34931 
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_07_1/")  // Cal + Fit + Proc (2440) (Tr-data)
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_08_1/")  // Cal + Fit + Proc (2440) (Tr-data)
 
 #define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN/") 
 //#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN_testset/") 
 
-#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
-#define SAVE_FILES  // Only enabled when we're not loading processed images
+// #define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
+// #define SAVE_FILES  // Only enabled when we're not loading processed images
 //#define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
 //                              // HandForests, but save synthetic data (only 
 //                              // takes effect when not loading processed images)
@@ -232,10 +233,10 @@ void loadCurrentImage() {
   string full_hpf_im_filename = DIR + std::string("hpf_") + im_files[cur_image].first;
 
   // Just load the processed image directly
-  const float* im = hand_image_generator_->hand_image();
+  const float* im = hand_image_generator_->hand_image_cpu();
   LoadArrayFromFile<float>(const_cast<float*>(im), HN_IM_SIZE * HN_IM_SIZE, 
     full_filename);
-  im = hand_image_generator_->hpf_hand_image();
+  im = hand_image_generator_->hpf_hand_image_cpu();
   LoadArrayFromFile<float>(const_cast<float*>(im), HN_IM_SIZE * HN_IM_SIZE, 
     full_hpf_im_filename);
   memset(cur_depth_data, 0, src_dim * sizeof(cur_depth_data[0]));
@@ -297,11 +298,11 @@ void loadCurrentImage() {
     num_hands, 0, false);
   hand_renderer->extractDepthMap(cur_synthetic_depth_data);
   hand_image_generator_->calcHandImage(cur_depth_data, label,
-    create_hpf_images, tp, cur_synthetic_depth_data);
+    create_hpf_images, cur_synthetic_depth_data);
   GLState::glsViewport(0, 0, wnd->width(), wnd->height());
 #else
   hand_image_generator_->calcHandImage(cur_depth_data, label,
-    create_hpf_images, tp);
+    create_hpf_images);
 #endif
 
   hand_renderer->camera(0)->updateProjection();
@@ -454,7 +455,7 @@ void renderFrame() {
   ((HandGeometryMesh*)model[0])->setRendererAttachement(true);
 
   // Render the images for debugging
-  const float* im = hand_image_generator_->hpf_hand_image();
+  const float* im = hand_image_generator_->hpf_hand_image_cpu();
   float min = im[0];
   float max = im[0];
   for (uint32_t i = 1; i < HN_IM_SIZE * HN_IM_SIZE; i++) {
@@ -477,7 +478,7 @@ void renderFrame() {
 
   hand_image_generator_->annotateFeatsToHandImage(tex_data_hpf, coeff_convnet);
 
-  im = hand_image_generator_->hand_image();
+  im = hand_image_generator_->hand_image_cpu();
   for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
     for (uint32_t u = 0; u < HN_IM_SIZE; u++) {
       uint32_t val = (uint32_t)(im[v * HN_IM_SIZE + u] * 255.0f);
@@ -618,6 +619,8 @@ int main(int argc, char *argv[]) {
     // Initialize Windowing system
     Window::initWindowSystem();
     Texture::initTextureSystem();
+
+    jtorch::InitJTorch("../jtorch");
 
     // Fill the settings structure
     settings.width = 640 * 2;
