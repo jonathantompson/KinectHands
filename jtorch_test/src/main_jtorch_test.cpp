@@ -22,6 +22,7 @@
 #include "jtorch/sequential.h"
 #include "jtorch/parallel.h"
 #include "jtorch/table.h"
+#include "jtorch/join_table.h"
 #include "jtil/threading/thread_pool.h"
 #include "jtil/data_str/vector_managed.h"
 #include "jtil/debug_util/debug_util.h"
@@ -70,11 +71,12 @@ int main(int argc, char *argv[]) {
 #if defined(_DEBUG) || defined(DEBUG)
   jtil::debug::EnableMemoryLeakChecks();
   // jtil::debug::EnableAggressiveMemoryLeakChecks();
-  // jtil::debug::SetBreakPointOnAlocation(1025);
+  // jtil::debug::SetBreakPointOnAlocation(8420);
 #endif
 
   try {
-    jtorch::InitJTorch("../jtorch");
+    const bool use_cpu = false;
+    jtorch::InitJTorch("../jtorch", use_cpu);
 
     Tensor<float> data_in(Int3(width, height, num_feats_in));
     Tensor<float> data_out(Int3(width, height, num_feats_out));
@@ -90,11 +92,13 @@ int main(int argc, char *argv[]) {
     }
     data_in.setData(din);
 
+    std::cout << "Data In:" << std::endl;
+    data_in.print();
+
+
 #ifdef TEST_MODULES
     Sequential stages;
 
-    std::cout << "Data In:" << std::endl;
-    data_in.print();
 
     // ***********************************************
     // Test Tanh
@@ -151,8 +155,7 @@ int main(int argc, char *argv[]) {
 
     // ***********************************************
     // Test SpatialConvolution
-    SpatialConvolution* conv = new SpatialConvolution(num_feats_in, 
-      num_feats_out, filt_height, filt_width);
+    SpatialConvolution conv(num_feats_in, num_feats_out, filt_height, filt_width);
     for (int32_t i = 0; i < num_feats_out; i++) {
       cbiases[i] = (float)(i+1) / (float)num_feats_out - 0.5f;
     }
@@ -171,12 +174,11 @@ int main(int argc, char *argv[]) {
         }
       }
     }
-    conv->setWeights(cweights);
-    conv->setBiases(cbiases);
-    conv->forwardProp(*stages.get(1)->output);
+    conv.setWeights(cweights);
+    conv.setBiases(cbiases);
+    conv.forwardProp(*stages.get(1)->output);
     std::cout << endl << endl << "SpatialConvolution output:" << std::endl;
-    conv->output->print();
-  
+    conv.output->print();
     
     // ***********************************************
     // Test SpatialLPPooling
@@ -243,9 +245,16 @@ int main(int argc, char *argv[]) {
 
     Linear* lin = new Linear(lin_size_in, lin_size_out);
     lin_stage.add(lin);
-    for (int32_t i = 0; i < lin_size_in * lin_size_out; i++) {
-      lweights[i] = (float)(i+1) / (float)(lin_size_in * lin_size_out);
+    // Weight matrix is M (rows = outputs) x N (columns = inputs)
+    // It is stored column major with the M dimension stored contiguously
+    for (int32_t n = 0; n < lin_size_in; n++) {
+      for (int32_t m = 0; m < lin_size_out; m++) {
+        int32_t out_i = n * lin_size_out + m;
+        int32_t k = m * lin_size_in + n + 1;
+        lweights[out_i] = (float)k / (float)(lin_size_in * lin_size_out);
+      }
     }
+
     for (int32_t i = 0; i < lin_size_out; i++) {
       lbiases[i] = (float)(i+1) / (float)(lin_size_out);
     }
@@ -320,6 +329,19 @@ int main(int argc, char *argv[]) {
     std::cout << "Model Output (just the first 30 numbers) = " << std::endl;
     convnet_output->print(Int2(0, 29), Int2(0, 0), Int2(0, 0));
 
+    //Parallel* parallel_stage = (Parallel*)((Sequential*)convnet_model)->get(0);
+    //Table* conv_stage_out = (Table*)parallel_stage->output;
+    //std::cout << "1st bank convolution output (just the top left 6x6 of the 2nd feature) = " << std::endl;
+    //((Tensor<float>*)(*conv_stage_out)(0))->print(Int2(0, 5), Int2(0, 5), Int2(1, 1));
+    //std::cout << "2nd bank convolution output (just the top left 6x6 of the 10th feature) = " << std::endl;
+    //((Tensor<float>*)(*conv_stage_out)(1))->print(Int2(0, 5), Int2(0, 5), Int2(9, 9));
+
+    //JoinTable* joint_table_stage = (JoinTable*)((Sequential*)convnet_model)->get(1);
+    //std::cout << "Join Table Output (0, 29) = " << std::endl;
+    //((Tensor<float>*)joint_table_stage->output)->print(Int2(0, 29), Int2(0, 0), Int2(0, 0));
+    //std::cout << "Join Table Output (7000, 7030) = " << std::endl;
+    //((Tensor<float>*)joint_table_stage->output)->print(Int2(7000, 7030), Int2(0, 0), Int2(0, 0));
+
     // Save the result to file
     float* convnet_output_cpu = new float[convnet_output->dataSize()];
     convnet_output->getData(convnet_output_cpu);
@@ -332,8 +354,11 @@ int main(int argc, char *argv[]) {
     std::cout << "Profiling for 5 seconds..." << std::endl;
     Clk clk;
     uint32_t num_evals = 0;
-    float time_accum = 0.0f;
+    double time_accum = 0.0;
     while (time_accum < 5) {
+      // Fairest test is to perform a sync after every read and wait for the
+      // work queue to empty.  Otherwise requests happen in parallel which
+      // isn't what torch does.
       double t0 = clk.getTime();
       convnet_model->forwardProp(*convnet_input);
       jtorch::cl_context->sync(jtorch::deviceid);

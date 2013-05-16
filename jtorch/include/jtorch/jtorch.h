@@ -13,6 +13,8 @@
 #ifndef JTORCH_JTORCH_HEADER
 #define JTORCH_JTORCH_HEADER
 
+// #define JTORCH_USE_GPU // Comment out to use the CPU
+
 #include "jtil/math/math_types.h"
 #include <string>
 
@@ -21,8 +23,12 @@ namespace jcl { class JCL; }
 namespace jtorch {
 
   // path_to_jtorch should be the path to "KinectHands/jtorch"
-  void InitJTorch(const std::string& path_to_jtorch);  // Throws exception on multiple init
-  void InitJTorchSafe(const std::string& path_to_jtorch);  // Multiple init OK
+  // InitJTorch - Throws exception on multiple init
+  void InitJTorch(const std::string& path_to_jtorch, 
+    const bool use_cpu = false);  
+  // InitJTorchSafe - Multiple init OK
+  void InitJTorchSafe(const std::string& path_to_jtorch, 
+    const bool use_cpu = false);
   void ShutdownJTorch();
 
   // Some constants and globals for the jtorch instance

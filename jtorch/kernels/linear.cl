@@ -1,4 +1,6 @@
 // This could be much better: http://www.bealto.com/gpu-gemv_v2.html
+// Although it's OK if the number of outputs is high (so we can have many
+// concurrent threads).
 __kernel void MatVecMultSimple(
   // Y = A * X (matrix-vector mulitply)
   __global const float* A,  // 0  --> Size M (rows) x N (cols) stored column major

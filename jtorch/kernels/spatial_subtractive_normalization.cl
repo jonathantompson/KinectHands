@@ -1,7 +1,7 @@
 __kernel void SpatialSubtractiveNormalizationHoriz(
   const __global float* input,   // 0
-  __global  float* output,       // 1 
-  __constant float* kernel1d,    // 2
+  __global float* output,       // 1 
+  const __global float* kernel1d,    // 2
   const int filt_rad) {          // 3
 
   const int width = get_global_size(0);
@@ -30,7 +30,7 @@ __kernel void SpatialSubtractiveNormalizationHoriz(
 __kernel void SpatialSubtractiveNormalizationVert(
   const __global float* input,   // 0
   __global  float* output,       // 1 
-  __constant float* kernel1d,    // 2
+  const __global float* kernel1d,    // 2
   const int filt_rad) {          // 3
 
   const int width = get_global_size(0);
@@ -59,7 +59,7 @@ __kernel void SpatialSubtractiveNormalizationVert(
 __kernel void SpatialSubtractiveNormalizationAccumDiv(
   const __global float* input,   // 0
   __global  float* output,       // 1 
-  __constant float* mean_coeff,  // 2
+  const __global float* mean_coeff,  // 2
   const int input_nfeats) {         // 3
 
   const int width = get_global_size(0);
@@ -86,7 +86,7 @@ __kernel void SpatialSubtractiveNormalizationAccumDiv(
 __kernel void SpatialSubtractiveNormalization(
   const __global float* input,  // 0
   __global float* output,       // 1 
-  __constant float* mean) {     // 2
+  const __global float* mean) {     // 2
 
   const int width = get_global_size(0);
   const int height = get_global_size(1);

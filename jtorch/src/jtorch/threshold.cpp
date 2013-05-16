@@ -49,12 +49,12 @@ namespace jtorch {
   void Threshold::forwardProp(TorchData& input) { 
     init(input);
     std::string kernel = jtorch::jtorch_path + "kernels/threshold.cl";
-    cl_context->useKernel(kernel.c_str(), "Threshold");
+    cl_context->useKernel(kernel.c_str(), "Threshold1D");
     cl_context->setArg(0, ((Tensor<float>&)input).data());
     cl_context->setArg(1, ((Tensor<float>*)output)->data());
     cl_context->setArg(2, threshold);
     cl_context->setArg(3, val);
-    cl_context->runKernel3D(jtorch::deviceid, ((Tensor<float>*)output)->dim(),
+    cl_context->runKernel1D(jtorch::deviceid, output->dataSize(),
       false);
   }
 

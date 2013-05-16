@@ -1,7 +1,7 @@
 __kernel void SpatialDivisiveNormalizationHoriz(
   const __global float* input,   // 0
   __global  float* output,       // 1 
-  __constant float* kernel1d,    // 2
+  const __global float* kernel1d,    // 2
   const int filt_rad) {          // 3
 
   const int width = get_global_size(0);
@@ -30,7 +30,7 @@ __kernel void SpatialDivisiveNormalizationHoriz(
 __kernel void SpatialDivisiveNormalizationVert(
   const __global float* input,   // 0
   __global  float* output,       // 1 
-  __constant float* kernel1d,    // 2
+  const __global float* kernel1d,    // 2
   const int filt_rad) {          // 3
 
   const int width = get_global_size(0);
@@ -59,7 +59,7 @@ __kernel void SpatialDivisiveNormalizationVert(
 __kernel void SpatialDivisiveNormalizationAccumDiv(
   const __global float* input,   // 0
   __global  float* output,       // 1 
-  __constant float* std_coef,    // 2
+  const __global float* std_coef,    // 2
   const int input_nfeats,        // 3
   const float threshold) {       // 4
 
@@ -88,7 +88,7 @@ __kernel void SpatialDivisiveNormalizationAccumDiv(
 __kernel void SpatialDivisiveNormalization(
   const __global float* input,  // 0
   __global float* output,       // 1 
-  __constant float* std) {     // 2
+  const __global float* std) {     // 2
 
   const int width = get_global_size(0);
   const int height = get_global_size(1);

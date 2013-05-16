@@ -22,13 +22,6 @@ namespace jtorch {
     n_outputs_ = n_outputs;
 
     output = new Tensor<float>(Int3(n_outputs_, 1, 1));
-    //cl_context->getOptimalLocalWorkgroupSizes1D(deviceid, 
-    //  ((Tensor<float>*)output)->dim()[0], local_worgroup_size[0]);
-
-    //local_worgroup_size[0] = 8;
-    //while (((Tensor<float>*)output)->dim()[0] % local_worgroup_size[0] != 0) {
-    //  local_worgroup_size[0]--;
-    //}
 
     weights_ = new Tensor<float>(Int3(n_inputs_, n_outputs_, 1));
     biases_ = new Tensor<float>(n_outputs_);
@@ -70,15 +63,13 @@ namespace jtorch {
     cl_context->setArg(2, ((Tensor<float>*)output)->data());
     cl_context->setArg(3, n_outputs_);
     cl_context->setArg(4, n_inputs_);
-    cl_context->runKernel1D(jtorch::deviceid, ((Tensor<float>*)output)->dim()[0],
-      false);
+    cl_context->runKernel1D(jtorch::deviceid, output->dataSize(), false);
 
     // Now add in the bias
     cl_context->useKernel(kernel.c_str(), "Accum");
     cl_context->setArg(0, ((Tensor<float>*)output)->data());
     cl_context->setArg(1, biases_->data());
-    cl_context->runKernel1D(jtorch::deviceid, ((Tensor<float>*)output)->dim()[0], 
-      false);
+    cl_context->runKernel1D(jtorch::deviceid, output->dataSize(), false);
   }
 
   TorchStage* Linear::loadFromFile(std::ifstream& file) {
