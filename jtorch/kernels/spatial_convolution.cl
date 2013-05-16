@@ -1,8 +1,8 @@
 __kernel void SpatialConvolution(
   const __global  float* input,  // 0
   __global  float* output,       // 1 
-  __constant float* weights,     // 2
-  __constant float* biases,      // 3
+  const __global float* weights,     // 2
+  const __global float* biases,      // 3
   const int input_nfeats,        // 4
   const int input_height,        // 5
   const int input_width,         // 6
@@ -25,7 +25,7 @@ __kernel void SpatialConvolution(
   const int in_size = input_width * input_height;
   for (int f = 0; f < input_nfeats; f++) {
     // Get a pointer to the current weight matrix and input feature
-    __constant float* pkernel = &weights[f_out * filt_size_per_fout + f * filt_size];
+    const __global  float* pkernel = &weights[f_out * filt_size_per_fout + f * filt_size];
 	const __global  float* pinput = &input[f * in_size];
 
 	// Perform the convolution on this input feature

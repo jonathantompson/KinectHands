@@ -12,6 +12,8 @@
 #include "jtorch/spatial_contrastive_normalization.h"
 #include "jtorch/spatial_subtractive_normalization.h"
 #include "jtorch/tensor.h"
+#include "jtorch/table.h"
+#include "jtorch/parallel.h"
 #include "jtil/image_util/image_util.h"
 #include "jtil/renderer/colors/colors.h"
 #include "jtil/exceptions/wruntime_error.h"
@@ -35,6 +37,7 @@ using namespace jtil::image_util;
 using namespace jtil::threading;
 using namespace jtil::math;
 using namespace jtil::data_str;
+using namespace jtorch;
 
 namespace kinect_interface {
 namespace hand_net {
@@ -42,13 +45,13 @@ namespace hand_net {
   HandImageGenerator::HandImageGenerator(const int32_t num_banks) : 
     norm_method_(BasicNormalApproximation){
     hpf_hand_image_ = NULL;
-    size_images_ = 0;
     hand_image_ = NULL;
+    hand_image_cpu_ = NULL;
     cropped_hand_image_ = NULL;
     im_temp_double_ = NULL;
     num_banks_ = num_banks;
     norm_module_ = NULL;
-    norm_module_input_ = NULL;
+    hpf_hand_image_cpu_ = NULL;
     hand_mesh_normals_.capacity(src_dim);
     hand_mesh_vertices_.capacity(src_dim);
     initHandImageData();
@@ -59,43 +62,35 @@ namespace hand_net {
   }
 
   void HandImageGenerator::releaseData() {
-    SAFE_DELETE_ARR(hpf_hand_image_);
-    SAFE_DELETE_ARR(hand_image_);
+    SAFE_DELETE(hand_image_);
+    SAFE_DELETE_ARR(hand_image_cpu_);
     SAFE_DELETE_ARR(cropped_hand_image_);
     SAFE_DELETE_ARR(im_temp_double_);
-    if (norm_module_) {
-      for (int32_t j = 0; j < num_banks_; j++) {
-        SAFE_DELETE(norm_module_[j]);
-      }
-    }
-    SAFE_DELETE_ARR(norm_module_);
-    if (norm_module_input_) {
-      for (int32_t i = 0; i < num_banks_; i++) {
-        SAFE_DELETE(norm_module_input_[i]);
-      }
-    }
-    SAFE_DELETE_ARR(norm_module_input_);
+    SAFE_DELETE_ARR(hpf_hand_image_cpu_);
+    SAFE_DELETE(norm_module_);
   }
 
   void HandImageGenerator::initHandImageData() {
     // Figure out the size of the HPF bank array
     int32_t im_sizeu = HN_IM_SIZE;
     int32_t im_sizev = HN_IM_SIZE;
-    size_images_ = 0;
+    int32_t size_images = 0;
     for (int32_t i = 0; i < num_banks_; i++) {
-      size_images_ += (im_sizeu * im_sizev);
+      size_images += (im_sizeu * im_sizev);
       im_sizeu /= 2;
       im_sizev /= 2;
     }
 
     // Some temporary data structures
-    int32_t datasize = std::max<int32_t>(size_images_, 
+    int32_t datasize = std::max<int32_t>(size_images, 
       HN_SRC_IM_SIZE * HN_SRC_IM_SIZE);
-    hand_image_ = new float [datasize];
+    hand_image_cpu_ = new float [datasize];
+    hpf_hand_image_cpu_ = new float[datasize];
     cropped_hand_image_ = new float[HN_SRC_IM_SIZE * HN_SRC_IM_SIZE];
     im_temp_double_ = new double[HN_SRC_IM_SIZE * HN_SRC_IM_SIZE];
 
-    hpf_hand_image_ = new float[datasize];
+    // OpenCL structures
+    hand_image_ = new Table();
 #if defined(DEBUG) || defined(_DEBUG)
     if (HN_RECT_KERNEL_SIZE % 2 == 0) {
       throw std::runtime_error("HandImageGenerator::initHPFKernels() - ERROR:"
@@ -103,18 +98,16 @@ namespace hand_net {
     }
 #endif
 
-    norm_module_ = new TorchStage*[num_banks_];
-    norm_module_input_ = new FloatTensor*[num_banks_];
+    norm_module_ = new Parallel();
     im_sizeu = HN_IM_SIZE;
     im_sizev = HN_IM_SIZE;
     for (int32_t i = 0; i < num_banks_; i++) {
-      FloatTensor* kernel = FloatTensor::ones1D(HN_RECT_KERNEL_SIZE);
-      norm_module_input_[i] = 
-        new FloatTensor(Int4(im_sizeu, im_sizev, 1, 1));
+      hand_image_->add(new Tensor<float>(Int2(im_sizeu, im_sizev)));
+      Tensor<float>* kernel = Tensor<float>::ones1D(HN_RECT_KERNEL_SIZE);
 #ifdef HN_LOCAL_CONTRAST_NORM
-      norm_module_[i] = new SpatialContrastiveNormalization(kernel);
+      norm_module_->add(new SpatialContrastiveNormalization(*kernel));
 #else
-      norm_module_[i] = new SpatialSubtractiveNormalization(*kernel);
+      norm_module_->add(new SpatialSubtractiveNormalization(*kernel));
 #endif
       delete kernel;
       im_sizeu /= 2;
@@ -132,11 +125,11 @@ namespace hand_net {
   // Create the downsampled hand image, background is at 1 and hand is
   // in front of it.
   void HandImageGenerator::calcHandImage(const int16_t* depth_in, 
-    const uint8_t* label_in, const bool create_hpf_image, ThreadPool* tp, 
+    const uint8_t* label_in, const bool create_hpf_image, 
     const float* synthetic_depth) {
     calcCroppedHand(depth_in, label_in, synthetic_depth);
     if (create_hpf_image) {
-      calcHPFHandBanks(tp);
+      calcHPFHandBanks();
     }
   }
 
@@ -213,7 +206,7 @@ namespace hand_net {
     int32_t srcx = (HN_SRC_IM_SIZE - srcw) / 2;
     int32_t srcy = (HN_SRC_IM_SIZE - srch) / 2;
     // Note FracDownsampleImageSAT destroys the origional source image
-    FracDownsampleImageSAT<float>(hand_image_, 0, 0, HN_IM_SIZE, HN_IM_SIZE,
+    FracDownsampleImageSAT<float>(hand_image_cpu_, 0, 0, HN_IM_SIZE, HN_IM_SIZE,
       HN_IM_SIZE, cropped_hand_image_, srcx, srcy, srcw, srch, HN_SRC_IM_SIZE, 
       HN_SRC_IM_SIZE, im_temp_double_);
 
@@ -226,7 +219,7 @@ namespace hand_net {
     // Now downsample as many times as there are banks
     int32_t w = HN_IM_SIZE;
     int32_t h = HN_IM_SIZE;
-    float* src = hand_image_;
+    float* src = hand_image_cpu_;
     for (int32_t i = 1; i < num_banks_; i++) {
       DownsampleImage<float>(&src[w*h], src, w, h, 2);
       src = &src[w*h];
@@ -235,19 +228,32 @@ namespace hand_net {
     }
   }
 
-  void HandImageGenerator::calcHPFHandBanks(ThreadPool* tp) {
+  void HandImageGenerator::calcHPFHandBanks() {
+    // Firstly, upload the src data to jtorch
     int32_t w = HN_IM_SIZE;
     int32_t h = HN_IM_SIZE;
-    float* dst = hpf_hand_image_;
-    float* src = hand_image_;
+    float* src = hand_image_cpu_;
     for (int32_t i = 0; i < num_banks_; i++) {
-      // Apply local contrast normalization
-      memcpy(norm_module_input_[i]->data(), src, 
-        w * h * sizeof(norm_module_input_[i]->data()[0]));
-      norm_module_[i]->forwardProp(*norm_module_input_[i], 
-        *tp);
-      memcpy(dst, ((FloatTensor*)norm_module_[i]->output)->data(), 
-        w * h * sizeof(dst[0]));
+      Tensor<float>* cur_image = (Tensor<float>*)(*hand_image_)(i);
+      cur_image->setData(src);
+      src = &src[w*h];
+      w /= 2;
+      h /= 2;
+    }
+    // Now perform local contrast normalization
+    norm_module_->forwardProp(*hand_image_);
+    if (norm_module_->output->type() != TABLE_DATA) {
+      throw std::wruntime_error("HandImageGenerator::calcHPFHandBanks() - "
+        "ERROR: norm_module output is of the wrong type!");
+    }
+    hpf_hand_image_ = (Table*)norm_module_->output;
+
+    w = HN_IM_SIZE;
+    h = HN_IM_SIZE;
+    float* dst = hpf_hand_image_cpu_;
+    for (int32_t i = 0; i < num_banks_; i++) {
+      Tensor<float>* cur_image = (Tensor<float>*)(*hpf_hand_image_)(i);
+      cur_image->getData(dst);
 
 #ifndef HN_LOCAL_CONTRAST_NORM
       // Now subtract by the GLOBAL std
@@ -265,22 +271,11 @@ namespace hand_net {
       for (int32_t j = 0; j < w * h; j++) {
         dst[j] *= scale_fact;
       }
+      cur_image->setData(dst);  // Re-upload the results
 #endif
-
-      if (i < (num_banks_ - 1)) {
-        // Iterate the dst, coeff and src pointers
-        src = &src[w * h];
-        dst = &dst[w * h];
-        // Update the new width and height
-#if defined(DEBUG) || defined(_DEBUG)
-        if (2*(w / 2) != w || 2*(h / 2) != h) {
-          throw std::runtime_error("HandImageGenerator::calcHPFHandBanks(): "
-            "ERROR - image size is not divisible by 2!");
-        }
-#endif
-        w = w / 2;
-        h = h / 2;
-      }
+      dst = &dst[w*h];
+      w /= 2;
+      h /= 2;
     }
   }
 

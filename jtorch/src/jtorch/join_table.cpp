@@ -6,6 +6,7 @@
 #include "jtil/threading/callback.h"
 #include "jtil/threading/thread_pool.h"
 #include "jtil/data_str/vector_managed.h"
+#include "jcl/jcl.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }

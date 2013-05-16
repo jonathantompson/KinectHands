@@ -27,12 +27,14 @@
 
 #define HN_USE_RECT_LPF_KERNEL  // Otherwise use gaussian --> Clemont recommends rect.
 
-namespace jtil { namespace threading { class ThreadPool; } }
 namespace jtil { namespace data_str { template <typename T> class Vector; } }
 namespace jtorch {  
   template <typename T> class Tensor;
   class SpatialContrastiveNormalization;
   class SpatialSubtractiveNormalization;
+  class TorchStage;
+  class Table;
+  class Parallel;
 }
 
 namespace kinect_interface {
@@ -56,8 +58,7 @@ namespace hand_net {
     // if synthetic_depth != NULL, then the crop window will be chosen using
     // the real depth, but the synthetic depth will be stored
     void calcHandImage(const int16_t* depth_in, const uint8_t* label_in,
-      const bool create_hpf_image, jtil::threading::ThreadPool* tp, 
-      const float* synthetic_depth = NULL);
+      const bool create_hpf_image, const float* synthetic_depth = NULL);
 
     void annotateFeatsToKinectImage(uint8_t* im,
       const float* coeff_convnet) const;  // 640 x 480
@@ -68,25 +69,27 @@ namespace hand_net {
       const uint8_t* labels);
 
     // Getter methods
-    const float* hpf_hand_image() { return hpf_hand_image_; }
-    const float* hand_image() { return hand_image_; }
+    jtorch::Table* hpf_hand_image() { return hpf_hand_image_; }
+    jtorch::Table* hand_image() { return hand_image_; }
+    const float* hpf_hand_image_cpu() { return hpf_hand_image_cpu_; }
+    const float* hand_image_cpu() { return hand_image_cpu_; }
     const float* cropped_hand_image() { return cropped_hand_image_; }
-    const int32_t size_images() { return size_images_; } 
+    
     inline const jtil::math::Float3& uvd_com() const { return uvd_com_; }
     inline const jtil::math::Int4& hand_pos_wh() const { return hand_pos_wh_; }
 
   private:
     int32_t num_banks_;
     float* cropped_hand_image_;
-    float* hand_image_;
+    jtorch::Table* hand_image_;
+    jtorch::Table* hpf_hand_image_;  // NOT OWNED HERE!
+    float* hpf_hand_image_cpu_;
+    float* hand_image_cpu_;
     float cur_downsample_scale_;
-    int32_t size_images_;  // Default: HAND_NET_IM_SIZE^2 *(1 + 1/(2*2) + 1/(4*4))
-    float* hpf_hand_image_;
     jtil::math::Float3 uvd_com_;  // UV COM of the hand image.
     jtil::math::Int4 hand_pos_wh_;  // Lower left pos and width/height of the hand image
     double* im_temp_double_;
-    jtorch::TorchStage** norm_module_;  // One per bank
-    jtorch::Tensor<float>** norm_module_input_;
+    jtorch::Parallel* norm_module_;  // One per bank
     jtil::data_str::Vector<jtil::math::Int3> hand_mesh_indices_;
     jtil::data_str::Vector<jtil::math::Float3> hand_mesh_vertices_;
     jtil::data_str::Vector<jtil::math::Float3> hand_mesh_normals_;
@@ -94,7 +97,7 @@ namespace hand_net {
 
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in, 
       const float* synthetic_depth = NULL);
-    void calcHPFHandBanks(jtil::threading::ThreadPool* tp);
+    void calcHPFHandBanks();
     void releaseData();  // Call destructor on all dynamic data
     void initHandImageData();
     void renderCrossToImageArr(const float* uv, uint8_t* im, const int32_t w, 

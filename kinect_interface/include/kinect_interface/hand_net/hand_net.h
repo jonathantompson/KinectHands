@@ -32,7 +32,10 @@
   #define CONVNET_FILE string("./../data/handmodel.net.convnet")
 #endif
 
-namespace jtil { namespace threading { class ThreadPool; } }
+namespace jtorch {
+  class TorchStage;
+  class Table;
+}
 
 namespace kinect_interface {
 
@@ -134,8 +137,6 @@ namespace hand_net {
   } HandNetDataType;
 
   class HandImageGenerator;
-  class TorchStage;
-  class Table;
   
   class HandNet {
   public:
@@ -157,8 +158,9 @@ namespace hand_net {
 
     // Getter methods
     const float* hpf_hand_image() const;
-    const float* coeff_convnet() const { return coeff_convnet_; }
-    float* coeff_convnet() { return coeff_convnet_; }
+    const float* heat_map_convnet() const { return heat_map_convnet_; }
+    float* heat_map_convnet() { return heat_map_convnet_; }
+    uint32_t heat_map_size() { return heat_map_size_; }
     HandImageGenerator* image_generator() const { return image_generator_; }
     const float* hand_image() const;
     const int32_t size_images() const;
@@ -167,13 +169,10 @@ namespace hand_net {
   private:
     HandImageGenerator* image_generator_;
     HandNetDataType data_type_;
-    Table* conv_network_input_;
     int32_t num_conv_banks_;  // Set after Torch model is read from file
-    TorchStage* conv_network_;
-    float coeff_convnet_[HAND_NUM_COEFF_CONVNET];  // output data
-
-    // Multithreading
-    jtil::threading::ThreadPool* tp_;
+    jtorch::TorchStage* conv_network_;
+    float* heat_map_convnet_;  // output data
+    uint32_t heat_map_size_;
 
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in);
     void calcHPFHandBanks();

@@ -18,7 +18,7 @@ namespace jtorch {
       throw std::wruntime_error("jtorch::InitJTorch() - ERROR: Init called "
         "twice!");
     }
-    cl_context = new jcl::JCL(jcl::CLDeviceGPU, jcl::CLVendorAny);
+    cl_context = new jcl::JCL(jcl::CLDeviceCPU, jcl::CLVendorAny, false);
     jtorch_path = path_to_jtorch;
     if (jtorch_path.at(jtorch_path.size()-1) != '\\' && 
       jtorch_path.at(jtorch_path.size()-1) != '/') {
