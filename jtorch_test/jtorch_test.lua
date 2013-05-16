@@ -315,8 +315,24 @@ VisualizeImage(im_data, 1, 1, 0)
 -- See how fast / slow the model is:
 time0 = sys.clock()
 for i=1,100 do
-  im_data.heat_maps = model:forward(im_data.data)
+  res = model:forward(im_data.data)
 end
 time1 = sys.clock()
-print("time for 1000 evaluations: " .. (time1 - time0))
+print("time for 100 evaluations: " .. (time1 - time0))
+
+VisualizeImage(im_data, 1, 1, 0)
+
+file = torch.DiskFile("convnet_output.bin", 'r')
+file:binary()
+cpp_out = file:readFloat(num_features * heat_map_width * heat_map_height)
+cpp_out = torch.FloatTensor(cpp_out, 1, 
+  torch.LongStorage{num_features, heat_map_width, heat_map_height}):float()
+file:close()
+
+zoom_factor = 0.5 * 5 * height / heat_map_height
+image.display{image=cpp_out, padding=2, nrow=4, zoom=zoom_factor, scaleeach=false}
+
+-- Print out a few odd numbers
+=model:get(1):get(1):get(4).output[{1, 1, {1,20}, {1,6}}]  -- First threshold out
+=res[{1,{1,10}}]
 
