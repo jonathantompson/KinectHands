@@ -255,6 +255,12 @@ dofile("../jtorch/jtorch.lua")
 saveModel(test_model, "testmodel.bin")
 
 -- Check the real model
+require 'nn'
+require 'image'
+require 'torch'
+require 'optim'
+require 'sys'
+torch.setdefaulttensortype('torch.FloatTensor')
 require 'cunn'
 require 'cutorch'
 model = torch.load("../data/handmodel.net")
@@ -313,12 +319,16 @@ im_data.heat_maps = model:forward(im_data.data)
 VisualizeImage(im_data, 1, 1, 0)
 
 -- See how fast / slow the model is:
+accum = im_data.heat_maps:clone()
+accum:mul(0)
 time0 = sys.clock()
 for i=1,100 do
   res = model:forward(im_data.data)
+  accum:add(res)
 end
 time1 = sys.clock()
 print("time for 100 evaluations: " .. (time1 - time0))
+print(accum[{{},{1,30}}]
 
 VisualizeImage(im_data, 1, 1, 0)
 
