@@ -20,6 +20,7 @@
 #include "jtorch/tanh.h"
 #include "jtorch/threshold.h"
 #include "jtorch/sequential.h"
+#include "jtorch/parallel.h"
 #include "jtorch/table.h"
 #include "jtil/threading/thread_pool.h"
 #include "jtil/data_str/vector_managed.h"
@@ -278,6 +279,10 @@ int main(int argc, char *argv[]) {
     // Test Loading the big convnet model
     TorchStage* convnet_model = TorchStage::loadFromFile("../data/handmodel.net.convnet");
 
+    if (convnet_model->type() != SEQUENTIAL_STAGE) {
+      throw std::wruntime_error("main() - ERROR: Expecting Sequential!");
+    }
+
     uint32_t w = 96;
     uint32_t h = 96;
     const uint32_t num_banks = 3;
@@ -309,8 +314,23 @@ int main(int argc, char *argv[]) {
     
     std::cout << "Performing forward prop...";
     convnet_model->forwardProp(*convnet_input);
-    std::cout << "Model Output = " << std::endl;
-    convnet_model->output->print();
+    std::cout << "Model Output (just the first 30 numbers) = " << std::endl;
+    ((Tensor<float>*)convnet_model->output)->print(Int2(0, 29), Int2(0, 0), Int2(0, 0));
+
+    //// TEMP CODE:
+    //if (((Sequential*)convnet_model)->get(0)->type() != PARALLEL_STAGE) {
+    //  throw std::wruntime_error("main() - ERROR: Expecting Parallel!");
+    //}
+    //Parallel* para = (Parallel*)((Sequential*)convnet_model)->get(0);
+    //if (para->get(0)->type() != SEQUENTIAL_STAGE) {
+    //  throw std::wruntime_error("main() - ERROR: Expecting Sequential!");
+    //}
+    //Sequential* bank0 = (Sequential*)para->get(0);
+    //if (bank0->get(3)->type() != THRESHOLD_STAGE) {
+    //  throw std::wruntime_error("main() - ERROR: Expecting Threshold!");
+    //}
+    //((Tensor<float>*)bank0->get(3)->output)->print(Int2(0, 5), Int2(0, 19), Int2(0, 0));
+    //// END TEMP CODE
 
     // Save the result to file
     float* convnet_output_cpu = new float[convnet_model->output->dataSize()];

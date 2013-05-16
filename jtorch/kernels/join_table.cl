@@ -13,5 +13,5 @@ __kernel void JoinTable(
   // Calculate index into input array
   const int i_in = x_in + width * (y_in + height * z_in);
 
-  output[x_in + output_offset] = input[x_in];
+  output[i_in + output_offset] = input[i_in];
 }

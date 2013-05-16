@@ -34,6 +34,8 @@ namespace jtorch {
 
     uint32_t numBanks() const;
 
+    TorchStage* get(const uint32_t i);
+
     static TorchStage* loadFromFile(std::ifstream& file);
 
   protected:

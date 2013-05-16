@@ -82,4 +82,12 @@ namespace jtorch {
     return (*network_).size();
   }
 
+  TorchStage* Parallel::get(const uint32_t i) {
+    if (network_ == NULL) {
+      throw std::wruntime_error("Parallel::output() - ERROR: "
+        "Network is empty!");
+    }
+    return (*network_)[i];
+  }
+
 }  // namespace jtorch
