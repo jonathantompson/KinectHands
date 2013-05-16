@@ -97,7 +97,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)..\..\PRenderer2\jtil\include;$(ProjectDir)..\include\WIN7\nite;$(ProjectDir)..\include\WIN7\ni;$(ProjectDir)..\include\WIN7\zmq</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)../../PRenderer2/jcl/include;$(ProjectDir)..\jtorch\include;$(ProjectDir)..\..\PRenderer2\jtil\include;$(ProjectDir)..\include\WIN7\nite;$(ProjectDir)..\include\WIN7\ni;$(ProjectDir)..\include\WIN7\zmq</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PreprocessorDefinitions>_AMD64_;WIN32;BREAK_ON_EXCEPTION_INT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -128,7 +128,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)..\..\PRenderer2\jtil\include;$(ProjectDir)..\include\WIN7\nite;$(ProjectDir)..\include\WIN7\ni;$(ProjectDir)..\include\WIN7\zmq</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)../../PRenderer2/jcl/include;$(ProjectDir)..\jtorch\include;$(ProjectDir)..\..\PRenderer2\jtil\include;$(ProjectDir)..\include\WIN7\nite;$(ProjectDir)..\include\WIN7\ni;$(ProjectDir)..\include\WIN7\zmq</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PreprocessorDefinitions>_AMD64_;WIN32;BREAK_ON_EXCEPTION_INT;%(PreprocessorDefinitions)</PreprocessorDefinitions>

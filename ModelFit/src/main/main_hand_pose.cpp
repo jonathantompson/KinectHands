@@ -579,7 +579,7 @@ int main(int argc, char *argv[]) {
     wnd->registerMouseWheelCB(NULL);
     wnd->registerCharacterInputCB(NULL);
 
-    model_renderer = new ModelRenderer();
+    model_renderer = new ModelRenderer(1);
     rhand = new HandModelCoeff(HandType::RIGHT);
     lhand = new HandModelCoeff(HandType::LEFT);
     lhand->setCoeff(HandCoeff::HAND_POS_X, -150);
@@ -673,12 +673,12 @@ int main(int argc, char *argv[]) {
         break;
       case 2:
         model_renderer->drawDepthMap(coeffs, HAND_NUM_COEFF, 
-          (PoseModel**)models, 2, false);
+          (PoseModel**)models, 2, 0, false);
         model_renderer->visualizeDepthMap(wnd, false);
         break;
       case 3:
         model_renderer->drawDepthMap(coeffs, HAND_NUM_COEFF, 
-          (PoseModel**)models, 2, true);
+          (PoseModel**)models, 2, 0, true);
         model_renderer->visualizeDepthMap(wnd, true);
         break;
       default:
@@ -689,7 +689,7 @@ int main(int argc, char *argv[]) {
         if (render_output != 3) {
           // If we haven't drawn the colored depth map, then draw it
           model_renderer->drawDepthMap(coeffs, HAND_NUM_COEFF, 
-            (PoseModel**)models, 2, true);
+            (PoseModel**)models, 2, 0, true);
         }
         TextureRenderable* tex = model_renderer->cdepth_texture();
         tex->getTexture0Data<float>(depth_tmp);

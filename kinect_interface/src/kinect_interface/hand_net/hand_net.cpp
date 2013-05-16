@@ -23,12 +23,6 @@
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
-using jtil::math::Float4x4;
-using jtil::math::FloatQuat;
-using jtil::math::Float3;
-using jtil::math::Float4;
-using jtil::math::Float2;
-using jtil::math::Int2;
 using jtil::threading::ThreadPool;
 using std::string;
 using std::runtime_error;
@@ -37,6 +31,8 @@ using std::endl;
 using jtil::math::Float3;
 using namespace jtil::image_util;
 using kinect_interface::hand_net::HandCoeff;
+using namespace jtil::math;
+using namespace jtorch;
 
 namespace kinect_interface {
 namespace hand_net {
@@ -44,8 +40,8 @@ namespace hand_net {
   HandNet::HandNet() {
     conv_network_ = NULL;
     image_generator_ = NULL;
-    conv_network_input_ = NULL;
-    tp_ = NULL;
+    heat_map_convnet_ = NULL;
+    heat_map_size_ = 0;
   }
 
   HandNet::~HandNet() {
@@ -53,13 +49,9 @@ namespace hand_net {
   }
 
   void HandNet::releaseData() {
-    if (tp_) {
-      tp_->stop();
-    }
-    SAFE_DELETE(tp_);
     SAFE_DELETE(conv_network_);
     SAFE_DELETE(image_generator_);
-    SAFE_DELETE(conv_network_input_);
+    SAFE_DELETE_ARR(heat_map_convnet_);
   }
 
   void HandNet::loadFromFile(const std::string& filename) {
@@ -85,19 +77,24 @@ namespace hand_net {
     num_conv_banks_ = (int32_t)banks->numBanks();
     image_generator_ = new HandImageGenerator(num_conv_banks_);
 
-    conv_network_input_ = new Table();
-    for (int32_t j = 0; j < num_conv_banks_; j++) {
-      int32_t w = HN_IM_SIZE / (1 << j);
-      int32_t h = HN_IM_SIZE / (1 << j);
-      conv_network_input_->add(new FloatTensor(Int2(w, h)));
+    // Do one forward prop to load all the kernels and figure out the output
+    // size (of the heat maps)
+    TorchData* im = (TorchData*)image_generator_->hand_image();
+    conv_network_->forwardProp(*im);
+    Tensor<float>* output_tensor = (Tensor<float>*)(conv_network_->output);
+    uint32_t data_size = output_tensor->dataSize();
+    heat_map_convnet_ = new float[data_size];
+    const uint32_t num_features = (HAND_NUM_COEFF_CONVNET / FEATURE_SIZE);
+    heat_map_size_ = (uint32_t)sqrtf((float)(data_size / num_features));
+    // Check that the heatmap is square:
+    if (heat_map_size_ * heat_map_size_ * num_features != data_size) {
+      throw std::wruntime_error("HandNet::loadFromFile() - ERROR: Heat map"
+        "size is not what we expect!");
     }
-
-    tp_ = new ThreadPool(HN_NUM_WORKER_THREADS);
   }
 
   void HandNet::calcHandImage(const int16_t* depth, const uint8_t* label) {
-    image_generator_->calcHandImage(depth, label, 
-      data_type_ == HPF_DEPTH_DATA, tp_);
+    image_generator_->calcHandImage(depth, label, data_type_ == HPF_DEPTH_DATA);
   }
 
   void HandNet::calcHandCoeffConvnet(const int16_t* depth, 
@@ -110,7 +107,7 @@ namespace hand_net {
     calcHandImage(depth, label);
 
     // Copy over the hand images in the input data structures
-    const float* im;
+    TorchData* im;
     switch (data_type_) {
     case DEPTH_DATA:
       im = image_generator_->hand_image();
@@ -123,32 +120,27 @@ namespace hand_net {
         "data_type value is not supported!");
     }
 
-    for (int32_t j = 0; j < num_conv_banks_; j++) {
-      int32_t w = HN_IM_SIZE / (1 << j);
-      int32_t h = HN_IM_SIZE / (1 << j);
-      FloatTensor* cur_dst_im = (FloatTensor*)((*conv_network_input_)(j));
-      memcpy(cur_dst_im->data(), im, w * h * sizeof(cur_dst_im->data()[0]));
-      im = &im[w*h];
-    }
-
     // Now propogate through the network
-    conv_network_->forwardProp(*conv_network_input_, *tp_);
-    FloatTensor* output_tensor = (FloatTensor*)(conv_network_->output);
-
-    memcpy(coeff_convnet_, output_tensor->data(), HAND_NUM_COEFF_CONVNET * 
-      sizeof(coeff_convnet_[0]));
+    conv_network_->forwardProp(*im);
+    Tensor<float>* output_tensor = (Tensor<float>*)(conv_network_->output);
+    output_tensor->getData(heat_map_convnet_);
   }
 
   const float* HandNet::hpf_hand_image() const {
-    return image_generator_->hpf_hand_image();
+    return image_generator_->hpf_hand_image_cpu();
   }
 
   const float* HandNet::hand_image() const {
-    return image_generator_->hpf_hand_image();
+    return image_generator_->hpf_hand_image_cpu();
   }
 
   const int32_t HandNet::size_images() const {
-    return image_generator_->size_images();
+    Table* im_banks = image_generator_->hand_image();
+    uint32_t size = 0;
+    for (uint32_t i = 0; i < im_banks->tableSize(); i++) {
+      size += (*im_banks)(i)->dataSize();
+    }
+    return size;
   }
 
   const jtil::math::Float3& HandNet::uvd_com() const {

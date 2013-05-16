@@ -20,7 +20,8 @@ namespace jcl { class JCL; }
 namespace jtorch {
 
   // path_to_jtorch should be the path to "KinectHands/jtorch"
-  void InitJTorch(const std::string& path_to_jtorch);
+  void InitJTorch(const std::string& path_to_jtorch);  // Throws exception on multiple init
+  void InitJTorchSafe(const std::string& path_to_jtorch);  // Multiple init OK
   void ShutdownJTorch();
 
   // Some constants and globals for the jtorch instance
