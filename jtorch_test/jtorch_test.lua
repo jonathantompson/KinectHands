@@ -274,7 +274,7 @@ require 'sys'
 torch.setdefaulttensortype('torch.FloatTensor')
 require 'cunn'
 require 'cutorch'
-model = torch.load("../data/handmodel.net")
+model = torch.load("../HandNets/handmodel.net")
 collectgarbage()
 
 -- nvidia-smi -q -d MEMORY
