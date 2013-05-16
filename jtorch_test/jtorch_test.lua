@@ -254,3 +254,69 @@ jtorch_root = "../jtorch/"
 dofile("../jtorch/jtorch.lua")
 saveModel(test_model, "testmodel.bin")
 
+-- Check the real model
+require 'cunn'
+require 'cutorch'
+model = torch.load("../data/handmodel.net")
+collectgarbage()
+
+-- nvidia-smi -q -d MEMORY
+
+width = 96
+height = 96
+bank_dim = {}
+num_banks = 3
+data_file_size = 0
+num_features = 8
+heat_map_width = 24
+heat_map_height = 24
+im_data = { data = {}, size = function() return 1 end, 
+  heat_maps = torch.FloatTensor(1, num_features * heat_map_width * heat_map_height) }
+w = width
+h = height
+for i=1,num_banks do
+  table.insert(bank_dim, {h, w})
+  data_file_size = data_file_size + w * h
+  w = w / 2
+  h = h / 2
+  table.insert(im_data.data, torch.FloatTensor(1, 1, bank_dim[i][1], 
+    bank_dim[i][2]))
+end
+w = nil
+h = nil
+filename = "../data/hand_depth_data_processed_for_CN/hpf_processed_1294371228_hands0_263917398000.bin"
+hpf_depth_file = torch.DiskFile(filename,'r')
+hpf_depth_file:binary()
+hpf_depth_data = hpf_depth_file:readFloat(data_file_size)
+hpf_depth_file:close()
+ind = 1
+for j=1,num_banks do
+  im_data.data[j][{1, 1, {}, {}}] = torch.FloatTensor(
+    hpf_depth_data, ind, torch.LongStorage{bank_dim[j][1], bank_dim[j][2]}):float()
+  ind = ind + (bank_dim[j][1]*bank_dim[j][2]) -- Move pointer forward
+end
+filename = "../data/heatmaps/heatmap_hpf_processed_1294371228_hands0_263917398000.bin"
+heatmap_file = torch.DiskFile(filename, 'r')
+heatmap_file:binary()
+heatmap_data = heatmap_file:readFloat(num_features * heat_map_width * heat_map_height)
+heatmap_file:close()
+im_data.heat_maps[{1,{}}]:copy(torch.FloatTensor(heatmap_data, 1,
+  torch.LongStorage{num_features * heat_map_width * heat_map_height}):float())
+dofile("../HandNets/visualize_data.lua")
+VisualizeImage(im_data, 1, 1, 0)
+
+for j=1,num_banks do
+  im_data.data[j] = im_data.data[j]:cuda()
+end
+
+im_data.heat_maps = model:forward(im_data.data)
+VisualizeImage(im_data, 1, 1, 0)
+
+-- See how fast / slow the model is:
+time0 = sys.clock()
+for i=1,100 do
+  im_data.heat_maps = model:forward(im_data.data)
+end
+time1 = sys.clock()
+print("time for 1000 evaluations: " .. (time1 - time0))
+
