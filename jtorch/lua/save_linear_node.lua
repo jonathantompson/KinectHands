@@ -5,9 +5,11 @@ function saveLinearNode(node, ofile)
   ofile:writeInt(ninputs)
  
   -- This could be faster with vector notation, but is OK for now
-  for i=1,noutputs do
-    for v=1,ninputs do
-      ofile:writeFloat(node.weight[{i, v}])
+  for i=1,ninputs do
+    for v=1,noutputs do
+      -- weight is [nout, nin]  --> we want to store this column major
+      -- So each column is contiguous and is size nout
+      ofile:writeFloat(node.weight[{v, i}])  
     end
   end
   for i=1,noutputs do
