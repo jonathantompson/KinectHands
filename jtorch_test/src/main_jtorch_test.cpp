@@ -27,6 +27,7 @@
 #include "jtil/debug_util/debug_util.h"
 #include "jtil/file_io/file_io.h"
 #include "jtil/string_util/string_util.h"
+#include "jtil/clk/clk.h"
 
 #if defined(WIN32) || defined(_WIN32)
   #define snprintf _snprintf_s
@@ -43,6 +44,7 @@ using namespace jtil::threading;
 using namespace jtil::math;
 using namespace jtil::data_str;
 using namespace jtil::file_io;
+using namespace jtil::clk;
 
 const uint32_t num_feats_in = 5;
 const uint32_t num_feats_out = 10;
@@ -338,6 +340,16 @@ int main(int argc, char *argv[]) {
     jtil::file_io::SaveArrayToFile<float>(convnet_output_cpu, 
       convnet_model->output->dataSize(), "convnet_output.bin");
     delete[] convnet_output_cpu;
+
+    // Now profile
+    std::cout << "Profiling..." << std::endl;
+    Clk clk;
+    double t0 = clk.getTime();
+    for (uint32_t i = 0; i < 100; i++) {
+      convnet_model->forwardProp(*convnet_input);
+    }
+    double t1 = clk.getTime();
+    std::cout << "Time for 100 evaluations = " << (t1 - t0) << std::endl;
 
     delete[] convnet_input_cpu;
     delete convnet_input;

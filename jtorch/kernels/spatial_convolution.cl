@@ -6,7 +6,7 @@ __kernel void SpatialConvolution(
   const int input_nfeats,        // 4
   const int input_height,        // 5
   const int input_width,         // 6
-  const int filt_height,			// 7
+  const int filt_height,         // 7
   const int filt_width) {        // 8
 
   const int width = get_global_size(0);
