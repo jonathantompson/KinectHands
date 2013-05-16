@@ -161,7 +161,8 @@ print('SpatialDivisiveNormalization result')
 print(res)
 -- return spatial_div_norm.localstds
 
--- Test SpatialContrastiveNormalization
+-- Test SpatialContrastiveNormalization  --> Doesn't work on blackbox (works on my PC)
+--[[
 model6 = nn.Sequential()
 lena = image.rgb2y(image.lena()):float()
 file = torch.DiskFile("lena_image.bin", 'w')
@@ -172,6 +173,7 @@ for i=1,lena:size()[2] do
   end
 end
 file:close()
+
 normkernel = torch.Tensor(7):fill(1)
 spatial_contrast_norm = nn.SpatialContrastiveNormalization(1, normkernel)
 model6:add(spatial_contrast_norm)
@@ -190,8 +192,10 @@ err_abs = torch.abs(err)
 image.display(err_abs)
 print('Maximum error')
 print(err_abs:max())
+--]]
 
 -- Test the local contrast normalization of the hand image generator
+--[[
 normkernel = torch.Tensor(11):fill(1)
 spatial_contrast_norm = nn.SpatialContrastiveNormalization(1, normkernel)
 file = torch.DiskFile("processed_hands_4618452720732.bin", 'r')
@@ -208,6 +212,7 @@ image.display{image=hpf_depth, zoom=(6.0)}
 image.display{image=depth, zoom=(6.0)}
 hpf_depth_torch = spatial_contrast_norm:forward(depth)
 image.display{image=hpf_depth_torch, zoom=(6.0)}
+--]]
 
 -- Test Linear
 model2 = nn.Sequential()
