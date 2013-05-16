@@ -215,10 +215,10 @@ lin_size = num_feats_in * width * height
 lin_size_out = 20
 model2:add(nn.Reshape(lin_size))
 lin_stage = nn.Linear(lin_size, lin_size_out)
-for i=1,lin_size_out do
-  for j=1,lin_size do
-    k = (i-1) * lin_size + j
-    lin_stage.weight[{i,j}] = k / (lin_size * lin_size_out)
+for n=1,lin_size do
+  for m=1,lin_size_out do
+    k = (m-1) * lin_size + (n-1) + 1
+    lin_stage.weight[{m,n}] = k / (lin_size * lin_size_out)
   end
 end
 for i=1,lin_size_out do
@@ -309,7 +309,7 @@ heatmap_file:close()
 im_data.heat_maps[{1,{}}]:copy(torch.FloatTensor(heatmap_data, 1,
   torch.LongStorage{num_features * heat_map_width * heat_map_height}):float())
 dofile("../HandNets/visualize_data.lua")
-VisualizeImage(im_data, 1, 1, 0)
+-- VisualizeImage(im_data, 1, 1, 0)
 
 for j=1,num_banks do
   im_data.data[j] = im_data.data[j]:cuda()
@@ -317,18 +317,31 @@ end
 
 im_data.heat_maps = model:forward(im_data.data)
 VisualizeImage(im_data, 1, 1, 0)
+print("First 30 numbers of the output: ")
+print(im_data.heat_maps[{{},{1,30}}])
+print("First bank last module (before reshape)")
+print(model:get(1):get(1):get(14))
+print("First 6x6 of the 2nd feature of the first bank output: ")
+print(model:get(1):get(1):get(14).output[{1, 2, {1,6}, {1,6}}])
+print("First 6x6 of the 10th feature of the second bank output: ")
+print(model:get(1):get(2):get(14).output[{1, 10, {1,6}, {1,6}}])
+print("0:30 of the join table stage: ")
+print(model:get(2).output[{1, {1, 30}}])
+print("7000:7030 of the 1st linear stage output: ")
+print(model:get(2).output[{1, {7001, 7031}}])
 
 -- See how fast / slow the model is:
-accum = im_data.heat_maps:clone()
-accum:mul(0)
-time0 = sys.clock()
-for i=1,100 do
+print("profiling model for 5 seconds...")
+time_accum = 0;
+num_iterations = 0;
+while (time_accum < 5) do
+  time0 = sys.clock()
   res = model:forward(im_data.data)
-  accum:add(res)
+  time1 = sys.clock()
+  time_accum = time_accum + (time1 - time0)
+  num_iterations = num_iterations + 1
 end
-time1 = sys.clock()
-print("time for 100 evaluations: " .. (time1 - time0))
-print(accum[{{},{1,30}}])
+print("time per evaluation: " .. (1000 * (time_accum / num_iterations)) .. "ms")
 
 VisualizeImage(im_data, 1, 1, 0)
 
@@ -343,6 +356,6 @@ zoom_factor = 0.5 * 5 * height / heat_map_height
 image.display{image=cpp_out, padding=2, nrow=4, zoom=zoom_factor, scaleeach=false}
 
 -- Print out a few odd numbers
-=model:get(1):get(1):get(4).output[{1, 1, {1,20}, {1,6}}]  -- First threshold out
-=res[{1,{1,10}}]
+print(model:get(1):get(1):get(4).output[{1, 1, {1,20}, {1,6}}])  -- First threshold out
+print(res[{1,{1,10}}])
 
