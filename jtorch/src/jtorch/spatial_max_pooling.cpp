@@ -48,16 +48,9 @@ namespace jtorch {
       out_dim[0] /= poolsize_u_;
       out_dim[1] /= poolsize_v_;
       output = new Tensor<float>(out_dim);
-      // Find the maximum local_work_group size that is divisible by the output
-      // dimension.
-      for (uint32_t i = 0; i < 3; i++) {
-        local_worgroup_size[i] = std::min<int>(jtorch::max_local_workgroup_size,
-          ((Tensor<float>*)output)->dim()[i]);
-        while (local_worgroup_size[i] > 1 &&
-          ((Tensor<float>*)output)->dim()[i] % local_worgroup_size[i] != 0) {
-          local_worgroup_size[i]--;
-        }
-      }
+
+      //cl_context->getOptimalLocalWorkgroupSizes(deviceid, 
+      //  ((Tensor<float>*)output)->dim(), local_worgroup_size);
     }
   }
 
@@ -72,7 +65,7 @@ namespace jtorch {
     cl_context->setArg(4, poolsize_v_);
     cl_context->setArg(5, poolsize_u_);
     cl_context->runKernel3D(jtorch::deviceid, ((Tensor<float>*)output)->dim(),
-      local_worgroup_size, false);
+      false);
   }
 
   TorchStage* SpatialMaxPooling::loadFromFile(std::ifstream& file) {

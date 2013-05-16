@@ -211,17 +211,16 @@ namespace jtorch {
     cl_context->useKernel(kernel.c_str(), "Copy");
     cl_context->setArg(0, const_cast<Tensor<T>*>(this)->data());
     cl_context->setArg(1, ret->data());
-    jtil::math::Int3 local_worgroup_size;
-    for (uint32_t i = 0; i < 3; i++) {
-      local_worgroup_size[i] = std::min<int>(jtorch::max_local_workgroup_size,
-        ret->dim()[i]);
-      while (local_worgroup_size[i] > 1 && 
-        ret->dim()[i] % local_worgroup_size[i] != 0) {
-        local_worgroup_size[i]--;
-      }
-    }
-    cl_context->runKernel3D(jtorch::deviceid, ret->dim(), local_worgroup_size, 
-      false);
+    //jtil::math::Int3 local_worgroup_size;
+    //for (uint32_t i = 0; i < 3; i++) {
+    //  local_worgroup_size[i] = std::min<int>(jtorch::max_local_workgroup_size,
+    //    ret->dim()[i]);
+    //  while (local_worgroup_size[i] > 1 && 
+    //    ret->dim()[i] % local_worgroup_size[i] != 0) {
+    //    local_worgroup_size[i]--;
+    //  }
+    //}
+    cl_context->runKernel3D(jtorch::deviceid, ret->dim(), false);
     return ret;
   }
 

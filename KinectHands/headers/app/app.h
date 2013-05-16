@@ -112,7 +112,6 @@ namespace app {
     uint8_t convnet_im_flipped_[HN_IM_SIZE * HN_IM_SIZE * 3];
     uint8_t convnet_src_im_[HN_SRC_IM_SIZE * HN_SRC_IM_SIZE * 3];
     uint8_t convnet_src_im_flipped_[HN_SRC_IM_SIZE * HN_SRC_IM_SIZE * 3];
-    float coeff_convnet_[kinect_interface::hand_net::HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
 
     void run();
     void init();

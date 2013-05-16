@@ -38,8 +38,8 @@ namespace jtorch {
     int32_t n_inputs_;
     int32_t n_outputs_;
 
-    Tensor<float>* weights_;
-    Tensor<float>* biases_;
+    Tensor<float>* weights_;  // n_outputs (rows) * n_inputs (columns), stored row major
+    Tensor<float>* biases_;  // n_outputs
 
     jtil::math::Int3 local_worgroup_size;
 

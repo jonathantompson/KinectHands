@@ -13,7 +13,7 @@ namespace jtorch {
   std::string jtorch_path;
 
   void InitJTorchInternal(const std::string& path_to_jtorch) {
-    cl_context = new jcl::JCL(jcl::CLDeviceCPU, jcl::CLVendorAny, false);
+    cl_context = new jcl::JCL(jcl::CLDeviceGPU, jcl::CLVendorAny);
     jtorch_path = path_to_jtorch;
     if (jtorch_path.at(jtorch_path.size()-1) != '\\' && 
       jtorch_path.at(jtorch_path.size()-1) != '/') {

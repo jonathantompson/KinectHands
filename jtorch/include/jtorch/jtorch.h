@@ -13,6 +13,7 @@
 #ifndef JTORCH_JTORCH_HEADER
 #define JTORCH_JTORCH_HEADER
 
+#include "jtil/math/math_types.h"
 #include <string>
 
 namespace jcl { class JCL; }
@@ -27,7 +28,6 @@ namespace jtorch {
   // Some constants and globals for the jtorch instance
   extern jcl::JCL* cl_context;
   extern std::string jtorch_path;
-  const int max_local_workgroup_size = 8;
   const uint32_t deviceid = 0;
 
 };  // namespace jtorch

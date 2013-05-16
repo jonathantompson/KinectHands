@@ -18,6 +18,7 @@
 #include "jtil/fastlz/fastlz.h"
 #include "jtil/threading/thread_pool.h"
 #include "jtil/threading/thread.h"
+#include "jtorch/jtorch.h"
 
 #ifndef NULL
 #define NULL 0
@@ -116,7 +117,7 @@ namespace app {
     Renderer::InitRenderer();
     registerNewRenderer();
 
-
+    jtorch::InitJTorch("./jtorch");
     hand_net_ = new HandNet();
     hand_net_->loadFromFile("./data/handmodel.net.convnet");
 
@@ -431,10 +432,11 @@ namespace app {
           break;
         }
 
-        bool render_convnet_points, detect_pose;
+        bool render_convnet_output, detect_pose;
         GET_SETTING("detect_pose", bool, detect_pose);
-        GET_SETTING("render_convnet_points", bool, render_convnet_points);
-        if (render_convnet_points && detect_pose) {
+        GET_SETTING("render_convnet_output", bool, render_convnet_output);
+        if (detect_pose) {
+          /*
           if (kinect_output == OUTPUT_CONVNET_DEPTH) {
             hand_net_->image_generator()->annotateFeatsToHandImage(
               convnet_im_flipped_, hand_net_->coeff_convnet());
@@ -442,6 +444,7 @@ namespace app {
             hand_net_->image_generator()->annotateFeatsToKinectImage(
               im_flipped_, hand_net_->coeff_convnet());
           }
+          */
         }
 
         switch (kinect_output) {
@@ -573,8 +576,8 @@ namespace app {
       ui::UIEnumVal(OUTPUT_FILTERED_LABELS, "Filtered DF"));
     ui->addSelectboxItem("label_type_enum", 
       ui::UIEnumVal(OUTPUT_FLOODFILL_LABELS, "Floodfill"));
-    ui->addCheckbox("render_convnet_points", 
-      "Render Convnet salient points");
+    ui->addCheckbox("render_convnet_output", 
+      "Render Convnet Output");
     ui->addCheckbox("show_hand_model", "Show hand model");
     ui->addSelectbox("cur_kinect", "Current Kinect");
     std::stringstream ss;

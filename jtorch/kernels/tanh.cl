@@ -12,3 +12,10 @@ __kernel void TanH(const __global float* input, __global float* output) {
   output[index] = tanh(input[index]);
 }
 
+__kernel void TanH1D(const __global float* input, __global float* output) {
+
+  const int x_out = get_global_id(0);
+
+  output[x_out] = tanh(input[x_out]);
+}
+

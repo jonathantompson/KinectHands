@@ -76,16 +76,8 @@ namespace jtorch {
       mean_pass1_ = new Tensor<float>(in.dim());
       mean_pass2_ = new Tensor<float>(in.dim());
 
-      // Find the maximum local_work_group size that is divisible by the output
-      // dimension.
-      for (uint32_t i = 0; i < 3; i++) {
-        local_worgroup_size_3d[i] = std::min<int>(jtorch::max_local_workgroup_size,
-          ((Tensor<float>*)output)->dim()[i]);
-        while (local_worgroup_size_3d[i] > 1 &&
-          ((Tensor<float>*)output)->dim()[i] % local_worgroup_size_3d[i] != 0) {
-          local_worgroup_size_3d[i]--;
-        }
-      }
+      //cl_context->getOptimalLocalWorkgroupSizes(deviceid, 
+      //  ((Tensor<float>*)output)->dim(), local_worgroup_size_3d);
     }
     if (mean_coef_ == NULL) {
       Int3 mean_coeff_dim(((Tensor<float>*)output)->dim());
@@ -132,16 +124,9 @@ namespace jtorch {
       Int3 mean_coeff_dim(((Tensor<float>*)output)->dim());
       mean_coeff_dim[2] = 1;  // This tensor is only 2D
       mean_ = new Tensor<float>(mean_coeff_dim);
-      // Find the maximum local_work_group size that is divisible by the output
-      // dimension.
-      for (uint32_t i = 0; i < 3; i++) {
-        local_worgroup_size_2d[i] = std::min<int>(jtorch::max_local_workgroup_size,
-          mean_->dim()[i]);
-        while (local_worgroup_size_2d[i] > 1 &&
-          mean_->dim()[i] % local_worgroup_size_2d[i] != 0) {
-          local_worgroup_size_2d[i]--;
-        }
-      }
+
+      //cl_context->getOptimalLocalWorkgroupSizes(deviceid, mean_->dim(), 
+      //  local_worgroup_size_2d);
     }
   }
 
@@ -158,8 +143,7 @@ namespace jtorch {
     cl_context->setArg(1, mean_pass1_->data());
     cl_context->setArg(2, kernel1d_->data());
     cl_context->setArg(3, filt_rad);
-    cl_context->runKernel3D(jtorch::deviceid, mean_pass1_->dim(), 
-      local_worgroup_size_3d, false);
+    cl_context->runKernel3D(jtorch::deviceid, mean_pass1_->dim(), false);
 
     // Perform vertical filter pass
     cl_context->useKernel(kernel.c_str(), "SpatialSubtractiveNormalizationVert");
@@ -167,8 +151,7 @@ namespace jtorch {
     cl_context->setArg(1, mean_pass2_->data());
     cl_context->setArg(2, kernel1d_->data());
     cl_context->setArg(3, filt_rad);
-    cl_context->runKernel3D(jtorch::deviceid, mean_pass2_->dim(), 
-      local_worgroup_size_3d, false);
+    cl_context->runKernel3D(jtorch::deviceid, mean_pass2_->dim(), false);
 
     // Perform accumulation and division pass
     cl_context->useKernel(kernel.c_str(), "SpatialSubtractiveNormalizationAccumDiv");
@@ -176,16 +159,14 @@ namespace jtorch {
     cl_context->setArg(1, mean_->data());
     cl_context->setArg(2, mean_coef_->data());
     cl_context->setArg(3, out->dim()[2]);
-    cl_context->runKernel3D(jtorch::deviceid, mean_->dim(), 
-      local_worgroup_size_2d, false);
+    cl_context->runKernel3D(jtorch::deviceid, mean_->dim(), false);
 
     // Perform normalization pass
     cl_context->useKernel(kernel.c_str(), "SpatialSubtractiveNormalization");
     cl_context->setArg(0, in.data());
     cl_context->setArg(1, out->data());
     cl_context->setArg(2, mean_->data());
-    cl_context->runKernel3D(jtorch::deviceid, out->dim(), 
-      local_worgroup_size_3d, false);
+    cl_context->runKernel3D(jtorch::deviceid, out->dim(), false);
   }
 
   TorchStage* SpatialSubtractiveNormalization::loadFromFile(std::ifstream& file) {

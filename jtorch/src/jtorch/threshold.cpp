@@ -41,14 +41,8 @@ namespace jtorch {
     }
     if (output == NULL) {
       output = new Tensor<float>(in.dim());
-      for (uint32_t i = 0; i < 3; i++) {
-        local_worgroup_size[i] = std::min<int>(jtorch::max_local_workgroup_size,
-          ((Tensor<float>*)output)->dim()[i]);
-        while (local_worgroup_size[i] > 1 &&
-          ((Tensor<float>*)output)->dim()[i] % local_worgroup_size[i] != 0) {
-          local_worgroup_size[i]--;
-        }
-      }
+      //cl_context->getOptimalLocalWorkgroupSizes(deviceid, 
+      //  ((Tensor<float>*)output)->dim(), local_worgroup_size);
     }
   }
 
@@ -61,7 +55,7 @@ namespace jtorch {
     cl_context->setArg(2, threshold);
     cl_context->setArg(3, val);
     cl_context->runKernel3D(jtorch::deviceid, ((Tensor<float>*)output)->dim(),
-      local_worgroup_size, false);
+      false);
   }
 
   TorchStage* Threshold::loadFromFile(std::ifstream& file) {

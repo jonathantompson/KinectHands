@@ -153,72 +153,75 @@ namespace hand_net {
         }
       }
     }
-    if (cnt == 0) {
-      throw std::wruntime_error("HandImageGenerator::calcCroppedHand() - "
-        "ERROR: There are no hand pixels!");
-    }
-    Float3::scale(uvd_com_, 1.0f / (float)cnt);
-    uvd_com_[0] = floor(uvd_com_[0]);
-    uvd_com_[1] = floor(uvd_com_[1]);
+    if (cnt != 0) {
+      Float3::scale(uvd_com_, 1.0f / (float)cnt);
+      uvd_com_[0] = floor(uvd_com_[0]);
+      uvd_com_[1] = floor(uvd_com_[1]);
 
-    int32_t u_start = (int32_t)uvd_com_[0] - (HN_SRC_IM_SIZE / 2);
-    int32_t v_start = (int32_t)uvd_com_[1] - (HN_SRC_IM_SIZE / 2);
+      int32_t u_start = (int32_t)uvd_com_[0] - (HN_SRC_IM_SIZE / 2);
+      int32_t v_start = (int32_t)uvd_com_[1] - (HN_SRC_IM_SIZE / 2);
 
-    // Crop the image and scale between 0.0 and 1.0
-    float dmin = uvd_com_[2] - (HN_HAND_SIZE * 0.5f);
-    float dmax = uvd_com_[2] + (HN_HAND_SIZE * 0.5f);
-    const float background = 1.0f;
-    const bool use_synthetic = synthetic_depth != NULL;
-    for (int32_t v = v_start; v < v_start + HN_SRC_IM_SIZE; v++) {
-      for (int32_t u = u_start; u < u_start + HN_SRC_IM_SIZE; u++) {
-        int32_t dst_index = (v-v_start)* HN_SRC_IM_SIZE + (u-u_start);
-        if (v >= 0 && v < src_height && u >= 0 && u < src_width) {
-          int32_t src_index = v * src_width + u;
-          if (!use_synthetic) {
-            if (label_in[src_index] == 1) {
-              cropped_hand_image_[dst_index] = 
-                ((float)depth_in[src_index] - dmin) / HN_HAND_SIZE;
+      // Crop the image and scale between 0.0 and 1.0
+      float dmin = uvd_com_[2] - (HN_HAND_SIZE * 0.5f);
+      float dmax = uvd_com_[2] + (HN_HAND_SIZE * 0.5f);
+      const float background = 1.0f;
+      const bool use_synthetic = synthetic_depth != NULL;
+      for (int32_t v = v_start; v < v_start + HN_SRC_IM_SIZE; v++) {
+        for (int32_t u = u_start; u < u_start + HN_SRC_IM_SIZE; u++) {
+          int32_t dst_index = (v-v_start)* HN_SRC_IM_SIZE + (u-u_start);
+          if (v >= 0 && v < src_height && u >= 0 && u < src_width) {
+            int32_t src_index = v * src_width + u;
+            if (!use_synthetic) {
+              if (label_in[src_index] == 1) {
+                cropped_hand_image_[dst_index] = 
+                  ((float)depth_in[src_index] - dmin) / HN_HAND_SIZE;
+              } else {
+                cropped_hand_image_[dst_index] = background;
+              }
             } else {
-              cropped_hand_image_[dst_index] = background;
+              if (synthetic_depth[src_index] > EPSILON) {
+                cropped_hand_image_[dst_index] = 
+                  (synthetic_depth[src_index] - dmin) / HN_HAND_SIZE;
+              } else {
+                cropped_hand_image_[dst_index] = background;
+              }
             }
           } else {
-            if (synthetic_depth[src_index] > EPSILON) {
-              cropped_hand_image_[dst_index] = 
-                (synthetic_depth[src_index] - dmin) / HN_HAND_SIZE;
-            } else {
-              cropped_hand_image_[dst_index] = background;
-            }
+            // Going off the screen
+            cropped_hand_image_[dst_index] = background;
           }
-        } else {
-          // Going off the screen
-          cropped_hand_image_[dst_index] = background;
         }
       }
+
+      // Now in a texture of 384x384 we have a hand image.  This needs to be
+      // scaled based on the average depth value
+      // The further away the less it is downsampled
+      cur_downsample_scale_ = ((float)HN_NOM_DIST * 
+        ((float)HN_SRC_IM_SIZE / (float)HN_IM_SIZE)) / uvd_com_[2];
+      cur_downsample_scale_ = std::max<float>(cur_downsample_scale_, 1.0f);
+      // Find the rectangle in the highres image that will get scaled to the
+      // final downsampled image
+      int32_t srcw = std::min<int32_t>(HN_SRC_IM_SIZE,
+        (int32_t)floor((float)HN_IM_SIZE * cur_downsample_scale_));
+      int32_t srch = srcw;
+      int32_t srcx = (HN_SRC_IM_SIZE - srcw) / 2;
+      int32_t srcy = (HN_SRC_IM_SIZE - srch) / 2;
+      // Note FracDownsampleImageSAT destroys the origional source image
+      FracDownsampleImageSAT<float>(hand_image_cpu_, 0, 0, HN_IM_SIZE, HN_IM_SIZE,
+        HN_IM_SIZE, cropped_hand_image_, srcx, srcy, srcw, srch, HN_SRC_IM_SIZE, 
+        HN_SRC_IM_SIZE, im_temp_double_);
+
+      // Save the lower left corner and the width / height
+      hand_pos_wh_[0] = u_start + srcx;
+      hand_pos_wh_[1] = v_start + srcy;
+      hand_pos_wh_[2] = srcw;
+      hand_pos_wh_[3] = srch;
+    } else {
+      hand_pos_wh_.set(0, 0, HN_SRC_IM_SIZE, HN_SRC_IM_SIZE);
+      for (uint32_t i = 0; i < HN_IM_SIZE * HN_IM_SIZE; i++) {
+        hand_image_cpu_[i] = 0;
+      }
     }
-
-    // Now in a texture of 384x384 we have a hand image.  This needs to be
-    // scaled based on the average depth value
-    // The further away the less it is downsampled
-    cur_downsample_scale_ = ((float)HN_NOM_DIST * 
-      ((float)HN_SRC_IM_SIZE / (float)HN_IM_SIZE)) / uvd_com_[2];
-    cur_downsample_scale_ = std::max<float>(cur_downsample_scale_, 1.0f);
-    // Find the rectangle in the highres image that will get scaled to the
-    // final downsampled image
-    int32_t srcw = std::min<int32_t>(HN_SRC_IM_SIZE,
-      (int32_t)floor((float)HN_IM_SIZE * cur_downsample_scale_));
-    int32_t srch = srcw;
-    int32_t srcx = (HN_SRC_IM_SIZE - srcw) / 2;
-    int32_t srcy = (HN_SRC_IM_SIZE - srch) / 2;
-    // Note FracDownsampleImageSAT destroys the origional source image
-    FracDownsampleImageSAT<float>(hand_image_cpu_, 0, 0, HN_IM_SIZE, HN_IM_SIZE,
-      HN_IM_SIZE, cropped_hand_image_, srcx, srcy, srcw, srch, HN_SRC_IM_SIZE, 
-      HN_SRC_IM_SIZE, im_temp_double_);
-
-    // Save the lower left corner and the width / height
-    hand_pos_wh_[0] = u_start + srcx;
-    hand_pos_wh_[1] = v_start + srcy;
-    hand_pos_wh_[2] = srcw;
-    hand_pos_wh_[3] = srch;
 
     // Now downsample as many times as there are banks
     int32_t w = HN_IM_SIZE;

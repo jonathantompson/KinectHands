@@ -22,14 +22,13 @@ namespace jtorch {
     n_outputs_ = n_outputs;
 
     output = new Tensor<float>(Int3(n_outputs_, 1, 1));
+    //cl_context->getOptimalLocalWorkgroupSizes1D(deviceid, 
+    //  ((Tensor<float>*)output)->dim()[0], local_worgroup_size[0]);
 
-    for (uint32_t i = 0; i < 3; i++) {
-      local_worgroup_size[i] = std::min<int>(jtorch::max_local_workgroup_size,
-        ((Tensor<float>*)output)->dim()[i]);
-      while (((Tensor<float>*)output)->dim()[i] % local_worgroup_size[i] != 0) {
-        local_worgroup_size[i]--;
-      }
-    }
+    //local_worgroup_size[0] = 8;
+    //while (((Tensor<float>*)output)->dim()[0] % local_worgroup_size[0] != 0) {
+    //  local_worgroup_size[0]--;
+    //}
 
     weights_ = new Tensor<float>(Int3(n_inputs_, n_outputs_, 1));
     biases_ = new Tensor<float>(n_outputs_);
@@ -65,14 +64,21 @@ namespace jtorch {
     Tensor<float>& in = (Tensor<float>&)input;
 
     std::string kernel = jtorch::jtorch_path + "kernels/linear.cl";
-    cl_context->useKernel(kernel.c_str(), "Linear");
-    cl_context->setArg(0, ((Tensor<float>&)input).data());
-    cl_context->setArg(1, ((Tensor<float>*)output)->data());
-    cl_context->setArg(2, weights_->data());
-    cl_context->setArg(3, biases_->data());
+    cl_context->useKernel(kernel.c_str(), "MatVecMultSimple");
+    cl_context->setArg(0, weights_->data());
+    cl_context->setArg(1, ((Tensor<float>&)input).data());
+    cl_context->setArg(2, ((Tensor<float>*)output)->data());
+    cl_context->setArg(3, n_outputs_);
     cl_context->setArg(4, n_inputs_);
-    cl_context->runKernel3D(jtorch::deviceid, ((Tensor<float>*)output)->dim(),
-      local_worgroup_size, false);
+    cl_context->runKernel1D(jtorch::deviceid, ((Tensor<float>*)output)->dim()[0],
+      false);
+
+    // Now add in the bias
+    cl_context->useKernel(kernel.c_str(), "Accum");
+    cl_context->setArg(0, ((Tensor<float>*)output)->data());
+    cl_context->setArg(1, biases_->data());
+    cl_context->runKernel1D(jtorch::deviceid, ((Tensor<float>*)output)->dim()[0], 
+      false);
   }
 
   TorchStage* Linear::loadFromFile(std::ifstream& file) {

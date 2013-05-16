@@ -77,19 +77,19 @@ namespace jtorch {
     for (uint32_t i = 0; i < in.tableSize(); i++) {
       Int3 local_worgroup_size;
       Tensor<float>* cur_input = (Tensor<float>*)in(i);
-      for (uint32_t j = 0; j < 3; j++) {
-        local_worgroup_size[j] = std::min<int>(jtorch::max_local_workgroup_size,
-          cur_input->dim()[j]);
-        while (local_worgroup_size[j] > 1 &&
-          cur_input->dim()[j] % local_worgroup_size[j] != 0) {
-          local_worgroup_size[j]--;
-        }
-      }
+      //for (uint32_t j = 0; j < 3; j++) {
+      //  local_worgroup_size[j] = std::min<int>(jtorch::max_local_workgroup_size,
+      //    cur_input->dim()[j]);
+      //  while (local_worgroup_size[j] > 1 &&
+      //    cur_input->dim()[j] % local_worgroup_size[j] != 0) {
+      //    local_worgroup_size[j]--;
+      //  }
+      //}
       cl_context->setArg(0, cur_input->data());
       cl_context->setArg(1, ((Tensor<float>*)output)->data());
       cl_context->setArg(2, out_offset);
       cl_context->runKernel3D(jtorch::deviceid, cur_input->dim(),
-        local_worgroup_size, false);
+        false);
 
       out_offset += cur_input->dataSize();
     }

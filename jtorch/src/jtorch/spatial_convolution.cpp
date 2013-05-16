@@ -73,16 +73,8 @@ namespace jtorch {
       out_dim[1] = out_dim[1] - filt_height_ + 1;
       out_dim[2] = feats_out_;
       output = new Tensor<float>(out_dim);
-      // Find the maximum local_work_group size that is divisible by the output
-      // dimension.
-      for (uint32_t i = 0; i < 3; i++) {
-        local_worgroup_size[i] = std::min<int>(jtorch::max_local_workgroup_size,
-          ((Tensor<float>*)output)->dim()[i]);
-        while (local_worgroup_size[i] > 1 &&
-          ((Tensor<float>*)output)->dim()[i] % local_worgroup_size[i] != 0) {
-          local_worgroup_size[i]--;
-        }
-      }
+      //cl_context->getOptimalLocalWorkgroupSizes(deviceid, 
+      //  ((Tensor<float>*)output)->dim(), local_worgroup_size);
     }
   }
 
@@ -101,7 +93,7 @@ namespace jtorch {
     cl_context->setArg(7, (int)filt_height_);
     cl_context->setArg(8, (int)filt_width_);
     cl_context->runKernel3D(jtorch::deviceid, ((Tensor<float>*)output)->dim(),
-      local_worgroup_size, false);
+      false);
   }
 
   TorchStage* SpatialConvolution::loadFromFile(std::ifstream& file) {

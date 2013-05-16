@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
 #if defined(_DEBUG) || defined(DEBUG)
   jtil::debug::EnableMemoryLeakChecks();
   // jtil::debug::EnableAggressiveMemoryLeakChecks();
-  // jtil::debug::SetBreakPointOnAlocation(3940);
+  // jtil::debug::SetBreakPointOnAlocation(1025);
 #endif
 
   try {
@@ -327,39 +327,22 @@ int main(int argc, char *argv[]) {
       convnet_output->dataSize(), "convnet_output.bin");
     delete[] convnet_output_cpu;
 
-    Tensor<float>* accum_buffer = new Tensor<float>(convnet_output->dim());
-    Int3 local_worgroup_size;
-    for (uint32_t i = 0; i < 3; i++) {
-      local_worgroup_size[i] = std::min<int>(jtorch::max_local_workgroup_size,
-       convnet_output->dim()[i]);
-      while (local_worgroup_size[i] > 1 &&
-        convnet_output->dim()[i] % local_worgroup_size[i] != 0) {
-          local_worgroup_size[i]--;
-      }
-    }
-
     // Now profile
-    jtorch::cl_context->useKernel("./accum.cl", "Accum");  // To build the kernel before execution
     jtorch::cl_context->sync(jtorch::deviceid);
-    std::cout << "Profiling..." << std::endl;
+    std::cout << "Profiling for 5 seconds..." << std::endl;
     Clk clk;
-    double t0 = clk.getTime();
-    for (uint32_t i = 0; i < 100; i++) {
+    uint32_t num_evals = 0;
+    float time_accum = 0.0f;
+    while (time_accum < 5) {
+      double t0 = clk.getTime();
       convnet_model->forwardProp(*convnet_input);
-
-      // Accumulate the output (so the optimizer doesn't blow the loop away)
-      jtorch::cl_context->useKernel("./accum.cl", "Accum");
-      jtorch::cl_context->setArg(0, convnet_output->data());
-      jtorch::cl_context->setArg(1, accum_buffer->data());
-      jtorch::cl_context->runKernel3D(jtorch::deviceid, accum_buffer->dim(),
-        local_worgroup_size, false);
-
+      jtorch::cl_context->sync(jtorch::deviceid);
+      double t1 = clk.getTime();
+      time_accum += (t1 - t0);
+      num_evals++;
     }
-    jtorch::cl_context->sync(jtorch::deviceid);
-    double t1 = clk.getTime();
-    std::cout << "Time for 100 evaluations = " << (t1 - t0) << std::endl;
-    std::cout << "Accum Output (just the first 30 numbers) = " << std::endl;
-    accum_buffer->print(Int2(0, 29), Int2(0, 0), Int2(0, 0));
+    std::cout << "Time per evaluation ";
+    std::cout << (time_accum / (double)num_evals) * 1e3 << "ms" << std::endl;
 
     delete[] convnet_input_cpu;
     delete convnet_input;

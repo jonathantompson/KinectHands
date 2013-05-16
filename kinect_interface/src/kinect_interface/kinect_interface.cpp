@@ -511,7 +511,7 @@ namespace kinect_interface {
     std::cout << "IR_STREAM ";
 #endif
     openni::VideoMode mode = findMatchingMode(ir_sensor_info, depth_dim_,
-      depth_fps_setting_, PixelFormat::PIXEL_FORMAT_RGB888);
+      depth_fps_setting_, PixelFormat::PIXEL_FORMAT_GRAY16);
     std::cout << "Setting IR_STREAM mode: ";
     printMode(mode);
     checkOpenNIRC(streams_[IR_STREAM]->setVideoMode(mode), 
@@ -520,7 +520,7 @@ namespace kinect_interface {
 
     // Now retrieve the current mode to make sure everything went OK.
     openni::VideoMode ir_mode = streams_[IR_STREAM]->getVideoMode();
-    if (ir_mode.getPixelFormat() != PixelFormat::PIXEL_FORMAT_RGB888) {
+    if (ir_mode.getPixelFormat() != PixelFormat::PIXEL_FORMAT_GRAY16) {
       throw std::wruntime_error("KinectInterface::init() - ERROR: "
         "IR_STREAM stream is not a 24 bit rgb format!");
     }

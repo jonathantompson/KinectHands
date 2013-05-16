@@ -1,22 +1,30 @@
-__kernel void Linear(
-  const __global  float* input,  // 0
-  __global  float* output,       // 1 
-  const __global float* weights,     // 2
-  const __global float* biases,      // 3
-  const int input_size) {        // 4
+// This could be much better: http://www.bealto.com/gpu-gemv_v2.html
+__kernel void MatVecMultSimple(
+  // Y = A * X (matrix-vector mulitply)
+  __global const float* A,  // 0  --> Size M (rows) x N (cols) stored column major
+  __global const float* X,  // 1  --> Size N
+  __global  float* Y,       // 2  --> Size M
+  const int M,              // 3
+  const int N) {            // 4
+
+  const int i = get_global_id(0);  // row index
+
+  float sum = 0;
+  // Perform the linear accumulation
+  for (int k = 0; k < N; k++) {
+    sum += A[i + M * k] * X[k];
+  }
+
+  Y[i] = sum;
+}
+
+
+__kernel void Accum (
+  // output = bias
+  __global  float* output,          // 0
+  const __global float* biases) {   // 1
 
   const int x_out = get_global_id(0);
 
-  // Initilize the output to the bias
-  float sum = biases[x_out];
-
-  // Get a pointer to the current weight vector
-  const __global float* pweights = &weights[x_out * input_size];
-
-  // Perform the linear accumulation
-  for (int i = 0; i < input_size; i++) {
-    sum += input[i] * pweights[i];
-  }
-
-  output[x_out] = sum;
+  output[x_out] += biases[x_out];
 }

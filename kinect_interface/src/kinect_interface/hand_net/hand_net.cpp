@@ -55,6 +55,10 @@ namespace hand_net {
   }
 
   void HandNet::loadFromFile(const std::string& filename) {
+    if (jtorch::cl_context == NULL) {
+      throw std::wruntime_error("HandNet::loadFromFile() - "
+        "ERROR: jtorch has not been initialized!"); 
+    }
     releaseData();
 
     std::cout << "loading HandNet from " << filename << std::endl;
@@ -122,6 +126,7 @@ namespace hand_net {
 
     // Now propogate through the network
     conv_network_->forwardProp(*im);
+    //jtorch::cl_context->sync(jtorch::deviceid);  // Not necessary
     Tensor<float>* output_tensor = (Tensor<float>*)(conv_network_->output);
     output_tensor->getData(heat_map_convnet_);
   }
