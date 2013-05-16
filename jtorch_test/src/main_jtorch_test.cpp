@@ -316,40 +316,50 @@ int main(int argc, char *argv[]) {
     
     std::cout << "Performing forward prop...";
     convnet_model->forwardProp(*convnet_input);
+    Tensor<float>* convnet_output = (Tensor<float>*)convnet_model->output;
     std::cout << "Model Output (just the first 30 numbers) = " << std::endl;
-    ((Tensor<float>*)convnet_model->output)->print(Int2(0, 29), Int2(0, 0), Int2(0, 0));
-
-    //// TEMP CODE:
-    //if (((Sequential*)convnet_model)->get(0)->type() != PARALLEL_STAGE) {
-    //  throw std::wruntime_error("main() - ERROR: Expecting Parallel!");
-    //}
-    //Parallel* para = (Parallel*)((Sequential*)convnet_model)->get(0);
-    //if (para->get(0)->type() != SEQUENTIAL_STAGE) {
-    //  throw std::wruntime_error("main() - ERROR: Expecting Sequential!");
-    //}
-    //Sequential* bank0 = (Sequential*)para->get(0);
-    //if (bank0->get(3)->type() != THRESHOLD_STAGE) {
-    //  throw std::wruntime_error("main() - ERROR: Expecting Threshold!");
-    //}
-    //((Tensor<float>*)bank0->get(3)->output)->print(Int2(0, 5), Int2(0, 19), Int2(0, 0));
-    //// END TEMP CODE
+    convnet_output->print(Int2(0, 29), Int2(0, 0), Int2(0, 0));
 
     // Save the result to file
-    float* convnet_output_cpu = new float[convnet_model->output->dataSize()];
-    ((Tensor<float>*)convnet_model->output)->getData(convnet_output_cpu);
+    float* convnet_output_cpu = new float[convnet_output->dataSize()];
+    convnet_output->getData(convnet_output_cpu);
     jtil::file_io::SaveArrayToFile<float>(convnet_output_cpu, 
-      convnet_model->output->dataSize(), "convnet_output.bin");
+      convnet_output->dataSize(), "convnet_output.bin");
     delete[] convnet_output_cpu;
 
+    Tensor<float>* accum_buffer = new Tensor<float>(convnet_output->dim());
+    Int3 local_worgroup_size;
+    for (uint32_t i = 0; i < 3; i++) {
+      local_worgroup_size[i] = std::min<int>(jtorch::max_local_workgroup_size,
+       convnet_output->dim()[i]);
+      while (local_worgroup_size[i] > 1 &&
+        convnet_output->dim()[i] % local_worgroup_size[i] != 0) {
+          local_worgroup_size[i]--;
+      }
+    }
+
     // Now profile
+    jtorch::cl_context->useKernel("./accum.cl", "Accum");  // To build the kernel before execution
+    jtorch::cl_context->sync(jtorch::deviceid);
     std::cout << "Profiling..." << std::endl;
     Clk clk;
     double t0 = clk.getTime();
     for (uint32_t i = 0; i < 100; i++) {
       convnet_model->forwardProp(*convnet_input);
+
+      // Accumulate the output (so the optimizer doesn't blow the loop away)
+      jtorch::cl_context->useKernel("./accum.cl", "Accum");
+      jtorch::cl_context->setArg(0, convnet_output->data());
+      jtorch::cl_context->setArg(1, accum_buffer->data());
+      jtorch::cl_context->runKernel3D(jtorch::deviceid, accum_buffer->dim(),
+        local_worgroup_size, false);
+
     }
+    jtorch::cl_context->sync(jtorch::deviceid);
     double t1 = clk.getTime();
     std::cout << "Time for 100 evaluations = " << (t1 - t0) << std::endl;
+    std::cout << "Accum Output (just the first 30 numbers) = " << std::endl;
+    accum_buffer->print(Int2(0, 29), Int2(0, 0), Int2(0, 0));
 
     delete[] convnet_input_cpu;
     delete convnet_input;
