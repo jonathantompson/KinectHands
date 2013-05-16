@@ -328,7 +328,7 @@ for i=1,100 do
 end
 time1 = sys.clock()
 print("time for 100 evaluations: " .. (time1 - time0))
-print(accum[{{},{1,30}}]
+print(accum[{{},{1,30}}])
 
 VisualizeImage(im_data, 1, 1, 0)
 
