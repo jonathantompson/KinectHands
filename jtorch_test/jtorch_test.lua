@@ -235,6 +235,7 @@ print('Linear result')
 print(res)
 
 -- Test model
+--[[
 test_model = nn.Sequential()
 n_states_in = num_feats_in
 n_states_out = num_feats_out
@@ -250,14 +251,19 @@ height_out = (height - filt_height + 1) / 2
 lin_size_in = n_states_out * height_out * width_out
 test_model:add(nn.Reshape(lin_size_in))
 test_model:add(nn.Linear(lin_size_in, 6))
+--]]
+test_model = torch.load("testmodel.torch.bin")
 res = test_model:forward(data_in)
 print('Test model result')
 print(res)
 
 -- Save the Test model
+--[[
 jtorch_root = "../jtorch/"
 dofile("../jtorch/jtorch.lua")
 saveModel(test_model, "testmodel.bin")
+torch.save("testmodel.torch.bin", test_model)
+--]]
 
 -- Check the real model
 require 'nn'
