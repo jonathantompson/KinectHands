@@ -321,6 +321,7 @@ if (regenerate_heat_maps == 1) then
   end
 else
   print '==> Loading test set heat maps from file'
+--[[
   for i=1,testData:size() do
     -- disp progress
     if (math.mod(i, 100) == 1 or i == testData:size()) then
@@ -333,7 +334,7 @@ else
     heatmap_data = heatmap_file:readFloat(num_features * heat_map_width * heat_map_height)
     heatmap_file:close()
   
-    testData.heat_maps[{i,f,{},{}}]:copy(torch.FloatTensor(heatmap_data, 1,
+    testData.heat_maps[{i,{},{},{}}]:copy(torch.FloatTensor(heatmap_data, 1,
       torch.LongStorage{num_features, heat_map_width, heat_map_height}):float())
   end
   print '==> Loading training set heat maps from file'
@@ -349,9 +350,12 @@ else
     heatmap_data = heatmap_file:readFloat(num_features * heat_map_width * heat_map_height)
     heatmap_file:close()
   
-    trainData.heat_maps[{i,f,{},{}}]:copy(torch.FloatTensor(heatmap_data, 1,
+    trainData.heat_maps[{i,{},{},{}}]:copy(torch.FloatTensor(heatmap_data, 1,
       torch.LongStorage{num_features, heat_map_width, heat_map_height}):float())
   end
+--]]
+  print("ERROR: Heatmaps from disk might be broken!")
+  error("ERROR: Heatmaps from disk might be broken!")
 end  -- if (regenerate_heat_maps == 1) then
 
 
