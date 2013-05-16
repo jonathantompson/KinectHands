@@ -30,8 +30,12 @@ namespace jtorch {
     TorchData* operator()(const uint32_t i);
     void add(TorchData* new_data);  // Transfers memory ownership
 
+    // clearNoDelete - Clear the table but don't delete the memory.  This is a
+    // hacky function for use in the Parallel stage.
+    void clearNoDelete();  
+
     virtual TorchDataType type() const { return TABLE_DATA; }
-    virtual void print() const;  // print to std::cout
+    virtual void print();  // print to std::cout
     virtual uint32_t dataSize() const;
     
     uint32_t tableSize() const;

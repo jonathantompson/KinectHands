@@ -23,6 +23,9 @@ namespace jtorch {
 
   Parallel::~Parallel() {
     SAFE_DELETE(network_);
+    Table* out = (Table*)output;
+    out->clearNoDelete();  // Remove the pointers without freeing memory
+                           // Since they don't belong to this table.
     SAFE_DELETE(output);
   }
 
@@ -43,39 +46,18 @@ namespace jtorch {
   }
 
   void Parallel::initOutput() {
-    if (output != NULL) {
-      // Check output sizes
-      Table* out = (Table*)output;
-      bool data_ok = out->tableSize() == network_->size();
-      for (uint32_t i = 0; i < out->tableSize() && data_ok; i++) {
-        if ((*network_)[i]->output->type() != TENSOR_DATA) {
-          throw std::wruntime_error("Parallel::forwardProp() - ERROR: "
-            "Float Tensor output required!");
-        }
-        if (!Int4::equal(((FloatTensor*)((*network_)[i])->output)->dim(), 
-          ((FloatTensor*)(*out)(i))->dim())) {
-          data_ok = false;
-        }
-      }
-      if (!data_ok) {
-        SAFE_DELETE(output);
-      }
-    }
     if (output == NULL) {
       output = new Table();
-      Table* out = (Table*)output;
-      for (uint32_t i = 0; i < network_->size(); i++) {
-        if ((*network_)[i]->output->type() != TENSOR_DATA) {
-          throw std::wruntime_error("Parallel::forwardProp() - ERROR: "
-            "Float Tensor output required for now!");
-        }
-        out->add(new FloatTensor(((FloatTensor*)(*network_)[i]->output)->dim()));
-      }
+    }
+
+    Table* out = (Table*)output;
+    out->clearNoDelete();
+    for (uint32_t i = 0; i < network_->size(); i++) {
+      out->add((Tensor<float>*)(*network_)[i]->output);
     }
   }
 
-  void Parallel::forwardProp(TorchData& input, 
-    ThreadPool& tp) {
+  void Parallel::forwardProp(TorchData& input) {
     if (input.type() != TorchDataType::TABLE_DATA) {
       throw std::wruntime_error("Parallel::forwardProp() - "
         "Table expected!");
@@ -86,17 +68,10 @@ namespace jtorch {
         "Table size does not match number of parallel stages!");
     }
     for (uint32_t i = 0; i < network_->size(); i++) {
-      (*network_)[i]->forwardProp(*in(i), tp);
+      (*network_)[i]->forwardProp(*in(i));
     }
-    initOutput();
-    // Now copy the data to the output structure
-    Table* out = (Table*)output;
-    for (uint32_t i = 0; i < network_->size(); i++) {
-      FloatTensor* dst_data = (FloatTensor*)((*out)(i));
-      FloatTensor* src_data = (FloatTensor*)(*network_)[i]->output;
-      memcpy(dst_data->data(), src_data->data(), sizeof(dst_data->data()[0]) *
-        dst_data->dataSize());
-    }
+    initOutput();  // Init output just copies the pointers from the output
+                   // of all the parallel stages and fills up a table with them
   }
 
   uint32_t Parallel::numBanks() const {

@@ -25,7 +25,7 @@ namespace jtorch {
     return (*data_)[i];
   }
 
-  void Table::print() const {
+  void Table::print() {
     for (uint32_t i = 0; i < data_->size(); i++) {
       std::cout << "Table[" << i << "] = " << std::endl;
       (*data_)[i]->print();
@@ -34,6 +34,13 @@ namespace jtorch {
 
   void Table::add(TorchData* new_data) {
     data_->pushBack(new_data);
+  }
+
+  void Table::clearNoDelete() {
+    for (uint32_t i = 0; i < data_->size(); i++) {
+      (*data_)[i] = NULL;
+    }
+    data_->clear();
   }
 
   uint32_t Table::dataSize() const {

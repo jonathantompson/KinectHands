@@ -162,6 +162,12 @@
     <None Include="kernels\linear.cl">
       <Filter>kernels</Filter>
     </None>
+    <None Include="kernels\join_table.cl">
+      <Filter>kernels</Filter>
+    </None>
+    <None Include="kernels\tensor.cl">
+      <Filter>kernels</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="README.txt" />

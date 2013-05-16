@@ -33,13 +33,15 @@
 
 #define NUM_WORKER_THREADS 1
 // #define TEST_MODULES
-#define TEST_MODEL
+// #define TEST_MODEL
+#define TEST_BIG_MODEL  // The actual convnet
 
 using namespace std;
 using namespace jtorch;
 using namespace jtil::threading;
 using namespace jtil::math;
 using namespace jtil::data_str;
+using namespace jtil::file_io;
 
 const uint32_t num_feats_in = 5;
 const uint32_t num_feats_out = 10;
@@ -84,11 +86,12 @@ int main(int argc, char *argv[]) {
       }
     }
     data_in.setData(din);
-    std::cout << "Data In:" << std::endl;
-    data_in.print();
 
 #ifdef TEST_MODULES
     Sequential stages;
+
+    std::cout << "Data In:" << std::endl;
+    data_in.print();
 
     // ***********************************************
     // Test Tanh
@@ -268,6 +271,57 @@ int main(int argc, char *argv[]) {
     }
 
     delete model;
+#endif
+
+#ifdef TEST_BIG_MODEL
+    // ***********************************************
+    // Test Loading the big convnet model
+    TorchStage* convnet_model = TorchStage::loadFromFile("../data/handmodel.net.convnet");
+
+    uint32_t w = 96;
+    uint32_t h = 96;
+    const uint32_t num_banks = 3;
+    uint32_t data_size = 0;
+    for (uint32_t i = 0; i < num_banks; i++) {
+      data_size += w * h; 
+      w = w / 2;
+      h = h / 2;
+    }
+    
+    float* convnet_input_cpu = new float[data_size];
+    LoadArrayFromFile<float>(convnet_input_cpu, data_size, 
+      "../data/hand_depth_data_processed_for_CN/"
+      "hpf_processed_1294371228_hands0_263917398000.bin");
+
+    // Create some dummy data (all zeros for now)
+    Table* convnet_input = new Table();
+    w = 96;
+    h = 96;
+    float* cur_hand_image = convnet_input_cpu;
+    for (uint32_t i = 0; i < num_banks; i++) {
+      Tensor<float>* im = new Tensor<float>(Int3(w, h, 1));
+      convnet_input->add(im);
+      im->setData(cur_hand_image);
+      cur_hand_image = &cur_hand_image[w*h];
+      w = w / 2;
+      h = h / 2;
+    }
+    
+    std::cout << "Performing forward prop...";
+    convnet_model->forwardProp(*convnet_input);
+    std::cout << "Model Output = " << std::endl;
+    convnet_model->output->print();
+
+    // Save the result to file
+    float* convnet_output_cpu = new float[convnet_model->output->dataSize()];
+    ((Tensor<float>*)convnet_model->output)->getData(convnet_output_cpu);
+    jtil::file_io::SaveArrayToFile<float>(convnet_output_cpu, 
+      convnet_model->output->dataSize(), "convnet_output.bin");
+    delete[] convnet_output_cpu;
+
+    delete[] convnet_input_cpu;
+    delete convnet_input;
+    delete convnet_model;
 #endif
 
   } catch (std::wruntime_error e) {

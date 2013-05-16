@@ -35,8 +35,9 @@ SpatialContrastiveNormalization
 
 The following stages have partial implementations:
 JoinTable  --> Nothing fancy.  Just concatenates along the 0th dimension.
+               The output is always 1D.
 Reshape  --> Only reshapes from a flattened N-D to 1-D vector (ie, for use 
              before a linear stage after a convolution stage).  Even then, it
 			 wont do the copy, it just points to the previous stage's output.
-Transpose  --> Just a pass through stage.  Again, just points to the previous
-               stage's output.
+Transpose  --> Just a pass through stage.  Again, it just points to the 
+               previous stage's output.

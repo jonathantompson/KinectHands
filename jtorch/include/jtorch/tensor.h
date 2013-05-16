@@ -46,7 +46,7 @@ namespace jtorch {
       const jtil::math::Int2& interval1, 
       const jtil::math::Int2& interval2);
 
-    // Deep copy --> EXPENSIVE (copies to CPU memory then back to GPU)
+    // Deep copy (not too expensive since it'll copy GPU mem to GPU mem)
     Tensor<T>* copy() const;
 
     // gaussian1D In torch: >> normkernel = image.gaussian1D(n)
@@ -207,12 +207,21 @@ namespace jtorch {
   template <typename T>
   Tensor<T>* Tensor<T>::copy() const {
     Tensor<T>* ret = new Tensor<T>(dim_);
-    T* data = new T[dataSize()];
-    // Const cast here is naughty, but I know that getData DOES NOT corrupt
-    // or alter the current GPU state at all.
-    const_cast<Tensor<T>*>(this)->getData(data);  // Copy to the CPU Memory
-    ret->setData(data);  // Copy back to the OpenCL Device
-    delete[] data;
+    std::string kernel = jtorch::jtorch_path + "kernels/tensor.cl";
+    cl_context->useKernel(kernel.c_str(), "Copy");
+    cl_context->setArg(0, const_cast<Tensor<T>*>(this)->data());
+    cl_context->setArg(1, ret->data());
+    jtil::math::Int3 local_worgroup_size;
+    for (uint32_t i = 0; i < 3; i++) {
+      local_worgroup_size[i] = std::min<int>(jtorch::max_local_workgroup_size,
+        ret->dim()[i]);
+      while (local_worgroup_size[i] > 1 && 
+        ret->dim()[i] % local_worgroup_size[i] != 0) {
+        local_worgroup_size[i]--;
+      }
+    }
+    cl_context->runKernel3D(jtorch::deviceid, ret->dim(), local_worgroup_size, 
+      false);
     return ret;
   }
 

@@ -1,4 +1,6 @@
-__kernel void TanH(const __global float* input, __global float* output) {
+__kernel void Copy(
+  const __global float* input,  // 0
+  __global float* output) {     // 1
 
   const int width = get_global_size(0);
   const int height = get_global_size(1);
@@ -9,6 +11,5 @@ __kernel void TanH(const __global float* input, __global float* output) {
 
   const int index = x_out + width * (y_out + height * f_out);
 
-  output[index] = tanh(input[index]);
+  output[index] = input[index];
 }
-

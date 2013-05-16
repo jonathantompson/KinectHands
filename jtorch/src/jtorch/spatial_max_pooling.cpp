@@ -53,7 +53,8 @@ namespace jtorch {
       for (uint32_t i = 0; i < 3; i++) {
         local_worgroup_size[i] = std::min<int>(jtorch::max_local_workgroup_size,
           ((Tensor<float>*)output)->dim()[i]);
-        while (((Tensor<float>*)output)->dim()[i] % local_worgroup_size[i] != 0) {
+        while (local_worgroup_size[i] > 1 &&
+          ((Tensor<float>*)output)->dim()[i] % local_worgroup_size[i] != 0) {
           local_worgroup_size[i]--;
         }
       }

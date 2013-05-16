@@ -81,7 +81,8 @@ namespace jtorch {
       for (uint32_t i = 0; i < 3; i++) {
         local_worgroup_size_3d[i] = std::min<int>(jtorch::max_local_workgroup_size,
           ((Tensor<float>*)output)->dim()[i]);
-        while (((Tensor<float>*)output)->dim()[i] % local_worgroup_size_3d[i] != 0) {
+        while (local_worgroup_size_3d[i] > 1 &&
+          ((Tensor<float>*)output)->dim()[i] % local_worgroup_size_3d[i] != 0) {
           local_worgroup_size_3d[i]--;
         }
       }
@@ -136,7 +137,8 @@ namespace jtorch {
       for (uint32_t i = 0; i < 3; i++) {
         local_worgroup_size_2d[i] = std::min<int>(jtorch::max_local_workgroup_size,
           mean_->dim()[i]);
-        while (mean_->dim()[i] % local_worgroup_size_2d[i] != 0) {
+        while (local_worgroup_size_2d[i] > 1 &&
+          mean_->dim()[i] % local_worgroup_size_2d[i] != 0) {
           local_worgroup_size_2d[i]--;
         }
       }

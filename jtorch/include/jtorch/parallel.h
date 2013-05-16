@@ -28,8 +28,7 @@ namespace jtorch {
     virtual ~Parallel();
 
     virtual TorchStageType type() const { return PARALLEL_STAGE; }
-    virtual void forwardProp(TorchData& input, 
-      jtil::threading::ThreadPool& tp);
+    virtual void forwardProp(TorchData& input);
 
     void add(TorchStage* stage);
 

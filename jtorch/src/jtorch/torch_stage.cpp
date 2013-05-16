@@ -61,9 +61,9 @@ namespace jtorch {
     case SEQUENTIAL_STAGE:
       std::cout << "  Loading Sequential..." << std::endl;
       return Sequential::loadFromFile(ifile);
-    //case PARALLEL_STAGE:
-    //  std::cout << "  Loading Parallel..." << std::endl;
-    //  return Parallel::loadFromFile(ifile);
+    case PARALLEL_STAGE:
+      std::cout << "  Loading Parallel..." << std::endl;
+      return Parallel::loadFromFile(ifile);
     case TANH_STAGE:
       std::cout << "  Loading Tanh..." << std::endl;
       return Tanh::loadFromFile(ifile);
@@ -97,9 +97,9 @@ namespace jtorch {
     case SPATIAL_CONTRASTIVE_NORMALIZATION_STAGE:
       std::cout << "  Loading SpatialContrastiveNormalization..." << std::endl;
       return SpatialContrastiveNormalization::loadFromFile(ifile);
-    //case JOIN_TABLE_STAGE:
-    //  std::cout << "  Loading JoinTable..." << std::endl;
-    //  return JoinTable::loadFromFile(ifile);
+    case JOIN_TABLE_STAGE:
+      std::cout << "  Loading JoinTable..." << std::endl;
+      return JoinTable::loadFromFile(ifile);
     case TRANSPOSE_STAGE:
       std::cout << "  Loading Transpose..." << std::endl;
       return Transpose::loadFromFile(ifile);
