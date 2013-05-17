@@ -272,7 +272,7 @@ if (regenerate_heat_maps == 1) then
   os.execute('mkdir -p ' .. heatmap_dir)
   cur_heat_map = torch.FloatTensor(num_features, heat_map_height, heat_map_width)
 
-  print '==> Creating heat map images on test set and saving to disk'
+  print '==> Creating heat map images on test set'
   for i=1,testData:size() do
     -- disp progress
     if (math.mod(i, 100) == 1 or i == testData:size()) then
@@ -287,19 +287,21 @@ if (regenerate_heat_maps == 1) then
     end
     -- cur_heat_map:add(-cur_heat_map:mean())
     cur_heat_map:div(cur_heat_map:std())
+    --[[
     filename = heatmap_dir .. 'heatmap_' .. testData.files[i]
     heatmap_file = torch.DiskFile(filename, 'w')
     heatmap_file:binary()
     heatmap_file:writeFloat(cur_heat_map:storage())
     heatmap_file:close()
+    --]]
 
     testData.heat_maps[{i,f,{},{}}]:copy(cur_heat_map)
   end
 
-  print '==> Creating heat map images on training set and saving to disk'
+  print '==> Creating heat map images on training set'
   for i=1,trainData:size() do
     -- disp progress
-    if (math.mod(i, 100) == 1 or i == trainData:size()) then
+    if (math.mod(i, 1000) == 1 or i == trainData:size()) then
       progress(i, trainData:size())
     end
 
@@ -311,11 +313,13 @@ if (regenerate_heat_maps == 1) then
     end
     -- cur_heat_map:add(-cur_heat_map:mean())
     cur_heat_map:div(cur_heat_map:std())
+    --[[
     filename = heatmap_dir .. 'heatmap_' .. trainData.files[i]
     heatmap_file = torch.DiskFile(filename, 'w')
     heatmap_file:binary()
     heatmap_file:writeFloat(cur_heat_map:storage())
     heatmap_file:close()
+    --]]
 
     trainData.heat_maps[{i,f,{},{}}]:copy(cur_heat_map)
   end
