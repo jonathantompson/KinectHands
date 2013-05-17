@@ -140,6 +140,8 @@ namespace hand_net {
   void HandImageGenerator::calcCroppedHand(const int16_t* depth_in, 
     const uint8_t* label_in, const float* synthetic_depth) {
     // Find the COM in pixel space so we can crop the image around it
+    // Implement accumulate as described here and put this in OpenCL:
+    // http://www.icg.tugraz.at/courses/lv710.092/ezg2uebung1
     uint32_t cnt = 0; 
     uvd_com_.zeros();
     for (uint32_t v = 0; v < src_height; v++) {

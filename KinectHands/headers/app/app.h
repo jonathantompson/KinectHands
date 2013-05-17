@@ -39,7 +39,8 @@ namespace app {
     OUTPUT_HAND_DETECTOR_DEPTH = 5,
     OUTPUT_CONVNET_DEPTH = 6,
     OUTPUT_CONVNET_SRC_DEPTH = 7,
-    OUTPUT_HAND_NORMALS = 8,
+    OUTPUT_CONVNET_HEAT_MAPS = 8,
+    OUTPUT_HAND_NORMALS = 9,
   } KinectOutput;
 
   typedef enum {
@@ -101,17 +102,28 @@ namespace app {
     double frame_time_prev_;
     static uint32_t screenshot_counter_;
 
-    jtil::renderer::Texture* background_tex_;
-    jtil::renderer::Texture* convnet_background_tex_;  // smaller dimension
-    jtil::renderer::Texture* convnet_src_background_tex_;  // smaller dimension
     uint8_t render_labels_[src_dim];
+
+    // Typically 640 x 480
+    jtil::renderer::Texture* background_tex_;
     uint8_t im_[src_dim * 3];
     uint16_t depth_tmp_[src_dim];
     uint8_t im_flipped_[src_dim * 3];
-    uint8_t convnet_im_[HN_IM_SIZE * HN_IM_SIZE * 3];
+
+    // Typically 96 x 96
+    jtil::renderer::Texture* convnet_background_tex_;  // smaller dimension
     uint8_t convnet_im_flipped_[HN_IM_SIZE * HN_IM_SIZE * 3];
-    uint8_t convnet_src_im_[HN_SRC_IM_SIZE * HN_SRC_IM_SIZE * 3];
+
+    // Typically 384 x 384
+    jtil::renderer::Texture* convnet_src_background_tex_;  // smaller dimension
     uint8_t convnet_src_im_flipped_[HN_SRC_IM_SIZE * HN_SRC_IM_SIZE * 3];
+
+    // Typically (24 * 3) x (24 * 3)
+    jtil::renderer::Texture* convnet_hm_background_tex_;  // smaller dimension
+    uint8_t* convnet_hm_im_flipped_;
+    uint32_t hm_size_;
+    uint32_t hm_nfeats_;
+    jtil::math::Int2 hm_feats_dim_;  // Number of tiles width and height
 
     void run();
     void init();

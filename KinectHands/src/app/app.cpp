@@ -66,9 +66,11 @@ namespace app {
     convnet_background_tex_ = NULL;
     convnet_src_background_tex_ = NULL;
     background_tex_ = NULL;
+    convnet_hm_background_tex_ = NULL;
     hand_net_ = NULL;
     hands_[0] = NULL;
     hands_[1] = NULL;
+    convnet_hm_im_flipped_ = NULL;
   }
 
   App::~App() {
@@ -87,10 +89,13 @@ namespace app {
     SAFE_DELETE(tp_);
     SAFE_DELETE(convnet_background_tex_);
     SAFE_DELETE(convnet_src_background_tex_);
+    SAFE_DELETE(convnet_hm_background_tex_);
     SAFE_DELETE(background_tex_);
     SAFE_DELETE(kinect_update_cbs_);
     SAFE_DELETE(data_save_cbs_);
+    SAFE_DELETE_ARR(convnet_hm_im_flipped_);
     Renderer::ShutdownRenderer();
+    jtorch::ShutdownJTorch();
   }
 
   void App::newApp() {
@@ -114,12 +119,24 @@ namespace app {
 
 
   void App::init() {
-    Renderer::InitRenderer();
-    registerNewRenderer();
-
-    jtorch::InitJTorch("./jtorch");
+    jtorch::InitJTorch("./jtorch");  // Initialize OpenCL
     hand_net_ = new HandNet();
     hand_net_->loadFromFile("./data/handmodel.net.convnet");
+    hm_size_ = hand_net_->heat_map_size();
+    hm_nfeats_ = hand_net_->num_output_features();
+    hm_feats_dim_[1] = (int)ceilf(sqrtf((float)hm_nfeats_));  // Round up
+    // The following is hm_nfeats_ / hm_feats_dim_[1], rounded up
+    // http://stackoverflow.com/questions/2745074/fast-ceiling-of-an-integer-division-in-c-c
+    hm_feats_dim_[0] = (hm_nfeats_ + hm_feats_dim_[1] - 1) / hm_feats_dim_[1];
+    uint32_t w = hm_feats_dim_[0] * hm_size_;
+    uint32_t h = hm_feats_dim_[1] * hm_size_;
+    convnet_hm_im_flipped_ = new uint8_t[w * h * 3];
+    memset(convnet_hm_im_flipped_, 0, 
+      sizeof(convnet_hm_im_flipped_[0]) * w * h * 3);
+   
+
+    Renderer::InitRenderer();
+    registerNewRenderer();
 
     clk_ = new Clk();
     frame_time_ = clk_->getTime();
@@ -371,19 +388,62 @@ namespace app {
           }
           break;
         case OUTPUT_CONVNET_DEPTH:
-          for (uint32_t i = 0; i < HN_IM_SIZE * HN_IM_SIZE; i++) {
-            const uint8_t val = (uint8_t)(depth_tmp_[i]);
-            convnet_im_[i*3] = val;
-            convnet_im_[i*3+1] = val;
-            convnet_im_[i*3+2] = val;
+          {
+            bool color_convnet_depth;
+            GET_SETTING("color_convnet_depth", bool, color_convnet_depth);
+            if (color_convnet_depth) {
+              int feature, threshold;
+              GET_SETTING("color_convnet_depth_feature", int, feature);
+              GET_SETTING("color_convnet_depth_threshold", int, threshold);
+              const float* cur_hm = &hand_net_->heat_map_convnet()[feature * 
+                (hm_size_ * hm_size_)];
+
+              float hm_max = (float)threshold;
+              float hm_min = 0.0f;
+              float hm_range = hm_max - hm_min;
+              const uint32_t upsample_factor = (uint32_t)HN_IM_SIZE / hm_size_;
+              if (fabsf((float)upsample_factor - (float)HN_IM_SIZE / (float)hm_size_) > EPSILON) {
+                throw std::wruntime_error("ERROR: heat map is not an integer"
+                  " multiple of the hand image");
+              }
+              for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
+                for (uint32_t u = 0; u < HN_IM_SIZE; u++) {
+                  uint32_t isrc = v * HN_IM_SIZE + u;
+                  uint32_t isrc_hm = (v / upsample_factor) * hm_size_ + u / upsample_factor;
+                  float val = 0.6f * ((float)depth_tmp_[isrc]/255.0f) + 0.4f;  // 0.4 to 1
+                  float hm_val = (std::max<float>(cur_hm[isrc_hm], 0) - hm_min) / hm_range;  // 0 to 1
+                  const uint32_t idst = (HN_IM_SIZE-v-1)*HN_IM_SIZE + u;
+                  convnet_im_flipped_[idst * 3] = (uint8_t)(std::max<float>(0, std::min<float>(255.0f * val, 254.0f)));
+                  convnet_im_flipped_[idst * 3 + 1] = (uint8_t)(std::max<float>(0, std::min<float>(255.0f * val * (1 - hm_val), 254.0f)));
+                  convnet_im_flipped_[idst * 3 + 2] = (uint8_t)(std::max<float>(0, std::min<float>(255.0f * val * (1 - hm_val), 254.0f)));
+                }
+              }
+            } else {
+              uint32_t isrc = 0;
+              for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
+                for (uint32_t u = 0; u < HN_IM_SIZE; u++, isrc++) {
+                  const uint8_t val = (uint8_t)(depth_tmp_[isrc] * 255.0f);
+                  const uint32_t idst = (HN_IM_SIZE-v-1)*HN_IM_SIZE + u;
+                  convnet_im_flipped_[idst * 3] = val;
+                  convnet_im_flipped_[idst * 3 + 1] = val;
+                  convnet_im_flipped_[idst * 3 + 2] = val;
+                }
+              }
+            }
           }
           break;
         case OUTPUT_CONVNET_SRC_DEPTH:
-          for (uint32_t i = 0; i < HN_SRC_IM_SIZE * HN_SRC_IM_SIZE; i++) {
-            const uint8_t val = (uint8_t)(depth_tmp_[i] * 255.0f);
-            convnet_src_im_[i*3] = val;
-            convnet_src_im_[i*3+1] = val;
-            convnet_src_im_[i*3+2] = val;
+          {
+            uint32_t isrc = 0;
+            for (uint32_t v = 0; v < HN_SRC_IM_SIZE; v++) {
+              for (uint32_t u = 0; u < HN_SRC_IM_SIZE; u++, isrc++) {
+                const uint8_t val = (uint8_t)(depth_tmp_[isrc] * 255.0f);
+                const uint32_t idst = (HN_SRC_IM_SIZE-v-1)*HN_SRC_IM_SIZE + u;
+                convnet_src_im_flipped_[idst * 3] = val;
+                convnet_src_im_flipped_[idst * 3 + 1] = val;
+                convnet_src_im_flipped_[idst * 3 + 2] = val;
+              }
+            }
           }
           break;
         case OUTPUT_HAND_NORMALS:
@@ -394,6 +454,34 @@ namespace app {
               kdata_[cur_kinect]->normals_xyz[i*3+1]) * 255.0f);
             im_[i*3+2] = (uint8_t)(std::max<float>(0, 
               -kdata_[cur_kinect]->normals_xyz[i*3+2]) * 255.0f);
+          }
+          break;
+        case OUTPUT_CONVNET_HEAT_MAPS:
+          {
+            const float* hm = hand_net_->heat_map_convnet();
+            for (uint32_t f = 0; f < hm_nfeats_; f++) {
+              const float* cur_hm = &hm[f * (hm_size_ * hm_size_)];
+              uint32_t tileu = f % hm_feats_dim_[1];
+              uint32_t tilev = f / hm_feats_dim_[1];
+              float hm_min = std::numeric_limits<float>::infinity();
+              float hm_max = -std::numeric_limits<float>::infinity();
+              for (uint32_t i = 0; i < hm_size_ * hm_size_; i++) {
+                hm_min = std::min<float>(hm_min, cur_hm[i]);
+                hm_max = std::max<float>(hm_max, cur_hm[i]);
+              }
+              float hm_range = hm_max - hm_min;
+              for (uint32_t v = 0; v < hm_size_; v++) {
+                for (uint32_t u = 0; u < hm_size_; u++) {
+                  const uint8_t src_val = (uint8_t)(255.0f * ((cur_hm[v * hm_size_ + u] - hm_min) / hm_range));
+                  const uint32_t vdst = tilev * hm_size_ + v;
+                  const uint32_t vdst_flipped = hm_feats_dim_[1] * hm_size_ - vdst - 1;
+                  const uint32_t idst = vdst_flipped * hm_size_ * hm_feats_dim_[0] + (tileu * hm_size_ + u);
+                  convnet_hm_im_flipped_[idst * 3] = src_val;
+                  convnet_hm_im_flipped_[idst * 3 + 1] = src_val;
+                  convnet_hm_im_flipped_[idst * 3 + 2] = src_val;
+                }
+              }
+            }
           }
           break;
         default:
@@ -418,33 +506,10 @@ namespace app {
           }
         }
 
-        switch (kinect_output) {
-        case OUTPUT_CONVNET_DEPTH:
-          FlipImage<uint8_t>(convnet_im_flipped_, convnet_im_, 
-            HN_IM_SIZE, HN_IM_SIZE, 3);
-          break;
-        case OUTPUT_CONVNET_SRC_DEPTH:
-          FlipImage<uint8_t>(convnet_src_im_flipped_, convnet_src_im_, 
-            HN_SRC_IM_SIZE, HN_SRC_IM_SIZE, 3);
-          break;
-        default:
+        if (kinect_output != OUTPUT_CONVNET_SRC_DEPTH && 
+          kinect_output != OUTPUT_CONVNET_HEAT_MAPS && 
+          kinect_output != OUTPUT_CONVNET_DEPTH) {
           FlipImage<uint8_t>(im_flipped_, im_, src_width, src_height, 3);
-          break;
-        }
-
-        bool render_convnet_output, detect_pose;
-        GET_SETTING("detect_pose", bool, detect_pose);
-        GET_SETTING("render_convnet_output", bool, render_convnet_output);
-        if (detect_pose) {
-          /*
-          if (kinect_output == OUTPUT_CONVNET_DEPTH) {
-            hand_net_->image_generator()->annotateFeatsToHandImage(
-              convnet_im_flipped_, hand_net_->coeff_convnet());
-          } else if (kinect_output != OUTPUT_CONVNET_SRC_DEPTH) {
-            hand_net_->image_generator()->annotateFeatsToKinectImage(
-              im_flipped_, hand_net_->coeff_convnet());
-          }
-          */
         }
 
         switch (kinect_output) {
@@ -455,6 +520,10 @@ namespace app {
         case OUTPUT_CONVNET_SRC_DEPTH:
           convnet_src_background_tex_->flagDirty();
           Renderer::g_renderer()->setBackgroundTexture(convnet_src_background_tex_);
+          break;
+        case OUTPUT_CONVNET_HEAT_MAPS:
+          convnet_hm_background_tex_->flagDirty();
+          Renderer::g_renderer()->setBackgroundTexture(convnet_hm_background_tex_);
           break;
         default:
           background_tex_->flagDirty();
@@ -530,6 +599,11 @@ namespace app {
       (unsigned char*)convnet_src_im_flipped_, false, 
       TextureWrapMode::TEXTURE_CLAMP, TextureFilterMode::TEXTURE_NEAREST, 
       false);
+    convnet_hm_background_tex_ = new Texture(GL_RGB, hm_size_ * hm_feats_dim_[0],
+      hm_size_ * hm_feats_dim_[1], GL_RGB, GL_UNSIGNED_BYTE, 
+      (unsigned char*)convnet_hm_im_flipped_, false, 
+      TextureWrapMode::TEXTURE_CLAMP, TextureFilterMode::TEXTURE_NEAREST, 
+      false);
 
     // Transfer ownership of the texture to the renderer
     Renderer::g_renderer()->setBackgroundTexture(background_tex_);
@@ -553,11 +627,31 @@ namespace app {
       ui::UIEnumVal(OUTPUT_CONVNET_DEPTH, "Convnet Depth"));
     ui->addSelectboxItem("kinect_output", 
       ui::UIEnumVal(OUTPUT_CONVNET_SRC_DEPTH, "Convnet Source Depth"));
+    ui->addSelectboxItem("kinect_output", 
+      ui::UIEnumVal(OUTPUT_CONVNET_HEAT_MAPS, "Convnet Heat Map"));
     ui->addSelectboxItem("kinect_output",
       ui::UIEnumVal(OUTPUT_HAND_NORMALS, "Hand Normals"));
     ui->addCheckbox("render_kinect_fps", "Render Kinect FPS");
     ui->addCheckbox("continuous_snapshot", "Save continuous video stream");
     ui->addCheckbox("continuous_cal_snapshot", "Save continuous calibration stream");
+    ui->addCheckbox("color_convnet_depth", "Color Convnet Depth");
+    ui->addSelectbox("color_convnet_depth_feature", "Current Feature");
+    std::stringstream ss;
+    for (uint32_t i = 0; i < hm_nfeats_; i++) {
+      ss.str("");
+      ss << "Feature " << i;
+      ui->addSelectboxItem("color_convnet_depth_feature", 
+        ui::UIEnumVal(i, ss.str().c_str()));
+    }
+    ui->addSelectbox("color_convnet_depth_threshold", "Feature Threshold");
+    ss;
+    for (uint32_t i = 5; i <= 40; i+= 5) {
+      ss.str("");
+      ss << "Threshold " << i;
+      ui->addSelectboxItem("color_convnet_depth_threshold", 
+        ui::UIEnumVal(i, ss.str().c_str()));
+    }
+
     ui->addButton("screenshot_button", "RGB Screenshot", 
       App::screenshotCB);
     ui->addButton("greyscale_screenshot_button", "Greyscale Screenshot", 
@@ -576,11 +670,9 @@ namespace app {
       ui::UIEnumVal(OUTPUT_FILTERED_LABELS, "Filtered DF"));
     ui->addSelectboxItem("label_type_enum", 
       ui::UIEnumVal(OUTPUT_FLOODFILL_LABELS, "Floodfill"));
-    ui->addCheckbox("render_convnet_output", 
-      "Render Convnet Output");
     ui->addCheckbox("show_hand_model", "Show hand model");
     ui->addSelectbox("cur_kinect", "Current Kinect");
-    std::stringstream ss;
+    ss;
     for (uint32_t i = 0; i < MAX_NUM_KINECTS; i++) {
       ss.str("");
       ss << "device " << i;

@@ -42,6 +42,7 @@ namespace hand_net {
     image_generator_ = NULL;
     heat_map_convnet_ = NULL;
     heat_map_size_ = 0;
+    num_output_features_ = 0;
   }
 
   HandNet::~HandNet() {
@@ -88,10 +89,10 @@ namespace hand_net {
     Tensor<float>* output_tensor = (Tensor<float>*)(conv_network_->output);
     uint32_t data_size = output_tensor->dataSize();
     heat_map_convnet_ = new float[data_size];
-    const uint32_t num_features = (HAND_NUM_COEFF_CONVNET / FEATURE_SIZE);
-    heat_map_size_ = (uint32_t)sqrtf((float)(data_size / num_features));
+    num_output_features_ = (HAND_NUM_COEFF_CONVNET / FEATURE_SIZE);
+    heat_map_size_ = (uint32_t)sqrtf((float)(data_size / num_output_features_));
     // Check that the heatmap is square:
-    if (heat_map_size_ * heat_map_size_ * num_features != data_size) {
+    if (heat_map_size_ * heat_map_size_ * num_output_features_ != data_size) {
       throw std::wruntime_error("HandNet::loadFromFile() - ERROR: Heat map"
         "size is not what we expect!");
     }

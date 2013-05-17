@@ -161,6 +161,7 @@ namespace hand_net {
     const float* heat_map_convnet() const { return heat_map_convnet_; }
     float* heat_map_convnet() { return heat_map_convnet_; }
     uint32_t heat_map_size() { return heat_map_size_; }
+    uint32_t num_output_features() { return num_output_features_; }
     HandImageGenerator* image_generator() const { return image_generator_; }
     const float* hand_image() const;
     const int32_t size_images() const;
@@ -173,6 +174,7 @@ namespace hand_net {
     jtorch::TorchStage* conv_network_;
     float* heat_map_convnet_;  // output data
     uint32_t heat_map_size_;
+    uint32_t num_output_features_;
 
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in);
     void calcHPFHandBanks();

@@ -25,6 +25,7 @@ __kernel void SpatialConvolution(
   const int in_size = input_width * input_height;
   for (int f = 0; f < input_nfeats; f++) {
     // Get a pointer to the current weight matrix and input feature
+	// THIS COULD BE FASTER --> STRIPE WEIGHTS MATRIX FOR BETTER DATA ACCESS!
     const __global  float* pkernel = &weights[f_out * filt_size_per_fout + f * filt_size];
 	const __global  float* pinput = &input[f * in_size];
 
