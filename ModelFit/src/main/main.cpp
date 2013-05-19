@@ -57,7 +57,7 @@
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
 // CALIBRATION MODE ONLY SETTINGS:
-#define CALIBRATION_RUN
+// #define CALIBRATION_RUN
 #define FILTER_SIZE 60  
 #define CALIBRATION_MAX_FILES 100
 #define ICP_PC_MODEL_DIST_THRESH 15  // mm
@@ -89,8 +89,8 @@
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_1/")  // Cal + Fit + Proc (8709)
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_2/")  // Cal + Fit + Proc (8469)
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_3/")  // Cal + Fit + Proc (5815)  Total: 34931 
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_08_1/")  // Cal (Tr-data)
-#define IM_DIR_BASE string("data/hand_depth_data_2013_05_19_1/")
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_08_1/")  // Cal (Tr-data) + Fit + Proc (2440)
+#define IM_DIR_BASE string("data/hand_depth_data_2013_05_19_1/")  // Cal
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_05_19_2/")
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data

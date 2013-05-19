@@ -7,6 +7,8 @@
 #if defined(WIN32) || defined(_WIN32)
   #include <Windows.h>
   #include <glut.h>
+  #include <strsafe.h>
+  #pragma comment(lib, "User32.lib")
 #elif defined(__APPLE__)
   #include <GLUT/GLUT.h>
 #endif
@@ -15,6 +17,7 @@
 #include <string>
 #include <iostream>
 #include <thread>
+#include <algorithm>
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector_managed.h"
 #include "kinect_interface/depth_images_io.h"
@@ -26,6 +29,8 @@
 #include "jtil/clk/clk.h"
 #include "jtil/threading/callback.h"
 #include "jtil/threading/thread.h"
+#include "jtil/threading/thread_pool.h"
+#include "jtorch/jtorch.h"
 #include "jtil/debug_util/debug_util.h"  // Must come last in main.cpp
 
 using std::string;
@@ -33,9 +38,11 @@ using std::runtime_error;
 using std::cout;
 using std::endl;
 using namespace jtil;
+using namespace jtil::data_str;
 using namespace jtil::image_util;
 using namespace kinect_interface;
 using namespace kinect_interface::hand_detector;
+using namespace jtil::threading;
 
 #define LOAD_PROCESSED_IMAGES
 //#define SAFE_FLIPPED
@@ -59,7 +66,8 @@ using namespace kinect_interface::hand_detector;
 // line 678 - depth_images_io.cpp
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_03_04_6/")
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_03_04_7/") 
-#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_processed_for_DF/") 
+
+#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_01_11_and_03_04_DFProcessed/") 
 #define IMAGE_DIRECTORY KINECT_HANDS_ROOT + IMAGE_DIRECTORY_BASE
 
 #define SAFE_DELETE(x) do { if (x != NULL) { delete x; x = NULL; } } while (0); 
@@ -70,7 +78,7 @@ double t1; double t0;
 #define PLAY_SPEED (1.0/100000.0)  // Escentially as fast as possible
 
 // DATA VARIABLES
-data_str::VectorManaged<char*> im_files;
+Vector<Triple<char*, int64_t, int64_t>> im_files;
 int32_t cur_image = 0;
 DepthImagesIO* image_io = NULL;
 #ifndef LOAD_PROCESSED_IMAGES
@@ -125,7 +133,7 @@ void idle() {
 }
 
 void loadImageForRendering(bool force_reprocessing = false) {
-  string full_filename = IMAGE_DIRECTORY + string(im_files[cur_image]);
+  string full_filename = IMAGE_DIRECTORY + string(im_files[cur_image].first);
 
 #ifndef LOAD_PROCESSED_IMAGES
   image_io->LoadCompressedImageWithRedHands(full_filename, 
@@ -169,7 +177,7 @@ void loadImageForRendering(bool force_reprocessing = false) {
 
 void saveData() {
 #ifndef DISABLE_ALL_SAVES
-  string full_filename = IMAGE_DIRECTORY + string(im_files[cur_image]);
+  string full_filename = IMAGE_DIRECTORY + string(im_files[cur_image].first);
   image_io->saveProcessedDepthLabel(full_filename, cur_depth_data, 
     cur_label_data);
 #ifdef SAFE_FLIPPED
@@ -383,7 +391,7 @@ void initGL() {
 int delete_confirmed = 0;
 std::string cur_filename;
 void keyboard(unsigned char key, int x, int y) {
-  string full_filename = IMAGE_DIRECTORY + string(im_files[cur_image]);
+  string full_filename = IMAGE_DIRECTORY + string(im_files[cur_image].first);
   if (key != 'd') {
     delete_confirmed = 0;
   }
@@ -415,7 +423,7 @@ void keyboard(unsigned char key, int x, int y) {
   case 'd':
 #if defined(WIN32) || defined(_WIN32)
     cur_filename = IMAGE_DIRECTORY;
-    cur_filename += string(im_files[cur_image]);
+    cur_filename += string(im_files[cur_image].first);
     if (delete_confirmed == 1) {
       if(!DeleteFile(cur_filename.c_str())) {
         cout << "Error deleting file: " << cur_filename.c_str() << endl;
@@ -602,11 +610,62 @@ void reshape(const int width, const int height) {
 }
 
 void shutdown() {
+  jtorch::ShutdownJTorch();
   SAFE_DELETE(hd);
   SAFE_DELETE(image_io);
   SAFE_DELETE_ARR(texture_data);
   exit(0);
 }
+
+ uint32_t GetFilesInDirectory(
+   Vector<Triple<char*, int64_t, int64_t>>& files_in_directory, 
+   const string& directory, const char* prefix) {
+    std::vector<Triple<char*, int64_t, int64_t>> files;
+#if defined(WIN32) || defined(_WIN32)
+    // Prepare string for use with FindFile functions.  First, copy the
+    // string to a buffer, then append '\*' to the directory name.
+    TCHAR szDir[MAX_PATH];
+    StringCchCopy(szDir, MAX_PATH, directory.c_str());
+    std::stringstream ss;
+    if (prefix == NULL) {
+      ss << "\\hands" << "_*.bin";
+    } else {
+      ss << "\\" << prefix << "_*.bin";
+    }
+    StringCchCat(szDir, MAX_PATH, ss.str().c_str());
+
+    // Find the first file in the directory.
+    WIN32_FIND_DATA ffd;
+    HANDLE hFind = FindFirstFile(szDir, &ffd);
+    if (hFind == INVALID_HANDLE_VALUE) {
+      cout << "GetFilesInDirectory error getting dir info. Check that ";
+      cout << "directory is not empty!" << endl;
+      return 0;
+    }
+
+    do {
+      if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+      } else {
+        std::string cur_filename = ffd.cFileName;
+        char* name = new char[cur_filename.length() + 1];
+        strcpy(name, cur_filename.c_str());
+        files.push_back(Triple<char*, int64_t, int64_t>(name, -1, -1));
+      }
+    } while (FindNextFile(hFind, &ffd) != 0);
+    FindClose(hFind);
+
+#else
+    throw std::wruntime_error("Apple version needs updating!");
+#endif
+
+    // Now copy them into the output array
+    files_in_directory.capacity((uint32_t)files.size());
+    for (uint32_t i = 0; i < files.size(); i++) {
+      files_in_directory.pushBack(files.at(i));
+    }
+
+    return files_in_directory.size();
+  };
 
 int main(int argc, char *argv[]) { 
   static_cast<void>(argc);  // Get rid of unused variable warning
@@ -644,7 +703,11 @@ int main(int argc, char *argv[]) {
       return -1;
     }
 
-    hd = new HandDetector();
+    // Initialize jtorch and use it's OpenCL context:
+    const bool use_cpu = false;
+    jtorch::InitJTorch("../jtorch", use_cpu);
+    ThreadPool* tp = new ThreadPool(4);
+    hd = new HandDetector(tp);
     hd->init(src_width, src_height, KINECT_HANDS_ROOT + FOREST_DATA_FILENAME);
 
     image_io = new DepthImagesIO();
@@ -654,11 +717,31 @@ int main(int argc, char *argv[]) {
 #else
     bool load_processed_images = false;
 #endif
-    if (image_io->GetFilesInDirectory(im_files, IMAGE_DIRECTORY, 
-      load_processed_images) == 0) {
+    // OLD FORMAT
+    GetFilesInDirectory(im_files, IMAGE_DIRECTORY, 
+      !load_processed_images ? NULL : "processed_hands");
+    // NEW FORMATh
+    //image_io->GetFilesInDirectory(im_files, IMAGE_DIRECTORY, 
+    //  0, !load_processed_images ? NULL : "processed_hands");
+    if (im_files.size() <= 0) {
       throw std::runtime_error("No image files in directory!");
     }
     loadImageForRendering();
+
+    std::cout << "Profiling decision forest for 10 seconds:" << std::endl;
+    jtil::clk::Clk clk;
+    double time_accum = 0;
+    uint64_t num_frames = 0;
+    while (time_accum < 10) {
+      double t0 = clk.getTime();
+      hd->evaluateForest(cur_depth_data);
+      double t1 = clk.getTime();
+      time_accum += (t1 - t0);
+      num_frames++;
+    }
+    
+    std::cout << "decision forest eval time: " << 1e3 * (time_accum / num_frames);
+    std::cout << "ms per frame" << std::endl;
 
     glutInit(&argc, argv);
     glutInitWindowSize(window_width, window_height);
