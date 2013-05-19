@@ -23,11 +23,11 @@ sync_ir_stream,                   bool,      0
 //, Also: Dont change flip image after startup!
 flip_image,                       bool,      1
 color_convnet_depth,              bool,      1
-color_convnet_depth_feature,      int,       3
+color_convnet_depth_feature,      int,       7
 color_convnet_depth_threshold,    int,       25
 
 //, RENDERER
-screen_resolution_enum,           int,       6
+screen_resolution,                int,       65537000
 fullscreen,                       bool,      0
 double_buffering,                 bool,      0  
 clear_color,                      Float3,    0.529, 0.808, 0.980
