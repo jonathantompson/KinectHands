@@ -127,7 +127,7 @@ print '    Average Test Set Error Value:'
 print(te_crit_error:mean())
 
 -- ********************** Show the heat map of an output ***********************
-trImage_index = 1000
+trImage_index = 100
 print(string.format('Training set image: %d', trImage_index))
 trImage = {
   files = {},

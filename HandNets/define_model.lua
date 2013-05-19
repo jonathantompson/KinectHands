@@ -29,6 +29,7 @@ for j=1,num_hpf_banks do
     poolsize[j][1], (tensor_dim[3] - filtsize[j][1] + 1) / poolsize[j][1]}
   print(string.format("    Tensor Dimensions after stage 1 bank %d:", j))
   print(tensor_dim)
+  collectgarbage()
 
   -- Stage 2
   -- banks[j]:add(nn.SpatialConvolution(nstates[j][1], nstates[j][2], 
@@ -56,6 +57,7 @@ for j=1,num_hpf_banks do
 
   print(string.format("    Bank %d output length:", j))
   print(vec_length)
+  collectgarbage()
 end
 
 -- Now join the banks together!

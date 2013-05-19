@@ -39,7 +39,7 @@ height = 96
 heat_map_width = 24  -- Decimation should equal the convnet pooling
 heat_map_height = 24
 heat_map_sigma = 0.5
-num_hpf_banks = 2
+num_hpf_banks = 3
 dim = width * height
 num_coeff = 16  -- 4 fingers + thumb + 3 palm positions
 num_coeff_per_feature = 2  -- UV = 2, UVD = 3
@@ -79,10 +79,10 @@ if (perform_training == 1) then
 
   -- ***************** define the model parameters ********************
   nfeats = 1
-  nstates = {{16, 32}, {16, 32}, {16, 32}}  -- MUST BE MULTIPLES OF 16!
-  nn_stg1_out_size = (heat_map_width * heat_map_height * num_features)
+  nstates = {{32, 48}, {32, 48}, {32, 48}}  -- MUST BE MULTIPLES OF 16!
+  nn_stg1_out_size = 4096 * 2
   filtsize = {{5, 6}, {5, 5}, {5, 5}}
-  poolsize = {{2, 2}, {2, 1}, {1, 1}}  -- Note: 1 = no pooling
+  poolsize = {{4, 2}, {2, 2}, {2, 1}}  -- Note: 1 = no pooling
 
   -- *********************** define the model *************************
   dofile('define_model.lua')
@@ -99,9 +99,6 @@ if (perform_training == 1) then
 
   -- ************************* Enable Logging *************************
   print '==> Extracting model parameters'
-  -- This wont work unless you force a garbagecollect() in Module.lua
-  -- Replace the file in /usr/local/share/torch/lua/nn/Module.lua with the one
-  -- in this directory.
   if model then
      parameters, gradParameters = model:getParameters()
   end
