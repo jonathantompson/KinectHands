@@ -11,9 +11,11 @@
 #include "kinect_interface/hand_detector/decision_tree_structs.h"  // for GDT_MAX_DIST
 #include "jtorch/spatial_contrastive_normalization.h"
 #include "jtorch/spatial_subtractive_normalization.h"
+#include "jtorch/spatial_divisive_normalization.h"
 #include "jtorch/tensor.h"
 #include "jtorch/table.h"
 #include "jtorch/parallel.h"
+#include "jtorch/sequential.h"
 #include "jtil/image_util/image_util.h"
 #include "jtil/renderer/colors/colors.h"
 #include "jtil/exceptions/wruntime_error.h"
@@ -74,15 +76,15 @@ namespace hand_net {
     // Figure out the size of the HPF bank array
     int32_t im_sizeu = HN_IM_SIZE;
     int32_t im_sizev = HN_IM_SIZE;
-    int32_t size_images = 0;
+    size_images_ = 0;
     for (int32_t i = 0; i < num_banks_; i++) {
-      size_images += (im_sizeu * im_sizev);
+      size_images_ += (im_sizeu * im_sizev);
       im_sizeu /= 2;
       im_sizev /= 2;
     }
 
     // Some temporary data structures
-    int32_t datasize = std::max<int32_t>(size_images, 
+    int32_t datasize = std::max<int32_t>(size_images_, 
       HN_SRC_IM_SIZE * HN_SRC_IM_SIZE);
     hand_image_cpu_ = new float [datasize];
     hpf_hand_image_cpu_ = new float[datasize];
@@ -107,9 +109,21 @@ namespace hand_net {
     im_sizev = HN_IM_SIZE;
     for (int32_t i = 0; i < num_banks_; i++) {
       hand_image_->add(new Tensor<float>(Int2(im_sizeu, im_sizev)));
+#ifdef HN_USE_RECT_LPF_KERNEL
       Tensor<float>* kernel = Tensor<float>::ones1D(HN_RECT_KERNEL_SIZE);
+#else
+      Tensor<float>* kernel = Tensor<float>::gaussian1D(HN_RECT_KERNEL_SIZE);
+#endif
 #ifdef HN_LOCAL_CONTRAST_NORM
-      norm_module_->add(new SpatialContrastiveNormalization(*kernel));
+      /*
+      Sequential* seq = new Sequential();
+      norm_module_->add(seq);
+      seq->add(new SpatialSubtractiveNormalization(*kernel));
+      kernel = Tensor<float>::ones1D(HN_RECT_KERNEL_SIZE+10);
+      seq->add(new SpatialDivisiveNormalization(*kernel));
+      */
+      norm_module_->add(new SpatialContrastiveNormalization(kernel, 
+        HN_CONTRAST_NORM_THRESHOLD));
 #else
       norm_module_->add(new SpatialSubtractiveNormalization(*kernel));
 #endif
@@ -140,7 +154,7 @@ namespace hand_net {
   void HandImageGenerator::calcCroppedHand(const int16_t* depth_in, 
     const uint8_t* label_in, const float* synthetic_depth) {
     // Find the COM in pixel space so we can crop the image around it
-    // Implement accumulate as described here and put this in OpenCL:
+    // TO DO: Implement accumulate as described here and put this in OpenCL:
     // http://www.icg.tugraz.at/courses/lv710.092/ezg2uebung1
     uint32_t cnt = 0; 
     uvd_com_.zeros();
@@ -168,6 +182,7 @@ namespace hand_net {
       float dmax = uvd_com_[2] + (HN_HAND_SIZE * 0.5f);
       const float background = 1.0f;
       const bool use_synthetic = synthetic_depth != NULL;
+#pragma omp parallel for num_threads(4)
       for (int32_t v = v_start; v < v_start + HN_SRC_IM_SIZE; v++) {
         for (int32_t u = u_start; u < u_start + HN_SRC_IM_SIZE; u++) {
           int32_t dst_index = (v-v_start)* HN_SRC_IM_SIZE + (u-u_start);
@@ -209,9 +224,15 @@ namespace hand_net {
       int32_t srcx = (HN_SRC_IM_SIZE - srcw) / 2;
       int32_t srcy = (HN_SRC_IM_SIZE - srch) / 2;
       // Note FracDownsampleImageSAT destroys the origional source image
+#ifdef DOWNSAMPLE_POINT
+      FracDownsampleImagePoint<float>(hand_image_cpu_, 0, 0, HN_IM_SIZE, HN_IM_SIZE,
+        HN_IM_SIZE, cropped_hand_image_, srcx, srcy, srcw, srch, HN_SRC_IM_SIZE, 
+        HN_SRC_IM_SIZE);
+#else
       FracDownsampleImageSAT<float>(hand_image_cpu_, 0, 0, HN_IM_SIZE, HN_IM_SIZE,
         HN_IM_SIZE, cropped_hand_image_, srcx, srcy, srcw, srch, HN_SRC_IM_SIZE, 
         HN_SRC_IM_SIZE, im_temp_double_);
+#endif
 
       // Save the lower left corner and the width / height
       hand_pos_wh_[0] = u_start + srcx;

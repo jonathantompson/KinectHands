@@ -175,6 +175,8 @@
       <PreprocessorDefinitions>FREEIMAGE_LIB;HAND_FIT;_DEBUG;DEBUG;WIN32;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)../jtorch/include;$(ProjectDir)../kinect_interface/include;$(ProjectDir)../../PRenderer2/jtil/include;$(ProjectDir)FreeImage3154/include;$(ProjectDir)assimp_3.0.1270/include;$(ProjectDir)src;$(ProjectDir)eigen-3.1.1/Eigen;$(ProjectDir)glfw/include</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -202,6 +204,8 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <AdditionalOptions>/Qvec-report:1 %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
