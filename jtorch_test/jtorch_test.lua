@@ -257,8 +257,8 @@ test_model:add(nn.Linear(lin_size_in, 6))
 --]]
 test_model = torch.load("testmodel.torch.bin")
 res = test_model:forward(data_in)
-print('Test model result')
-print(res)
+saveArray(res, "test_data/test_model_result.bin")
+print('Test model result saved to test_data/test_model_result.bin')
 
 -- Save the Test model
 --[[
