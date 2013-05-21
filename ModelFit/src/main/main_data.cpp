@@ -67,14 +67,14 @@
 // *************************************************************
 // ******************* CHANGEABLE PARAMETERS *******************
 // *************************************************************
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit + Proc (5405)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_03_1/")  // Cal + Fit + Proc (6533)
-#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_1/")  // Cal + Fit (8709)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_2/")  // Cal + Fit (8469)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_3/")  // Cal + Fit (5815)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_08_1/")  // Cal + Fit (2440) (Tr-data)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_19_1/")  // Cal + Fit (5969)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_19_2/")  // Cal + Fit (6781)  Total: 47681 
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405)
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_03_1/")  // Cal + Fit (6533)
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_1/")  // Cal + Fit (8709)
+#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_2/")  // Cal + Fit (8469) 
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_3/")  // Cal + Fit (5815) *
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_08_1/")  // Cal + Fit (2440) (Tr-data) *
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_19_1/")  // Cal + Fit (5969) *
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_19_2/")  // Cal + Fit (6781) * Total: 47681 
 
 #define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN/") 
 //#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN_testset/") 

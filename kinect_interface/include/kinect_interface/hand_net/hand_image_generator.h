@@ -23,7 +23,7 @@
 #define HN_DEFAULT_NUM_CONV_BANKS 3
 #define HN_HPF_GAIN 2.0f 
 #define HN_RECT_KERNEL_SIZE 9  // Clemont recommends 5x5 (aggressive), must be odd --> Was 11
-#define HN_CONTRAST_NORM_THRESHOLD 2e-2f  // Clemont recommends 5x5 (aggressive), must be odd --> Was 1e-4
+#define HN_CONTRAST_NORM_THRESHOLD 5e-2f  // Was 2e-2f
 #define HN_LOCAL_CONTRAST_NORM  // Otherwise subtractive local, divisive global --> Was undefined
 // #define DOWNSAMPLE_POINT  // Low quality downsample (but fast!)
 

@@ -23,7 +23,7 @@ sync_ir_stream,                   bool,      0
 //, Also: Dont change flip image after startup!
 flip_image,                       bool,      1
 color_convnet_depth,              bool,      1
-color_convnet_depth_feature,      int,       3
+color_convnet_depth_feature,      int,       5
 color_convnet_depth_threshold,    int,       25
 
 //, RENDERER
