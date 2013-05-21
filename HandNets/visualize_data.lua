@@ -17,7 +17,7 @@ function VisualizeData(x, plot_labels, num_banks, n_tiles, zoom_factor)
     plot_labels = 1
   end
   n_tiles = n_tiles or 10
-  num_banks = num_banks or 3
+  num_banks = num_banks or num_hpf_banks
   local n_images = math.min(x.size(), n_tiles * n_tiles)
   zoom_factor = zoom_factor or 1
   for j=1,num_banks do
@@ -67,7 +67,7 @@ function VisualizeImage(x, index, plot_image, plot_labels, num_banks, n_tiles, z
     plot_image = 1
   end
   n_tiles = n_tiles or 10
-  num_banks = num_banks or 3
+  num_banks = num_banks or num_hpf_banks
   local n_images = 1
   zoom_factor = zoom_factor or 5
   local im = {
@@ -121,4 +121,37 @@ function VisualizeImage(x, index, plot_image, plot_labels, num_banks, n_tiles, z
   end
   image.display{image=im.heat_maps, padding=2, nrow=4, zoom=zoom_factor,
     scaleeach=false}
+end
+
+function VisualizeHeatMap(x, index, hm_index)
+  local im = {
+    data = torch.FloatTensor(num_hpf_banks, 3, height, width),
+  }
+  for j=1,num_hpf_banks do
+    im.data[{j, 1, {}, {}}] = image.scale(x.data[j][{index, {}, {}, {}}]:float(), width, height,
+      'simple')
+    local im_min = im.data[{j, 1, {}, {}}]:min()
+    local im_max = im.data[{j, 1, {}, {}}]:max()
+    im.data[{j, 1, {}, {}}]:add(-im_min)
+    im.data[{j, 1, {}, {}}]:mul(1.0 / (im_max - im_min))
+    im.data[{j, 2, {}, {}}] = im.data[{j, 1, {}, {}}]
+    im.data[{j, 3, {}, {}}] = im.data[{j, 1, {}, {}}]
+  end
+  local hm_scaled = image.scale(x.heat_maps[{index, hm_index, {}, {}}]:float(), width, height,
+      'simple')
+  local hm_min = hm_scaled:min()
+  local hm_max = hm_scaled:max()
+  hm_scaled:add(-hm_min)
+  hm_scaled:mul(1.0 / (hm_max - hm_min))  -- 0 to 1
+  local val = hm_scaled
+  val:mul(-1)
+  val:add(1)  -- = (1 - hm_scaled)
+
+  for j=1,num_hpf_banks do
+    im.data[{j,2,{},{}}]:cmul(val)
+    im.data[{j,3,{},{}}]:cmul(val)
+  end
+
+  image.display{image=im.data, padding=2, nrow=3, zoom=5, scaleeach=false}
+
 end

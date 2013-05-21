@@ -1,4 +1,3 @@
-
 require 'image'
 
 -- distort function
@@ -6,8 +5,10 @@ require 'image'
 -- The rotation angle is a random value between:
 --   -deg_rot_bounds --> deg_rot_bounds
 -- To force a certain rotation, set deg_rot to some non-nil value
-function distort(i, prob_flip, prob_scale, prob_rot, deg_rot_bounds, deg_rot)
+function distort(i, deg_rot_bounds, scale_bounds, trans_bounds, deg_rot, scale, trans_v, trans_u)
    deg_rot_bounds = deg_rot_bounds or 10
+   trans_bounds = trans_bounds or 0.2
+   scale_bounds = scale_bounds or 0.1
    -- size:
    local height,width = i:size(2),i:size(3)
 
@@ -16,9 +17,8 @@ function distort(i, prob_flip, prob_scale, prob_rot, deg_rot_bounds, deg_rot)
    local grid_x = torch.ger( torch.ones(height), torch.linspace(-1,1,width) )
 
    local flow = torch.FloatTensor()
---   local flow1 = torch.FloatTensor()
---   local flow2 = torch.FloatTensor()
-   local flow3 = torch.FloatTensor()
+   local flow_scale = torch.FloatTensor()
+   local flow_rot = torch.FloatTensor()
 
    -- global flow:
    flow:resize(2,height,width)
@@ -27,47 +27,26 @@ function distort(i, prob_flip, prob_scale, prob_rot, deg_rot_bounds, deg_rot)
    local rot_angle
    local rotmat
 
-   --[[
-   -- flip
-   if 1 == torch.bernoulli(prob_flip) then
-      flow1:resize(2,height,width)
-      flow1[1] = 0
-      flow1[2] = grid_x
-      flow1[2]:mul(-width)
-      flow:add(flow1)
+   -- Apply scale
+   flow_scale:resize(2,height,width)
+   flow_scale[1] = grid_y
+   flow_scale[2] = grid_x
+   scale_val = scale or torch.uniform(-scale_bounds, scale_bounds)
+   flow_scale[1]:mul(scale_val * height)
+   flow_scale[2]:mul(scale_val * width)
+   flow:add(flow_scale)
 
-   -- scale field
-   elseif 1 == torch.bernoulli(prob_scale) then
-      flow2:resize(2,height,width)
-      flow2[1] = grid_y
-      flow2[2] = grid_x
-      flow2[1]:mul(torch.uniform(-height/10,height/10))
-      flow2[2]:mul(torch.uniform(-width/10,width/10))
-      flow:add(flow2)
-   
-   -- rotation field
-   elseif 1 == torch.bernoulli(prob_rot) then
-      flow3:resize(2,height,width)
-      flow3[1] = grid_y * ((height-1)/2) * -1
-      flow3[2] = grid_x * ((width-1)/2) * -1
-      local view = flow3:reshape(2,height*width)
-      local function rmat(deg)
-         local r = deg/180*math.pi
-         return torch.FloatTensor{{math.cos(r), -math.sin(r)}, 
-                                  {math.sin(r), math.cos(r)}}
-      end
-      
-      rot_angle = deg_rot or torch.uniform(-deg_rot_bounds,deg_rot_bounds)
-      rotmat = rmat(rot_angle)
-      flow3r = torch.mm(rotmat, view)
-      flow3 = flow3 - flow3r:reshape( 2, height, width )
-      flow:add(flow3)
-   end
-   --]]
-   flow3:resize(2,height,width)
-   flow3[1] = grid_y * ((height-1)/2) * -1
-   flow3[2] = grid_x * ((width-1)/2) * -1
-   local view = flow3:reshape(2,height*width)
+   -- Apply translation (comes before rotation)
+   local trans_v_val = trans_v or torch.uniform(-trans_bounds, trans_bounds)
+   local trans_u_val = trans_u or torch.uniform(-trans_bounds, trans_bounds)
+   flow[1]:add(trans_v_val * height)
+   flow[2]:add(trans_u_val * width)
+
+   -- Apply rotation
+   flow_rot:resize(2,height,width)
+   flow_rot[1] = grid_y * ((height-1)/2) * -1
+   flow_rot[2] = grid_x * ((width-1)/2) * -1
+   local view = flow_rot:reshape(2,height*width)
    local function rmat(deg)
    local r = deg/180*math.pi
    return torch.FloatTensor{{math.cos(r), -math.sin(r)}, 
@@ -76,14 +55,14 @@ function distort(i, prob_flip, prob_scale, prob_rot, deg_rot_bounds, deg_rot)
       
    rot_angle = deg_rot or torch.uniform(-deg_rot_bounds,deg_rot_bounds)
    rotmat = rmat(rot_angle)
-   flow3r = torch.mm(rotmat, view)
-   flow3 = flow3 - flow3r:reshape( 2, height, width )
-   flow:add(flow3)
+   flow_rotr = torch.mm(rotmat, view)
+   flow_rot = flow_rot - flow_rotr:reshape( 2, height, width )
+   flow:add(flow_rot)
 
    -- apply field
    local result = torch.FloatTensor()
    image.warp(result,i,flow,'bilinear')
-   return result, rot_angle, rotmat
+   return result, rot_angle, scale_val, trans_v_val, trans_u_val, rotmat 
 end
 
 -- local function test()
