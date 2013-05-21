@@ -279,11 +279,14 @@ if (regenerate_heat_maps == 1) then
       progress(i, testData:size())
     end
 
-    for f=1,num_features do
-      cur_uv = testData.labels[{i,{f*2-1, f*2}}]
+    local f
+    f = 1
+    for c=1,num_coeff,num_coeff_per_feature do
+      cur_uv = testData.labels[{i,{c, c + 1}}]
       cur_heat_map[{f,{},{}}] = image.centered_gaussian{amplitude=1,
         normalize=true, width=heat_map_width, height=heat_map_height, center_x=cur_uv[1], 
         center_y=cur_uv[2], sigma_horz=(heat_map_sigma/heat_map_width), sigma_vert=(heat_map_sigma/heat_map_height)}
+      f = f + 1
     end
     -- cur_heat_map:add(-cur_heat_map:mean())
     cur_heat_map:div(cur_heat_map:std())
@@ -295,7 +298,7 @@ if (regenerate_heat_maps == 1) then
     heatmap_file:close()
     --]]
 
-    testData.heat_maps[{i,f,{},{}}]:copy(cur_heat_map)
+    testData.heat_maps[{i,{},{},{}}]:copy(cur_heat_map)
   end
 
   print '==> Creating heat map images on training set'
@@ -305,11 +308,14 @@ if (regenerate_heat_maps == 1) then
       progress(i, trainData:size())
     end
 
-    for f=1,num_features do
-      cur_uv = trainData.labels[{i,{f*2-1, f*2}}]
+    local f
+    f = 1
+    for c=1,num_coeff,num_coeff_per_feature do
+      cur_uv = trainData.labels[{i,{c, c + 1}}]
       cur_heat_map[{f,{},{}}] = image.centered_gaussian{amplitude=1,
         normalize=true, width=heat_map_width, height=heat_map_height, center_x=cur_uv[1], 
         center_y=cur_uv[2], sigma_horz=(heat_map_sigma/heat_map_width), sigma_vert=(heat_map_sigma/heat_map_height)}
+      f = f + 1
     end
     -- cur_heat_map:add(-cur_heat_map:mean())
     cur_heat_map:div(cur_heat_map:std())
@@ -321,7 +327,7 @@ if (regenerate_heat_maps == 1) then
     heatmap_file:close()
     --]]
 
-    trainData.heat_maps[{i,f,{},{}}]:copy(cur_heat_map)
+    trainData.heat_maps[{i,{},{},{}}]:copy(cur_heat_map)
   end
 else
   print '==> Loading test set heat maps from file'

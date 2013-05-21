@@ -20,7 +20,6 @@ function preturbThread()
   local parent_packet = parallel.parent:receive()
   database = parent_packet.database
   trsize = parent_packet.size
-  num_coeff = parent_packet.num_coeff
 
   local data_rotated = {
     data = { },
@@ -43,16 +42,21 @@ function preturbThread()
 
     -- Preturb the database
     for j=1,data_rotated:size() do
+      local deg_rot
+      local scale
+      local transv
+      local transu
 
       -- rotate the first bank and get back the rotation matrix
       data_rotated.data[1][{j,{},{},{}}], data_rotated.labels[{j,{}}], 
-        data_rotated.heat_maps[{j,{},{},{}}], deg_rot, shift_u, shift_v = 
+        data_rotated.heat_maps[{j,{},{},{}}], deg_rot, scale, transv, transu = 
         preturbDataAndLabels(database.data[1][{j,{},{},{}}], database.labels[{j,{}}],
         database.heat_maps[{j,{},{},{}}])
       -- Now rotate the other banks by the same transformation
       for b=2,num_hpf_banks do
         data_rotated.data[b][{j,{},{},{}}] = 
-          preturbDataAndLabels(database.data[b][{j,{},{},{}}], nil, nil, deg_rot, shift_u, shift_v)
+          preturbDataAndLabels(database.data[b][{j,{},{},{}}], nil, nil, deg_rot, scale, 
+            transv, transu)
       end
     end
 
@@ -63,7 +67,7 @@ function preturbThread()
   print('preturbThread(): quiting...')
 end
 
-function preturbManual(database, size, num_coeff)
+function preturbManual(database, size)
   local t0 = sys.clock()
 
   dofile("distort.lua")
@@ -90,14 +94,16 @@ function preturbManual(database, size, num_coeff)
     end
 
     -- rotate the first bank and get back the rotation matrix
-    data_rotated.data[1][{j,{},{},{}}], data_rotated.labels[{j,{}}], 
-      data_rotated.heat_maps[{j,{},{},{}}], deg_rot, shift_u, shift_v = 
-      preturbDataAndLabels(database.data[1][{j,{},{},{}}], database.labels[{j,{}}],
-      database.heat_maps[{j,{},{},{}}])
+    local deg_rot
+    local scale
+    local transv
+    local transu
+    data_rotated.data[1][{j,{},{},{}}], data_rotated.labels[{j,{}}], data_rotated.heat_maps[{j,{},{},{}}], deg_rot, scale, transv, transu = preturbDataAndLabels(database.data[1][{j,{},{},{}}], database.labels[{j,{}}], database.heat_maps[{j,{},{},{}}])
     -- Now rotate the other banks by the same transformation
     for b=2,num_hpf_banks do
       data_rotated.data[b][{j,{},{},{}}] = 
-        preturbDataAndLabels(database.data[b][{j,{},{},{}}], nil, nil, deg_rot, shift_u, shift_v)
+        preturbDataAndLabels(database.data[b][{j,{},{},{}}], nil, nil, deg_rot, scale, 
+          transv, transu)
     end
   end
   local t1 = sys.clock()

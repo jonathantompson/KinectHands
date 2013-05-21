@@ -24,12 +24,12 @@ function image.centered_gaussian(...)
    
    -- local vars
    if (center_x == nil) then
-     center_x = width/2 + 0.5
+     center_x = width/2
    else
      center_x = center_x * width
    end
    if (center_y == nil) then
-     center_y = height/2 + 0.5
+     center_y = height/2
    else
      center_y = center_y * height
    end
@@ -40,7 +40,7 @@ function image.centered_gaussian(...)
      indices_image_x_local = torch.FloatTensor(height, width)
      for i=1,height do
        for j=1,width do
-         indices_image_x[i][j] = j
+         indices_image_x[i][j] = j - 0.5
        end
      end
    end
@@ -49,7 +49,7 @@ function image.centered_gaussian(...)
      indices_image_y_local = torch.FloatTensor(height, width)
      for i=1,height do
        for j=1,width do
-         indices_image_y[i][j] = i
+         indices_image_y[i][j] = i - 0.5
        end
      end
    end

@@ -17,7 +17,7 @@ dofile("pbar.lua")
 dofile("shuffle_files.lua")
 dofile("modules_cc.lua")
 
-torch.setnumthreads(8)
+torch.setnumthreads(16)
 torch.manualSeed(1)
 math.randomseed(1)
 
@@ -38,11 +38,11 @@ width = 96
 height = 96
 heat_map_width = 24  -- Decimation should equal the convnet pooling
 heat_map_height = 24
-heat_map_sigma = 0.5
-num_hpf_banks = 2
+heat_map_sigma = 0.5  -- Formally 0.5
+num_hpf_banks = 3
 dim = width * height
-num_coeff = 16  -- 4 fingers + thumb + 3 palm positions
-num_coeff_per_feature = 2  -- UV = 2, UVD = 3
+num_coeff = 24  -- 4 fingers + thumb + 3 palm positions
+num_coeff_per_feature = 3  -- UV = 2, UVD = 3
 num_features = num_coeff / num_coeff_per_feature
 perform_training = 1
 regenerate_heat_maps = 1  -- otherwise it will load them from file
@@ -70,6 +70,8 @@ if (visualize_data == 1) then
   VisualizeData(testData)
   VisualizeImage(trainData, 1)
   VisualizeImage(testData, 1)
+  VisualizeHeatMap(trainData, 1, 4)
+  VisualizeHeatMap(testData, 1, 4)
 end
 
 -- ***************** Define Criterion (loss) function *****************
@@ -81,7 +83,7 @@ if (perform_training == 1) then
   nfeats = 1
   nstates = {{16, 32}, {16, 32}, {16, 32}}  -- MUST BE MULTIPLES OF 16!
   nn_stg1_out_size = (heat_map_width * heat_map_height * num_features)
-  filtsize = {{5, 6}, {5, 5}, {5, 5}}
+  filtsize = {{7, 8}, {7, 7}, {5, 5}}
   poolsize = {{2, 2}, {2, 1}, {1, 1}}  -- Note: 1 = no pooling
 
   -- *********************** define the model *************************
@@ -125,6 +127,25 @@ if (perform_training == 1) then
 
   -- ********************* Database manipulation **********************
   dofile('preturb.lua')
+  -- rotatedData = preturbManual(testData, testData:size())
+  -- VisualizeData(rotatedData)
+  -- VisualizeData(testData)
+  -- VisualizeImage(rotatedData, 1)
+  -- VisualizeHeatMap(rotatedData, 1, 4)
+  --[[
+  ---- EXAMPLE CODE FOR PRETURB SINGLE IMAGE CODE
+  dofile("preturb_data_and_labels.lua")
+  ind = 1000
+  im = testData.data[1][{ind,{1},{},{}}]
+  lab = testData.labels[{ind,{}}]
+  hm = testData.heat_maps[{ind,{}}]
+  image.display(im)
+  for i=1,20 do
+    im_out, lab_out, hm_out, deg_rot, scale, transv, transu =
+      preturbDataAndLabels(im, lab, hm)               
+    image.display(im_out)
+  end
+  --]]
  
   -- ************************ Saving settings *************************
   dofile('save_settings.lua')
@@ -139,7 +160,7 @@ if (perform_training == 1) then
     c:exec(preturbThread)
 
     -- Send the training set to the preturb thread
-    packet = { database = trainData, size = trainData:size(), num_coeff = num_coeff }
+    packet = { database = trainData, size = trainData:size() }
     c:send(packet)
 
     for i = 1,max_num_epochs do

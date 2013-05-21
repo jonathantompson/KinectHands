@@ -1,9 +1,11 @@
 -- THIS IS THE HELPER FUNCTION FOR PRETURB.LUA
 
 -- preturbDataLabels --> Helper function.  Rotates one image only.
--- if deg_rot is not set, then a random rotation is chosen (between min and max with uniform dist)
-function preturbDataAndLabels(im, labels, heat_maps, deg_rot, shift_frac_u, shift_frac_v)
-  local min_max_rotation_deg = 60
+-- if in_* is not se (or is nil), then a random value is chosen (between min and max with uniform dist)
+function preturbDataAndLabels(im, labels, heat_maps, in_deg_rot, in_scale, in_transv, in_transu)
+  local deg_rot_bounds = 60
+  local scale_bounds = 0.1
+  local trans_bounds = 0.1
   if (im:dim() ~= 3) then
     error("im dimension is not 3!")
   end
@@ -19,28 +21,43 @@ function preturbDataAndLabels(im, labels, heat_maps, deg_rot, shift_frac_u, shif
   im_pad[{{},{2,1+im:size()[2]}, {2,1+im:size()[3]}}] = im
 
   -- Rotate the image
-  local im_rotate
-  local rotation_angle
-  local mat
-  im_rotate, rotation_angle, mat = distort(im_pad, 0.0, 0.0, 1.0, min_max_rotation_deg, deg_rot)
-  im_rotate = im_rotate[{{}, {2,1 + im:size()[2]}, {2,1 + im:size()[3]}}]
+  local im_out
+  local deg_rot  -- angle in degrees
+  local scale  -- width' = is scale_val * width, etc
+  local transv  -- center_y' = center_y + transv * height
+  local transu  -- center_x' = center_x + transv * width
+  local rotmat
+  im_out, deg_rot, scale, transv, transu, rotmat = distort(im_pad, deg_rot_bounds, 
+    scale_bounds, trans_bounds, in_deg_rot, in_scale, in_transv, in_transu)
+  im_out = im_out[{{}, {2,1 + im:size()[2]}, {2,1 + im:size()[3]}}]
 
   -- Rotate the labels:
-  local labels_rotate = nil
+  --[[
+  local labels_out = nil
   if (labels ~= nil) then
-    labels_rotate = labels:clone():float()
-    labels_rotate:mul(2)
-    labels_rotate:add(-1) -- Now -1 to 1
-    for i=1,num_coeff,2 do
-      local vec = labels_rotate[{{i,i+1}}]
-      labels_rotate[{{i,i+1}}] = torch.mv(mat, vec)
+    labels_out = labels:clone():float()  -- 0 to 1
+    labels_out:mul(2)
+    labels_out:add(-1) -- Now -1 to 1
+    for i=1,num_coeff, num_coeff_per_feature do
+      labels_out[{i}] = labels_out[{i}] * (1.0 - scale)
+      labels_out[{i+1}] = labels_out[{i+1}] * (1.0 - scale)
+      labels_out[{i}] = (labels_out[{i}] - 2.0 * transu)
+      labels_out[{i+1}] = (labels_out[{i+1}] - 2.0 * transv)
+      local vec = labels_out[{{i,i+1}}]
+      labels_out[{{i,i+1}}] = torch.mv(rotmat, vec)
     end
-    labels_rotate:add(1)
-    labels_rotate:mul(0.5)
+    labels_out:add(1)
+    labels_out:mul(0.5)
+  end
+  --]]
+  -- EDIT: MANUAL LABEL ROTATION DOESN'T WORK, SO JUST COPY THEM
+  local labels_out = nil
+  if (labels ~= nil) then
+    labels_out = labels:clone():float()
   end
 
   -- Rotate the heat maps:
-  local heat_maps_rotate = nil
+  local heat_maps_out = nil
   if (heat_maps ~= nil) then
     
     if (heat_maps_pad ~= nil) then
@@ -53,19 +70,12 @@ function preturbDataAndLabels(im, labels, heat_maps, deg_rot, shift_frac_u, shif
     heat_maps_pad = heat_maps_pad or torch.zeros(heat_maps:size()[1], 
       heat_maps:size()[2]+2, heat_maps:size()[3]+2):float()
     heat_maps_pad[{{},{2,1+heat_maps:size()[2]}, {2,1+heat_maps:size()[3]}}] = heat_maps
-    heat_maps_rotate = distort(heat_maps_pad, 0.0, 0.0, 1.0, min_max_rotation_deg, rotation_angle)
-    heat_maps_rotate = heat_maps_rotate[{{}, {2,1 + heat_maps:size()[2]}, {2,1 + heat_maps:size()[3]}}]
-  end
-
-  -- Now randomly shift the image
-  if (shift_frac_u == nil or shift_frac_v == nil) then
-    local min_max_shift_u = 0.2 -- Percentage of image
-    local min_max_shift_v = 0.2 -- Percentage of image
-    local shift_frac_u = torch.uniform(-min_max_shift_u, min_max_shift_u)
-    local shift_frac_v = torch.uniform(-min_max_shift_v, min_max_shift_v)
+    heat_maps_out = distort(heat_maps_pad, deg_rot_bounds, scale_bounds, trans_bounds, 
+      deg_rot, scale, transv, transu)
+    heat_maps_out = heat_maps_out[{{}, {2,1 + heat_maps:size()[2]}, {2,1 + heat_maps:size()[3]}}]
   end
   
 
-  return im_rotate, labels_rotate, heat_maps_rotate, rotation_angle, shift_frac_u, shift_frac_v
+  return im_out, labels_out, heat_maps_out, deg_rot, scale, transv, transu
 end
 
