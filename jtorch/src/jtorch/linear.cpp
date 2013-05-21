@@ -56,6 +56,7 @@ namespace jtorch {
     init(input);
     Tensor<float>& in = (Tensor<float>&)input;
 
+#ifdef SIMPLE_LINEAR
     std::string kernel = jtorch::jtorch_path + "kernels/linear.cl";
     cl_context->useKernel(kernel.c_str(), "MatVecMultSimple");
     cl_context->setArg(0, weights_->data());
@@ -64,6 +65,30 @@ namespace jtorch {
     cl_context->setArg(3, n_outputs_);
     cl_context->setArg(4, n_inputs_);
     cl_context->runKernel1D(jtorch::deviceid, output->dataSize(), false);
+#else
+    // http://www.bealto.com/gpu-gemv_v2.html
+    // Try and find a good local workgroup size allocation (that is legal)
+    uint32_t p = 16;
+    Int2 global_size(n_outputs_, p);
+    Int2 local_size(std::min<int>(n_outputs_ / p + 1, 
+      cl_context->getMaxWorkgroupSize(deviceid) / p), p);  // Maximum
+    while (n_outputs_ % local_size[0] != 0 && local_size[0] > 1) {
+      local_size[0]--;
+    }
+
+    std::string kernel = jtorch::jtorch_path + "kernels/linear.cl";
+    cl_context->useKernel(kernel.c_str(), "MatVecMultThreads");
+    cl_context->setArg(0, weights_->data());
+    cl_context->setArg(1, in.data());
+    cl_context->setArg(2, ((Tensor<float>*)output)->data());
+    float dummy; static_cast<void>(dummy);
+    // setArg with NULL --> Local memory allocation (per local workgroup)
+    cl_context->setArg(3, sizeof(dummy) * local_size[0] * local_size[1], NULL);
+    cl_context->setArg(4, n_outputs_);
+    cl_context->setArg(5, n_inputs_);
+
+    cl_context->runKernel2D(jtorch::deviceid, global_size, local_size, false);
+#endif
 
     // Now add in the bias
     cl_context->useKernel(kernel.c_str(), "Accum");

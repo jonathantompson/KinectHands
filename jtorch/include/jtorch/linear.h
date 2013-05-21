@@ -12,6 +12,8 @@
 #include "jtil/threading/callback.h"
 #include "jtorch/torch_stage.h"
 
+// #define SIMPLE_LINEAR  // Might actually be faster!
+
 namespace jtil { namespace data_str { template <typename T> class VectorManaged; } }
 
 namespace jtorch {
@@ -40,8 +42,6 @@ namespace jtorch {
 
     Tensor<float>* weights_;  // n_outputs (rows) * n_inputs (columns), stored row major
     Tensor<float>* biases_;  // n_outputs
-
-    jtil::math::Int3 local_worgroup_size;
 
     void init(TorchData& input);
 

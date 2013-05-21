@@ -35,7 +35,7 @@
 #endif
 
 #define NUM_WORKER_THREADS 1
-// #define TEST_MODULES
+#define TEST_MODULES
 // #define TEST_MODEL
 #define TEST_BIG_MODEL  // The actual convnet
 
@@ -66,6 +66,26 @@ const int32_t lin_size_in = num_feats_in * width * height;
 const int32_t lin_size_out = 20;
 float lweights[lin_size_in * lin_size_out];
 float lbiases[lin_size_out];
+
+void testResult(jtorch::Tensor<float>* data, const std::string& filename) {
+  float* correct_data = new float[data->dataSize()];
+  float* model_data = new float[data->dataSize()];
+  LoadArrayFromFile<float>(correct_data, data->dataSize(), filename);
+  data->getData(model_data);
+  bool data_correct = true;
+  for (uint32_t i = 0; i < data->dataSize(); i++ && data_correct) {
+    if (fabsf(model_data[i] - correct_data[i]) > EPSILON) {
+      data_correct = false;
+    }
+  }
+  if (data_correct) {
+    std::cout << "Test PASSED: " << filename << std::endl;
+  } else {
+    std::cout << "Test FAILED!: " << filename << std::endl;
+  }
+  delete[] model_data;
+  delete[] correct_data;
+}
 
 int main(int argc, char *argv[]) {  
 #if defined(_DEBUG) || defined(DEBUG)
@@ -99,14 +119,12 @@ int main(int argc, char *argv[]) {
 #ifdef TEST_MODULES
     Sequential stages;
 
-
     // ***********************************************
     // Test Tanh
     stages.add(new Tanh());
     stages.forwardProp(data_in);
-    std::cout << endl << endl << "Tanh output:" << std::endl;
-    stages.output->print();
-
+    testResult((jtorch::Tensor<float>*)stages.output, 
+      "./test_data/tanh_result.bin");
     
     // ***********************************************
     // Test Threshold
@@ -329,19 +347,6 @@ int main(int argc, char *argv[]) {
     std::cout << "Model Output (just the first 30 numbers) = " << std::endl;
     convnet_output->print(Int2(0, 29), Int2(0, 0), Int2(0, 0));
 
-    //Parallel* parallel_stage = (Parallel*)((Sequential*)convnet_model)->get(0);
-    //Table* conv_stage_out = (Table*)parallel_stage->output;
-    //std::cout << "1st bank convolution output (just the top left 6x6 of the 2nd feature) = " << std::endl;
-    //((Tensor<float>*)(*conv_stage_out)(0))->print(Int2(0, 5), Int2(0, 5), Int2(1, 1));
-    //std::cout << "2nd bank convolution output (just the top left 6x6 of the 10th feature) = " << std::endl;
-    //((Tensor<float>*)(*conv_stage_out)(1))->print(Int2(0, 5), Int2(0, 5), Int2(9, 9));
-
-    //JoinTable* joint_table_stage = (JoinTable*)((Sequential*)convnet_model)->get(1);
-    //std::cout << "Join Table Output (0, 29) = " << std::endl;
-    //((Tensor<float>*)joint_table_stage->output)->print(Int2(0, 29), Int2(0, 0), Int2(0, 0));
-    //std::cout << "Join Table Output (7000, 7030) = " << std::endl;
-    //((Tensor<float>*)joint_table_stage->output)->print(Int2(7000, 7030), Int2(0, 0), Int2(0, 0));
-
     // Save the result to file
     float* convnet_output_cpu = new float[convnet_output->dataSize()];
     convnet_output->getData(convnet_output_cpu);
@@ -361,6 +366,27 @@ int main(int argc, char *argv[]) {
       // isn't what torch does.
       double t0 = clk.getTime();
       convnet_model->forwardProp(*convnet_input);
+      jtorch::cl_context->sync(jtorch::deviceid);
+      double t1 = clk.getTime();
+      time_accum += (t1 - t0);
+      num_evals++;
+    }
+    std::cout << "Time per evaluation ";
+    std::cout << (time_accum / (double)num_evals) * 1e3 << "ms" << std::endl;
+
+    // Profile the linear stage
+    jtorch::cl_context->sync(jtorch::deviceid);
+    std::cout << "Profiling linear for 5 seconds..." << std::endl;
+    JoinTable* join_t = (JoinTable*)((Sequential*)convnet_model)->get(1);
+    Linear* linear_stage = (Linear*)((Sequential*)convnet_model)->get(2);
+    num_evals = 0;
+    time_accum = 0.0;
+    while (time_accum < 5) {
+      // Fairest test is to perform a sync after every read and wait for the
+      // work queue to empty.  Otherwise requests happen in parallel which
+      // isn't what torch does.
+      double t0 = clk.getTime();
+      linear_stage->forwardProp(*join_t->output);
       jtorch::cl_context->sync(jtorch::deviceid);
       double t1 = clk.getTime();
       time_accum += (t1 - t0);
