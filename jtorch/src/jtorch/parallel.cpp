@@ -19,13 +19,16 @@ namespace jtorch {
   Parallel::Parallel() {
     // Create an empty container
     network_ = new VectorManaged<TorchStage*>(1);
+    output = NULL;
   }
 
   Parallel::~Parallel() {
     SAFE_DELETE(network_);
-    Table* out = (Table*)output;
-    out->clearNoDelete();  // Remove the pointers without freeing memory
-                           // Since they don't belong to this table.
+    if (output != NULL) {
+      Table* out = (Table*)output;
+      out->clearNoDelete();  // Remove the pointers without freeing memory
+                             // Since they don't belong to this table.
+    }
     SAFE_DELETE(output);
   }
 

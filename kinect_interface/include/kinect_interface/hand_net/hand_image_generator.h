@@ -21,11 +21,13 @@
 #define HN_NOM_DIST 500  // Downsample is exactly HN_SRC_IM_SIZE:HN_IM_SIZE at this depth
 #define HN_HAND_SIZE 300.0f
 #define HN_DEFAULT_NUM_CONV_BANKS 3
-#define HN_HPF_GAIN 2.0f
-#define HN_RECT_KERNEL_SIZE 11  // Clemont recommends 5x5 (aggressive), must be odd
-// #define HN_LOCAL_CONTRAST_NORM  // Otherwise subtractive local, divisive global
+#define HN_HPF_GAIN 2.0f 
+#define HN_RECT_KERNEL_SIZE 9  // Clemont recommends 5x5 (aggressive), must be odd --> Was 11
+#define HN_CONTRAST_NORM_THRESHOLD 2e-2f  // Clemont recommends 5x5 (aggressive), must be odd --> Was 1e-4
+#define HN_LOCAL_CONTRAST_NORM  // Otherwise subtractive local, divisive global --> Was undefined
+// #define DOWNSAMPLE_POINT  // Low quality downsample (but fast!)
 
-#define HN_USE_RECT_LPF_KERNEL  // Otherwise use gaussian --> Clemont recommends rect.
+// #define HN_USE_RECT_LPF_KERNEL  // Otherwise use gaussian --> Clemont recommends rect.
 
 namespace jtil { namespace data_str { template <typename T> class Vector; } }
 namespace jtorch {  
@@ -74,12 +76,14 @@ namespace hand_net {
     const float* hpf_hand_image_cpu() { return hpf_hand_image_cpu_; }
     const float* hand_image_cpu() { return hand_image_cpu_; }
     const float* cropped_hand_image() { return cropped_hand_image_; }
+    uint32_t size_images() const { return size_images_; }
     
     inline const jtil::math::Float3& uvd_com() const { return uvd_com_; }
     inline const jtil::math::Int4& hand_pos_wh() const { return hand_pos_wh_; }
 
   private:
     int32_t num_banks_;
+    uint32_t size_images_;
     float* cropped_hand_image_;
     jtorch::Table* hand_image_;
     jtorch::Table* hpf_hand_image_;  // NOT OWNED HERE!

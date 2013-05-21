@@ -9,6 +9,7 @@
 #include "jtil/image_util/image_util.h"
 #include "jtil/file_io/file_io.h"
 #include "jtil/threading/thread_pool.h"
+#include "jtorch/jtorch.h"
 #include "jtil/data_str/vector_managed.h"
 
 using std::string;
