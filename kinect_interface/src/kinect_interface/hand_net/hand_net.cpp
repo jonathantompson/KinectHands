@@ -18,6 +18,8 @@
 #include "jtil/image_util/image_util.h"
 #include "jtil/data_str/vector.h"
 #include "jtil/exceptions/wruntime_error.h"
+#include "jtil/renderer/renderer.h"
+#include "jtil/renderer/geometry/geometry_manager.h"
 #include "jtil/threading/thread_pool.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
@@ -33,6 +35,7 @@ using namespace jtil::image_util;
 using kinect_interface::hand_net::HandCoeff;
 using namespace jtil::math;
 using namespace jtorch;
+using namespace jtil::renderer;
 
 namespace kinect_interface {
 namespace hand_net {
@@ -102,7 +105,15 @@ namespace hand_net {
     image_generator_->calcHandImage(depth, label, data_type_ == HPF_DEPTH_DATA);
   }
 
-  void HandNet::calcHandCoeffConvnet(const int16_t* depth, 
+  void HandNet::loadHandModels() {
+    GeometryManager* gm = Renderer::g_renderer()->geometry_manager();
+    lhand_ = gm->loadModelFromJBinFile("./models", 
+      "hand_palm_parent_medium_wrist.jbin");
+    rhand_ = gm->loadModelFromJBinFile("./models", 
+      "hand_palm_parent_medium_wrist_right.jbin");
+  }
+
+  void HandNet::calcConvnetHeatMap(const int16_t* depth, 
     const uint8_t* label) {
     if (conv_network_ == NULL || image_generator_ == NULL) {
       std::cout << "HandNet::calcHandCoeff() - ERROR: Convnet not loaded";
@@ -130,6 +141,10 @@ namespace hand_net {
     //jtorch::cl_context->sync(jtorch::deviceid);  // Not necessary
     Tensor<float>* output_tensor = (Tensor<float>*)(conv_network_->output);
     output_tensor->getData(heat_map_convnet_);
+  }
+
+  void HandNet::calcConvnetPose() {
+
   }
 
   const float* HandNet::hpf_hand_image() const {
