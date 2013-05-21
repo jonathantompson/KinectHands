@@ -107,10 +107,11 @@ namespace hand_net {
 
   void HandNet::loadHandModels() {
     GeometryManager* gm = Renderer::g_renderer()->geometry_manager();
-    lhand_ = gm->loadModelFromJBinFile("./models", 
-      "hand_palm_parent_medium_wrist.jbin");
-    rhand_ = gm->loadModelFromJBinFile("./models", 
-      "hand_palm_parent_medium_wrist_right.jbin");
+    lhand_ = gm->loadModelFromJBinFile("./models/lib_hand", 
+      "hand_palm_parent_medium_wrist_dec_0.05.jbin");
+    //rhand_ = gm->loadModelFromJBinFile("./models/lib_hand", 
+    //  "hand_palm_parent_medium_wrist_dec_0.05_right.jbin");
+    rhand_ = NULL;  // For now.
   }
 
   void HandNet::calcConvnetHeatMap(const int16_t* depth, 

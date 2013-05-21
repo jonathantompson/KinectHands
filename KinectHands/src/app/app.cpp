@@ -692,6 +692,8 @@ namespace app {
     light_spot_vsm->inner_fov_deg() = 30.0f;
     light_spot_vsm->cvsm_count(1);
     Renderer::g_renderer()->addLight(light_spot_vsm);
+
+    hand_net_->loadHandModels();
   }
 
   void App::screenshotCB() {

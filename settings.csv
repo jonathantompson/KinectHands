@@ -38,7 +38,7 @@ window_depth_buffer_bits,         int,       32
 window_stencil_buffer_bits,       int,       0
 window_rgba_bits,                 int,       8
 render_ui_app,                    bool,      1
-render_ui_renderer,               bool,      0
+render_ui_renderer,               bool,      1
 render_ui_fps,                    bool,      1
 render_output_enum,               int,       0
 light_pass_stencil_opt,           bool,      0
@@ -51,9 +51,9 @@ ssao_enable,                      int,       1
 ssao_number_sample_enum,          int,       0
 ssao_blur_on,                     bool,      0
 global_ambient,                   float,     0.28
-directional_lights,               bool,      0
-spot_lights,                      bool,      0
-point_lights,                     bool,      0
+directional_lights,               bool,      1
+spot_lights,                      bool,      1
+point_lights,                     bool,      1
 render_light_volumes,             bool,      0
 render_light_sources,             bool,      0
 dof_on,                           bool,      0
