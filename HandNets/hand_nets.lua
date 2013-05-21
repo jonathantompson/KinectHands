@@ -81,7 +81,7 @@ if (perform_training == 1) then
 
   -- ***************** define the model parameters ********************
   nfeats = 1
-  nstates = {{32, 64}, {32, 64}, {32, 64}}  -- MUST BE MULTIPLES OF 16!
+  nstates = {{32, 32}, {32, 32}, {32, 32}}  -- MUST BE MULTIPLES OF 16!
   nn_stg1_out_size = (heat_map_width * heat_map_height * num_features) * 2
   filtsize = {{5, 6}, {5, 5}, {5, 5}}
   poolsize = {{4, 2}, {2, 2}, {2, 1}}  -- Note: 1 = no pooling

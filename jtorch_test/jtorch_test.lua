@@ -5,6 +5,8 @@ require 'optim'
 require 'sys'
 torch.setdefaulttensortype('torch.FloatTensor')
 
+dofile("save_array.lua")
+
 num_feats_in = 5
 num_feats_out = 10
 width = 10
@@ -30,8 +32,8 @@ model = nn.Sequential()
 -- Test tanh
 model:add(nn.Tanh())
 res = model:forward(data_in)
-print('Tanh result')
-print(res)
+saveArray(res, "test_data/tanh_result.bin")
+print('Tanh result saved to test_data/tanh_result.bin')
 
 -- Test Threshold
 threshold = 0.5
