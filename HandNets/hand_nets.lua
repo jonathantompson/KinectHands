@@ -17,7 +17,7 @@ dofile("pbar.lua")
 dofile("shuffle_files.lua")
 dofile("modules_cc.lua")
 
-torch.setnumthreads(16)
+torch.setnumthreads(8)
 torch.manualSeed(1)
 math.randomseed(1)
 
@@ -38,7 +38,7 @@ width = 96
 height = 96
 heat_map_width = 24  -- Decimation should equal the convnet pooling
 heat_map_height = 24
-heat_map_sigma = 0.5  -- Formally 0.5
+heat_map_sigma = 0.75  -- Formally 0.5
 num_hpf_banks = 3
 dim = width * height
 num_coeff = 24  -- 4 fingers + thumb + 3 palm positions
@@ -52,9 +52,9 @@ test_im_dir = "../data/hand_depth_data_processed_for_CN_testset/"
 heatmap_dir = "../data/heatmaps/"
 use_hpf_depth = 1
 learning_rate = 2e-1  -- Default 1e-1 (MSE, 1e-4 ABS)
-l2_reg_param = 1e-4  -- Default 2e-4
+l2_reg_param = 1e-5  -- Default 2e-4
 learning_rate_decay = 1e-6  -- Default 1e-6
-learning_momentum = 0.6 -- Default 0.9 --> Clement suggestion
+learning_momentum = 0.8 -- Default 0.9 --> Clement suggestion
 max_num_epochs = 250
 batch_size = 64  -- Default 128 (BUT MAYBE 32 IS BETTER!)
 
@@ -81,10 +81,10 @@ if (perform_training == 1) then
 
   -- ***************** define the model parameters ********************
   nfeats = 1
-  nstates = {{16, 32}, {16, 32}, {16, 32}}  -- MUST BE MULTIPLES OF 16!
-  nn_stg1_out_size = (heat_map_width * heat_map_height * num_features)
-  filtsize = {{7, 8}, {7, 7}, {5, 5}}
-  poolsize = {{2, 2}, {2, 1}, {1, 1}}  -- Note: 1 = no pooling
+  nstates = {{32, 64}, {32, 64}, {32, 64}}  -- MUST BE MULTIPLES OF 16!
+  nn_stg1_out_size = (heat_map_width * heat_map_height * num_features) * 2
+  filtsize = {{5, 6}, {5, 5}, {5, 5}}
+  poolsize = {{4, 2}, {2, 2}, {2, 1}}  -- Note: 1 = no pooling
 
   -- *********************** define the model *************************
   dofile('define_model.lua')
