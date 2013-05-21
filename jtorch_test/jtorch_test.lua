@@ -24,8 +24,8 @@ for f=1,num_feats_in do
   end
 end
 
-print('Data In:')
-print(data_in)
+saveArray(data_in, "test_data/data_in.bin")
+print('Data In: saved to test_data/data_in.bin')
 
 model = nn.Sequential()
 
@@ -40,8 +40,8 @@ threshold = 0.5
 val = 0.1
 model:add(nn.Threshold(threshold, val))
 res = model:forward(data_in)
-print('Threshold result')
-print(res)
+saveArray(res, "test_data/threshold.bin")
+print('Threshold result saved to test_data/threshold.bin')
 
 -- Test SpatialConvolutionMap
 n_states_in = num_feats_in
@@ -57,16 +57,16 @@ for f_out=1,num_feats_out do
     conn_table[{(f_out-1) * fan_in + f_in, 1}] = cur_f_in
   end
 end
-print('Spatial Convolution Map Connection Table')
-print(conn_table)
+-- print('Spatial Convolution Map Connection Table')
+-- print(conn_table)
 spat_conv_map = nn.SpatialConvolutionMap(conn_table, filt_width, filt_height)
-print('Spatial Convolution Map Connection Table Rev')
-print(spat_conv_map.connTableRev)
+-- print('Spatial Convolution Map Connection Table Rev')
+-- print(spat_conv_map.connTableRev)
 for f_out=1,num_feats_out do
   spat_conv_map.bias[{f_out}] = f_out / num_feats_out - 0.5
 end
-print('Spatial Convolution Map Biases')
-print(spat_conv_map.bias)
+-- print('Spatial Convolution Map Biases')
+-- print(spat_conv_map.bias)
 num_filt = fan_in * num_feats_out
 sigma_x_sq = 1
 sigma_y_sq = 1
@@ -80,12 +80,12 @@ for filt=1,num_filt do
     end
   end
 end
-print('Spatial Convolution Map Weights')
-print(spat_conv_map.weight)
+-- print('Spatial Convolution Map Weights')
+-- print(spat_conv_map.weight)
 model:add(spat_conv_map)
 res = model:forward(data_in)
-print('Spatial Convolution Map result')
-print(res)
+saveArray(res, "test_data/spatial_convolution_map.bin")
+print('Spatial Convolution Map result result saved to test_data/spatial_convolution_map.bin')
 
 -- Test SpatialConvolution
 n_states_in = num_feats_in
