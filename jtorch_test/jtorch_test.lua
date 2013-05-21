@@ -97,8 +97,8 @@ spat_conv = nn.SpatialConvolution(n_states_in, n_states_out, filt_width, filt_he
 for f_out=1,num_feats_out do
   spat_conv.bias[{f_out}] = f_out / num_feats_out - 0.5
 end
-print('Spatial Convolution Biases')
-print(spat_conv.bias)
+-- print('Spatial Convolution Biases')
+-- print(spat_conv.bias)
 num_filt = num_feats_out * num_feats_in
 sigma_x_sq = 1
 sigma_y_sq = 1
@@ -115,11 +115,11 @@ for fout=1,num_feats_out do
     end
   end
 end
-print('Spatial Convolution Weights')
-print(spat_conv.weight)
+-- print('Spatial Convolution Weights')
+-- print(spat_conv.weight)
 res = spat_conv:forward(model:get(2).output)
-print('Spatial Convolution result')
-print(res)
+saveArray(res, "test_data/spatial_convolution.bin")
+print('Spatial Convolution result result saved to test_data/spatial_convolution.bin')
 
 -- Test SpatialLPPooling
 pnorm = 2.0
@@ -129,16 +129,16 @@ poolsize_v = 2
 pool_stage = nn.SpatialLPPooling(nstates, poolsize_u, poolsize_v, poolsize_u, poolsize_v)
 model:add(pool_stage)
 res = model:forward(data_in)
-print('SpatialLPPooling result')
-print(res)
+saveArray(res, "test_data/spatial_lp_pooling.bin")
+print('Spatial LP Pooling result result saved to test_data/spatial_lp_pooling.bin')
 
 -- Test SpatialMaxPooling
 model3 = nn.Sequential()
 max_pool_stage = nn.SpatialMaxPooling(poolsize_u, poolsize_v, poolsize_u, poolsize_v)
 model3:add(max_pool_stage)
 res = model3:forward(data_in)
-print('SpatialMaxPooling result')
-print(res)
+saveArray(res, "test_data/spatial_max_pooling.bin")
+print('Spatial Max Pooling result result saved to test_data/spatial_max_pooling.bin')
 
 -- Test SpatialSubtractiveNormalization
 model4 = nn.Sequential()
@@ -148,8 +148,8 @@ print(normkernel)
 spatial_sub_norm = nn.SpatialSubtractiveNormalization(num_feats_in, normkernel)
 model4:add(spatial_sub_norm)
 res = model4:forward(data_in)
-print('SpatialSubtractiveNormalization result')
-print(res)
+saveArray(res, "test_data/spatial_subtractive_normalization.bin")
+print('SpatialSubtractiveNormalization result result saved to test_data/spatial_subtractive_normalization.bin')
 
 -- Test SpatialDivisiveNormalization
 model5 = nn.Sequential()
@@ -159,8 +159,9 @@ print(normkernel)
 spatial_div_norm = nn.SpatialDivisiveNormalization(num_feats_in, normkernel)
 model5:add(spatial_div_norm)
 res = model5:forward(data_in)
-print('SpatialDivisiveNormalization result')
-print(res)
+saveArray(res, "test_data/spatial_divisive_normalization.bin")
+print('SpatialDivisiveNormalization result result saved to test_data/spatial_divisive_normalization.bin')
+
 -- return spatial_div_norm.localstds
 
 -- Test SpatialContrastiveNormalization  --> Doesn't work on blackbox (works on my PC)
@@ -233,8 +234,8 @@ for i=1,lin_size_out do
 end
 model2:add(lin_stage)
 res = model2:forward(data_in)
-print('Linear result')
-print(res)
+saveArray(res, "test_data/linear.bin")
+print('Linear result saved to test_data/linear.bin')
 
 -- Test model
 --[[
