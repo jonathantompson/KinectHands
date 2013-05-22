@@ -13,6 +13,7 @@
 #include "jtorch/table.h"
 #include "jtorch/tensor.h"
 #include "kinect_interface/hand_net/hand_model_coeff.h"  // for HandCoeff
+#include "kinect_interface/hand_net/hand_model.h"  // for HandModel
 #include "kinect_interface/open_ni_funcs.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"  // for GDT_MAX_DIST
 #include "jtil/image_util/image_util.h"
@@ -46,6 +47,10 @@ namespace hand_net {
     heat_map_convnet_ = NULL;
     heat_map_size_ = 0;
     num_output_features_ = 0;
+    rest_pose_ = NULL;
+    lhand_cur_pose_ = NULL;
+    lhand_ = NULL;
+    rhand_ = NULL;
   }
 
   HandNet::~HandNet() {
@@ -56,6 +61,10 @@ namespace hand_net {
     SAFE_DELETE(conv_network_);
     SAFE_DELETE(image_generator_);
     SAFE_DELETE_ARR(heat_map_convnet_);
+    SAFE_DELETE(rest_pose_);
+    SAFE_DELETE(lhand_cur_pose_);
+    SAFE_DELETE(rhand_);
+    SAFE_DELETE(lhand_);
   }
 
   void HandNet::loadFromFile(const std::string& filename) {
@@ -99,6 +108,10 @@ namespace hand_net {
       throw std::wruntime_error("HandNet::loadFromFile() - ERROR: Heat map"
         "size is not what we expect!");
     }
+
+    rest_pose_ = new HandModelCoeff(HandType::LEFT);
+    lhand_cur_pose_ = new HandModelCoeff(HandType::LEFT);
+    rest_pose_->loadFromFile("./", "coeff_hand_rest_pose.bin");
   }
 
   void HandNet::calcHandImage(const int16_t* depth, const uint8_t* label) {
@@ -106,12 +119,7 @@ namespace hand_net {
   }
 
   void HandNet::loadHandModels() {
-    GeometryManager* gm = Renderer::g_renderer()->geometry_manager();
-    lhand_ = gm->loadModelFromJBinFile("./models/lib_hand", 
-      "hand_palm_parent_medium_wrist_dec_0.05.jbin");
-    //rhand_ = gm->loadModelFromJBinFile("./models/lib_hand", 
-    //  "hand_palm_parent_medium_wrist_dec_0.05_right.jbin");
-    rhand_ = NULL;  // For now.
+    lhand_ = new HandModel(HandType::LEFT);
   }
 
   void HandNet::calcConvnetHeatMap(const int16_t* depth, 
@@ -145,7 +153,9 @@ namespace hand_net {
   }
 
   void HandNet::calcConvnetPose() {
-
+    lhand_cur_pose_->copyCoeffFrom(rest_pose_);
+    // Now fit the palm:
+    lhand_->updateMatrices(lhand_cur_pose_->coeff());
   }
 
   const float* HandNet::hpf_hand_image() const {

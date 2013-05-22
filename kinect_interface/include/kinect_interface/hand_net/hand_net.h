@@ -37,10 +37,7 @@ namespace jtorch {
   class Table;
 }
 
-namespace jtil { namespace renderer { class GeometryInstance; } }
-
 namespace kinect_interface {
-
 namespace hand_net {
   // Note 1: All hand positions are in the hand coordinate frame (defined as 
   //         the origin at the UV COM of the hand points).
@@ -72,6 +69,8 @@ namespace hand_net {
   } HandNetDataType;
 
   class HandImageGenerator;
+  class HandModelCoeff;
+  class HandModel;
   
   class HandNet {
   public:
@@ -115,8 +114,10 @@ namespace hand_net {
     float* heat_map_convnet_;  // output data
     uint32_t heat_map_size_;
     uint32_t num_output_features_;
-    jtil::renderer::GeometryInstance* lhand_;  // Not owned here
-    jtil::renderer::GeometryInstance* rhand_;  // Not owned here
+    HandModel* lhand_;  // Not owned here
+    HandModel* rhand_;  // Not owned here
+    HandModelCoeff* rest_pose_;
+    HandModelCoeff* lhand_cur_pose_;
 
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in);
     void calcHPFHandBanks();

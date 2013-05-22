@@ -23,7 +23,7 @@ sync_ir_stream,                   bool,      0
 //, Also: Dont change flip image after startup!
 flip_image,                       bool,      1
 color_convnet_depth,              bool,      1
-color_convnet_depth_feature,      int,       4
+color_convnet_depth_feature,      int,       3
 color_convnet_depth_threshold,    int,       25
 
 //, RENDERER
@@ -38,7 +38,7 @@ window_depth_buffer_bits,         int,       32
 window_stencil_buffer_bits,       int,       0
 window_rgba_bits,                 int,       8
 render_ui_app,                    bool,      1
-render_ui_renderer,               bool,      1
+render_ui_renderer,               bool,      0
 render_ui_fps,                    bool,      1
 render_output_enum,               int,       0
 light_pass_stencil_opt,           bool,      0

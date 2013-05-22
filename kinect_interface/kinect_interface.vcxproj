@@ -25,6 +25,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="src\kinect_interface\hand_net\hand_model.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\hand_image_generator.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\hand_model_coeff.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\hand_net.cpp" />
@@ -48,6 +49,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="include\kinect_interface\hand_net\hand_model.h" />
     <ClInclude Include="include\kinect_interface\hand_net\hand_image_generator.h" />
     <ClInclude Include="include\kinect_interface\hand_net\hand_model_coeff.h" />
     <ClInclude Include="include\kinect_interface\hand_net\hand_net.h" />

@@ -55,7 +55,7 @@ namespace model_fit {
       bone_finger_4_index_[i] = MAX_UINT32;
     }
 
-    createHandGeometry(hand_type);
+    loadHandGeometry(hand_type);
 
     // HACK: The model's normals are inside out --> Fix them
     if (hand_type == HandType::RIGHT) {
@@ -75,6 +75,9 @@ namespace model_fit {
     GeometryManager::scene_graph_root()->addChild(scene_graph_);
     renderer_attachment_ = true;
 
+    const float* cmax = coeff_max_limit();
+    const float* cmin = coeff_max_limit();
+     
     // Set the PSO static radius
     for (uint32_t i = HAND_POS_X; i <= HAND_POS_Z; i++) {
       pso_radius_c_[i] = PSO_RAD_POSITION;
@@ -83,33 +86,33 @@ namespace model_fit {
       pso_radius_c_[i] = PSO_RAD_EULER;
     }
     for (uint32_t i = WRIST_THETA; i <= WRIST_PHI; i++) {  // Wrist
-      pso_radius_c_[i] = (coeff_max_limit_[i] - coeff_min_limit_[i]) * PSO_RAD_WRIST;
+      pso_radius_c_[i] = (cmax[i] - cmin[i]) * PSO_RAD_WRIST;
     }
     for (uint32_t i = THUMB_THETA; i <= THUMB_K2_PHI; i++) {  // thumb
-      pso_radius_c_[i] = (coeff_max_limit_[i] - coeff_min_limit_[i]) * PSO_RAD_THUMB;
+      pso_radius_c_[i] = (cmax[i] - cmin[i]) * PSO_RAD_THUMB;
     }
     for (uint32_t i = 0; i < 4; i++) {  // All fingers
       pso_radius_c_[F0_ROOT_THETA+i*FINGER_NUM_COEFF] = 
-        (coeff_max_limit_[F0_ROOT_THETA+i*FINGER_NUM_COEFF] - 
-        coeff_min_limit_[F0_ROOT_THETA+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
+        (cmax[F0_ROOT_THETA+i*FINGER_NUM_COEFF] - 
+        cmin[F0_ROOT_THETA+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
       pso_radius_c_[F0_ROOT_PHI+i*FINGER_NUM_COEFF] = 
-        (coeff_max_limit_[F0_ROOT_PHI+i*FINGER_NUM_COEFF] - 
-        coeff_min_limit_[F0_ROOT_PHI+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
+        (cmax[F0_ROOT_PHI+i*FINGER_NUM_COEFF] - 
+        cmin[F0_ROOT_PHI+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
       pso_radius_c_[F0_THETA+i*FINGER_NUM_COEFF] = 
-        (coeff_max_limit_[F0_THETA+i*FINGER_NUM_COEFF] - 
-        coeff_min_limit_[F0_THETA+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
+        (cmax[F0_THETA+i*FINGER_NUM_COEFF] - 
+        cmin[F0_THETA+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
       pso_radius_c_[F0_PHI+i*FINGER_NUM_COEFF] = 
-        (coeff_max_limit_[F0_PHI+i*FINGER_NUM_COEFF] - 
-        coeff_min_limit_[F0_PHI+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
+        (cmax[F0_PHI+i*FINGER_NUM_COEFF] - 
+        cmin[F0_PHI+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
       pso_radius_c_[F0_KNUCKLE_MID+i*FINGER_NUM_COEFF] = 
-        (coeff_max_limit_[F0_KNUCKLE_MID+i*FINGER_NUM_COEFF] - 
-        coeff_min_limit_[F0_KNUCKLE_MID+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
+        (cmax[F0_KNUCKLE_MID+i*FINGER_NUM_COEFF] - 
+        cmin[F0_KNUCKLE_MID+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
       pso_radius_c_[F0_KNUCKLE_END+i*FINGER_NUM_COEFF] = 
-        (coeff_max_limit_[F0_KNUCKLE_END+i*FINGER_NUM_COEFF] - 
-        coeff_min_limit_[F0_KNUCKLE_END+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
+        (cmax[F0_KNUCKLE_END+i*FINGER_NUM_COEFF] - 
+        cmin[F0_KNUCKLE_END+i*FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
     }
     for (uint32_t i = F0_TWIST; i <= THUMB_TWIST; i++) {  // thumb
-      pso_radius_c_[i] = (coeff_max_limit_[i] - coeff_min_limit_[i]) * PSO_RAD_FINGERS;
+      pso_radius_c_[i] = (cmax[i] - cmin[i]) * PSO_RAD_FINGERS;
     }
   }
 
@@ -119,7 +122,7 @@ namespace model_fit {
 
   uint32_t HandGeometryMesh::sph_bone_ind_[NUM_BOUNDING_SPHERES];
 
-  void HandGeometryMesh::createHandGeometry(HandType type) {
+  void HandGeometryMesh::loadHandGeometry(HandType type) {
     Renderer* g_renderer = Renderer::g_renderer();
     GeometryManager* gm = GeometryManager::g_geom_manager();
 #ifndef LOAD_HAND_MESH_JFILE
@@ -146,7 +149,7 @@ namespace model_fit {
       bones_in_file_ = gm->findBoneFileInfo(RHAND_MODEL_FILE);
     }
     if (bones_in_file_ == NULL) {
-      throw runtime_error(string("HandGeometryMesh::createHandGeometry()")+
+      throw runtime_error(string("HandGeometryMesh::loadHandGeometry()")+
         string(" - ERROR: Could not find hand model bone data!"));
     }
 
@@ -212,7 +215,7 @@ namespace model_fit {
        bone_thumb_1_index_ == MAX_UINT32 || bone_thumb_2_index_ == MAX_UINT32 ||
        bone_thumb_3_index_ == MAX_UINT32 || bone_palm_index_ == MAX_UINT32 ||
        !bones_ok) {
-      throw runtime_error(string("HandGeometryMesh::createHandGeometry()") +
+      throw runtime_error(string("HandGeometryMesh::loadHandGeometry()") +
         string(" - ERROR: couldn't find one of the bones!"));
     }
 
@@ -747,195 +750,6 @@ namespace model_fit {
     ret.m[14] = 0;
     ret.m[15] = 1;
 #endif
-  };
-
-  // coeff_min_limit_ is the minimum coefficient value before the penalty
-  // function heavily penalizes configurations with this value
-  const float HandGeometryMesh::coeff_min_limit_[HAND_NUM_COEFF] = {
-    -std::numeric_limits<float>::infinity(),    // HAND_POS_X
-    -std::numeric_limits<float>::infinity(),    // HAND_POS_Y
-    -std::numeric_limits<float>::infinity(),    // HAND_POS_Z
-    -3.14159f,  // HAND_ORIENT_X
-    -3.14159f,  // HAND_ORIENT_Y
-    -3.14159f,  // HAND_ORIENT_Z
-    -0.903f,  // WRIST_THETA
-    -1.580f,  // WRIST_PHI
-    -0.523f,  // THUMB_THETA
-    -0.523f,  // THUMB_PHI
-    -0.633f,  // THUMB_K1_THETA
-    -1.253f,  // THUMB_K1_PHI
-    -1.733f,  // THUMB_K2_PHI
-    -0.300f,  // F0_ROOT_THETA
-    -0.300f,  // F0_ROOT_PHI
-    -0.800f,  // F0_THETA
-    -1.443f,  // F0_PHI
-    -1.400f,  // F0_KNUCKLE_MID  // Formally -1.363 4/12/2013
-    -1.500f,  // F0_KNUCKLE_END  // Formally -1.363 4/12/2013
-    -0.300f,  // F1_ROOT_THETA
-    -0.300f,  // F1_ROOT_PHI
-    -0.800f,  // F1_THETA
-    -1.443f,  // F1_PHI
-    -1.400f,  // F1_KNUCKLE_MID  // Formally -1.363 4/12/2013
-    -1.500f,  // F1_KNUCKLE_END  // Formally -1.363 4/12/2013
-    -0.300f,  // F2_ROOT_THETA
-    -0.300f,  // F2_ROOT_PHI
-    -0.800f,  // F2_THETA
-    -1.443f,  // F2_PHI
-    -1.400f,  // F2_KNUCKLE_MID  // Formally -1.363 4/12/2013
-    -1.500f,  // F2_KNUCKLE_END  // Formally -1.363 4/12/2013
-    -0.300f,  // F3_ROOT_THETA
-    -0.300f,  // F3_ROOT_PHI
-    -0.800f,  // F3_THETA
-    -1.443f,  // F3_PHI
-    -1.400f,  // F3_KNUCKLE_MID  // Formally -1.363 4/12/2013
-    -1.500f,  // F3_KNUCKLE_END  // Formally -1.363 4/12/2013
-    -0.300f,  // F0_TWIST
-    -0.400f,  // F1_TWIST
-    -0.300f,  // F2_TWIST
-    -0.300f,  // F3_TWIST
-    -0.300f,  // THUMB_TWIST
-  };
-  
-  // coeff_max_limit_ is the maximum coefficient value before the penalty
-  // function heavily penalizes configurations with this value
-  const float HandGeometryMesh::coeff_max_limit_[HAND_NUM_COEFF] = {
-    std::numeric_limits<float>::infinity(),    // HAND_POS_X
-    std::numeric_limits<float>::infinity(),    // HAND_POS_Y
-    std::numeric_limits<float>::infinity(),    // HAND_POS_Z
-    3.14159f,  // HAND_ORIENT_X
-    3.14159f,  // HAND_ORIENT_Y
-    3.14159f,  // HAND_ORIENT_Z
-    0.905f,  // WRIST_THETA
-    1.580f,  // WRIST_PHI
-    0.550f,  // THUMB_THETA
-    0.580f,  // THUMB_PHI
-    0.700f,  // THUMB_K1_THETA
-    0.750f,  // THUMB_K1_PHI
-    0.500f,  // THUMB_K2_PHI
-    0.300f,  // F0_ROOT_THETA
-    0.300f,  // F0_ROOT_PHI
-    0.600f,  // F0_THETA
-    0.670f,  // F0_PHI
-    0.560f,  // F0_KNUCKLE_MID
-    0.560f,  // F0_KNUCKLE_END
-    0.300f,  // F1_ROOT_THETA
-    0.300f,  // F1_ROOT_PHI
-    0.600f,  // F1_THETA
-    0.670f,  // F1_PHI
-    0.560f,  // F1_KNUCKLE_MID
-    0.560f,  // F1_KNUCKLE_END
-    0.300f,  // F2_ROOT_THETA
-    0.300f,  // F2_ROOT_PHI
-    0.600f,  // F2_THETA
-    0.670f,  // F2_PHI
-    0.560f,  // F2_KNUCKLE_MID
-    0.560f,  // F2_KNUCKLE_END
-    0.300f,  // F3_ROOT_THETA
-    0.300f,  // F3_ROOT_PHI
-    0.600f,  // F3_THETA
-    0.670f,  // F3_PHI
-    0.560f,  // F3_KNUCKLE_MID
-    0.560f,  // F3_KNUCKLE_END
-    0.300f,  // F0_TWIST
-    0.300f,  // F1_TWIST
-    0.300f,  // F2_TWIST
-    0.300f,  // F3_TWIST
-    0.300f,  // THUMB_TWIST
-  };
-  
-  // coeff_penalty_scale_ is the exponential scale to use when penalizing coeffs
-  // outside the min and max values.
-  const float HandGeometryMesh::coeff_penalty_scale_[HAND_NUM_COEFF] = {
-    0,    // HAND_POS_X
-    0,    // HAND_POS_Y
-    0,    // HAND_POS_Z
-    0,  // HAND_ORIENT_X
-    0,  // HAND_ORIENT_Y
-    0,  // HAND_ORIENT_Z
-    100,  // WRIST_THETA
-    100,  // WRIST_PHI
-    100,  // THUMB_THETA
-    100,  // THUMB_PHI
-    100,  // THUMB_K1_THETA
-    100,  // THUMB_K1_PHI
-    100,  // THUMB_K2_PHI
-    100,  // F0_ROOT_THETA
-    100,  // F0_ROOT_PHI
-    100,  // F0_THETA
-    100,  // F0_PHI
-    100,  // F0_KNUCKLE_MID
-    100,  // F0_KNUCKLE_END
-    100,  // F1_ROOT_THETA
-    100,  // F1_ROOT_PHI
-    100,  // F1_THETA
-    100,  // F1_PHI
-    100,  // F1_KNUCKLE_MID
-    100,  // F1_KNUCKLE_END
-    100,  // F2_ROOT_THETA
-    100,  // F2_ROOT_PHI
-    100,  // F2_THETA
-    100,  // F2_PHI
-    100,  // F2_KNUCKLE_MID
-    100,  // F2_KNUCKLE_END
-    100,  // F3_ROOT_THETA
-    100,  // F3_ROOT_PHI
-    100,  // F3_THETA
-    100,  // F3_PHI
-    100,  // F3_KNUCKLE_MID
-    100,  // F3_KNUCKLE_END
-    100,  // F0_TWIST
-    100,  // F1_TWIST
-    100,  // F2_TWIST
-    100,  // F3_TWIST
-    100,  // THUMB_TWIST
-  };
-
-// angle_coeffs are boolean values indicating if the coefficient represents
-  // a pure angle (0 --> 2pi)
-  const bool HandGeometryMesh::angle_coeffs_[HAND_NUM_COEFF] = {
-    // Hand 1
-    false,  // HAND_POS_X
-    false,  // HAND_POS_Y
-    false,  // HAND_POS_Z
-    true,  // HAND_ORIENT_X
-    true,  // HAND_ORIENT_Y
-    true,  // HAND_ORIENT_Z
-    true,   // WRIST_THETA
-    true,   // WRIST_PHI
-    true,   // THUMB_THETA
-    true,   // THUMB_PHI
-    true,   // THUMB_K1_THETA
-    true,   // THUMB_K1_PHI
-    true,   // THUMB_K2_PHI
-    true,   // F0_ROOT_THETA
-    true,   // F0_ROOT_PHI
-    true,   // F0_THETA
-    true,   // F0_PHI
-    true,   // F0_KNUCKLE_MID
-    true,   // F0_KNUCKLE_END
-    true,   // F1_ROOT_THETA
-    true,   // F1_ROOT_PHI
-    true,   // F1_THETA
-    true,   // F1_PHI
-    true,   // F1_KNUCKLE_MID
-    true,   // F1_KNUCKLE_END
-    true,   // F2_ROOT_THETA
-    true,   // F2_ROOT_PHI
-    true,   // F2_THETA
-    true,   // F2_PHI
-    true,   // F2_KNUCKLE_MID
-    true,   // F2_KNUCKLE_END
-    true,   // F3_ROOT_THETA
-    true,   // F3_ROOT_PHI
-    true,   // F3_THETA
-    true,   // F3_PHI
-    true,   // F3_KNUCKLE_MID
-    true,   // F3_KNUCKLE_END
-    true,   // F0_TWIST
-    true,   // F1_TWIST
-    true,   // F2_TWIST
-    true,   // F3_TWIST
-    true,   // THUMB_TWIST
   };
 
 }  // namespace hand_fit

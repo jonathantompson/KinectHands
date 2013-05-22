@@ -144,7 +144,8 @@ namespace hand_net {
     copyCoeffFrom(model->coeff_, NUM_PARAMETERS);
   }
 
-  void HandModelCoeff::copyCoeffFrom(const float* coeff, const uint32_t ncoeffs) {
+  void HandModelCoeff::copyCoeffFrom(const float* coeff, 
+    const uint32_t ncoeffs) {
     memcpy(coeff_, coeff, sizeof(coeff_[0]) * ncoeffs);
   }
 
