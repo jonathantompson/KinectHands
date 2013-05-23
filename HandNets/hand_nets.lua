@@ -51,11 +51,11 @@ im_dir = "../data/hand_depth_data_processed_for_CN/"
 test_im_dir = "../data/hand_depth_data_processed_for_CN_testset/"
 heatmap_dir = "../data/heatmaps/"
 use_hpf_depth = 1
-learning_rate = 2e1  -- Default 1e-1 (MSE, 1e-4 ABS)
-l2_reg_param = 1e-5  -- Default 2e-4
-learning_rate_decay = 1e-6  -- Default 1e-6
+learning_rate = 2e-0  -- Default 1e-1 (MSE, 1e-4 ABS)
+l2_reg_param = 1e-4  -- Default 2e-4
+learning_rate_decay = 1e-8  -- Default 1e-6
 learning_momentum = 0.8 -- Default 0.9 --> Clement suggestion
-max_num_epochs = 250
+max_num_epochs = 200
 batch_size = 64  -- Default 128 (BUT MAYBE 32 IS BETTER!)
 
 -- ********************** Load data from Disk *************************
@@ -82,7 +82,7 @@ if (perform_training == 1) then
   -- ***************** define the model parameters ********************
   nfeats = 1
   nstates = {{32, 32}, {32, 32}, {32, 32}}  -- MUST BE MULTIPLES OF 16!
-  nn_stg1_out_size = (heat_map_width * heat_map_height * num_features) * 2
+  nn_stg1_out_size = (heat_map_width * heat_map_height * num_features)  -- formally * 2
   filtsize = {{5, 6}, {5, 5}, {5, 5}}
   poolsize = {{4, 2}, {2, 2}, {2, 1}}  -- Note: 1 = no pooling
 
@@ -115,7 +115,7 @@ if (perform_training == 1) then
     learningRate = learning_rate,
     weightDecay = l2_reg_param,
     momentum = learning_momentum,
-    learningRateDecay = learning_rate_decay
+    learningRateDecay = learning_rate_decay  -- clr = lr / (1 + nevals * decay)
   }
   optimMethod = optim.sgd
 
