@@ -48,6 +48,7 @@ namespace jtorch {
 
     // Deep copy (not too expensive since it'll copy GPU mem to GPU mem)
     Tensor<T>* copy() const;
+    void zeroTensor() const;
 
     // gaussian1D In torch: >> normkernel = image.gaussian1D(n)
     // It's a gaussian of x = -2*sigma to 2*sigma, where sigma = size / 2
@@ -72,6 +73,8 @@ namespace jtorch {
     dim_.set(dim[0], dim[1], dim[2]);
     data_ = jtorch::cl_context->allocateBuffer(jcl::CLBufferTypeReadWrite,
       dim_[0], dim_[1], dim_[2]);
+    zeroTensor();
+
   }
 
   template <typename T>
@@ -79,6 +82,7 @@ namespace jtorch {
     dim_.set(dim[0], dim[1], 1);
     data_ = jtorch::cl_context->allocateBuffer(jcl::CLBufferTypeReadWrite,
       dim_[0], dim_[1], dim_[2]);
+    zeroTensor();
   }
 
   template <typename T>
@@ -86,6 +90,7 @@ namespace jtorch {
     dim_.set(dim, 1, 1);
     data_ = jtorch::cl_context->allocateBuffer(jcl::CLBufferTypeReadWrite,
       dim_[0], dim_[1], dim_[2]);
+    zeroTensor();
   }
 
   template <typename T>
@@ -211,17 +216,16 @@ namespace jtorch {
     cl_context->useKernel(kernel.c_str(), "Copy");
     cl_context->setArg(0, const_cast<Tensor<T>*>(this)->data());
     cl_context->setArg(1, ret->data());
-    //jtil::math::Int3 local_worgroup_size;
-    //for (uint32_t i = 0; i < 3; i++) {
-    //  local_worgroup_size[i] = std::min<int>(jtorch::max_local_workgroup_size,
-    //    ret->dim()[i]);
-    //  while (local_worgroup_size[i] > 1 && 
-    //    ret->dim()[i] % local_worgroup_size[i] != 0) {
-    //    local_worgroup_size[i]--;
-    //  }
-    //}
-    cl_context->runKernel3D(jtorch::deviceid, ret->dim(), false);
+    cl_context->runKernel1D(jtorch::deviceid, ret->dataSize(), false);
     return ret;
+  }
+  
+  template <typename T>
+  void Tensor<T>::zeroTensor() const {
+    std::string kernel = jtorch::jtorch_path + "kernels/tensor.cl";
+    cl_context->useKernel(kernel.c_str(), "Zero");
+    cl_context->setArg(0, const_cast<Tensor<T>*>(this)->data());
+    cl_context->runKernel1D(jtorch::deviceid, this->dataSize(), false);
   }
 
 };  // namespace jtorch

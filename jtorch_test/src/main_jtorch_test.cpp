@@ -34,11 +34,6 @@
   #define snprintf _snprintf_s
 #endif
 
-#define NUM_WORKER_THREADS 1
-#define TEST_MODULES
-// #define TEST_MODEL
-#define TEST_BIG_MODEL  // The actual convnet
-
 using namespace std;
 using namespace jtorch;
 using namespace jtil::threading;
@@ -67,15 +62,22 @@ const int32_t lin_size_out = 20;
 float lweights[lin_size_in * lin_size_out];
 float lbiases[lin_size_out];
 
-void testResult(jtorch::Tensor<float>* data, const std::string& filename) {
+void testJTorchValue(jtorch::Tensor<float>* data, const std::string& filename) {
   float* correct_data = new float[data->dataSize()];
   float* model_data = new float[data->dataSize()];
+  memset(model_data, 0, sizeof(model_data[0]) * data->dataSize());
   LoadArrayFromFile<float>(correct_data, data->dataSize(), filename);
   data->getData(model_data);
   bool data_correct = true;
-  for (uint32_t i = 0; i < data->dataSize(); i++ && data_correct) {
-    if (fabsf(model_data[i] - correct_data[i]) > EPSILON) {
+  for (uint32_t i = 0; i < data->dataSize() && data_correct; i++) {
+    float delta = fabsf(model_data[i] - correct_data[i]) ;
+    if (delta > LOOSE_EPSILON && (delta /
+      std::max<float>(fabsf(correct_data[i]), EPSILON)) > 0.0001f) {
       data_correct = false;
+      std::cout << "index " << i << " incorrect!: " << std::endl;
+      std::cout << std::fixed << std::setprecision(15); 
+      std::cout << "model_data[" << i << "] = " << model_data[i] << std::endl;
+      std::cout << "correct_data[" << i << "] = " << correct_data[i] << std::endl;
     }
   }
   if (data_correct) {
@@ -111,19 +113,15 @@ int main(int argc, char *argv[]) {
       }
     }
     data_in.setData(din);
+    testJTorchValue(&data_in, "./test_data/data_in.bin");
 
-    std::cout << "Data In:" << std::endl;
-    data_in.print();
-
-
-#ifdef TEST_MODULES
     Sequential stages;
 
     // ***********************************************
     // Test Tanh
     stages.add(new Tanh());
     stages.forwardProp(data_in);
-    testResult((jtorch::Tensor<float>*)stages.output, 
+    testJTorchValue((jtorch::Tensor<float>*)stages.output, 
       "./test_data/tanh_result.bin");
     
     // ***********************************************
@@ -134,8 +132,8 @@ int main(int argc, char *argv[]) {
     ((jtorch::Threshold*)stages.get(1))->threshold = threshold;
     ((jtorch::Threshold*)stages.get(1))->val = val;
     stages.forwardProp(data_in);
-    std::cout << endl << endl << "Threshold output:" << std::endl;
-    stages.output->print();
+    testJTorchValue((jtorch::Tensor<float>*)stages.output, 
+      "./test_data/threshold.bin");
     
     // ***********************************************
     // Test SpatialConvolutionMap --> THIS STAGE IS STILL ON THE CPU!!
@@ -168,8 +166,8 @@ int main(int argc, char *argv[]) {
       }
     }
     stages.forwardProp(data_in);
-    std::cout << endl << endl << "SpatialConvolutionMap output:" << std::endl;
-    stages.output->print();
+    testJTorchValue((jtorch::Tensor<float>*)stages.output, 
+      "./test_data/spatial_convolution_map.bin");
 
     // ***********************************************
     // Test SpatialConvolution
@@ -195,8 +193,8 @@ int main(int argc, char *argv[]) {
     conv.setWeights(cweights);
     conv.setBiases(cbiases);
     conv.forwardProp(*stages.get(1)->output);
-    std::cout << endl << endl << "SpatialConvolution output:" << std::endl;
-    conv.output->print();
+    testJTorchValue((jtorch::Tensor<float>*)conv.output, 
+      "./test_data/spatial_convolution.bin");
     
     // ***********************************************
     // Test SpatialLPPooling
@@ -205,15 +203,15 @@ int main(int argc, char *argv[]) {
     const int32_t pool_v = 2;
     stages.add(new SpatialLPPooling(pnorm, pool_v, pool_u));
     stages.forwardProp(data_in);
-    std::cout << endl << endl << "SpatialLPPooling output:" << std::endl;
-    stages.output->print();
+    testJTorchValue((jtorch::Tensor<float>*)stages.output, 
+      "./test_data/spatial_lp_pooling.bin");
 
     // ***********************************************
     // Test SpatialMaxPooling
     SpatialMaxPooling max_pool_stage(pool_v, pool_u);
     max_pool_stage.forwardProp(data_in);
-    std::cout << endl << endl << "SpatialMaxPooling output:" << std::endl;
-    max_pool_stage.output->print();
+    testJTorchValue((jtorch::Tensor<float>*)max_pool_stage.output, 
+      "./test_data/spatial_max_pooling.bin");
   
     // ***********************************************
     // Test SpatialSubtractiveNormalization
@@ -224,15 +222,15 @@ int main(int argc, char *argv[]) {
 
     SpatialSubtractiveNormalization sub_norm_stage(*kernel);
     sub_norm_stage.forwardProp(data_in);
-    std::cout << endl << endl << "SpatialSubtractiveNormalization output:" << endl;
-    sub_norm_stage.output->print();
+    testJTorchValue((jtorch::Tensor<float>*)sub_norm_stage.output, 
+      "./test_data/spatial_subtractive_normalization.bin");
 
     // ***********************************************
     // Test SpatialDivisiveNormalization
     SpatialDivisiveNormalization div_norm_stage(*kernel);
     div_norm_stage.forwardProp(data_in);
-    std::cout << endl << endl << "SpatialDivisiveNormalization output:" << endl;
-    div_norm_stage.output->print();
+    testJTorchValue((jtorch::Tensor<float>*)div_norm_stage.output, 
+      "./test_data/spatial_divisive_normalization.bin");
 
     // ***********************************************
     // Test SpatialContrastiveNormalization
@@ -248,12 +246,12 @@ int main(int argc, char *argv[]) {
     Tensor<float>* kernel2 = Tensor<float>::ones1D(kernel_size);
     SpatialContrastiveNormalization cont_norm_stage(kernel2);
     cont_norm_stage.forwardProp(lena);
-    std::cout << endl << endl << "SpatialContrastiveNormalization output saved ";
-    std::cout << "to lena_image_processed.bin" << endl;
     float* cont_norm_output_cpu = new float[cont_norm_stage.output->dataSize()];
     ((Tensor<float>*)cont_norm_stage.output)->getData(cont_norm_output_cpu);
     jtil::file_io::SaveArrayToFile<float>(cont_norm_output_cpu, 
       lena_width * lena_height, "lena_image_processed.bin");
+    std::cout << "SpatialContrastiveNormalization output saved to ";
+    std::cout << "lena_image_processed.bin" << endl;
     delete[] cont_norm_output_cpu;
 
     // ***********************************************
@@ -279,21 +277,19 @@ int main(int argc, char *argv[]) {
     lin->setBiases(lbiases);
     lin->setWeights(lweights);
     lin_stage.forwardProp(data_in);
-    std::cout << endl << endl << "Linear output:" << std::endl;
-    lin_stage.output->print();
+    testJTorchValue((jtorch::Tensor<float>*)lin_stage.output, 
+      "./test_data/linear.bin");
 
     delete kernel;
     delete kernel2;
-#endif
 
-#ifdef TEST_MODEL
     // ***********************************************
     // Test Loading a model
     TorchStage* model = TorchStage::loadFromFile("./testmodel.bin");
 
     model->forwardProp(data_in);
-    std::cout << "Model Output = " << std::endl;
-    model->output->print();
+    testJTorchValue((jtorch::Tensor<float>*)model->output, 
+      "./test_data/test_model_result.bin");
 
     // Some debugging if things go wrong:
     if (model->type() != SEQUENTIAL_STAGE) {
@@ -301,9 +297,7 @@ int main(int argc, char *argv[]) {
     }
 
     delete model;
-#endif
 
-#ifdef TEST_BIG_MODEL
     // ***********************************************
     // Test Loading the big convnet model
     TorchStage* convnet_model = TorchStage::loadFromFile("../data/handmodel.net.convnet");
@@ -374,19 +368,26 @@ int main(int argc, char *argv[]) {
     std::cout << "Time per evaluation ";
     std::cout << (time_accum / (double)num_evals) * 1e3 << "ms" << std::endl;
 
+    // Approximate benchmark times:
+    // 9.3756ms total
+    // 5.3824ms linear (57.4%)
+    // 2.0362ms convolution (21.7%)
+    // 57.8us max pooling (0.6%)
+
     // Profile the linear stage
     jtorch::cl_context->sync(jtorch::deviceid);
     std::cout << "Profiling linear for 5 seconds..." << std::endl;
     JoinTable* join_t = (JoinTable*)((Sequential*)convnet_model)->get(1);
-    Linear* linear_stage = (Linear*)((Sequential*)convnet_model)->get(2);
+    Linear* linear_stage1 = (Linear*)((Sequential*)convnet_model)->get(2);
+    Threshold* threshold_stage1 = (Threshold*)((Sequential*)convnet_model)->get(3);
+    Linear* linear_stage2 = (Linear*)((Sequential*)convnet_model)->get(4);
     num_evals = 0;
     time_accum = 0.0;
     while (time_accum < 5) {
-      // Fairest test is to perform a sync after every read and wait for the
-      // work queue to empty.  Otherwise requests happen in parallel which
-      // isn't what torch does.
+
       double t0 = clk.getTime();
-      linear_stage->forwardProp(*join_t->output);
+      linear_stage1->forwardProp(*join_t->output);
+      linear_stage2->forwardProp(*threshold_stage1->output);
       jtorch::cl_context->sync(jtorch::deviceid);
       double t1 = clk.getTime();
       time_accum += (t1 - t0);
@@ -398,7 +399,6 @@ int main(int argc, char *argv[]) {
     delete[] convnet_input_cpu;
     delete convnet_input;
     delete convnet_model;
-#endif
 
   } catch (std::wruntime_error e) {
     std::cout << "Exception caught!" << std::endl;

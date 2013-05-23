@@ -133,7 +133,6 @@ namespace app {
     convnet_hm_im_flipped_ = new uint8_t[w * h * 3];
     memset(convnet_hm_im_flipped_, 0, 
       sizeof(convnet_hm_im_flipped_[0]) * w * h * 3);
-   
 
     Renderer::InitRenderer();
     registerNewRenderer();
@@ -286,8 +285,9 @@ namespace app {
         bool detect_pose;
         GET_SETTING("detect_pose", bool, detect_pose);
         if (detect_pose) {
-          hand_net_->calcHandCoeffConvnet(kdata_[cur_kinect]->depth, 
+          hand_net_->calcConvnetHeatMap(kdata_[cur_kinect]->depth, 
             kdata_[cur_kinect]->labels);
+          hand_net_->calcConvnetPose();
         }
       }  // if (new_data_)
 
@@ -692,6 +692,8 @@ namespace app {
     light_spot_vsm->inner_fov_deg() = 30.0f;
     light_spot_vsm->cvsm_count(1);
     Renderer::g_renderer()->addLight(light_spot_vsm);
+
+    hand_net_->loadHandModels();
   }
 
   void App::screenshotCB() {

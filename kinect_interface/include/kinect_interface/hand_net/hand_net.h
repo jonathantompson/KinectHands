@@ -38,7 +38,6 @@ namespace jtorch {
 }
 
 namespace kinect_interface {
-
 namespace hand_net {
   // Note 1: All hand positions are in the hand coordinate frame (defined as 
   //         the origin at the UV COM of the hand points).
@@ -70,6 +69,8 @@ namespace hand_net {
   } HandNetDataType;
 
   class HandImageGenerator;
+  class HandModelCoeff;
+  class HandModel;
   
   class HandNet {
   public:
@@ -80,14 +81,19 @@ namespace hand_net {
     void loadFromFile(const std::string& convnet_filename);
 
     // Top level functions
-    // calcHandCoeffConvnet - Calculates the convnet coeffs (not necessary
+    // calcConvnetHeatMap - Calculates the convnet coeffs (not necessary
     // the same as the coeffs the renderer uses - see above)
     // Result is placed in coeff_convnet
-    void calcHandCoeffConvnet(const int16_t* depth, const uint8_t* label);
+    void calcConvnetHeatMap(const int16_t* depth, const uint8_t* label);
+    void calcConvnetPose();
 
     // If you don't want the full convnet computation but you want the hand 
     // image -> Useful when we know the correct coeff but we want to debug
     void calcHandImage(const int16_t* depth, const uint8_t* label);
+
+    // loadHandModels - Needs to be called whenever the renderer gets
+    // destroyed and a new model needs to be loaded
+    void loadHandModels();
 
     // Getter methods
     const float* hpf_hand_image() const;
@@ -108,6 +114,10 @@ namespace hand_net {
     float* heat_map_convnet_;  // output data
     uint32_t heat_map_size_;
     uint32_t num_output_features_;
+    HandModel* lhand_;  // Not owned here
+    HandModel* rhand_;  // Not owned here
+    HandModelCoeff* rest_pose_;
+    HandModelCoeff* lhand_cur_pose_;
 
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in);
     void calcHPFHandBanks();

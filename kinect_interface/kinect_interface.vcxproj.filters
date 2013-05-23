@@ -63,6 +63,9 @@
     <ClCompile Include="src\kinect_interface\kinect_device_listener.cpp">
       <Filter>Source Files\kinect_interface</Filter>
     </ClCompile>
+    <ClCompile Include="src\kinect_interface\hand_net\hand_model.cpp">
+      <Filter>Source Files\kinect_interface\hand_net</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\kinect_interface\hand_detector\hand_detector.h">
@@ -112,6 +115,9 @@
     </ClInclude>
     <ClInclude Include="include\kinect_interface\kinect_device_listener.h">
       <Filter>Header Files\kinect_interface</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kinect_interface\hand_net\hand_model.h">
+      <Filter>Header Files\kinect_interface\hand_net</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

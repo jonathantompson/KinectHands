@@ -23,7 +23,7 @@ sync_ir_stream,                   bool,      0
 //, Also: Dont change flip image after startup!
 flip_image,                       bool,      1
 color_convnet_depth,              bool,      1
-color_convnet_depth_feature,      int,       4
+color_convnet_depth_feature,      int,       3
 color_convnet_depth_threshold,    int,       25
 
 //, RENDERER
@@ -51,9 +51,9 @@ ssao_enable,                      int,       1
 ssao_number_sample_enum,          int,       0
 ssao_blur_on,                     bool,      0
 global_ambient,                   float,     0.28
-directional_lights,               bool,      0
-spot_lights,                      bool,      0
-point_lights,                     bool,      0
+directional_lights,               bool,      1
+spot_lights,                      bool,      1
+point_lights,                     bool,      1
 render_light_volumes,             bool,      0
 render_light_sources,             bool,      0
 dof_on,                           bool,      0
