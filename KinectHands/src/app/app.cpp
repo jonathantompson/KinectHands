@@ -684,16 +684,6 @@ namespace app {
     ui->setTextWindowPos("kinect_fps_wnd", pos);
 
     LightSpotCVSM* light_spot_vsm = new LightSpotCVSM(Renderer::g_renderer());
-    light_spot_vsm->dir_world().set(0, -1, 0);
-    light_spot_vsm->pos_world().set(0, 10, 7.5);  // World is in 0.1m units
-    light_spot_vsm->near_far().set(1.0f, 20.0f);
-    light_spot_vsm->outer_fov_deg() = 35.0f;
-    light_spot_vsm->diffuse_intensity() = 1.0f;
-    light_spot_vsm->inner_fov_deg() = 30.0f;
-    light_spot_vsm->cvsm_count(1);
-    Renderer::g_renderer()->addLight(light_spot_vsm);
-
-    light_spot_vsm = new LightSpotCVSM(Renderer::g_renderer());
     light_spot_vsm->dir_world().set(0, 0, 1);
     light_spot_vsm->pos_world().set(-2, 0, 2);  // World is in 0.1m units
     light_spot_vsm->near_far().set(1.0f, 20.0f);
@@ -703,7 +693,8 @@ namespace app {
     light_spot_vsm->cvsm_count(1);
     Renderer::g_renderer()->addLight(light_spot_vsm);
 
-    GeometryInstance* tmp = Renderer::g_renderer()->geometry_manager()->makeTorusKnot(lred, 7, 64, 512);
+    GeometryInstance* tmp = 
+      Renderer::g_renderer()->geometry_manager()->makeTorusKnot(lred, 7, 64, 512);
     tmp->mat().leftMultTranslation(3.0f, 0.0f, 15.0f);
 
     hand_net_->loadHandModels();
@@ -727,6 +718,16 @@ namespace app {
       src_height, true);
     std::cout << "RGB saved to file " << ss.str() << std::endl;
     g_app_->screenshot_counter_++;
+    /*
+    // Also save the heatmaps (for debugging later)
+    const float* hm = g_app_->hand_net_->heat_map_convnet();
+    const uint32_t hm_dim = g_app_->hand_net_->heat_map_size();
+    const uint32_t hm_nfeats = g_app_->hand_net_->num_output_features();
+    ss.str("");
+    ss << "heatmap_screenshot" << g_app_->screenshot_counter_ << ".bin";
+    jtil::file_io::SaveArrayToFile<float>(hm, hm_dim * hm_dim * hm_nfeats, 
+      ss.str());
+    */
     g_app_->kinect_[cur_kinect]->unlockData();
   }
 

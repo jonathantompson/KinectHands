@@ -99,7 +99,7 @@ namespace hand_net {
     const float* hpf_hand_image() const;
     const float* heat_map_convnet() const { return heat_map_convnet_; }
     float* heat_map_convnet() { return heat_map_convnet_; }
-    uint32_t heat_map_size() { return heat_map_size_; }
+    uint32_t heat_map_size() { return heat_map_size_; }  // Number of pixels total
     uint32_t num_output_features() { return num_output_features_; }
     HandImageGenerator* image_generator() const { return image_generator_; }
     const float* hand_image() const;
