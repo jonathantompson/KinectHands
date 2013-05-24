@@ -5,7 +5,7 @@ dim = 24;
 nfeats = 8;
 remove_outliers = false
 outlier_threshold = 0.01
-cur_feature = 1;
+cur_feature = 5;
 
 file = fopen(filename);
 data = double(fread(file, dim * dim * nfeats, 'single'));
@@ -95,15 +95,29 @@ c_0 = [max(max(cur_hm)), hm_mean(1), hm_mean(2), hm_std(1), hm_std(2)];
 norm_delta_c_tollerence = 1e-5;
 [c_solve] = Levenberg_Marquardt(gauss, X_vals, Y_vals, c_0, pderiv, norm_delta_c_tollerence);
 
+%% Try BFGS
+bfgs_func = @(C) sum(sum((Y_vals - gauss(X_vals, C)).^2));
+h = 0.0001;
+bfgs_J_func = {
+    @(C) (bfgs_func(C+[h,0,0,0,0]')-bfgs_func(C-[h,0,0,0,0]'))/(2*h),...
+    @(C) (bfgs_func(C+[0,h,0,0,0]')-bfgs_func(C-[0,h,0,0,0]'))/(2*h),...
+    @(C) (bfgs_func(C+[0,0,h,0,0]')-bfgs_func(C-[0,0,h,0,0]'))/(2*h),...
+    @(C) (bfgs_func(C+[0,0,0,h,0]')-bfgs_func(C-[0,0,0,h,0]'))/(2*h),...
+    @(C) (bfgs_func(C+[0,0,0,0,h]')-bfgs_func(C-[0,0,0,0,h]'))/(2*h)};
+c_solve_bfgs = BFGS_Backtracking(bfgs_func, bfgs_J_func, c_0', 1e-5, 1e-5, 1e-5, 1000);
+
 %% Make some plots
 fit_curve = zeros(dim, dim);
+fit_curve_bfgs = zeros(dim, dim);
 C = [1, hm_mean(1), hm_mean(2), hm_std(1), hm_std(2)];
 for v = 1:dim
     for u = 1:dim
         fit_curve(v, u) = gauss([u,v],c_solve);
+        fit_curve_bfgs(v, u) = gauss([u,v],c_solve_bfgs);
     end
 end
 normalized_fit_curve = fit_curve / (sum(sum(fit_curve)));
+normalized_fit_curve_bfgs = fit_curve_bfgs / (sum(sum(fit_curve_bfgs)));
 surf(normalized_fit_curve);
 colormap('Default')
 hold on;
@@ -111,13 +125,27 @@ surf(cur_hm)  %% Normalize by the sum of the weights
 alpha(0.1)
 
 figure; 
-set(gcf,'Position',[200, 200, 1500, 600])
+set(gcf,'Position',[200, 200, 1900, 500])
 subplot(1,3,1);
 pcolor(1:24, 1:24, normalized_fit_curve);
 colorbar;
+title('Fit using LM');
 subplot(1,3,2);
 pcolor(1:24, 1:24, cur_hm);
 colorbar;
 subplot(1,3,3);
 pcolor(1:24, 1:24, abs(cur_hm - normalized_fit_curve));
+colorbar;
+
+figure; 
+set(gcf,'Position',[200, 200, 1900, 500])
+subplot(1,3,1);
+pcolor(1:24, 1:24, normalized_fit_curve);
+colorbar;
+title('Fit using BFGS');
+subplot(1,3,2);
+pcolor(1:24, 1:24, cur_hm);
+colorbar;
+subplot(1,3,3);
+pcolor(1:24, 1:24, abs(cur_hm - normalized_fit_curve_bfgs));
 colorbar;

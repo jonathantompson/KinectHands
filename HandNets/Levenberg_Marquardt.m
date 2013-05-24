@@ -128,7 +128,7 @@ while norm_delta_c > delta_c_tollerence
     iteration_num = iteration_num + 1;
     if(iteration_num > max_iterations)
         c = c_k;
-        disp(['Gauss_Newton: WARNING: hit max number of iterations (',num2str(max_iterations),')']);
+        disp(['Levenberg_Marquardt: WARNING: hit max number of iterations (',num2str(max_iterations),')']);
         break;
     end
 end
