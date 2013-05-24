@@ -39,22 +39,25 @@ namespace hand_net {
   HandModel::HandModel(HandType hand_type) {
     loadHandGeometry(hand_type);
 
-    /*
     // HACK: The model's normals are inside out --> Fix them
     if (hand_type == HandType::RIGHT) {
-      if (mesh_->type() == GeometryType::GEOMETRY_TEXT_BONED_MESH) {
-        Geometry* m = mesh_->geom();
-        m->unsyncVAO();
-        jtil::data_str::Vector<jtil::math::Float3>* norms = m->normals();
-        for (uint32_t i = 0; i < norms->size(); i++) {
-          Float3::scale((*norms)[i], -1.0f);
-        }
-        m->syncVAO();
+      GeometryManager* gm = Renderer::g_renderer()->geometry_manager();
+      Geometry* geom = gm->findGeometryByName("./models/lib_hand/hand_palm_"
+        "parent_medium_wrist_dec_0.05_right.dae//0");
+      if (geom == NULL) {
+        throw std::wruntime_error("HandModel::HandModel() - ERROR: "
+          "Couldn't find Geoemtry for right hand mesh!");
       }
+      geom->unsync();
+      jtil::data_str::Vector<jtil::math::Float3>& norms = geom->nor();
+      for (uint32_t i = 0; i < norms.size(); i++) {
+        Float3::scale(norms[i], -1.0f);
+      }
+      geom->sync();
     }
-    */
 
-    renderer_attachment_ = true;  }
+    renderer_attachment_ = true;  
+  }
 
   HandModel::~HandModel() {
     // Note, ownership of all geometry is transfered to the renderer class
@@ -154,7 +157,7 @@ namespace hand_net {
     renderStackReset(); 
     while (!renderStackEmpty()) {
       GeometryInstance* geom = renderStackPop();
-      geom->mtrl().spec_intensity = 0.15f;
+      geom->mtrl().spec_intensity = 0.3f;
     }
 
     // Now create bounding spheres:
@@ -213,9 +216,10 @@ namespace hand_net {
     Float4x4* mat = &model_->mat();
     euler2RotMatGM(*mat, coeff[HAND_ORIENT_X], coeff[HAND_ORIENT_Y],
       coeff[HAND_ORIENT_Z]);
-    mat->leftMultTranslation(coeff[HAND_POS_X], coeff[HAND_POS_Y],
-      coeff[HAND_POS_Z]);
-    mat->rightMultScale(coeff[SCALE], coeff[SCALE], coeff[SCALE]); 
+    mat->leftMultTranslation(1e-2f * coeff[HAND_POS_X], 
+      1e-2f * coeff[HAND_POS_Y], 1e-2f * coeff[HAND_POS_Z]);
+    mat->rightMultScale(1e-2f * coeff[SCALE], 1e-2f * coeff[SCALE],
+      1e-2f * coeff[SCALE]); 
 
  
     // Set the palm bone (depending on wrist angle)

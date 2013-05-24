@@ -9,7 +9,7 @@
 //, *********** SETTINGS ***********
 //, APPLICATION SPECIFIC
 track_openni_skeleton,            bool,      0
-kinect_output,                    int,       6
+kinect_output,                    int,       0
 detect_hands,                     bool,      1
 detect_pose,                      bool,      1
 label_type_enum,                  int,       1
@@ -27,7 +27,7 @@ color_convnet_depth_feature,      int,       3
 color_convnet_depth_threshold,    int,       25
 
 //, RENDERER
-screen_resolution,                int,       125830560
+screen_resolution,                int,       83887040
 fullscreen,                       bool,      0
 double_buffering,                 bool,      0  
 clear_color,                      Float3,    0.529, 0.808, 0.980
@@ -42,18 +42,18 @@ render_ui_renderer,               bool,      0
 render_ui_fps,                    bool,      1
 render_output_enum,               int,       0
 light_pass_stencil_opt,           bool,      0
-ssao_on,                          bool,      0
+ssao_on,                          bool,      1
 ssao_sample_radius,               float,     0.4
 ssao_bias,                        float,     0.4
 ssao_intensity,                   float,     2.5
 ssao_scale,                       float,     0.5
 ssao_enable,                      int,       1
 ssao_number_sample_enum,          int,       0
-ssao_blur_on,                     bool,      0
+ssao_blur_on,                     bool,      1
 global_ambient,                   float,     0.28
-directional_lights,               bool,      1
+directional_lights,               bool,      0
 spot_lights,                      bool,      1
-point_lights,                     bool,      1
+point_lights,                     bool,      0
 render_light_volumes,             bool,      0
 render_light_sources,             bool,      0
 dof_on,                           bool,      0
@@ -77,7 +77,7 @@ force_texture_array_disable,      bool,      0
 render_wireframe,                 bool,      0
 render_aabboxes,                  bool,      0
 texture_filtering_on,             bool,      0
-aa_type_enum,                     int,       0
+aa_type_enum,                     int,       2
 fxaa_depth_threshold,             float,     1.0
 fxaa_angle_threshold,             float,     10.0
 fxaa_hq_subpix_quality,           float,     1.0
@@ -106,10 +106,10 @@ visualize_normals_length,         float,     0.25
 //, Note camera near and far view planes are just Min and Max.  
 //, Frustum will be fitted to world objects and light volumes at runtime.
 fov_deg,                          float,     44
-view_plane_near,                  float,     -10.0
-view_plane_far,                   float,     -5000.0
+view_plane_near,                  float,     -0.1
+view_plane_far,                   float,     -50.0
 starting_eye_rot,                 FloatQuat, 0.0, 0.0, 0.0, -1.0
-starting_eye_pos,                 Float3,    0.0, 0.0, -20.0
+starting_eye_pos,                 Float3,    0.0, 0.0, 0.0
 camera_speed,                     float,     10.0
 camera_speed_fast,                float,     100.0
 camera_speed_rotation,            float,     0.0025

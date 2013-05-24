@@ -49,6 +49,7 @@ namespace hand_net {
     num_output_features_ = 0;
     rest_pose_ = NULL;
     lhand_cur_pose_ = NULL;
+    rhand_cur_pose_ = NULL;
     lhand_ = NULL;
     rhand_ = NULL;
   }
@@ -63,6 +64,7 @@ namespace hand_net {
     SAFE_DELETE_ARR(heat_map_convnet_);
     SAFE_DELETE(rest_pose_);
     SAFE_DELETE(lhand_cur_pose_);
+    SAFE_DELETE(rhand_cur_pose_);
     SAFE_DELETE(rhand_);
     SAFE_DELETE(lhand_);
   }
@@ -110,6 +112,7 @@ namespace hand_net {
     }
 
     rest_pose_ = new HandModelCoeff(HandType::LEFT);
+    rhand_cur_pose_ = new HandModelCoeff(HandType::RIGHT);
     lhand_cur_pose_ = new HandModelCoeff(HandType::LEFT);
     rest_pose_->loadFromFile("./", "coeff_hand_rest_pose.bin");
   }
@@ -119,7 +122,8 @@ namespace hand_net {
   }
 
   void HandNet::loadHandModels() {
-    lhand_ = new HandModel(HandType::LEFT);
+    rhand_ = new HandModel(HandType::RIGHT);
+    rhand_->updateMatrices(rest_pose_->coeff());
   }
 
   void HandNet::calcConvnetHeatMap(const int16_t* depth, 
@@ -153,9 +157,9 @@ namespace hand_net {
   }
 
   void HandNet::calcConvnetPose() {
-    lhand_cur_pose_->copyCoeffFrom(rest_pose_);
+    rhand_cur_pose_->copyCoeffFrom(rest_pose_);
     // Now fit the palm:
-    lhand_->updateMatrices(lhand_cur_pose_->coeff());
+    rhand_->updateMatrices(rhand_cur_pose_->coeff());
   }
 
   const float* HandNet::hpf_hand_image() const {

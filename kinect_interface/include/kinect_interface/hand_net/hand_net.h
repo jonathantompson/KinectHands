@@ -117,6 +117,7 @@ namespace hand_net {
     HandModel* lhand_;  // Not owned here
     HandModel* rhand_;  // Not owned here
     HandModelCoeff* rest_pose_;
+    HandModelCoeff* rhand_cur_pose_;
     HandModelCoeff* lhand_cur_pose_;
 
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in);

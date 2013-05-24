@@ -32,7 +32,7 @@ int main(int argc, const char* argv[]) {
 #if defined(_DEBUG) || defined(DEBUG)
   jtil::debug::EnableMemoryLeakChecks();
   // jtil::debug::EnableAggressiveMemoryLeakChecks();
-  // jtil::debug::SetBreakPointOnAlocation(773672);
+  jtil::debug::SetBreakPointOnAlocation(569117);
 #endif
 
   //// Memory leak bug!
