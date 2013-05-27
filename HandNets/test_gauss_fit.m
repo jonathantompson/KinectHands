@@ -2,7 +2,6 @@ clearvars; clc; close all;
 
 filename = 'heatmap_screenshot1.bin';
 dim = 24;
-dim_plot = 100;
 nfeats = 8;
 remove_outliers = false
 outlier_threshold = 0.01
@@ -30,13 +29,13 @@ for v = 1:dim
                 cur_hm(v, u) = 0;
             end
         end
-        hm_mean = hm_mean + cur_hm(v, u) * [u, v];
+        hm_mean = hm_mean + cur_hm(v, u) * [u-1, v-1];
         sum_weights = sum_weights + cur_hm(v, u);
     end
 end
 hm_mean = hm_mean / sum_weights;
 
-%% Calculate the weighted std
+%% Calculate the weighted var
 hm_var = [0, 0];
 non_zero_weights = 0;
 for v = 1:dim
@@ -44,7 +43,7 @@ for v = 1:dim
         if (cur_hm(v, u) > 1e-7)
             non_zero_weights = non_zero_weights + 1;
         end
-        hm_var = hm_var + cur_hm(v, u) * ([u, v] - hm_mean).^2;
+        hm_var = hm_var + cur_hm(v, u) * ([u-1, v-1] - hm_mean).^2;
     end
 end
 hm_var = hm_var / (sum_weights * (non_zero_weights - 1) / non_zero_weights);
@@ -58,8 +57,8 @@ Y_vals = zeros(dim*dim, 1);
 ind = 1;
 for v = 1:dim
     for u = 1:dim
-        X_vals(ind, 1) = u;
-        X_vals(ind, 2) = v;
+        X_vals(ind, 1) = u-1;
+        X_vals(ind, 2) = v-1;
         Y_vals(ind, 1) = cur_hm(v, u);
         ind = ind + 1;
     end
@@ -109,31 +108,17 @@ c_solve_bfgs = BFGS_Backtracking(bfgs_func, bfgs_J_func, c_0', 1e-5, 1e-5, 1e-5,
 
 %% Make some plots
 fit_curve_lm = zeros(dim, dim);
-fit_curve_lm_plot = zeros(dim_plot, dim_plot);
-u_plot = zeros(dim_plot, dim_plot);
-v_plot = zeros(dim_plot, dim_plot);
 fit_curve_bfgs = zeros(dim, dim);
 C = [1, hm_mean(1), hm_mean(2), hm_std(1), hm_std(2)];
 for v = 1:dim
     for u = 1:dim
-        fit_curve_lm(v, u) = gauss([u,v],c_solve);
-        fit_curve_bfgs(v, u) = gauss([u,v],c_solve_bfgs);
+        fit_curve_lm(v, u) = gauss([u-1,v-1],c_solve);
+        fit_curve_bfgs(v, u) = gauss([u-1,v-1],c_solve_bfgs);
     end
 end
-for v = 1:dim_plot
-    for u = 1:dim_plot
-        v_prime = v / (dim_plot / dim);
-        u_prime = u / (dim_plot / dim);
-        index = (v-1) * dim_plot + u;
-        fit_curve_lm_plot(v, u) = gauss([u_prime,v_prime],c_solve);
-        v_plot(v, u) = v_prime;
-        u_plot(v, u) = u_prime;
-    end
-end
-normalized_fit_curve_lm_plot = fit_curve_lm_plot / (sum(sum(fit_curve_lm)));
 normalized_fit_curve_lm = fit_curve_lm / (sum(sum(fit_curve_lm)));
 normalized_fit_curve_bfgs = fit_curve_bfgs / (sum(sum(fit_curve_bfgs)));
-surf(u_plot, v_plot, normalized_fit_curve_lm_plot);
+surf(normalized_fit_curve_lm);
 colormap('Default')
 hold on;
 surf(cur_hm)  %% Normalize by the sum of the weights

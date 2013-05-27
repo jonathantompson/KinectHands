@@ -465,7 +465,7 @@ namespace model_fit {
   void HandGeometryMesh::handCoeff2CoeffConvnet(HandModelCoeff* hand,
     float* coeff_convnet, const Int4& hand_pos_wh, const Float3& uvd_com,
     const Float4x4& proj_mat, const Float4x4& view_mat) {
-    // Thumb and finger angles are actually learned as salient points -->
+    // Thumb and fingers are actually learned as salient points -->
     // Luckily we have a good way to get these.  Use the positions of some of
     // the key bounding sphere positions --> Then project these into UV.
     root = NULL;

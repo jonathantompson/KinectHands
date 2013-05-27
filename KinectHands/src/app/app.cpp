@@ -213,8 +213,8 @@ namespace app {
    // Set the camera to the kinect camera parameters
     float fov_vert_deg = 
       360.0f * OpenNIFuncs::fVFOV_primesense_109 / (2.0f * (float)M_PI);
-    float view_plane_near = 1e-2f * (-HAND_MODEL_CAMERA_VIEW_PLANE_NEAR);
-    float view_plane_far = 1e-2f * (-HAND_MODEL_CAMERA_VIEW_PLANE_FAR);
+    float view_plane_near = -HAND_MODEL_CAMERA_VIEW_PLANE_NEAR;
+    float view_plane_far = -HAND_MODEL_CAMERA_VIEW_PLANE_FAR;
     SET_SETTING("fov_deg", float, fov_vert_deg);
     SET_SETTING("view_plane_near", float, view_plane_near);
     SET_SETTING("view_plane_far", float, view_plane_far);
@@ -685,8 +685,8 @@ namespace app {
 
     LightSpotCVSM* light_spot_vsm = new LightSpotCVSM(Renderer::g_renderer());
     light_spot_vsm->dir_world().set(0, 0, 1);
-    light_spot_vsm->pos_world().set(-2, 0, 2);  // World is in 0.1m units
-    light_spot_vsm->near_far().set(1.0f, 20.0f);
+    light_spot_vsm->pos_world().set(-200, 0, 200);
+    light_spot_vsm->near_far().set(1.0f, 2000.0f);
     light_spot_vsm->outer_fov_deg() = 35.0f;
     light_spot_vsm->diffuse_intensity() = 1.0f;
     light_spot_vsm->inner_fov_deg() = 30.0f;
@@ -695,7 +695,8 @@ namespace app {
 
     GeometryInstance* tmp = 
       Renderer::g_renderer()->geometry_manager()->makeTorusKnot(lred, 7, 64, 512);
-    tmp->mat().leftMultTranslation(3.0f, 0.0f, 15.0f);
+    tmp->mat().leftMultTranslation(300.0f, 0.0f, 1500.0f);
+    tmp->mat().rightMultScale(100.0f, 100.0f, 100.0f);
 
     hand_net_->loadHandModels();
   }

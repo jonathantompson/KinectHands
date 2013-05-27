@@ -44,7 +44,7 @@
 #define ICOSAHEDRON_DEFAULT_SCALE 1.00f
 
 #define NUM_CAL_SPHERES 0
-namespace jtil { namespace math { class BFGS; } }
+namespace jtil { namespace math { template <class T> class BFGS; } }
 
 namespace renderer { class Geometry; }
 namespace renderer { class Renderer; }
@@ -160,7 +160,7 @@ namespace model_fit {
     static float pso_radius_c_[CAL_GEOM_NUM_COEFF];
 
     // Satic data used for calculating average coordinate frame
-    static jtil::math::BFGS* solver_;
+    static jtil::math::BFGS<float>* solver_;
     static jtil::math::Float3* vq_[3];
     static jtil::math::Float3* vb_[3];
     static jtil::math::Float3 vmodel_[3];

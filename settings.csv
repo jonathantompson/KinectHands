@@ -106,8 +106,8 @@ visualize_normals_length,         float,     0.25
 //, Note camera near and far view planes are just Min and Max.  
 //, Frustum will be fitted to world objects and light volumes at runtime.
 fov_deg,                          float,     44
-view_plane_near,                  float,     -0.1
-view_plane_far,                   float,     -50.0
+view_plane_near,                  float,     -10.0
+view_plane_far,                   float,     -5000.0
 starting_eye_rot,                 FloatQuat, 0.0, 0.0, 0.0, -1.0
 starting_eye_pos,                 Float3,    0.0, 0.0, 0.0
 camera_speed,                     float,     10.0

@@ -31,8 +31,6 @@
   #define RESIDUE_TYPE GL_FLOAT
 #endif
 #define LINEAR_PENALTY  // otherwise quadratic
-#define NSPH_PER_GROUP 6  // Spheres are split into groups, within each group
-                          // of n objects interpenetation has no penalty
 
 namespace renderer { class Camera; }
 namespace renderer { class Geometry; }

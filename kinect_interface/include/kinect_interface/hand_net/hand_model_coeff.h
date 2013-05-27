@@ -22,6 +22,9 @@
 //#define HAND_CAMERA_FOV 45.25f  // OLD Kinect VALUE! --> Now use OpenNIFuncs
 #define LOAD_JBIN_FILES
 
+#define NSPH_PER_GROUP 6  // Spheres are split into groups, within each group
+                          // of n objects interpenetation has no penalty
+
 namespace jtil {
 namespace renderer {
   class GeometryInstance;
@@ -198,12 +201,6 @@ namespace hand_net {
     // Constructor / Destructor
     HandModelCoeff(const HandType hand_type);
     ~HandModelCoeff();
-
-    // TO DO: Move these to another class
-    //static void loadHandModels(const bool left, const bool right);
-    //static void setHandModelVisibility(const bool visibility);
-    //static void setHandModelPose(const HandType hand, 
-    //  const HandImageGenerator* im_gen, const float* convnet_coeff);
 
     // Accessors
     const float getCoeff(const uint32_t index) const;

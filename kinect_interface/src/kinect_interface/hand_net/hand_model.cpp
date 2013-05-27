@@ -216,11 +216,8 @@ namespace hand_net {
     Float4x4* mat = &model_->mat();
     euler2RotMatGM(*mat, coeff[HAND_ORIENT_X], coeff[HAND_ORIENT_Y],
       coeff[HAND_ORIENT_Z]);
-    mat->leftMultTranslation(1e-2f * coeff[HAND_POS_X], 
-      1e-2f * coeff[HAND_POS_Y], 1e-2f * coeff[HAND_POS_Z]);
-    mat->rightMultScale(1e-2f * coeff[SCALE], 1e-2f * coeff[SCALE],
-      1e-2f * coeff[SCALE]); 
-
+    mat->leftMultTranslation(coeff[HAND_POS_X], coeff[HAND_POS_Y], coeff[HAND_POS_Z]);
+    mat->rightMultScale(coeff[SCALE], coeff[SCALE], coeff[SCALE]); 
  
     // Set the palm bone (depending on wrist angle)
     mat = &bone_wrist_->mat();
@@ -763,6 +760,24 @@ namespace hand_net {
     true,   // F3_TWIST
     true,   // THUMB_TWIST
   };
+
+  Float4x4 root_inverse, tmp;
+  void HandModel::calcBoundingSphereUVPos(float* uv, 
+    const uint32_t b_sphere_index, const Float4x4& pv_mat) {
+    BSphere* sphere = bspheres_[b_sphere_index];
+
+    sphere->transformCenter();
+    Float3& xyz_pos = *sphere->transformed_center();
+    
+    Float4 pos(xyz_pos[0], xyz_pos[1], xyz_pos[2], 1.0f);
+    Float4 homog_pos;
+    Float4::mult(homog_pos, pv_mat, pos);
+    uv[0] = (homog_pos[0] / homog_pos[3]);  // NDC X: -1 --> 1
+    uv[1] = (homog_pos[1] / homog_pos[3]);  // NDC Y: -1 --> 1
+    // http://www.songho.ca/opengl/gl_transform.html
+    uv[0] = (float)src_width * 0.5f * (uv[0] + 1);  // Window X: 0 --> W
+    uv[1] = (float)src_height * 0.5f * (-uv[1] + 1);  // Window Y: 0 --> H
+  }
 
 }  // namespace hand_net
 }  // namespace kinect_interface

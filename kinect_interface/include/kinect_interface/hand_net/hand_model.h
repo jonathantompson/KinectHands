@@ -48,6 +48,9 @@ namespace hand_net {
     static const uint32_t max_bsphere_groups() { return 6; }
     static const uint32_t num_bspheres_per_group() { return 6; }
 
+    void calcBoundingSphereUVPos(float* uv, const uint32_t b_sphere_index, 
+      const jtil::math::Float4x4& pv_mat);
+
   private:
     // Note all geometry is attached to the global renderer's scene graph and
     // therefore we transfer ownership of the memory to it.

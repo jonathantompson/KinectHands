@@ -16,6 +16,7 @@
 #define KINECT_INTERFACE_HAND_NET_HAND_NET_HEADER
 
 #include "jtil/math/math_types.h"
+#include "kinect_interface/hand_net/hand_model_coeff.h"  // For HandCoeff
 #include "kinect_interface/depth_images_io.h"  // for src_dim
 #include "jtil/threading/callback.h"
 
@@ -24,6 +25,9 @@
 #define NUM_FEATS_PER_FINGER 1
 #define NUM_FEATS_PER_THUMB 1
 #define NUM_FEATS_PER_PALM 3
+
+#define NUM_GAUSSIAN_COEFFS 5  // (mean_u, mean_v, std_u, std_v)
+#define X_DIM_LM_FIT 2
 
 #if defined(__APPLE__)
   #define CONVNET_FILE string("./../../../../../../../../../data/" \
@@ -36,6 +40,10 @@ namespace jtorch {
   class TorchStage;
   class Table;
 }
+
+namespace jtil { namespace math { template <class T> class LMFit; } }
+namespace jtil { namespace math { template <class T> class BFGS; } }
+namespace jtil { namespace renderer { class Camera; } }
 
 namespace kinect_interface {
 namespace hand_net {
@@ -63,10 +71,49 @@ namespace hand_net {
     HAND_NUM_COEFF_CONVNET = 24, 
   } HandCoeffConvnet;
 
+  typedef enum { 
+    BFGS_HAND_POS_X        = 0, 
+    BFGS_HAND_POS_Y        = 1,
+    BFGS_HAND_POS_Z        = 2,
+    BFGS_HAND_ORIENT_X     = 3,
+    BFGS_HAND_ORIENT_Y     = 4,
+    BFGS_HAND_ORIENT_Z     = 5,
+    BFGS_THUMB_THETA       = 6,
+    BFGS_THUMB_PHI         = 7,
+    BFGS_THUMB_K1_THETA    = 8,
+    BFGS_THUMB_K1_PHI      = 9,
+    BFGS_THUMB_K2_PHI      = 10,
+    BFGS_F0_THETA          = 11,
+    BFGS_F0_PHI            = 12,
+    BFGS_F0_KNUCKLE_MID    = 13,
+    BFGS_F0_KNUCKLE_END    = 14,
+    BFGS_F1_THETA          = 15,
+    BFGS_F1_PHI            = 16,
+    BFGS_F1_KNUCKLE_MID    = 17,
+    BFGS_F1_KNUCKLE_END    = 18,
+    BFGS_F2_THETA          = 19,
+    BFGS_F2_PHI            = 20,
+    BFGS_F2_KNUCKLE_MID    = 21,
+    BFGS_F2_KNUCKLE_END    = 22,
+    BFGS_F3_THETA          = 23,
+    BFGS_F3_PHI            = 24,
+    BFGS_F3_KNUCKLE_MID    = 25,
+    BFGS_F3_KNUCKLE_END    = 26,
+    BFGS_NUM_PARAMETERS    = 27
+  } BFGSHandCoeff;
+
   typedef enum {
     DEPTH_DATA = 0,
     HPF_DEPTH_DATA = 1,
   } HandNetDataType;
+
+  typedef enum {
+    GaussAmp = 0,
+    GaussMeanU = 1,
+    GaussMeanV = 2,
+    GaussVarU = 3,
+    GaussVarV = 4,
+  } Gauss2DCoeff;
 
   class HandImageGenerator;
   class HandModelCoeff;
@@ -112,6 +159,7 @@ namespace hand_net {
     int32_t num_conv_banks_;  // Set after Torch model is read from file
     jtorch::TorchStage* conv_network_;
     float* heat_map_convnet_;  // output data
+    float* hm_temp_;  // output data
     uint32_t heat_map_size_;
     uint32_t num_output_features_;
     HandModel* lhand_;  // Not owned here
@@ -119,10 +167,34 @@ namespace hand_net {
     HandModelCoeff* rest_pose_;
     HandModelCoeff* rhand_cur_pose_;
     HandModelCoeff* lhand_cur_pose_;
+    float* gauss_coeff_;
+    jtil::math::LMFit<float>* heat_map_lm_;
+    float* lm_fit_x_vals_;  // An image for (u, v) at each grid point
+    jtil::math::BFGS<float>* bfgs_; 
+    jtil::renderer::Camera* camera_;
 
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in);
     void calcHPFHandBanks();
+    // calcGaussDistCoeff - Fit a gaussian using non-linear least squares to
+    // im_data.
+    void calcGaussDistCoeff(float* gauss_coeff, const float* im_data);
     void releaseData();  // Call destructor on all dynamic data
+
+    // gauss2D --> x = [u,v], c=[amp, mu_u, mu_v, var_u, var_v]
+    static float gauss2D(const float* x, const float* c);  
+    static void jacobGauss2D(float* jacob, const float* x, const float* c);
+
+    static float bfgsFunc(const float* bfgs_hand_coeff);
+    static void bfgsJacobFunc(float* jacob, const float* bfgs_hand_coeff);
+    float cur_coeff[HandCoeff::NUM_PARAMETERS];
+    float bfgs_coeff_start[BFGSHandCoeff::BFGS_NUM_PARAMETERS];
+    float bfgs_coeff_end[BFGSHandCoeff::BFGS_NUM_PARAMETERS];
+
+    static HandNet* g_hand_net_;  // BFGS is NOT multithreaded
+    static void BFGSHandCoeffToHandCoeff(float* hand_coeff, 
+      const float* bfgs_hand_coeff);
+    static void HandCoeffToBFGSHandCoeff(float* bfgs_hand_coeff, 
+      const float* hand_coeff);
 
     // Non-copyable, non-assignable.
     HandNet(HandNet&);

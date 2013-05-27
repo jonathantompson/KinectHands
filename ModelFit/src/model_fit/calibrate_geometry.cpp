@@ -35,7 +35,7 @@ using namespace kinect_interface::hand_net;
 
 namespace model_fit {
   float CalibrateGeometry::pso_radius_c_[CAL_GEOM_NUM_COEFF];
-  jtil::math::BFGS* CalibrateGeometry::solver_ = NULL;
+  jtil::math::BFGS<float>* CalibrateGeometry::solver_ = NULL;
   jtil::math::Float3* CalibrateGeometry::vq_[3] = {NULL, NULL, NULL};
   jtil::math::Float3* CalibrateGeometry::vb_[3] = {NULL, NULL, NULL};
   jtil::math::Float3 CalibrateGeometry::vmodel_[3];
