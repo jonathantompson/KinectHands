@@ -2,6 +2,7 @@ clearvars; clc; close all;
 
 filename = 'heatmap_screenshot1.bin';
 dim = 24;
+dim_plot = 100;
 nfeats = 8;
 remove_outliers = false
 outlier_threshold = 0.01
@@ -107,18 +108,32 @@ bfgs_J_func = {
 c_solve_bfgs = BFGS_Backtracking(bfgs_func, bfgs_J_func, c_0', 1e-5, 1e-5, 1e-5, 1000);
 
 %% Make some plots
-fit_curve = zeros(dim, dim);
+fit_curve_lm = zeros(dim, dim);
+fit_curve_lm_plot = zeros(dim_plot, dim_plot);
+u_plot = zeros(dim_plot, dim_plot);
+v_plot = zeros(dim_plot, dim_plot);
 fit_curve_bfgs = zeros(dim, dim);
 C = [1, hm_mean(1), hm_mean(2), hm_std(1), hm_std(2)];
 for v = 1:dim
     for u = 1:dim
-        fit_curve(v, u) = gauss([u,v],c_solve);
+        fit_curve_lm(v, u) = gauss([u,v],c_solve);
         fit_curve_bfgs(v, u) = gauss([u,v],c_solve_bfgs);
     end
 end
-normalized_fit_curve = fit_curve / (sum(sum(fit_curve)));
+for v = 1:dim_plot
+    for u = 1:dim_plot
+        v_prime = v / (dim_plot / dim);
+        u_prime = u / (dim_plot / dim);
+        index = (v-1) * dim_plot + u;
+        fit_curve_lm_plot(v, u) = gauss([u_prime,v_prime],c_solve);
+        v_plot(v, u) = v_prime;
+        u_plot(v, u) = u_prime;
+    end
+end
+normalized_fit_curve_lm_plot = fit_curve_lm_plot / (sum(sum(fit_curve_lm)));
+normalized_fit_curve_lm = fit_curve_lm / (sum(sum(fit_curve_lm)));
 normalized_fit_curve_bfgs = fit_curve_bfgs / (sum(sum(fit_curve_bfgs)));
-surf(normalized_fit_curve);
+surf(u_plot, v_plot, normalized_fit_curve_lm_plot);
 colormap('Default')
 hold on;
 surf(cur_hm)  %% Normalize by the sum of the weights
@@ -127,20 +142,20 @@ alpha(0.1)
 figure; 
 set(gcf,'Position',[200, 200, 1900, 500])
 subplot(1,3,1);
-pcolor(1:24, 1:24, normalized_fit_curve);
+pcolor(1:24, 1:24, normalized_fit_curve_lm);
 colorbar;
 title('Fit using LM');
 subplot(1,3,2);
 pcolor(1:24, 1:24, cur_hm);
 colorbar;
 subplot(1,3,3);
-pcolor(1:24, 1:24, abs(cur_hm - normalized_fit_curve));
+pcolor(1:24, 1:24, abs(cur_hm - normalized_fit_curve_lm));
 colorbar;
 
 figure; 
 set(gcf,'Position',[200, 200, 1900, 500])
 subplot(1,3,1);
-pcolor(1:24, 1:24, normalized_fit_curve);
+pcolor(1:24, 1:24, normalized_fit_curve_bfgs);
 colorbar;
 title('Fit using BFGS');
 subplot(1,3,2);
