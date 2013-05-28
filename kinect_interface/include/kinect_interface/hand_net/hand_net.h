@@ -26,7 +26,7 @@
 #define NUM_FEATS_PER_THUMB 1
 #define NUM_FEATS_PER_PALM 3
 
-#define NUM_GAUSSIAN_COEFFS 5  // (mean_u, mean_v, std_u, std_v)
+#define NUM_COEFFS_PER_GAUSSIAN 5  // (mean_u, mean_v, std_u, std_v)
 #define X_DIM_LM_FIT 2
 
 #if defined(__APPLE__)
@@ -85,21 +85,17 @@ namespace hand_net {
     BFGS_THUMB_K2_PHI      = 10,
     BFGS_F0_THETA          = 11,
     BFGS_F0_PHI            = 12,
-    BFGS_F0_KNUCKLE_MID    = 13,
-    BFGS_F0_KNUCKLE_END    = 14,
-    BFGS_F1_THETA          = 15,
-    BFGS_F1_PHI            = 16,
-    BFGS_F1_KNUCKLE_MID    = 17,
-    BFGS_F1_KNUCKLE_END    = 18,
-    BFGS_F2_THETA          = 19,
-    BFGS_F2_PHI            = 20,
-    BFGS_F2_KNUCKLE_MID    = 21,
-    BFGS_F2_KNUCKLE_END    = 22,
-    BFGS_F3_THETA          = 23,
-    BFGS_F3_PHI            = 24,
-    BFGS_F3_KNUCKLE_MID    = 25,
-    BFGS_F3_KNUCKLE_END    = 26,
-    BFGS_NUM_PARAMETERS    = 27
+    BFGS_F0_CURL           = 13,
+    BFGS_F1_THETA          = 14,
+    BFGS_F1_PHI            = 15,
+    BFGS_F1_CURL           = 16,
+    BFGS_F2_THETA          = 17,
+    BFGS_F2_PHI            = 18,
+    BFGS_F2_CURL           = 19,
+    BFGS_F3_THETA          = 20,
+    BFGS_F3_PHI            = 21,
+    BFGS_F3_CURL           = 22,
+    BFGS_NUM_PARAMETERS    = 23
   } BFGSHandCoeff;
 
   typedef enum {
@@ -133,6 +129,7 @@ namespace hand_net {
     // Result is placed in coeff_convnet
     void calcConvnetHeatMap(const int16_t* depth, const uint8_t* label);
     void calcConvnetPose();
+    void resetTracking();
 
     // If you don't want the full convnet computation but you want the hand 
     // image -> Useful when we know the correct coeff but we want to debug
@@ -141,6 +138,7 @@ namespace hand_net {
     // loadHandModels - Needs to be called whenever the renderer gets
     // destroyed and a new model needs to be loaded
     void loadHandModels();
+    void setModelVisibility(const bool visible);
 
     // Getter methods
     const float* hpf_hand_image() const;
@@ -152,6 +150,7 @@ namespace hand_net {
     const float* hand_image() const;
     const int32_t size_images() const;
     const jtil::math::Float3& uvd_com() const;
+    const float* gauss_coeff() const { return gauss_coeff_; }
 
   private:
     HandImageGenerator* image_generator_;
@@ -162,15 +161,15 @@ namespace hand_net {
     float* hm_temp_;  // output data
     uint32_t heat_map_size_;
     uint32_t num_output_features_;
-    HandModel* lhand_;  // Not owned here
     HandModel* rhand_;  // Not owned here
     HandModelCoeff* rest_pose_;
     HandModelCoeff* rhand_cur_pose_;
-    HandModelCoeff* lhand_cur_pose_;
+    HandModelCoeff* rhand_prev_pose_;
     float* gauss_coeff_;
+    double* dgauss_coeff_;
     jtil::math::LMFit<float>* heat_map_lm_;
     float* lm_fit_x_vals_;  // An image for (u, v) at each grid point
-    jtil::math::BFGS<float>* bfgs_; 
+    jtil::math::BFGS<double>* bfgs_; 
     jtil::renderer::Camera* camera_;
 
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in);
@@ -182,19 +181,22 @@ namespace hand_net {
 
     // gauss2D --> x = [u,v], c=[amp, mu_u, mu_v, var_u, var_v]
     static float gauss2D(const float* x, const float* c);  
+    static double gauss2D(const double* x, const double* c);  
+    static double quad2D(const double* x, const double* c);  
+    static double linear2D(const double* x, const double* c);  
     static void jacobGauss2D(float* jacob, const float* x, const float* c);
 
-    static float bfgsFunc(const float* bfgs_hand_coeff);
-    static void bfgsJacobFunc(float* jacob, const float* bfgs_hand_coeff);
-    float cur_coeff[HandCoeff::NUM_PARAMETERS];
-    float bfgs_coeff_start[BFGSHandCoeff::BFGS_NUM_PARAMETERS];
-    float bfgs_coeff_end[BFGSHandCoeff::BFGS_NUM_PARAMETERS];
+    static double bfgsFunc(const double* bfgs_hand_coeff);
+    static void bfgsJacobFunc(double* jacob, const double* bfgs_hand_coeff);
+    double bfgs_coeff_start[BFGSHandCoeff::BFGS_NUM_PARAMETERS];
+    double bfgs_coeff_end[BFGSHandCoeff::BFGS_NUM_PARAMETERS];
 
     static HandNet* g_hand_net_;  // BFGS is NOT multithreaded
     static void BFGSHandCoeffToHandCoeff(float* hand_coeff, 
-      const float* bfgs_hand_coeff);
-    static void HandCoeffToBFGSHandCoeff(float* bfgs_hand_coeff, 
+      const double* bfgs_hand_coeff);
+    static void HandCoeffToBFGSHandCoeff(double* bfgs_hand_coeff, 
       const float* hand_coeff);
+    static void renormalizeBFGSCoeffs(double* coeff);
 
     // Non-copyable, non-assignable.
     HandNet(HandNet&);

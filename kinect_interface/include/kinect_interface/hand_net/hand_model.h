@@ -38,8 +38,8 @@ namespace hand_net {
 
     // setRendererAttachement - called when ModelFit wants to detach the model
     // from the global renderer
-    void setRendererAttachement(const bool renderer_attachment);
-    const bool getRendererAttachement();
+    void setRenderVisiblity(const bool visible);
+    const bool getRenderVisiblity();
 
     static const bool* angle_coeffs() { return angle_coeffs_; }
     static const float* coeff_min_limit() { return coeff_min_limit_; }
@@ -56,8 +56,7 @@ namespace hand_net {
     // therefore we transfer ownership of the memory to it.
     jtil::renderer::GeometryInstance* model_;  // The renderable geometry - Not owned here
     jtil::data_str::VectorManaged<jtil::renderer::objects::BSphere*> bspheres_;
-    bool renderer_attachment_;  // whether or not the model is attached to the 
-                                // global renderer's scene graph
+    bool visible_;
 
     // Temp matricies are not static to be thread safe.
     jtil::math::Float4x4 mat_tmp1;
@@ -67,6 +66,7 @@ namespace hand_net {
     void loadHandGeometry(kinect_interface::hand_net::HandType type);
 
     // References to bones for quick access (not owned here)
+    jtil::renderer::GeometryInstance* mesh_node_;
     jtil::renderer::GeometryInstance* bone_wrist_;
     jtil::renderer::GeometryInstance* bone_palm_;
     jtil::renderer::GeometryInstance* bone_thumb_[3];

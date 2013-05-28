@@ -442,23 +442,7 @@ namespace model_fit {
   }
 
   void HandGeometryMesh::fixBoundingSphereMatrices() {
-    /*
-    Float4x4 tmp;
-    Float4x4 root_inverse;
-    Float4x4::inverse(root_inverse, *scene_graph_->mat());
-    renderStackReset();
-    while (!renderStackEmpty()) {
-      Geometry* cur_geom = renderStackPop();
-      if (cur_geom->type() == GeometryType::BOUNDING_SPHERE) {
-        // This is a bit of a hack, but we have to undo the parent's root
-        // transform (by left multiplying by its inverse).
-        // Then we have to left multiply by the mesh node's transform
-        BoundingSphere* sphere = reinterpret_cast<BoundingSphere*>(cur_geom);
-        Float4x4::multSIMD(tmp, root_inverse, *sphere->mat_hierarchy());
-        Float4x4::multSIMD(*sphere->mat_hierarchy(), *sphere->mesh_node()->mat_hierarchy(), tmp);
-      }
-    }
-    */
+    
   }
 
   Geometry* root = NULL;
@@ -532,6 +516,12 @@ namespace model_fit {
     }
     Float4x4::mult(tmp, root_inverse, *sphere->mat_hierarchy());
     Float4x4::mult(*sphere->mat_hierarchy(), *sphere->mesh_node()->mat_hierarchy(), tmp);
+
+    // NOTE, WE COULD PROBABLY JUST MULTIPLY THE ALREADY CALCULATED BONE 
+    // TRANSFORM WITH THE MESH_NODE'S TRANSFORM TO AVOID THE INVERSE TWICE (AND
+    // SAVE ON A FEW CALCULATIONS):
+    // sphere->mat_hierarchy() = sphere->mesh_node()->mat_hierarchy() * BONE_TRANSFORM
+    // But I don't want to touch it in case I break it.
     
     sphere->transform();
 

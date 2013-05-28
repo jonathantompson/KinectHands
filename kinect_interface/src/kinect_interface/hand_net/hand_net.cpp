@@ -24,6 +24,7 @@
 #include "jtil/threading/thread_pool.h"
 #include "jtil/math/lm_fit.h"
 #include "jtil/math/bfgs.h"
+#include "jtil/clk/clk.h"
 #include "jtil/renderer/camera/camera.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
@@ -53,12 +54,12 @@ namespace hand_net {
     lm_fit_x_vals_ = NULL;
     hm_temp_ = NULL;
     gauss_coeff_ = NULL;
+    dgauss_coeff_ = NULL;
     heat_map_size_ = 0;
     num_output_features_ = 0;
     rest_pose_ = NULL;
-    lhand_cur_pose_ = NULL;
     rhand_cur_pose_ = NULL;
-    lhand_ = NULL;
+    rhand_prev_pose_ = NULL;
     rhand_ = NULL;
     heat_map_lm_ = NULL;
     camera_ = NULL;
@@ -74,13 +75,13 @@ namespace hand_net {
     SAFE_DELETE(image_generator_);
     SAFE_DELETE_ARR(heat_map_convnet_);
     SAFE_DELETE_ARR(gauss_coeff_);
+    SAFE_DELETE_ARR(dgauss_coeff_)
     SAFE_DELETE_ARR(hm_temp_);
     SAFE_DELETE_ARR(lm_fit_x_vals_);
     SAFE_DELETE(rest_pose_);
-    SAFE_DELETE(lhand_cur_pose_);
     SAFE_DELETE(rhand_cur_pose_);
+    SAFE_DELETE(rhand_prev_pose_);
     SAFE_DELETE(rhand_);
-    SAFE_DELETE(lhand_);
     SAFE_DELETE(heat_map_lm_);
     SAFE_DELETE(camera_);
     SAFE_DELETE(bfgs_);
@@ -129,7 +130,8 @@ namespace hand_net {
     }
 
     hm_temp_ = new float[heat_map_size_ * heat_map_size_];
-    gauss_coeff_ = new float[NUM_GAUSSIAN_COEFFS * num_output_features_];
+    gauss_coeff_ = new float[NUM_COEFFS_PER_GAUSSIAN * num_output_features_];
+    dgauss_coeff_ = new double[NUM_COEFFS_PER_GAUSSIAN * num_output_features_];
     lm_fit_x_vals_ = new float[heat_map_size_ * heat_map_size_ * X_DIM_LM_FIT];
     for (uint32_t v = 0, i = 0; v < heat_map_size_; v++) {
       for (uint32_t u = 0; u < heat_map_size_; u++, i++) {
@@ -137,14 +139,15 @@ namespace hand_net {
         lm_fit_x_vals_[i * X_DIM_LM_FIT + 1] = (float)v;
       }
     }
-    heat_map_lm_ = new LMFit<float>(NUM_GAUSSIAN_COEFFS, X_DIM_LM_FIT,
+    heat_map_lm_ = new LMFit<float>(NUM_COEFFS_PER_GAUSSIAN, X_DIM_LM_FIT,
       heat_map_size_ * heat_map_size_);
-    bfgs_ = new BFGS<float>(BFGSHandCoeff::BFGS_NUM_PARAMETERS);
-    rest_pose_ = new HandModelCoeff(HandType::LEFT);
+    bfgs_ = new BFGS<double>(BFGSHandCoeff::BFGS_NUM_PARAMETERS);
+    bfgs_->max_iterations = 100;
+    rest_pose_ = new HandModelCoeff(HandType::RIGHT);
     rhand_cur_pose_ = new HandModelCoeff(HandType::RIGHT);
-    lhand_cur_pose_ = new HandModelCoeff(HandType::LEFT);
+    rhand_prev_pose_ = new HandModelCoeff(HandType::RIGHT);
     rest_pose_->loadFromFile("./", "coeff_hand_rest_pose.bin");
-    rhand_cur_pose_->copyCoeffFrom(rest_pose_);
+    resetTracking();
 
     // Initialize the camera
     FloatQuat eye_rot; eye_rot.identity();
@@ -164,6 +167,10 @@ namespace hand_net {
   void HandNet::loadHandModels() {
     rhand_ = new HandModel(HandType::RIGHT);
     rhand_->updateMatrices(rest_pose_->coeff());
+  }
+
+  void HandNet::setModelVisibility(const bool visible) {
+    rhand_->setRenderVisiblity(visible);
   }
 
   void HandNet::calcConvnetHeatMap(const int16_t* depth, 
@@ -194,32 +201,109 @@ namespace hand_net {
     //jtorch::cl_context->sync(jtorch::deviceid);  // Not necessary
     Tensor<float>* output_tensor = (Tensor<float>*)(conv_network_->output);
     output_tensor->getData(heat_map_convnet_);
-  }
 
-  void HandNet::calcConvnetPose() {
     // For each of the heat maps, fit a gaussian to it
-    const Int4& pos_wh = image_generator_->hand_pos_wh();
+    const Int4* pos_wh = &image_generator_->hand_pos_wh();
     for (uint32_t i = 0; i < num_output_features_; i++) {
-      calcGaussDistCoeff(&gauss_coeff_[i * NUM_GAUSSIAN_COEFFS], 
+      uint32_t istart = i * NUM_COEFFS_PER_GAUSSIAN;
+      calcGaussDistCoeff(&gauss_coeff_[istart], 
         &heat_map_convnet_[i * heat_map_size_ * heat_map_size_]);
       // Transform the gaussian into the kinect image space (just a viewport
       // transform!):
-      gauss_coeff_[GaussMeanU] = gauss_coeff_[GaussMeanU] * (float)pos_wh[2] + 
-        (float)pos_wh[0];
-      gauss_coeff_[GaussMeanV] = gauss_coeff_[GaussMeanV] * (float)pos_wh[3] + 
-        (float)pos_wh[1];
-      gauss_coeff_[GaussVarU] *= (float)pos_wh[2];
-      gauss_coeff_[GaussVarV] *= (float)pos_wh[3];
+      gauss_coeff_[istart + GaussMeanU] = 
+        gauss_coeff_[istart + GaussMeanU] * (float)(*pos_wh)[2] + (float)(*pos_wh)[0];
+      gauss_coeff_[istart + GaussMeanV] = 
+        gauss_coeff_[istart + GaussMeanV] * (float)(*pos_wh)[3] + (float)(*pos_wh)[1];
+      gauss_coeff_[istart + GaussVarU] *= (float)(*pos_wh)[2];
+      gauss_coeff_[istart + GaussVarV] *= (float)(*pos_wh)[3];
+      for (uint32_t j = 0; j < NUM_COEFFS_PER_GAUSSIAN; j++) {
+        dgauss_coeff_[istart + j] = (double)gauss_coeff_[istart + j];
+      }
     }
+  }
 
+  void HandNet::renormalizeBFGSCoeffs(double* coeff) {
+    // Set all angles 0 --> 2pi
+    for (uint32_t i = BFGS_HAND_ORIENT_X; i < BFGS_NUM_PARAMETERS; i++) {
+      WrapTwoPI(coeff[i]);
+    }
+  }
+
+  void HandNet::resetTracking() {
+    rhand_prev_pose_->copyCoeffFrom(rest_pose_);
+    rhand_cur_pose_->copyCoeffFrom(rest_pose_);
+  }
+
+  void HandNet::calcConvnetPose() {
     // Try fitting in projected space from the rest pose:
-    memcpy(cur_coeff, rest_pose_->coeff(), sizeof(cur_coeff[0]) * 
-      HandCoeff::NUM_PARAMETERS);
-    g_hand_net_ = this;
-    bfgs_->minimize(rhand_cur_pose_->coeff(), rest_pose_->coeff(), 
-      HandModel::angle_coeffs(), bfgsFunc, bfgsJacobFunc, NULL);
+    rhand_prev_pose_->copyCoeffFrom(rhand_cur_pose_);
 
+    // BFGS parameters are a sub-set, make a copy of the current pose into
+    // this bfgs space
+    HandCoeffToBFGSHandCoeff(bfgs_coeff_start, rhand_cur_pose_->coeff());
+
+    g_hand_net_ = this;
+    bfgs_->verbose = true;
+    bfgs_->eta_s = 1e-12;
+    bfgs_->delta_f_term = 1e-12;
+    bfgs_->delta_x_2norm_term = 1e-12;
+    bfgs_->jac_2norm_term = 1e-12;
+    bfgs_->max_iterations = 150;
+    bfgs_->minimize(bfgs_coeff_end, bfgs_coeff_start, 
+      HandModel::angle_coeffs(), bfgsFunc, bfgsJacobFunc, 
+      HandNet::renormalizeBFGSCoeffs);
+     
+    BFGSHandCoeffToHandCoeff(rhand_cur_pose_->coeff(), bfgs_coeff_end);
     rhand_->updateMatrices(rhand_cur_pose_->coeff());
+    rhand_->updateHeirachyMatrices();
+
+    /*
+    //// TEMP CODE:
+    float uv[2];
+    g_hand_net_->rhand_->calcBoundingSphereUVPos(uv, 
+      HandSphereIndices::PALM_3, g_hand_net_->camera_->proj_view());
+    const uint32_t palm_feat1 = HAND_POS1_U / FEATURE_SIZE;
+    gauss_coeff_[palm_feat1 * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU] = uv[0];
+    gauss_coeff_[palm_feat1 * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV] = uv[1];
+    gauss_coeff_[palm_feat1 * NUM_COEFFS_PER_GAUSSIAN + GaussVarU] = 2.0f;
+    gauss_coeff_[palm_feat1 * NUM_COEFFS_PER_GAUSSIAN + GaussVarV] = 2.0f;
+
+    g_hand_net_->rhand_->calcBoundingSphereUVPos(uv, 
+      HandSphereIndices::PALM_1,  g_hand_net_->camera_->proj_view());
+    const uint32_t palm_feat2 = HAND_POS2_U / FEATURE_SIZE;
+    gauss_coeff_[palm_feat2 * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU] = uv[0];
+    gauss_coeff_[palm_feat2 * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV] = uv[1];
+    gauss_coeff_[palm_feat2 * NUM_COEFFS_PER_GAUSSIAN + GaussVarU] = 2.0f;
+    gauss_coeff_[palm_feat2 * NUM_COEFFS_PER_GAUSSIAN + GaussVarV] = 2.0f;
+
+    g_hand_net_->rhand_->calcBoundingSphereUVPos(uv, 
+      HandSphereIndices::PALM_2,  g_hand_net_->camera_->proj_view());
+    const uint32_t palm_feat3 = HAND_POS3_U / FEATURE_SIZE;
+    gauss_coeff_[palm_feat3 * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU] = uv[0];
+    gauss_coeff_[palm_feat3 * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV] = uv[1];
+    gauss_coeff_[palm_feat3 * NUM_COEFFS_PER_GAUSSIAN + GaussVarU] = 2.0f;
+    gauss_coeff_[palm_feat3 * NUM_COEFFS_PER_GAUSSIAN + GaussVarV] = 2.0f;
+
+    g_hand_net_->rhand_->calcBoundingSphereUVPos(uv, 
+      HandSphereIndices::TH_KNU3_A,  g_hand_net_->camera_->proj_view());
+    const uint32_t thumb_feat = THUMB_TIP_U / FEATURE_SIZE;
+    gauss_coeff_[thumb_feat * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU] = uv[0];
+    gauss_coeff_[thumb_feat * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV] = uv[1];
+    gauss_coeff_[thumb_feat * NUM_COEFFS_PER_GAUSSIAN + GaussVarU] = 2.0f;
+    gauss_coeff_[thumb_feat * NUM_COEFFS_PER_GAUSSIAN + GaussVarV] = 2.0f;
+
+    for (uint32_t i = 0; i < 4; i++) {
+      g_hand_net_->rhand_->calcBoundingSphereUVPos(uv, 
+        HandSphereIndices::F1_KNU3_A + NSPH_PER_GROUP * i, 
+        g_hand_net_->camera_->proj_view());
+      const uint32_t finger_feat = F0_TIP_U / FEATURE_SIZE + i;
+      gauss_coeff_[finger_feat * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU] = uv[0];
+      gauss_coeff_[finger_feat * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV] = uv[1];
+      gauss_coeff_[finger_feat * NUM_COEFFS_PER_GAUSSIAN + GaussVarU] = 2.0f;
+      gauss_coeff_[finger_feat * NUM_COEFFS_PER_GAUSSIAN + GaussVarV] = 2.0f;
+    }
+    //// END TEMP CODE
+    */
   }
 
   const float* HandNet::hpf_hand_image() const {
@@ -263,21 +347,27 @@ namespace hand_net {
       throw std::wruntime_error("HandNet::calcGaussDistCoeff() - ERROR: "
         "Heat map sum is zero!");
     }
+    for (uint32_t i = 0; i < im_size; i++) {
+      hm_temp_[i] = fabsf(im_data[i]) / sum_weights;
+    }
     
     // Calculate the weighted mean
     mean.zeros();
     float max_weight = 0;
     uint32_t i = 0;
+    sum_weights = 0;
     for (uint32_t v = 0; v < heat_map_size_; v++) {
       for (uint32_t u = 0; u < heat_map_size_; u++, i++) {
-        hm_temp_[i] = fabsf(im_data[i]) / sum_weights;
+        if (hm_temp_[i] <= 0.01f) {
+          hm_temp_[i] = 0;
+        }
+        sum_weights += hm_temp_[i];
         mean[0] += hm_temp_[i] * (float)u;
         mean[1] += hm_temp_[i] * (float)v;
         max_weight = std::max<float>(max_weight, hm_temp_[i]);
       }
     }
-    sum_weights = 1.0f;
-    Float2::scale(mean, 1.0f / sum_weights);  // Leave it here for clarity!
+    Float2::scale(mean, 1.0f / sum_weights);
 
     // Calculate the weighted variance (= std^2)
     var.zeros();
@@ -295,32 +385,48 @@ namespace hand_net {
       }
     }
     if (non_zero_weights <= 1) {
-      throw std::wruntime_error("HandNet::calcGaussDistCoeff() - ERROR: "
-        "Not enough non-zero heat map weights!");
+      gauss_coeff[GaussAmp] = 1;
+      gauss_coeff[GaussMeanU] = 0.5;
+      gauss_coeff[GaussMeanV] = 0.5;
+      gauss_coeff[GaussVarU] = 10000.0;
+      gauss_coeff[GaussVarV] = 10000.0;
     }
-    Float2::scale(var, 1.0f / (sum_weights * (non_zero_weights - 1) / non_zero_weights));
+    Float2::scale(var, 1.0f / (sum_weights * (non_zero_weights - 1) / 
+      non_zero_weights));
 
-    //float c_start[NUM_GAUSSIAN_COEFFS];
-    //c_start[GaussAmp] = max_weight;
-    //c_start[GaussMeanU] = mean[0];
-    //c_start[GaussMeanV] = mean[1];
-    //c_start[GaussVarU] = var[0];
-    //c_start[GaussVarV] = var[1];
-    //heat_map_lm_->fitModel(gauss_coeff, c_start, hm_temp_, lm_fit_x_vals_,
-    //  gauss2D, jacobGauss2D);
-
+#if 0
+    float c_start[NUM_COEFFS_PER_GAUSSIAN];
+    c_start[GaussAmp] = max_weight;
+    c_start[GaussMeanU] = mean[0];
+    c_start[GaussMeanV] = mean[1];
+    c_start[GaussVarU] = var[0];
+    c_start[GaussVarV] = var[1];
+    heat_map_lm_->fitModel(gauss_coeff, c_start, hm_temp_, lm_fit_x_vals_,
+      gauss2D, jacobGauss2D);
+    gauss_coeff[GaussMeanU] /= 23.0f;
+    gauss_coeff[GaussMeanV] /= 23.0f;
+    gauss_coeff[GaussVarU] /= 23.0f;
+    gauss_coeff[GaussVarV] /= 23.0f;
+#else
     // LM is too slow.  Just use the std and mean directly:
-    gauss_coeff[0] = max_weight;
-    gauss_coeff[1] = mean[0];
-    gauss_coeff[2] = mean[1];
-    gauss_coeff[3] = var[0];
-    gauss_coeff[4] = var[1];
+    gauss_coeff[GaussAmp] = max_weight;
+    gauss_coeff[GaussMeanU] = mean[0] / 23.0f;
+    gauss_coeff[GaussMeanV] = mean[1] / 23.0f;
+    gauss_coeff[GaussVarU] = var[0] / 23.0f;
+    gauss_coeff[GaussVarV] = var[1] / 23.0f;
+#endif
   }
 
   float HandNet::gauss2D(const float* x, const float* c) {
     float du = (x[0] - c[GaussMeanU]);
     float dv = (x[1] - c[GaussMeanV]);
     return c[GaussAmp] * exp(-(du * du / (2.0f * c[GaussVarU]) + dv * dv / (2.0f * c[GaussVarV])));
+  }
+
+  double HandNet::gauss2D(const double* x, const double* c) {
+    double du = (x[0] - c[GaussMeanU]);
+    double dv = (x[1] - c[GaussMeanV]);
+    return c[GaussAmp] * exp(-(du * du / (2.0 * c[GaussVarU]) + dv * dv / (2.0 * c[GaussVarV])));
   }
 
   void HandNet::jacobGauss2D(float* jacob, const float* x, const float* c) {
@@ -335,97 +441,180 @@ namespace hand_net {
     jacob[4] = c[GaussAmp]*1.0f/(c[GaussVarV]*c[GaussVarV]) *exp(((du * du)*(-1.0f/2.0f))/c[GaussVarU]-((dv * dv)*(1.0f/2.0f))/c[GaussVarV])*(dv * dv)*(1.0f/2.0f);
   }
 
-  float HandNet::bfgsFunc(const float* bfgs_hand_coeff) {
-    // Update the matrix heirachy
-    BFGSHandCoeffToHandCoeff(g_hand_net_->cur_coeff, bfgs_hand_coeff);
-    g_hand_net_->rhand_->updateMatrices(g_hand_net_->cur_coeff);
-
-    // Calculate the projected sphere positions:
-    float uv[2];
-    g_hand_net_->rhand_->calcBoundingSphereUVPos(uv, 
-      HandSphereIndices::PALM_3, g_hand_net_->camera_->proj_view());
-
-    g_hand_net_->rhand_->calcBoundingSphereUVPos(uv, 
-      HandSphereIndices::PALM_1,  g_hand_net_->camera_->proj_view());
-
-    g_hand_net_->rhand_->calcBoundingSphereUVPos(uv, 
-      HandSphereIndices::PALM_2,  g_hand_net_->camera_->proj_view());
-
-    g_hand_net_->rhand_->calcBoundingSphereUVPos(uv, 
-      HandSphereIndices::TH_KNU3_A,  g_hand_net_->camera_->proj_view());
-
-    for (uint32_t i = 0; i < 4; i++) {
-      g_hand_net_->rhand_->calcBoundingSphereUVPos(uv, 
-        HandSphereIndices::F1_KNU3_A + NSPH_PER_GROUP * i, 
-        g_hand_net_->camera_->proj_view());
-    }
-    return 0;
+  double HandNet::quad2D(const double* x, const double* c) {
+    double du = (x[0] - c[GaussMeanU]);
+    double dv = (x[1] - c[GaussMeanV]);
+    return du * du / (2.0 * c[GaussVarU]) + dv * dv / (2.0 * c[GaussVarV]);
   }
 
-  void HandNet::bfgsJacobFunc(float* jacob, const float* bfgs_hand_coeff) {
-    memset(jacob, 0, BFGSHandCoeff::BFGS_NUM_PARAMETERS * sizeof(jacob[0]));
+  double HandNet::linear2D(const double* x, const double* c) {
+    double du = fabs(x[0] - c[GaussMeanU]);
+    double dv = fabs(x[1] - c[GaussMeanV]);
+    return du  / (2.0 * sqrt(c[GaussVarU])) + dv / (2.0 * sqrt(c[GaussVarV]));
+  }
+
+// #define USE_QUAD
+
+  double HandNet::bfgsFunc(const double* bfgs_hand_coeff) {
+    // Update the matrix heirachy
+    BFGSHandCoeffToHandCoeff(g_hand_net_->rhand_cur_pose_->coeff(), 
+      bfgs_hand_coeff);
+    g_hand_net_->rhand_->updateMatrices(g_hand_net_->rhand_cur_pose_->coeff());
+    g_hand_net_->rhand_->updateHeirachyMatrices();
+    double ret_val = 0;
+
+    // Calculate the projected sphere positions:
+    Float2 uv;
+    Double2 d_uv;
+    g_hand_net_->rhand_->calcBoundingSphereUVPos(uv.m, 
+      HandSphereIndices::PALM_3, g_hand_net_->camera_->proj_view());
+    const uint32_t palm_feat1 = HAND_POS1_U / FEATURE_SIZE;
+#ifndef USE_QUAD
+    Float2 uv_data(&g_hand_net_->gauss_coeff_[palm_feat1 * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU]);
+    Float2 uv_vec;
+    Float2::sub(uv_vec, uv_data, uv);
+    ret_val += (double)Float2::dot(uv_vec, uv_vec) * 1e-3;
+#else
+    d_uv[0] = uv[0]; d_uv[1] = uv[1];
+    ret_val += quad2D(d_uv.m, &g_hand_net_->dgauss_coeff_[palm_feat1 * NUM_COEFFS_PER_GAUSSIAN]) * 1e-4;
+#endif
+
+    g_hand_net_->rhand_->calcBoundingSphereUVPos(uv.m, 
+      HandSphereIndices::PALM_1,  g_hand_net_->camera_->proj_view());
+    const uint32_t palm_feat2 = HAND_POS2_U / FEATURE_SIZE;
+#ifndef USE_QUAD
+    uv_data.set(&g_hand_net_->gauss_coeff_[palm_feat2 * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU]);
+    Float2::sub(uv_vec, uv_data, uv);
+    ret_val += (double)Float2::dot(uv_vec, uv_vec) * 1e-3;
+#else
+    d_uv[0] = uv[0]; d_uv[1] = uv[1];
+    ret_val += quad2D(d_uv.m, &g_hand_net_->dgauss_coeff_[palm_feat2 * NUM_COEFFS_PER_GAUSSIAN]) * 1e-4;
+#endif
+
+    g_hand_net_->rhand_->calcBoundingSphereUVPos(uv.m, 
+      HandSphereIndices::PALM_2,  g_hand_net_->camera_->proj_view());
+    const uint32_t palm_feat3 = HAND_POS3_U / FEATURE_SIZE;
+#ifndef USE_QUAD
+    uv_data.set(&g_hand_net_->gauss_coeff_[palm_feat3 * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU]);
+    Float2::sub(uv_vec, uv_data, uv);
+    ret_val += (double)Float2::dot(uv_vec, uv_vec) * 1e-3;
+#else
+    d_uv[0] = uv[0]; d_uv[1] = uv[1];
+    ret_val += quad2D(d_uv.m, &g_hand_net_->dgauss_coeff_[palm_feat3 * NUM_COEFFS_PER_GAUSSIAN]) * 1e-4;
+#endif
+
+    g_hand_net_->rhand_->calcBoundingSphereUVPos(uv.m, 
+      HandSphereIndices::TH_KNU3_A,  g_hand_net_->camera_->proj_view());
+    const uint32_t thumb_feat = THUMB_TIP_U / FEATURE_SIZE;
+#ifndef USE_QUAD
+    uv_data.set(&g_hand_net_->gauss_coeff_[thumb_feat * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU]);
+    Float2::sub(uv_vec, uv_data, uv);
+    ret_val += (double)Float2::dot(uv_vec, uv_vec) * 1e-3;
+#else
+    d_uv[0] = uv[0]; d_uv[1] = uv[1];
+    ret_val += quad2D(d_uv.m, &g_hand_net_->dgauss_coeff_[thumb_feat * NUM_COEFFS_PER_GAUSSIAN]) * 1e-4;
+#endif
+
+    for (uint32_t i = 0; i < 4; i++) {
+      g_hand_net_->rhand_->calcBoundingSphereUVPos(uv.m, 
+        HandSphereIndices::F1_KNU3_A + NSPH_PER_GROUP * i, 
+        g_hand_net_->camera_->proj_view());
+      const uint32_t finger_feat = F0_TIP_U / FEATURE_SIZE + i;
+#ifndef USE_QUAD
+      uv_data.set(&g_hand_net_->gauss_coeff_[finger_feat * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU]);
+      Float2::sub(uv_vec, uv_data, uv);
+      ret_val += (double)Float2::dot(uv_vec, uv_vec) * 1e-3;
+#else
+      d_uv[0] = uv[0]; d_uv[1] = uv[1];
+      ret_val += quad2D(d_uv.m, &g_hand_net_->dgauss_coeff_[finger_feat * NUM_COEFFS_PER_GAUSSIAN]) * 1e-4;
+#endif
+    }
+
+    return ret_val;
+  }
+
+  double tmp_coeff[BFGSHandCoeff::BFGS_NUM_PARAMETERS];
+  void HandNet::bfgsJacobFunc(double* jacob, const double* bfgs_hand_coeff) {
+    // APPROXIMATE USING CENTRAL DIFFERENCING
+    memcpy(tmp_coeff, bfgs_hand_coeff, 
+      sizeof(tmp_coeff[0]) * BFGS_NUM_PARAMETERS);
+    const double eps = 0.001f;
+    for (uint32_t i = 0; i < BFGS_NUM_PARAMETERS; i++) {
+      tmp_coeff[i] = bfgs_hand_coeff[i] - eps;
+      double f0 = bfgsFunc(tmp_coeff);
+      tmp_coeff[i] = bfgs_hand_coeff[i] + eps;
+      double f1 = bfgsFunc(tmp_coeff);
+      tmp_coeff[i] = bfgs_hand_coeff[i];
+      jacob[i] = (f1 - f0) / (2.0f * eps);
+    }
+    //std::cout << "Jacob: ";
+    //for (uint32_t i = 0; i < BFGS_NUM_PARAMETERS; i++) {
+    //  std::cout << jacob[i] << " ";
+    //}
+    //std::cout << std::endl;
   }
 
   void HandNet::BFGSHandCoeffToHandCoeff(float* hand_coeff, 
-    const float* bfgs_hand_coeff) {
-    hand_coeff[HAND_POS_X] = bfgs_hand_coeff[BFGS_HAND_POS_X];
-    hand_coeff[HAND_POS_Y] = bfgs_hand_coeff[BFGS_HAND_POS_Y];
-    hand_coeff[HAND_POS_Z] = bfgs_hand_coeff[BFGS_HAND_POS_Z];
-    hand_coeff[HAND_ORIENT_X] = bfgs_hand_coeff[BFGS_HAND_ORIENT_X];
-    hand_coeff[HAND_ORIENT_Y] = bfgs_hand_coeff[BFGS_HAND_ORIENT_Y];
-    hand_coeff[HAND_ORIENT_Z] = bfgs_hand_coeff[BFGS_HAND_ORIENT_Z];
-    hand_coeff[THUMB_THETA] = bfgs_hand_coeff[BFGS_THUMB_THETA];
-    hand_coeff[THUMB_PHI] = bfgs_hand_coeff[BFGS_THUMB_PHI];
-    hand_coeff[THUMB_K1_THETA] = bfgs_hand_coeff[BFGS_THUMB_K1_THETA];
-    hand_coeff[THUMB_K1_PHI] = bfgs_hand_coeff[BFGS_THUMB_K1_PHI];
-    hand_coeff[THUMB_K2_PHI] = bfgs_hand_coeff[BFGS_THUMB_K2_PHI];
-    hand_coeff[F0_THETA] = bfgs_hand_coeff[BFGS_F0_THETA];
-    hand_coeff[F0_PHI] = bfgs_hand_coeff[BFGS_F0_PHI];
-    hand_coeff[F0_KNUCKLE_MID] = bfgs_hand_coeff[BFGS_F0_KNUCKLE_MID];
-    hand_coeff[F0_KNUCKLE_END] = bfgs_hand_coeff[BFGS_F0_KNUCKLE_END];
-    hand_coeff[F1_THETA] = bfgs_hand_coeff[BFGS_F1_THETA];
-    hand_coeff[F1_PHI] = bfgs_hand_coeff[BFGS_F1_PHI];
-    hand_coeff[F1_KNUCKLE_MID] = bfgs_hand_coeff[BFGS_F1_KNUCKLE_MID];
-    hand_coeff[F1_KNUCKLE_END] = bfgs_hand_coeff[BFGS_F1_KNUCKLE_END];
-    hand_coeff[F2_THETA] = bfgs_hand_coeff[BFGS_F2_THETA];
-    hand_coeff[F2_PHI] = bfgs_hand_coeff[BFGS_F2_PHI];
-    hand_coeff[F2_KNUCKLE_MID] = bfgs_hand_coeff[BFGS_F2_KNUCKLE_MID];
-    hand_coeff[F2_KNUCKLE_END] = bfgs_hand_coeff[BFGS_F2_KNUCKLE_END];
-    hand_coeff[F3_THETA] = bfgs_hand_coeff[BFGS_F3_THETA];
-    hand_coeff[F3_PHI] = bfgs_hand_coeff[BFGS_F3_PHI];
-    hand_coeff[F3_KNUCKLE_MID] = bfgs_hand_coeff[BFGS_F3_KNUCKLE_MID];
-    hand_coeff[F3_KNUCKLE_END] = bfgs_hand_coeff[BFGS_F3_KNUCKLE_END];
+    const double* bfgs_hand_coeff) {
+    hand_coeff[HAND_POS_X] = (float)(1000.0 * (bfgs_hand_coeff[BFGS_HAND_POS_X] + M_PI) / (2.0 * M_PI));
+    hand_coeff[HAND_POS_Y] = (float)(1000.0 * (bfgs_hand_coeff[BFGS_HAND_POS_Y] + M_PI) / (2.0 * M_PI));
+    hand_coeff[HAND_POS_Z] = (float)(1000.0 * (bfgs_hand_coeff[BFGS_HAND_POS_Z] + M_PI) / (2.0 * M_PI));
+    hand_coeff[HAND_ORIENT_X] = (float)bfgs_hand_coeff[BFGS_HAND_ORIENT_X];
+    hand_coeff[HAND_ORIENT_Y] = (float)bfgs_hand_coeff[BFGS_HAND_ORIENT_Y];
+    hand_coeff[HAND_ORIENT_Z] = (float)bfgs_hand_coeff[BFGS_HAND_ORIENT_Z];
+    hand_coeff[THUMB_THETA] = (float)bfgs_hand_coeff[BFGS_THUMB_THETA];
+    hand_coeff[THUMB_PHI] = (float)bfgs_hand_coeff[BFGS_THUMB_PHI];
+    hand_coeff[THUMB_K1_THETA] = (float)bfgs_hand_coeff[BFGS_THUMB_K1_THETA];
+    hand_coeff[THUMB_K1_PHI] = (float)bfgs_hand_coeff[BFGS_THUMB_K1_PHI];
+    hand_coeff[THUMB_K2_PHI] = (float)bfgs_hand_coeff[BFGS_THUMB_K2_PHI];
+    hand_coeff[F0_THETA] = (float)bfgs_hand_coeff[BFGS_F0_THETA];
+    hand_coeff[F0_PHI] = (float)bfgs_hand_coeff[BFGS_F0_PHI];
+    hand_coeff[F0_KNUCKLE_MID] = (float)bfgs_hand_coeff[BFGS_F0_CURL];
+    hand_coeff[F0_KNUCKLE_END] = (float)bfgs_hand_coeff[BFGS_F0_CURL];
+    hand_coeff[F1_THETA] = (float)bfgs_hand_coeff[BFGS_F1_THETA];
+    hand_coeff[F1_PHI] = (float)bfgs_hand_coeff[BFGS_F1_PHI];
+    hand_coeff[F1_KNUCKLE_MID] = (float)bfgs_hand_coeff[BFGS_F1_CURL];
+    hand_coeff[F1_KNUCKLE_END] = (float)bfgs_hand_coeff[BFGS_F1_CURL];
+    hand_coeff[F2_THETA] = (float)bfgs_hand_coeff[BFGS_F2_THETA];
+    hand_coeff[F2_PHI] = (float)bfgs_hand_coeff[BFGS_F2_PHI];
+    hand_coeff[F2_KNUCKLE_MID] = (float)bfgs_hand_coeff[BFGS_F2_CURL];
+    hand_coeff[F2_KNUCKLE_END] = (float)bfgs_hand_coeff[BFGS_F2_CURL];
+    hand_coeff[F3_THETA] = (float)bfgs_hand_coeff[BFGS_F3_THETA];
+    hand_coeff[F3_PHI] = (float)bfgs_hand_coeff[BFGS_F3_PHI];
+    hand_coeff[F3_KNUCKLE_MID] = (float)bfgs_hand_coeff[BFGS_F3_CURL];
+    hand_coeff[F3_KNUCKLE_END] = (float)bfgs_hand_coeff[BFGS_F3_CURL];
   }
 
-  void HandNet::HandCoeffToBFGSHandCoeff(float* bfgs_hand_coeff, 
+  void HandNet::HandCoeffToBFGSHandCoeff(double* bfgs_hand_coeff, 
     const float* hand_coeff) {
-    bfgs_hand_coeff[BFGS_HAND_POS_X] = hand_coeff[HAND_POS_X];
-    bfgs_hand_coeff[BFGS_HAND_POS_Y] = hand_coeff[HAND_POS_Y];
-    bfgs_hand_coeff[BFGS_HAND_POS_Z] = hand_coeff[HAND_POS_Z];
-    bfgs_hand_coeff[BFGS_HAND_ORIENT_X] = hand_coeff[HAND_ORIENT_X];
-    bfgs_hand_coeff[BFGS_HAND_ORIENT_Y] = hand_coeff[HAND_ORIENT_Y];
-    bfgs_hand_coeff[BFGS_HAND_ORIENT_Z] = hand_coeff[HAND_ORIENT_Z];
-    bfgs_hand_coeff[BFGS_THUMB_THETA] = hand_coeff[THUMB_THETA];
-    bfgs_hand_coeff[BFGS_THUMB_PHI] = hand_coeff[THUMB_PHI];
-    bfgs_hand_coeff[BFGS_THUMB_K1_THETA] = hand_coeff[THUMB_K1_THETA];
-    bfgs_hand_coeff[BFGS_THUMB_K1_PHI] = hand_coeff[THUMB_K1_PHI];
-    bfgs_hand_coeff[BFGS_THUMB_K2_PHI] = hand_coeff[THUMB_K2_PHI];
-    bfgs_hand_coeff[BFGS_F0_THETA] = hand_coeff[F0_THETA];
-    bfgs_hand_coeff[BFGS_F0_PHI] = hand_coeff[F0_PHI];
-    bfgs_hand_coeff[BFGS_F0_KNUCKLE_MID] = hand_coeff[F0_KNUCKLE_MID];
-    bfgs_hand_coeff[BFGS_F0_KNUCKLE_END] = hand_coeff[F0_KNUCKLE_END];
-    bfgs_hand_coeff[BFGS_F1_THETA] = hand_coeff[F1_THETA];
-    bfgs_hand_coeff[BFGS_F1_PHI] = hand_coeff[F1_PHI];
-    bfgs_hand_coeff[BFGS_F1_KNUCKLE_MID] = hand_coeff[F1_KNUCKLE_MID];
-    bfgs_hand_coeff[BFGS_F1_KNUCKLE_END] = hand_coeff[F1_KNUCKLE_END];
-    bfgs_hand_coeff[BFGS_F2_THETA] = hand_coeff[F2_THETA];
-    bfgs_hand_coeff[BFGS_F2_PHI] = hand_coeff[F2_PHI];
-    bfgs_hand_coeff[BFGS_F2_KNUCKLE_MID] = hand_coeff[F2_KNUCKLE_MID];
-    bfgs_hand_coeff[BFGS_F2_KNUCKLE_END] = hand_coeff[F2_KNUCKLE_END];
-    bfgs_hand_coeff[BFGS_F3_THETA] = hand_coeff[F3_THETA];
-    bfgs_hand_coeff[BFGS_F3_PHI] = hand_coeff[F3_PHI];
-    bfgs_hand_coeff[BFGS_F3_KNUCKLE_MID] = hand_coeff[F3_KNUCKLE_MID];
-    bfgs_hand_coeff[BFGS_F3_KNUCKLE_END] = hand_coeff[F3_KNUCKLE_END];
+    double curl;
+    bfgs_hand_coeff[BFGS_HAND_POS_X] = 2.0 * M_PI * ((double)hand_coeff[HAND_POS_X] / 1000.0) - M_PI;
+    bfgs_hand_coeff[BFGS_HAND_POS_Y] = 2.0 * M_PI * ((double)hand_coeff[HAND_POS_Y] / 1000.0) - M_PI;
+    bfgs_hand_coeff[BFGS_HAND_POS_Z] = 2.0 * M_PI * ((double)hand_coeff[HAND_POS_Z] / 1000.0) - M_PI;
+    bfgs_hand_coeff[BFGS_HAND_ORIENT_X] = (double)hand_coeff[HAND_ORIENT_X];
+    bfgs_hand_coeff[BFGS_HAND_ORIENT_Y] = (double)hand_coeff[HAND_ORIENT_Y];
+    bfgs_hand_coeff[BFGS_HAND_ORIENT_Z] = (double)hand_coeff[HAND_ORIENT_Z];
+    bfgs_hand_coeff[BFGS_THUMB_THETA] = (double)hand_coeff[THUMB_THETA];
+    bfgs_hand_coeff[BFGS_THUMB_PHI] = (double)hand_coeff[THUMB_PHI];
+    bfgs_hand_coeff[BFGS_THUMB_K1_THETA] = (double)hand_coeff[THUMB_K1_THETA];
+    bfgs_hand_coeff[BFGS_THUMB_K1_PHI] = (double)hand_coeff[THUMB_K1_PHI];
+    bfgs_hand_coeff[BFGS_THUMB_K2_PHI] = (double)hand_coeff[THUMB_K2_PHI];
+    bfgs_hand_coeff[BFGS_F0_THETA] = (double)hand_coeff[F0_THETA];
+    bfgs_hand_coeff[BFGS_F0_PHI] = (double)hand_coeff[F0_PHI];
+    curl = 0.5 * (double)(hand_coeff[F0_KNUCKLE_MID] + hand_coeff[F0_KNUCKLE_END]);
+    bfgs_hand_coeff[BFGS_F0_CURL] = curl;
+    bfgs_hand_coeff[BFGS_F1_THETA] = (double)hand_coeff[F1_THETA];
+    bfgs_hand_coeff[BFGS_F1_PHI] = (double)hand_coeff[F1_PHI];
+    curl = 0.5 * (double)(hand_coeff[F1_KNUCKLE_MID] + hand_coeff[F1_KNUCKLE_END]);
+    bfgs_hand_coeff[BFGS_F1_CURL] = curl;
+    bfgs_hand_coeff[BFGS_F2_THETA] = (double)hand_coeff[F2_THETA];
+    bfgs_hand_coeff[BFGS_F2_PHI] = (double)hand_coeff[F2_PHI];
+    curl = 0.5 * (double)(hand_coeff[F2_KNUCKLE_MID] + hand_coeff[F2_KNUCKLE_END]);
+    bfgs_hand_coeff[BFGS_F2_CURL] = curl;
+    bfgs_hand_coeff[BFGS_F3_THETA] = (double)hand_coeff[F3_THETA];
+    bfgs_hand_coeff[BFGS_F3_PHI] = (double)hand_coeff[F3_PHI];
+    curl = 0.5 * (double)(hand_coeff[F3_KNUCKLE_MID] + hand_coeff[F3_KNUCKLE_END]);
+    bfgs_hand_coeff[BFGS_F3_CURL] = curl;
   }
 
 }  // namespace hand_net

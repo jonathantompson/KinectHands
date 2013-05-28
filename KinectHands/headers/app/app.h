@@ -72,6 +72,7 @@ namespace app {
     static void mouseWheelCB(const int pos);
     static void characterInputCB(const int character, const int action);
     static void screenshotCB();
+    static void resetTrackingCB();
     static void greyscaleScreenshotCB();
 
   private:

@@ -282,12 +282,15 @@ namespace app {
               kdata_[cur_kinect]->normals_xyz, kdata_[cur_kinect]->xyz, 
               kdata_[cur_kinect]->labels);
         } 
-        bool detect_pose;
+        bool detect_pose, detect_heat_map;
         GET_SETTING("detect_pose", bool, detect_pose);
-        if (detect_pose) {
+        GET_SETTING("detect_heat_map", bool, detect_heat_map);
+        if (detect_heat_map) {
           hand_net_->calcConvnetHeatMap(kdata_[cur_kinect]->depth, 
             kdata_[cur_kinect]->labels);
-          hand_net_->calcConvnetPose();
+          if (detect_pose) {
+            hand_net_->calcConvnetPose();
+          }
         }
       }  // if (new_data_)
 
@@ -526,6 +529,36 @@ namespace app {
           Renderer::g_renderer()->setBackgroundTexture(convnet_hm_background_tex_);
           break;
         default:
+          bool show_gaussian_labels, detect_heat_map;
+          GET_SETTING("show_gaussian_labels", bool, show_gaussian_labels);
+          GET_SETTING("detect_heat_map", bool, detect_heat_map);
+          if (detect_heat_map && show_gaussian_labels) {
+            const float* gauss_coeff = hand_net_->gauss_coeff();
+            const uint32_t num_feats = hand_net_->num_output_features();
+            for (uint32_t i = 0; i < num_feats; i++) {
+              const float* cur_dist = &gauss_coeff[i * NUM_COEFFS_PER_GAUSSIAN];
+              const int32_t u_cen = (int32_t)floorf(cur_dist[GaussMeanU]);
+              const int32_t v_cen = (int32_t)floorf(cur_dist[GaussMeanV]);
+              const int32_t u_std = (int32_t)floorf(sqrt(cur_dist[GaussVarU]));
+              const int32_t v_std = (int32_t)floorf(sqrt(cur_dist[GaussVarV]));
+              for (int32_t v = v_cen - 3*v_std; v <= v_cen + 3*v_std; v++) {
+                for (int32_t u = u_cen - 3*u_std; u <= u_cen + 3*u_std; u++) {
+                  if (u >= 0 && u < src_width && v >= 0 && v < src_height) {
+                    float du = (float)u - cur_dist[GaussMeanU];
+                    float dv = (float)v - cur_dist[GaussMeanV];
+                    float prob = exp(-(du*du/(2*cur_dist[GaussVarU]) + dv*dv/(2*cur_dist[GaussVarV])));
+                    int32_t index = (src_height - v - 1) * src_width + u;
+                    if (index >= 0 && index < src_width * src_height) {
+                      //im_flipped_[index * 3] *= prob;
+                      im_flipped_[index * 3 + 1] = (uint8_t)((float)im_flipped_[index * 3 + 1] * (1.0f - prob));
+                      im_flipped_[index * 3 + 2] = (uint8_t)((float)im_flipped_[index * 3 + 2] * (1.0f - prob));
+                    }
+                  }
+                }
+              }
+            }
+          }
+
           background_tex_->flagDirty();
           Renderer::g_renderer()->setBackgroundTexture(background_tex_);
           break;
@@ -543,6 +576,7 @@ namespace app {
       GET_SETTING("show_hand_model", bool, show_hand_model);
       Renderer::g_renderer()->ui()->setTextWindowVisibility("kinect_fps_wnd",
         render_kinect_fps);
+      hand_net_->setModelVisibility(show_hand_model);
 
       Renderer::g_renderer()->renderFrame();
 
@@ -659,7 +693,12 @@ namespace app {
 
     ui->addHeadingText("Hand Detection:");
     ui->addCheckbox("detect_hands", "Enable Hand Detection");
+    ui->addCheckbox("detect_heat_map", "Enable Heat Map Detection");
     ui->addCheckbox("detect_pose", "Enable Pose Detection");
+    ui->addCheckbox("show_gaussian_labels", "Show Gaussian Labels");
+
+    ui->addButton("reset_tracking_button", "Reset Tracking", 
+      App::resetTrackingCB);
 
     ui->addSelectbox("label_type_enum", "Hand label type");
     ui->addSelectboxItem("label_type_enum", 
@@ -693,12 +732,16 @@ namespace app {
     light_spot_vsm->cvsm_count(1);
     Renderer::g_renderer()->addLight(light_spot_vsm);
 
-    GeometryInstance* tmp = 
-      Renderer::g_renderer()->geometry_manager()->makeTorusKnot(lred, 7, 64, 512);
-    tmp->mat().leftMultTranslation(300.0f, 0.0f, 1500.0f);
-    tmp->mat().rightMultScale(100.0f, 100.0f, 100.0f);
+    //GeometryInstance* tmp = 
+    //  Renderer::g_renderer()->geometry_manager()->makeTorusKnot(lred, 7, 64, 512);
+    //tmp->mat().leftMultTranslation(300.0f, 0.0f, 1500.0f);
+    //tmp->mat().rightMultScale(100.0f, 100.0f, 100.0f);
 
     hand_net_->loadHandModels();
+  }
+
+  void App::resetTrackingCB() {
+    g_app_->hand_net_->resetTracking();
   }
 
   void App::screenshotCB() {

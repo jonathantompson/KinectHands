@@ -149,7 +149,6 @@ namespace hand_net {
     memcpy(coeff_, coeff, sizeof(coeff_[0]) * ncoeffs);
   }
 
-  FloatQuat tmp_quat_;
   void HandModelCoeff::renormalizeCoeffs(float* coeff) {
     // Set all angles 0 --> 2pi
     for (uint32_t i = HAND_ORIENT_X; i < HAND_NUM_COEFF; i++) {

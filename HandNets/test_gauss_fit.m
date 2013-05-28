@@ -106,6 +106,9 @@ bfgs_J_func = {
     @(C) (bfgs_func(C+[0,0,0,0,h]')-bfgs_func(C-[0,0,0,0,h]'))/(2*h)};
 c_solve_bfgs = BFGS_Backtracking(bfgs_func, bfgs_J_func, c_0', 1e-5, 1e-5, 1e-5, 1000);
 
+%% Try fitting in log space
+log_Y_vals = log(Y_vals);
+
 %% Make some plots
 fit_curve_lm = zeros(dim, dim);
 fit_curve_bfgs = zeros(dim, dim);

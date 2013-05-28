@@ -56,7 +56,7 @@ namespace hand_net {
       geom->sync();
     }
 
-    renderer_attachment_ = true;  
+    visible_ = true;  
   }
 
   HandModel::~HandModel() {
@@ -81,13 +81,20 @@ namespace hand_net {
     }
 #endif
 
-    // Find all the bones
+
+    // Find all the bones and nodes we need
     string base_name;
     if (type == HandType::LEFT) {
       base_name = HAND_MODEL_PATH + LHAND_MODEL_FILE + "/";
     } else {
       base_name = HAND_MODEL_PATH + RHAND_MODEL_FILE + "/";
     }
+    mesh_node_ = GeometryManager::findGeometryInstanceByName(
+      base_name + "hand_mesh", model_);
+    if (mesh_node_ == NULL) {
+      throw std::wruntime_error("ERROR: couldn't find the mesh node!");
+    }
+
     bone_wrist_ = GeometryManager::findGeometryInstanceByName(
       base_name + "carpals", model_);
     if (bone_wrist_ == NULL) {
@@ -366,38 +373,22 @@ namespace hand_net {
   }
 
   void HandModel::fixBoundingSphereMatrices() {
-    /*
-    Float4x4 tmp;
-    Float4x4 root_inverse;
-    Float4x4::inverse(root_inverse, *scene_graph_->mat());
-    renderStackReset();
-    while (!renderStackEmpty()) {
-      Geometry* cur_geom = renderStackPop();
-      if (cur_geom->type() == GeometryType::BOUNDING_SPHERE) {
-        // This is a bit of a hack, but we have to undo the parent's root
-        // transform (by left multiplying by its inverse).
-        // Then we have to left multiply by the mesh node's transform
-        BoundingSphere* sphere = reinterpret_cast<BoundingSphere*>(cur_geom);
-        Float4x4::multSIMD(tmp, root_inverse, *sphere->mat_hierarchy());
-        Float4x4::multSIMD(*sphere->mat_hierarchy(), *sphere->mesh_node()->mat_hierarchy(), tmp);
-      }
-    }
-    */
+    
   }
 
-  void HandModel::setRendererAttachement(const bool renderer_attachment) {
-    if (renderer_attachment_ != renderer_attachment) {
-      renderer_attachment_ = renderer_attachment;
+  void HandModel::setRenderVisiblity(const bool visible) {
+    if (visible_ != visible) {
+      visible_ = visible;
       renderStackReset();
       while (!renderStackEmpty()) {
         GeometryInstance* cur_geom = renderStackPop();
-        cur_geom->render() = renderer_attachment_;
+        cur_geom->render() = visible_;
       }
     }
   }
 
-  const bool HandModel::getRendererAttachement() {
-    return renderer_attachment_;
+  const bool HandModel::getRenderVisiblity() {
+    return visible_;
   }
 
   // These next few methods are to avoid the cos and sin double functions in 
@@ -761,22 +752,25 @@ namespace hand_net {
     true,   // THUMB_TWIST
   };
 
-  Float4x4 root_inverse, tmp;
+  Float4x4 root_inverse, tmp, tmp2;
   void HandModel::calcBoundingSphereUVPos(float* uv, 
     const uint32_t b_sphere_index, const Float4x4& pv_mat) {
     BSphere* sphere = bspheres_[b_sphere_index];
 
-    sphere->transformCenter();
-    Float3& xyz_pos = *sphere->transformed_center();
+    Float4x4::multSIMD(tmp, mesh_node_->mat_hierarchy(), 
+      *sphere->parent_node()->bone_transform());
+
+    Float3 xyz_pos;
+    Float3::affineTransformPos(xyz_pos, tmp, sphere->center());
     
     Float4 pos(xyz_pos[0], xyz_pos[1], xyz_pos[2], 1.0f);
     Float4 homog_pos;
     Float4::mult(homog_pos, pv_mat, pos);
-    uv[0] = (homog_pos[0] / homog_pos[3]);  // NDC X: -1 --> 1
-    uv[1] = (homog_pos[1] / homog_pos[3]);  // NDC Y: -1 --> 1
+    uv[0] = (homog_pos[0] / (homog_pos[3] + LOOSE_EPSILON));  // NDC X: -1 --> 1
+    uv[1] = (homog_pos[1] / (homog_pos[3] + LOOSE_EPSILON));  // NDC Y: -1 --> 1
     // http://www.songho.ca/opengl/gl_transform.html
-    uv[0] = (float)src_width * 0.5f * (uv[0] + 1);  // Window X: 0 --> W
-    uv[1] = (float)src_height * 0.5f * (-uv[1] + 1);  // Window Y: 0 --> H
+    uv[0] = (float)src_width * 0.5f * (-uv[0] + 1);  // Window X: 0 --> W
+    uv[1] = (float)src_height * 0.5f * (uv[1] + 1);  // Window Y: 0 --> H
   }
 
 }  // namespace hand_net
