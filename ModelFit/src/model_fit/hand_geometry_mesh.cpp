@@ -458,41 +458,12 @@ namespace model_fit {
     updateMatrices(hand->coeff());
     updateHeirachyMatrices();
     fixBoundingSphereMatrices();
-    
-    //Float4x4::mult(VW_mat, view_mat, *(scene_graph_->mat_hierarchy()));
-
+ 
     // Project the XYZ position into UV space
     // Use the bounding sphere centers since they are already in good positions
-    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-      HandSphereIndices::PALM_3, HAND_POS1_U, proj_mat, view_mat);
-    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-      HandSphereIndices::PALM_1, HAND_POS2_U, proj_mat, view_mat);
-    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-      HandSphereIndices::PALM_2, HAND_POS3_U, proj_mat, view_mat);
-    //extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-    //  HandSphereIndices::PALM_6, HAND_POS4_U);
-
-    // Thumb
-    extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-      HandSphereIndices::TH_KNU3_A, THUMB_TIP_U, proj_mat, view_mat);
-    //extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-    //  HandSphereIndices::TH_KNU3_B, THUMB_K3_U);
-    //extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-    //  HandSphereIndices::TH_KNU2_B, THUMB_K2_U);
-    //extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-    //  HandSphereIndices::TH_KNU1_B, THUMB_BASE_U);
-
-    // Fingers
-    for (uint32_t i = 0; i < 4; i++) {
+    for (uint32_t i = 0; i < num_convnet_feats; i++) {
       extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-        HandSphereIndices::F1_KNU3_A + NSPH_PER_GROUP * i, F0_TIP_U + 
-        FEATURE_SIZE * NUM_FEATS_PER_FINGER * i, proj_mat, view_mat);
-    //extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-    //  HandSphereIndices::F1_KNU2_B + NSPH_PER_FING * i, F0_K2_U + 
-    //  FEATURE_SIZE * NUM_FEATS_PER_FINGER * i);
-    //extractPositionForConvnet(hand, coeff_convnet, hand_pos_wh, uvd_com,
-    //  HandSphereIndices::F1_KNU1_B + NSPH_PER_FING * i, F0_BASE_U + 
-    //  FEATURE_SIZE * NUM_FEATS_PER_FINGER * i);
+        convnet_sphere_indices[i], i * FEATURE_SIZE, proj_mat, view_mat);
     }
   }
 

@@ -7,6 +7,7 @@
 #include "model_fit/model_fit.h"
 #include "model_fit/bounding_sphere.h"
 #include "model_fit/pose_model.h"
+#include "kinect_interface/hand_net/hand_model_coeff.h"  // NSPH_PER_GROUP
 #include "renderer/open_gl_common.h"
 #include "renderer/renderer.h"
 #include "renderer/colors.h"

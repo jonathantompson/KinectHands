@@ -30,12 +30,6 @@
 #define RHAND_MODEL_FILE "hand_palm_parent_medium_wrist_right.dae"
 #define RHAND_MODEL_JFILE "hand_palm_parent_medium_wrist_right.jbin"
 
-#define PSO_RAD_FINGERS 0.40f  // Search radius in frac of min - max coeff - Def 0.4
-#define PSO_RAD_WRIST 0.40f
-#define PSO_RAD_THUMB 0.40f
-#define PSO_RAD_EULER 0.40f
-#define PSO_RAD_POSITION 25  // Absolute value in mm
-
 #define NUM_SPHERES kinect_interface::hand_net::HandSphereIndices::NUM_BOUNDING_SPHERES
 
 namespace renderer { class Geometry; }

@@ -67,17 +67,18 @@
 // *************************************************************
 // ******************* CHANGEABLE PARAMETERS *******************
 // *************************************************************
-#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405) *
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405) *
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_05_03_1/")  // Cal + Fit (6533) *
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_1/")  // Cal + Fit (8709) *
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_2/")  // Cal + Fit (8469) *
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_3/")  // Cal + Fit (5815) *
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_08_1/")  // Cal + Fit (2440) (Tr-data) *
+//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_3/")  // Cal + Fit (5815) MURPHY *
+#define IM_DIR_BASE string("data/hand_depth_data_2013_05_08_1/")  // Cal + Fit (2440) (Tr-data)
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_05_19_1/")  // Cal + Fit (5969) *
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_05_19_2/")  // Cal + Fit (6781) * Total: 47681 
 
-#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN/") 
-//#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN_testset/") 
+//#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN/") 
+#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN_testset/") 
+//#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN_murphy/") 
 
 //#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
 #define SAVE_FILES  // Only enabled when we're not loading processed images
@@ -693,6 +694,7 @@ int main(int argc, char *argv[]) {
     std::cout << "Using a cropped source image of " << HN_SRC_IM_SIZE;
     std::cout << std::endl << "Final image size after processing is ";
     std::cout << (HN_IM_SIZE) << std::endl;
+    std::cout << "Image directory hash is: " << IM_DIR_hash << std::endl;
 
     hand_detect = new HandDetector(tp);
     hand_detect->init(src_width, src_height, KINECT_HANDS_ROOT +

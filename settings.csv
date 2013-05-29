@@ -11,7 +11,7 @@
 track_openni_skeleton,            bool,      0
 kinect_output,                    int,       2
 detect_hands,                     bool,      1
-detect_pose,                      bool,      0
+detect_pose,                      bool,      1
 detect_heat_map,                  bool,      1
 label_type_enum,                  int,       0
 render_kinect_fps,                bool,      1
