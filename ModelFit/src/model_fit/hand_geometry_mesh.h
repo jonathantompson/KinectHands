@@ -32,6 +32,12 @@
 
 #define NUM_SPHERES kinect_interface::hand_net::HandSphereIndices::NUM_BOUNDING_SPHERES
 
+#define PSO_RAD_FINGERS 0.40f  // Search radius in frac of min - max coeff - Def 0.4
+#define PSO_RAD_WRIST 0.40f
+#define PSO_RAD_THUMB 0.40f
+#define PSO_RAD_EULER 0.40f
+#define PSO_RAD_POSITION 25  // Absolute value in mm
+
 namespace renderer { class Geometry; }
 namespace renderer { struct BoneFileInfo; }
 namespace renderer { struct Bone; }

@@ -25,12 +25,6 @@
 #define NSPH_PER_GROUP 6  // Spheres are split into groups, within each group
                           // of n objects interpenetation has no penalty
 
-#define PSO_RAD_FINGERS 0.40f  // Search radius in frac of min - max coeff - Def 0.4
-#define PSO_RAD_WRIST 0.40f
-#define PSO_RAD_THUMB 0.40f
-#define PSO_RAD_EULER 0.40f
-#define PSO_RAD_POSITION 25  // Absolute value in mm
-
 namespace jtil {
 namespace renderer {
   class GeometryInstance;

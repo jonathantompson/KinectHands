@@ -230,10 +230,10 @@ namespace hand_net {
     mat = &bone_wrist_->mat();
     rotateMatXAxisGM(mat_tmp1, coeff[WRIST_PHI]);
     rotateMatZAxisGM(mat_tmp2, coeff[WRIST_THETA]);
-    Float4x4::mult(mat_tmp3, mat_tmp1, mat_tmp2);
+    Float4x4::multSIMD(mat_tmp3, mat_tmp1, mat_tmp2);
     // rotateMatXAxis(mat_tmp1, HandModelCoeff::wrist_twist);
     // Float4x4::mult(mat_tmp2, mat_tmp1, mat_tmp3);
-    Float4x4::mult(*mat, bone_wrist_->bone()->rest_transform, mat_tmp3);
+    Float4x4::multSIMD(*mat, bone_wrist_->bone()->rest_transform, mat_tmp3);
 
     // Set the finger bones
     for (uint32_t i = 0; i < 4; i++) {
