@@ -31,7 +31,7 @@
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
-#define PSO_RAD_FINGERS 0.10f  // Search radius in frac of min - max coeff - Def 0.4
+#define PSO_RAD_FINGERS 0.10f  // Search radius in frac of min - max coeff
 #define PSO_RAD_THUMB 0.10f
 #define PSO_RAD_EULER 0.10f
 #define PSO_RAD_POSITION 2.0f * (float)M_PI * (10.0f / 100.0f)
@@ -280,7 +280,7 @@ namespace hand_net {
 
     pso_->verbose = false;
     pso_->delta_coeff_termination = 1e-4f;
-    pso_->max_iterations = 100;
+    pso_->max_iterations = 75;
     pso_->minimize(pso_coeff_end_, pso_coeff_start_, pso_radius_, 
       HandModel::angle_coeffs(), objFunc, HandNet::renormalizePSOCoeffs);
     BFGSHandCoeffToHandCoeff<float>(rhand_cur_pose_->coeff(), pso_coeff_end_);
