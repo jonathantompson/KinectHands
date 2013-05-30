@@ -289,7 +289,8 @@ namespace app {
           hand_net_->calcConvnetHeatMap(kdata_[cur_kinect]->depth, 
             kdata_[cur_kinect]->labels);
           if (detect_pose) {
-            hand_net_->calcConvnetPose();
+            hand_net_->calcConvnetPose(kdata_[cur_kinect]->depth, 
+              kdata_[cur_kinect]->labels);
           }
         }
       }  // if (new_data_)

@@ -18,6 +18,7 @@
 #include "jtil/math/math_types.h"
 #include "kinect_interface/hand_net/hand_model_coeff.h"  // For HandCoeff
 #include "kinect_interface/depth_images_io.h"  // for src_dim
+#include "kinect_interface/open_ni_funcs.h"
 #include "jtil/threading/callback.h"
 
 #define HN_NUM_WORKER_THREADS 6
@@ -29,6 +30,7 @@
 #define NUM_COEFFS_PER_GAUSSIAN 5  // (mean_u, mean_v, std_u, std_v)
 #define X_DIM_LM_FIT 2
 #define BFGS_FINGER_NUM_COEFF 3
+#define RAD_UVD_SEARCH 2
 
 #if defined(__APPLE__)
   #define CONVNET_FILE string("./../../../../../../../../../data/" \
@@ -142,7 +144,7 @@ namespace hand_net {
     // the same as the coeffs the renderer uses - see above)
     // Result is placed in coeff_convnet
     void calcConvnetHeatMap(const int16_t* depth, const uint8_t* label);
-    void calcConvnetPose();
+    void calcConvnetPose(const int16_t* depth, const uint8_t* label);
     void resetTracking();
 
     // If you don't want the full convnet computation but you want the hand 
@@ -168,6 +170,7 @@ namespace hand_net {
 
   private:
     HandImageGenerator* image_generator_;
+    OpenNIFuncs open_ni_funcs_;
     HandNetDataType data_type_;
     int32_t num_conv_banks_;  // Set after Torch model is read from file
     jtorch::TorchStage* conv_network_;
@@ -179,8 +182,9 @@ namespace hand_net {
     HandModelCoeff* rest_pose_;
     HandModelCoeff* rhand_cur_pose_;
     HandModelCoeff* rhand_prev_pose_;
-    float* gauss_coeff_;
-    double* dgauss_coeff_;
+    float* gauss_coeff_;  // For each feature
+    float uvd_pos_[num_convnet_feats * 3];  // For each feature
+    float xyz_pos_[num_convnet_feats * 3];  // For each feature
     jtil::math::LMFit<float>* heat_map_lm_;
     float* lm_fit_x_vals_;  // An image for (u, v) at each grid point
     jtil::math::BFGS<double>* bfgs_; 
@@ -222,6 +226,7 @@ namespace hand_net {
     static void renormalizePSOCoeffs(float* coeff);
     void setPSORadius();
     static float calcPenalty(const float* coeff);
+    void calc3DPos(const int16_t* depth, const uint8_t* label);
 
     // Non-copyable, non-assignable.
     HandNet(HandNet&);

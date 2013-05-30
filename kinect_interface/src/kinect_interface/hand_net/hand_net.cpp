@@ -60,7 +60,6 @@ namespace hand_net {
     lm_fit_x_vals_ = NULL;
     hm_temp_ = NULL;
     gauss_coeff_ = NULL;
-    dgauss_coeff_ = NULL;
     heat_map_size_ = 0;
     num_output_features_ = 0;
     rest_pose_ = NULL;
@@ -82,7 +81,6 @@ namespace hand_net {
     SAFE_DELETE(image_generator_);
     SAFE_DELETE_ARR(heat_map_convnet_);
     SAFE_DELETE_ARR(gauss_coeff_);
-    SAFE_DELETE_ARR(dgauss_coeff_)
     SAFE_DELETE_ARR(hm_temp_);
     SAFE_DELETE_ARR(lm_fit_x_vals_);
     SAFE_DELETE(rest_pose_);
@@ -139,7 +137,6 @@ namespace hand_net {
 
     hm_temp_ = new float[heat_map_size_ * heat_map_size_];
     gauss_coeff_ = new float[NUM_COEFFS_PER_GAUSSIAN * num_output_features_];
-    dgauss_coeff_ = new double[NUM_COEFFS_PER_GAUSSIAN * num_output_features_];
     lm_fit_x_vals_ = new float[heat_map_size_ * heat_map_size_ * X_DIM_LM_FIT];
     for (uint32_t v = 0, i = 0; v < heat_map_size_; v++) {
       for (uint32_t u = 0; u < heat_map_size_; u++, i++) {
@@ -227,9 +224,6 @@ namespace hand_net {
         gauss_coeff_[istart + GaussMeanV] * (float)(*pos_wh)[3] + (float)(*pos_wh)[1];
       gauss_coeff_[istart + GaussVarU] *= (float)(*pos_wh)[2];
       gauss_coeff_[istart + GaussVarV] *= (float)(*pos_wh)[3];
-      for (uint32_t j = 0; j < NUM_COEFFS_PER_GAUSSIAN; j++) {
-        dgauss_coeff_[istart + j] = (double)gauss_coeff_[istart + j];
-      }
     }
   }
 
@@ -252,10 +246,12 @@ namespace hand_net {
     rhand_cur_pose_->copyCoeffFrom(rest_pose_);
   }
 
-  void HandNet::calcConvnetPose() {
+  void HandNet::calcConvnetPose(const int16_t* depth, const uint8_t* label) {
     // Try fitting in projected space from the rest pose:
     rhand_prev_pose_->copyCoeffFrom(rhand_cur_pose_);
     g_hand_net_ = this;
+
+    calc3DPos(depth, label);
 
     /*
     // The objfunc parameters are a sub-set, make a copy of the current pose 
@@ -286,54 +282,40 @@ namespace hand_net {
     BFGSHandCoeffToHandCoeff<float>(rhand_cur_pose_->coeff(), pso_coeff_end_);
     rhand_->updateMatrices(rhand_cur_pose_->coeff());
     rhand_->updateHeirachyMatrices();
+  }
 
-    /*
-    //// TEMP CODE:
-    float uv[2];
-    g_hand_net_->rhand_->calcBoundingSphereUVPos(uv, 
-      HandSphereIndices::PALM_3, g_hand_net_->camera_->proj_view());
-    const uint32_t palm_feat1 = HAND_POS1_U / FEATURE_SIZE;
-    gauss_coeff_[palm_feat1 * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU] = uv[0];
-    gauss_coeff_[palm_feat1 * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV] = uv[1];
-    gauss_coeff_[palm_feat1 * NUM_COEFFS_PER_GAUSSIAN + GaussVarU] = 2.0f;
-    gauss_coeff_[palm_feat1 * NUM_COEFFS_PER_GAUSSIAN + GaussVarV] = 2.0f;
+  void HandNet::calc3DPos(const int16_t* depth, const uint8_t* label) {
+    // For each feature, find the minimum Z point within some small radius
+    // If non exists (or it is not part of the hand) then set D = 0
+    for (uint32_t i = 0; i < num_convnet_feats; i++) {
+      float u = gauss_coeff_[i * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU];
+      float v = gauss_coeff_[i * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV];
+      uvd_pos_[i * 3] = u;
+      uvd_pos_[i * 3 + 1] = v;
 
-    g_hand_net_->rhand_->calcBoundingSphereUVPos(uv, 
-      HandSphereIndices::PALM_1,  g_hand_net_->camera_->proj_view());
-    const uint32_t palm_feat2 = HAND_POS2_U / FEATURE_SIZE;
-    gauss_coeff_[palm_feat2 * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU] = uv[0];
-    gauss_coeff_[palm_feat2 * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV] = uv[1];
-    gauss_coeff_[palm_feat2 * NUM_COEFFS_PER_GAUSSIAN + GaussVarU] = 2.0f;
-    gauss_coeff_[palm_feat2 * NUM_COEFFS_PER_GAUSSIAN + GaussVarV] = 2.0f;
-
-    g_hand_net_->rhand_->calcBoundingSphereUVPos(uv, 
-      HandSphereIndices::PALM_2,  g_hand_net_->camera_->proj_view());
-    const uint32_t palm_feat3 = HAND_POS3_U / FEATURE_SIZE;
-    gauss_coeff_[palm_feat3 * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU] = uv[0];
-    gauss_coeff_[palm_feat3 * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV] = uv[1];
-    gauss_coeff_[palm_feat3 * NUM_COEFFS_PER_GAUSSIAN + GaussVarU] = 2.0f;
-    gauss_coeff_[palm_feat3 * NUM_COEFFS_PER_GAUSSIAN + GaussVarV] = 2.0f;
-
-    g_hand_net_->rhand_->calcBoundingSphereUVPos(uv, 
-      HandSphereIndices::TH_KNU3_A,  g_hand_net_->camera_->proj_view());
-    const uint32_t thumb_feat = THUMB_TIP_U / FEATURE_SIZE;
-    gauss_coeff_[thumb_feat * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU] = uv[0];
-    gauss_coeff_[thumb_feat * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV] = uv[1];
-    gauss_coeff_[thumb_feat * NUM_COEFFS_PER_GAUSSIAN + GaussVarU] = 2.0f;
-    gauss_coeff_[thumb_feat * NUM_COEFFS_PER_GAUSSIAN + GaussVarV] = 2.0f;
-
-    for (uint32_t i = 0; i < 4; i++) {
-      g_hand_net_->rhand_->calcBoundingSphereUVPos(uv, 
-        HandSphereIndices::F1_KNU3_A + NSPH_PER_GROUP * i, 
-        g_hand_net_->camera_->proj_view());
-      const uint32_t finger_feat = F0_TIP_U / FEATURE_SIZE + i;
-      gauss_coeff_[finger_feat * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU] = uv[0];
-      gauss_coeff_[finger_feat * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV] = uv[1];
-      gauss_coeff_[finger_feat * NUM_COEFFS_PER_GAUSSIAN + GaussVarU] = 2.0f;
-      gauss_coeff_[finger_feat * NUM_COEFFS_PER_GAUSSIAN + GaussVarV] = 2.0f;
+      // Now search for some small window for the minimum point
+      int16_t d = MAX_INT16;
+      uint32_t v_start = std::max<uint32_t>((uint32_t)floor(v) - RAD_UVD_SEARCH, 0);
+      uint32_t v_end = std::min<uint32_t>((uint32_t)floor(v) + RAD_UVD_SEARCH, src_height-1);
+      for (uint32_t v_search = v_start; v_search <= v_end; v_search++) {
+        uint32_t u_start = std::max<uint32_t>((uint32_t)floor(u) - RAD_UVD_SEARCH, 0);
+        uint32_t u_end = std::min<uint32_t>((uint32_t)floor(u) + RAD_UVD_SEARCH, src_width-1);
+        for (uint32_t u_search = u_start; u_search <= u_end; u_search++) {
+          uint32_t index = v_search * src_height + u_search;
+          if (depth[index] > 0 && label[index] == 1) {
+            d = std::min<int16_t>(depth[index], d);
+          }
+        }
+      }
+      if (d == MAX_INT16) {
+        uvd_pos_[i * 3 + 2] = 0;
+      } else {
+        // If we found a valid hand point (with minimum) then unproject it
+        uvd_pos_[i * 3 + 2] = d;
+        open_ni_funcs_.convertDepthToWorldCoordinates(&uvd_pos_[i * 3],
+          &xyz_pos_[i * 3], 1);
+      }
     }
-    //// END TEMP CODE
-    */
   }
 
   const float* HandNet::hpf_hand_image() const {
@@ -497,8 +479,6 @@ namespace hand_net {
     return objFuncInternal();
   }
 
-// #define USE_QUAD
-
   float HandNet::objFuncInternal() {
     g_hand_net_->rhand_->updateMatrices(g_hand_net_->rhand_cur_pose_->coeff());
     g_hand_net_->rhand_->updateHeirachyMatrices();
@@ -510,22 +490,18 @@ namespace hand_net {
     }
 
     // Calculate the projected sphere positions:
-    Float2 uv;
-    Double2 d_uv;
+    Float3 uvd;
     for (uint32_t i = 0; i < num_convnet_feats; i++) {
-      g_hand_net_->rhand_->calcBoundingSphereUVPos(uv.m, 
+      g_hand_net_->rhand_->calcBoundingSphereUVDPos(uvd.m, 
         convnet_sphere_indices[i], g_hand_net_->camera_->proj_view());
-#ifndef USE_QUAD
-      Float2 uv_data(&g_hand_net_->gauss_coeff_[i * NUM_COEFFS_PER_GAUSSIAN + 
-        GaussMeanU]);
-      Float2 uv_vec;
-      Float2::sub(uv_vec, uv_data, uv);
-      ret_val += sqrtf(Float2::dot(uv_vec, uv_vec)) * 1e-3f;
-#else
-      d_uv[0] = uv[0]; d_uv[1] = uv[1];
-      ret_val += (float)quad2D(d_uv.m, 
-        &g_hand_net_->dgauss_coeff_[i * NUM_COEFFS_PER_GAUSSIAN]) * 1e-4f;
-#endif
+
+      Float3 uvd_data(&g_hand_net_->uvd_pos_[i * 3]);
+      if (uvd_data[2] < EPSILON) {
+        uvd.m[2] = uvd_data[2];  // Match in UV only
+      }
+      Float3 vec;
+      Float3::sub(vec, uvd_data, uvd);
+      ret_val += sqrtf(Float3::dot(vec, vec)) * 1e-3f;
     }
 
     return ret_val + g_hand_net_->calcPenalty(g_hand_net_->rhand_cur_pose_->coeff());

@@ -753,7 +753,7 @@ namespace hand_net {
   };
 
   Float4x4 root_inverse, tmp, tmp2;
-  void HandModel::calcBoundingSphereUVPos(float* uv, 
+  void HandModel::calcBoundingSphereUVDPos(float* uvd, 
     const uint32_t b_sphere_index, const Float4x4& pv_mat) {
     BSphere* sphere = bspheres_[b_sphere_index];
 
@@ -766,11 +766,12 @@ namespace hand_net {
     Float4 pos(xyz_pos[0], xyz_pos[1], xyz_pos[2], 1.0f);
     Float4 homog_pos;
     Float4::mult(homog_pos, pv_mat, pos);
-    uv[0] = (homog_pos[0] / (homog_pos[3] + LOOSE_EPSILON));  // NDC X: -1 --> 1
-    uv[1] = (homog_pos[1] / (homog_pos[3] + LOOSE_EPSILON));  // NDC Y: -1 --> 1
+    uvd[0] = (homog_pos[0] / (homog_pos[3] + LOOSE_EPSILON));  // NDC X: -1 --> 1
+    uvd[1] = (homog_pos[1] / (homog_pos[3] + LOOSE_EPSILON));  // NDC Y: -1 --> 1
     // http://www.songho.ca/opengl/gl_transform.html
-    uv[0] = (float)src_width * 0.5f * (-uv[0] + 1);  // Window X: 0 --> W
-    uv[1] = (float)src_height * 0.5f * (uv[1] + 1);  // Window Y: 0 --> H
+    uvd[0] = (float)src_width * 0.5f * (-uvd[0] + 1);  // Window X: 0 --> W
+    uvd[1] = (float)src_height * 0.5f * (uvd[1] + 1);  // Window Y: 0 --> H
+    uvd[2] = xyz_pos[2];
   }
 
 }  // namespace hand_net
