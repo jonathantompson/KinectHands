@@ -34,7 +34,7 @@
 #define PSO_RAD_FINGERS 0.20f  // Search radius in frac of min - max coeff
 #define PSO_RAD_THUMB 0.20f
 #define PSO_RAD_EULER 0.20f
-#define PSO_RAD_POSITION 2.0f * (float)M_PI * (20.0f / 100.0f)
+#define PSO_RAD_POSITION 2.0f * (float)M_PI * (5.0f / 100.0f)
 
 using jtil::threading::ThreadPool;
 using std::string;
