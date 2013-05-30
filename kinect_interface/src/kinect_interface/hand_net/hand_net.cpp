@@ -24,17 +24,17 @@
 #include "jtil/threading/thread_pool.h"
 #include "jtil/math/lm_fit.h"
 #include "jtil/math/bfgs.h"
-#include "jtil/math/pso.h"
+#include "jtil/math/pso_parallel.h"
 #include "jtil/clk/clk.h"
 #include "jtil/renderer/camera/camera.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
-#define PSO_RAD_FINGERS 0.10f  // Search radius in frac of min - max coeff
-#define PSO_RAD_THUMB 0.10f
-#define PSO_RAD_EULER 0.10f
-#define PSO_RAD_POSITION 2.0f * (float)M_PI * (10.0f / 100.0f)
+#define PSO_RAD_FINGERS 0.20f  // Search radius in frac of min - max coeff
+#define PSO_RAD_THUMB 0.20f
+#define PSO_RAD_EULER 0.20f
+#define PSO_RAD_POSITION 2.0f * (float)M_PI * (20.0f / 100.0f)
 
 using jtil::threading::ThreadPool;
 using std::string;
@@ -47,6 +47,7 @@ using kinect_interface::hand_net::HandCoeff;
 using namespace jtil::math;
 using namespace jtorch;
 using namespace jtil::renderer;
+using namespace jtil::data_str;
 
 namespace kinect_interface {
 namespace hand_net {
@@ -147,7 +148,7 @@ namespace hand_net {
     heat_map_lm_ = new LMFit<float>(NUM_COEFFS_PER_GAUSSIAN, X_DIM_LM_FIT,
       heat_map_size_ * heat_map_size_);
     bfgs_ = new BFGS<double>(BFGSHandCoeff::BFGS_NUM_PARAMETERS);
-    pso_ = new PSO(BFGSHandCoeff::BFGS_NUM_PARAMETERS);
+    pso_ = new PSOParallel(BFGSHandCoeff::BFGS_NUM_PARAMETERS, 64, 64);
     bfgs_->max_iterations = 100;
     rest_pose_ = new HandModelCoeff(HandType::RIGHT);
     rhand_cur_pose_ = new HandModelCoeff(HandType::RIGHT);
@@ -246,6 +247,10 @@ namespace hand_net {
     rhand_cur_pose_->copyCoeffFrom(rest_pose_);
   }
 
+
+//#define USE_BFGS
+#define USE_PSO
+
   void HandNet::calcConvnetPose(const int16_t* depth, const uint8_t* label) {
     // Try fitting in projected space from the rest pose:
     rhand_prev_pose_->copyCoeffFrom(rhand_cur_pose_);
@@ -253,33 +258,35 @@ namespace hand_net {
 
     calc3DPos(depth, label);
 
-    /*
+#ifdef USE_PSO
     // The objfunc parameters are a sub-set, make a copy of the current pose 
     // into this smaller space
-    HandCoeffToBFGSHandCoeff<double>(bfgs_coeff_start, rhand_cur_pose_->coeff());
+    HandCoeffToBFGSHandCoeff<float>(pso_coeff_start_, rhand_cur_pose_->coeff());
+    pso_->verbose = false;
+    pso_->delta_coeff_termination = 1e-4f;
+    pso_->max_iterations = 100;
+    pso_->minimize(pso_coeff_end_, pso_coeff_start_, pso_radius_, 
+      HandModel::angle_coeffs(), objFuncParallel, HandNet::renormalizePSOCoeffs);
+    BFGSHandCoeffToHandCoeff<float>(rhand_cur_pose_->coeff(), pso_coeff_end_);
+#endif
 
-    bfgs_->verbose = true;
+#ifdef USE_BFGS
+    // The objfunc parameters are a sub-set, make a copy of the current pose 
+    // into this smaller space
+    HandCoeffToBFGSHandCoeff<double>(bfgs_coeff_start_, rhand_cur_pose_->coeff());
+    bfgs_->verbose = false;
     bfgs_->delta_f_term = 1e-12;
     bfgs_->delta_x_2norm_term = 1e-12;
     bfgs_->jac_2norm_term = 1e-12;
     bfgs_->max_iterations = 150;
-    bfgs_->minimize(bfgs_coeff_end, bfgs_coeff_start, 
+    bfgs_->descent_cond = jtil::math::SufficientDescentCondition::ARMIJO;
+    bfgs_->c1 = 1e-12;
+    bfgs_->minimize(bfgs_coeff_end_, bfgs_coeff_start_, 
       HandModel::angle_coeffs(), objFunc, jacobFunc, 
       HandNet::renormalizeBFGSCoeffs);
-     
-    BFGSHandCoeffToHandCoeff(rhand_cur_pose_->coeff(), bfgs_coeff_end);
-    */
+    BFGSHandCoeffToHandCoeff<double>(rhand_cur_pose_->coeff(), bfgs_coeff_end_);
+#endif
 
-    // The objfunc parameters are a sub-set, make a copy of the current pose 
-    // into this smaller space
-    HandCoeffToBFGSHandCoeff<float>(pso_coeff_start_, rhand_cur_pose_->coeff());
-
-    pso_->verbose = false;
-    pso_->delta_coeff_termination = 1e-4f;
-    pso_->max_iterations = 75;
-    pso_->minimize(pso_coeff_end_, pso_coeff_start_, pso_radius_, 
-      HandModel::angle_coeffs(), objFunc, HandNet::renormalizePSOCoeffs);
-    BFGSHandCoeffToHandCoeff<float>(rhand_cur_pose_->coeff(), pso_coeff_end_);
     rhand_->updateMatrices(rhand_cur_pose_->coeff());
     rhand_->updateHeirachyMatrices();
   }
@@ -477,6 +484,15 @@ namespace hand_net {
     BFGSHandCoeffToHandCoeff<float>(g_hand_net_->rhand_cur_pose_->coeff(), 
       bfgs_hand_coeff);
     return objFuncInternal();
+  }
+
+  void HandNet::objFuncParallel(Vector<float>& residues, 
+    Vector<float*>& coeffs) {
+    for (uint32_t i = 0; i < coeffs.size(); i++) {
+      BFGSHandCoeffToHandCoeff<float>(g_hand_net_->rhand_cur_pose_->coeff(), 
+        coeffs[i]);
+      residues[i] = objFuncInternal();
+    }
   }
 
   float HandNet::objFuncInternal() {

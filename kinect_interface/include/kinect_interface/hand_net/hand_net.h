@@ -30,7 +30,7 @@
 #define NUM_COEFFS_PER_GAUSSIAN 5  // (mean_u, mean_v, std_u, std_v)
 #define X_DIM_LM_FIT 2
 #define BFGS_FINGER_NUM_COEFF 3
-#define RAD_UVD_SEARCH 2
+#define RAD_UVD_SEARCH 5
 
 #if defined(__APPLE__)
   #define CONVNET_FILE string("./../../../../../../../../../data/" \
@@ -46,8 +46,9 @@ namespace jtorch {
 
 namespace jtil { namespace math { template <class T> class LMFit; } }
 namespace jtil { namespace math { template <class T> class BFGS; } }
-namespace jtil { namespace math { class PSO; } }
+namespace jtil { namespace math { class PSOParallel; } }
 namespace jtil { namespace renderer { class Camera; } }
+namespace jtil { namespace data_str { template <class T> class Vector; } }
 
 namespace kinect_interface {
 namespace hand_net {
@@ -188,7 +189,7 @@ namespace hand_net {
     jtil::math::LMFit<float>* heat_map_lm_;
     float* lm_fit_x_vals_;  // An image for (u, v) at each grid point
     jtil::math::BFGS<double>* bfgs_; 
-    jtil::math::PSO* pso_; 
+    jtil::math::PSOParallel* pso_; 
     jtil::renderer::Camera* camera_;
 
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in);
@@ -207,6 +208,8 @@ namespace hand_net {
 
     static double objFunc(const double* bfgs_hand_coeff);
     static float objFunc(const float* bfgs_hand_coeff);
+    static void objFuncParallel(jtil::data_str::Vector<float>& residues, 
+      jtil::data_str::Vector<float*>& coeffs);
     static float objFuncInternal();
     static void jacobFunc(double* jacob, const double* bfgs_hand_coeff);
     double bfgs_coeff_start_[BFGSHandCoeff::BFGS_NUM_PARAMETERS];
