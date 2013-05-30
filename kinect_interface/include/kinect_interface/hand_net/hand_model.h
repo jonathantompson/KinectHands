@@ -58,11 +58,6 @@ namespace hand_net {
     jtil::data_str::VectorManaged<jtil::renderer::objects::BSphere*> bspheres_;
     bool visible_;
 
-    // Temp matricies are not static to be thread safe.
-    jtil::math::Float4x4 mat_tmp1;
-    jtil::math::Float4x4 mat_tmp2;
-    jtil::math::Float4x4 mat_tmp3;
-
     void loadHandGeometry(kinect_interface::hand_net::HandType type);
 
     // References to bones for quick access (not owned here)

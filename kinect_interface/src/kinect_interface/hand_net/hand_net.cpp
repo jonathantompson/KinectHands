@@ -114,7 +114,7 @@ namespace hand_net {
     if (network->get(0)->type() != TorchStageType::PARALLEL_STAGE) {
       throw std::wruntime_error("HandNet::loadFromFile() - ERROR: "
         "Convnet structure may be corrupt!");
-    }
+   } 
     Parallel* banks = (Parallel*)network->get(0);
     data_type_ = HPF_DEPTH_DATA;
 

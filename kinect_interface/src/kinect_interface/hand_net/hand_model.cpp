@@ -219,6 +219,9 @@ namespace hand_net {
   }
 
   void HandModel::updateMatrices(const float* coeff) {
+    jtil::math::Float4x4 mat_tmp1;
+    jtil::math::Float4x4 mat_tmp2;
+    jtil::math::Float4x4 mat_tmp3;
     // Set the root matrix:
     Float4x4* mat = &model_->mat();
     euler2RotMatGM(*mat, coeff[HAND_ORIENT_X], coeff[HAND_ORIENT_Y],
@@ -236,25 +239,29 @@ namespace hand_net {
     Float4x4::multSIMD(*mat, bone_wrist_->bone()->rest_transform, mat_tmp3);
 
     // Set the finger bones
-    for (uint32_t i = 0; i < 4; i++) {
+#pragma omp parallel for num_threads(4)
+    for (int i = 0; i < 4; i++) {
       float theta, phi, psi;
+      Float4x4* mat;
+      jtil::math::Float4x4 mat_tmp1;
+      jtil::math::Float4x4 mat_tmp2;
       // Root
       theta = coeff[F0_ROOT_THETA + i * FINGER_NUM_COEFF];
       phi = coeff[F0_ROOT_PHI + i * FINGER_NUM_COEFF];
       psi = 0;
       mat = &bone_finger1_[i]->mat();
-      euler2RotMatGM(mat_tmp3, psi, theta, phi);
+      euler2RotMatGM(mat_tmp1, psi, theta, phi);
       Float4x4::multSIMD(*mat, bone_finger1_[i]->bone()->rest_transform,
-        mat_tmp3);
+        mat_tmp1);
 
       // K1 base
       theta = coeff[F0_THETA + i * FINGER_NUM_COEFF];
       phi = coeff[F0_PHI + i * FINGER_NUM_COEFF];
       psi = coeff[F0_TWIST + i];
       mat = &bone_finger2_[i]->mat();
-      euler2RotMatGM(mat_tmp3, psi, theta, phi);
+      euler2RotMatGM(mat_tmp1, psi, theta, phi);
       Float4x4::multSIMD(*mat, bone_finger2_[i]->bone()->rest_transform, 
-        mat_tmp3);
+        mat_tmp1);
       mat->rightMultScale(1.0f, 1.0f + coeff[F0_LENGTH + i], 1.0f);  // Scale this node
 
       mat = &bone_finger3_[i]->mat();
@@ -292,8 +299,8 @@ namespace hand_net {
     float phi = coeff[THUMB_PHI];
     float psi = coeff[THUMB_TWIST];
     mat = &bone_thumb_[0]->mat();
-    euler2RotMatGM(mat_tmp3, psi, theta, phi);
-    Float4x4::multSIMD(*mat, bone_thumb_[0]->bone()->rest_transform, mat_tmp3);
+    euler2RotMatGM(mat_tmp1, psi, theta, phi);
+    Float4x4::multSIMD(*mat, bone_thumb_[0]->bone()->rest_transform, mat_tmp1);
 
     theta = coeff[THUMB_K1_THETA];
     phi = coeff[THUMB_K1_PHI];
