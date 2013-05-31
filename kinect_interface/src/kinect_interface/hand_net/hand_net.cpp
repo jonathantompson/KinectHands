@@ -35,6 +35,8 @@
 #define PSO_RAD_THUMB 0.20f
 #define PSO_RAD_EULER 0.20f
 #define PSO_RAD_POSITION 2.0f * (float)M_PI * (5.0f / 100.0f)
+#define PSO_SWARM_SIZE 32
+#define PSO_NUM_ITERATIONS 100
 
 using jtil::threading::ThreadPool;
 using std::string;
@@ -148,7 +150,8 @@ namespace hand_net {
     heat_map_lm_ = new LMFit<float>(NUM_COEFFS_PER_GAUSSIAN, X_DIM_LM_FIT,
       heat_map_size_ * heat_map_size_);
     bfgs_ = new BFGS<double>(BFGSHandCoeff::BFGS_NUM_PARAMETERS);
-    pso_ = new PSOParallel(BFGSHandCoeff::BFGS_NUM_PARAMETERS, 64, 64);
+    pso_ = new PSOParallel(BFGSHandCoeff::BFGS_NUM_PARAMETERS, PSO_SWARM_SIZE,
+      PSO_SWARM_SIZE);
     bfgs_->max_iterations = 100;
     rest_pose_ = new HandModelCoeff(HandType::RIGHT);
     rhand_cur_pose_ = new HandModelCoeff(HandType::RIGHT);
@@ -264,7 +267,7 @@ namespace hand_net {
     HandCoeffToBFGSHandCoeff<float>(pso_coeff_start_, rhand_cur_pose_->coeff());
     pso_->verbose = false;
     pso_->delta_coeff_termination = 1e-4f;
-    pso_->max_iterations = 100;
+    pso_->max_iterations = PSO_NUM_ITERATIONS;
     pso_->minimize(pso_coeff_end_, pso_coeff_start_, pso_radius_, 
       HandModel::angle_coeffs(), objFuncParallel, HandNet::renormalizePSOCoeffs);
     BFGSHandCoeffToHandCoeff<float>(rhand_cur_pose_->coeff(), pso_coeff_end_);
@@ -546,7 +549,7 @@ namespace hand_net {
     const uint32_t coeff_dim = HAND_NUM_COEFF;
     const uint32_t coeff_dim_per_model = HAND_NUM_COEFF;
     const float* penalty_scale = kinect_interface::hand_net::HandModel::coeff_penalty_scale();
-    const float* max_limit = kinect_interface::hand_net::HandModel::coeff_max_limit();
+    const float* max_limit = kinect_interface::hand_net::HandModel::coeff_max_limit_conservative();
     const float* min_limit = kinect_interface::hand_net::HandModel::coeff_min_limit();;
 
     for (uint32_t i = 0; i < coeff_dim; i++) {

@@ -194,10 +194,18 @@ namespace kinect_interface {
     }
   }
 
+  bool TranslateSinglePixel_error_msg = false;
   bool OpenNIFuncs::TranslateSinglePixel(const uint32_t x, const uint32_t y, 
     uint16_t z, int& imageX, int& imageY, const bool m_isMirrored) {
     if (cal_data_ == NULL) {
-      throw std::wruntime_error("ERROR: calibration data wasn't loaded!");
+      imageX = 0;
+      imageY = 0;
+      if (!TranslateSinglePixel_error_msg) {
+        std::cout << "Warning: Calibration data wasn't loaded!" << std::endl;
+        std::cout << "  TranslateSinglePixel will only return (0,0)" << std::endl;
+        TranslateSinglePixel_error_msg = true;
+      }
+      return false;
     }
     imageX = 0;
     imageY = 0;

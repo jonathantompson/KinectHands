@@ -663,6 +663,53 @@ namespace hand_net {
     0.300f,  // F3_TWIST
     0.300f,  // THUMB_TWIST
   };
+
+  // coeff_max_limit_ is the maximum coefficient value before the penalty
+  // function heavily penalizes configurations with this value
+  const float HandModel::coeff_max_limit_conservative_[HAND_NUM_COEFF] = {
+    std::numeric_limits<float>::infinity(),    // HAND_POS_X
+    std::numeric_limits<float>::infinity(),    // HAND_POS_Y
+    std::numeric_limits<float>::infinity(),    // HAND_POS_Z
+    3.14159f,  // HAND_ORIENT_X
+    3.14159f,  // HAND_ORIENT_Y
+    3.14159f,  // HAND_ORIENT_Z
+    0.905f,  // WRIST_THETA
+    1.580f,  // WRIST_PHI
+    0.350f,  // THUMB_THETA
+    0.380f,  // THUMB_PHI
+    0.700f,  // THUMB_K1_THETA
+    0.550f,  // THUMB_K1_PHI
+    0.300f,  // THUMB_K2_PHI
+    0.100f,  // F0_ROOT_THETA
+    0.100f,  // F0_ROOT_PHI
+    0.600f,  // F0_THETA
+    0.270f,  // F0_PHI
+    0.360f,  // F0_KNUCKLE_MID
+    0.360f,  // F0_KNUCKLE_END
+    0.300f,  // F1_ROOT_THETA
+    0.300f,  // F1_ROOT_PHI
+    0.600f,  // F1_THETA
+    0.270f,  // F1_PHI
+    0.360f,  // F1_KNUCKLE_MID
+    0.360f,  // F1_KNUCKLE_END
+    0.100f,  // F2_ROOT_THETA
+    0.100f,  // F2_ROOT_PHI
+    0.600f,  // F2_THETA
+    0.270f,  // F2_PHI
+    0.360f,  // F2_KNUCKLE_MID
+    0.360f,  // F2_KNUCKLE_END
+    0.300f,  // F3_ROOT_THETA
+    0.300f,  // F3_ROOT_PHI
+    0.600f,  // F3_THETA
+    0.270f,  // F3_PHI
+    0.360f,  // F3_KNUCKLE_MID
+    0.360f,  // F3_KNUCKLE_END
+    0.300f,  // F0_TWIST
+    0.300f,  // F1_TWIST
+    0.300f,  // F2_TWIST
+    0.300f,  // F3_TWIST
+    0.300f,  // THUMB_TWIST
+  };
   
   // coeff_penalty_scale_ is the exponential scale to use when penalizing coeffs
   // outside the min and max values.

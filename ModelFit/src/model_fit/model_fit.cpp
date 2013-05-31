@@ -336,7 +336,7 @@ namespace model_fit {
 
   void ModelFit::objectiveFuncTiled(Vector<float>& residues, 
     Vector<float*>& coeffs) {
-    if (coeffs.size() > NTILES) {
+    if (coeffs.size() > NTILES_DEFAULT) {
       throw runtime_error("objectiveFuncTiled() - coeffs.size() > NTILES");
     }
     if (residues.capacity() < coeffs.size()) {
@@ -372,7 +372,7 @@ namespace model_fit {
         calculateResidualTiled(&depth_term, NULL, coeffs, i_camera);
       }
     }
-    func_eval_count_ += NTILES;
+    func_eval_count_ += NTILES_DEFAULT;
 
     // Now calculate the final residue term
     residues.resize(0);

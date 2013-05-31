@@ -71,6 +71,9 @@ namespace app {
     hands_[0] = NULL;
     hands_[1] = NULL;
     convnet_hm_im_flipped_ = NULL;
+    kinect_update_cbs_ = NULL;
+    data_save_cbs_ = NULL;
+    tp_ = NULL;
   }
 
   App::~App() {
@@ -91,7 +94,7 @@ namespace app {
     SAFE_DELETE(convnet_src_background_tex_);
     SAFE_DELETE(convnet_hm_background_tex_);
     SAFE_DELETE(background_tex_);
-    SAFE_DELETE(kinect_update_cbs_);
+    SAFE_DELETE(kinect_update_cbs_); 
     SAFE_DELETE(data_save_cbs_);
     SAFE_DELETE_ARR(convnet_hm_im_flipped_);
     Renderer::ShutdownRenderer();

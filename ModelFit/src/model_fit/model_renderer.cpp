@@ -50,7 +50,7 @@ namespace model_fit {
     num_cameras_ = num_cameras;
     depth_tmp_ = new float*[num_cameras_];
     for (uint32_t i = 0; i < num_cameras_; i++) {
-      depth_tmp_[i] = new float[src_dim * NTILES];
+      depth_tmp_[i] = new float[src_dim * NTILES_DEFAULT];
     }
     FloatQuat eye_rot; eye_rot.identity();
     Float3 eye_pos(0, 0, 0);
@@ -283,7 +283,7 @@ namespace model_fit {
     GLState::glsClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
     uint32_t nimages = coeff.size();
-    if (nimages > NTILES) {
+    if (nimages > NTILES_DEFAULT) {
       throw std::runtime_error("Too many images to draw tiled!");
     }
     for (uint32_t i = 0; i < nimages; i++) {
