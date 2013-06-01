@@ -29,7 +29,7 @@ color_convnet_depth_threshold,    int,       25
 show_gaussian_labels,             bool,      1
 
 //, RENDERER
-screen_resolution,                int,       62915280
+screen_resolution,                int,       83887040
 fullscreen,                       bool,      0
 double_buffering,                 bool,      0  
 clear_color,                      Float3,    0.529, 0.808, 0.980
@@ -45,10 +45,10 @@ render_ui_fps,                    bool,      1
 render_output_enum,               int,       0
 light_pass_stencil_opt,           bool,      0
 ssao_on,                          bool,      1
-ssao_sample_radius,               float,     0.4
+ssao_sample_radius,               float,     40.0
 ssao_bias,                        float,     0.4
 ssao_intensity,                   float,     2.5
-ssao_scale,                       float,     0.5
+ssao_scale,                       float,     0.005
 ssao_enable,                      int,       1
 ssao_number_sample_enum,          int,       0
 ssao_blur_on,                     bool,      1
@@ -64,7 +64,7 @@ ui_render_crosshairs,             bool,      0
 ui_crosshairs_size,               float,     0.025
 ui_starting_height,               int,       600
 ui_starting_width,                int,       320
-vsm_on,                           bool,      0 
+vsm_on,                           bool,      1 
 vsm_resolution_enum,              int,       2
 vsm_default_softness,             float,     0.2
 vsm_cascade_split_log_factor,     float,     0.5
@@ -87,7 +87,7 @@ motion_blur_on,                   bool,      1
 motion_blur_max_samples,          int,       13
 motion_blur_depth_cutoff,         float,     5.0
 motion_blur_target_fps,           float,     60
-motion_blur_hq_boned,             bool,      0
+motion_blur_hq_boned,             bool,      1
 flashlight_on,                    bool,      0
 flashlight_dist,                  float,     40.0
 flashlight_outer_fov,             float,     20.0

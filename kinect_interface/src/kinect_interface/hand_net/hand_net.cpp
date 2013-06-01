@@ -315,11 +315,11 @@ namespace hand_net {
       if (d == MAX_INT16) {
         uvd_pos_[i * 3 + 2] = 0;
       } else {
-        if (i < 3) {
+        if (i < 3 || i == THUMB_KNU_U / FEATURE_SIZE) {
           // Push the depth back a little bit (to account for sphere in hand)
-          d += 15;  // 1.5cm for palm positions
+          d += 20;  // 2.0cm for palm and thumb knuckle positions
         } else {
-          d += 5;  // 0.5cm for finger positions
+          d += 5;  // 0.5cm for all other positions
         }
         uvd_pos_[i * 3 + 2] = d;
       }
