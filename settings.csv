@@ -29,7 +29,7 @@ color_convnet_depth_threshold,    int,       25
 show_gaussian_labels,             bool,      1
 
 //, RENDERER
-screen_resolution,                int,       83887040
+screen_resolution,                int,       62915280
 fullscreen,                       bool,      0
 double_buffering,                 bool,      0  
 clear_color,                      Float3,    0.529, 0.808, 0.980
