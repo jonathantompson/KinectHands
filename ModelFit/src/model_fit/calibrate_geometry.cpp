@@ -213,7 +213,6 @@ namespace model_fit {
       if (cur_geom->parent() != NULL) {
         Float4x4::multSIMD(*cur_geom->mat_hierarchy(),
           *cur_geom->parent()->mat_hierarchy(), *cur_geom->mat());
-
       } else {
         cur_geom->mat_hierarchy()->set(*cur_geom->mat());
       }

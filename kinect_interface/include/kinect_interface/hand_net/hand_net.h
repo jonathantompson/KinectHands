@@ -30,7 +30,6 @@
 #define NUM_COEFFS_PER_GAUSSIAN 5  // (mean_u, mean_v, std_u, std_v)
 #define X_DIM_LM_FIT 2
 #define BFGS_FINGER_NUM_COEFF 3
-#define RAD_UVD_SEARCH 5
 
 #if defined(__APPLE__)
   #define CONVNET_FILE string("./../../../../../../../../../data/" \

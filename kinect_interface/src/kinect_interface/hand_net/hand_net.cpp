@@ -36,7 +36,7 @@
 #define PSO_RAD_EULER 0.20f
 #define PSO_RAD_POSITION 2.0f * (float)M_PI * (5.0f / 100.0f)
 #define PSO_SWARM_SIZE 32
-#define PSO_NUM_ITERATIONS 100
+#define PSO_NUM_ITERATIONS 50
 
 using jtil::threading::ThreadPool;
 using std::string;
@@ -295,8 +295,9 @@ namespace hand_net {
   }
 
   void HandNet::calc3DPos(const int16_t* depth, const uint8_t* label) {
-    // For each feature, find the minimum Z point within some small radius
-    // If non exists (or it is not part of the hand) then set D = 0
+    // For each feature, find the Z point
+    // If non exists (or it is not part of the hand) then D is the same as last
+    // frame
     for (uint32_t i = 0; i < num_convnet_feats; i++) {
       float u = gauss_coeff_[i * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU];
       float v = gauss_coeff_[i * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV];
@@ -305,25 +306,22 @@ namespace hand_net {
 
       // Now search for some small window for the minimum point
       int16_t d = MAX_INT16;
-      uint32_t v_start = std::max<uint32_t>((uint32_t)floor(v) - RAD_UVD_SEARCH, 0);
-      uint32_t v_end = std::min<uint32_t>((uint32_t)floor(v) + RAD_UVD_SEARCH, src_height-1);
-      for (uint32_t v_search = v_start; v_search <= v_end; v_search++) {
-        uint32_t u_start = std::max<uint32_t>((uint32_t)floor(u) - RAD_UVD_SEARCH, 0);
-        uint32_t u_end = std::min<uint32_t>((uint32_t)floor(u) + RAD_UVD_SEARCH, src_width-1);
-        for (uint32_t u_search = u_start; u_search <= u_end; u_search++) {
-          uint32_t index = v_search * src_height + u_search;
-          if (depth[index] > 0 && label[index] == 1) {
-            d = std::min<int16_t>(depth[index], d);
-          }
-        }
-      }
+      uint32_t v_ind = std::min<uint32_t>((uint32_t)std::max<int32_t>((int32_t)floor(v), 0), src_height - 1);
+      uint32_t u_ind = std::min<uint32_t>((uint32_t)std::max<int32_t>((int32_t)floor(u), 0), src_width - 1);
+      uint32_t index = v_ind * src_height + u_ind;
+      if (label[index] == 1) {
+        d = depth[index];
+      } 
       if (d == MAX_INT16) {
         uvd_pos_[i * 3 + 2] = 0;
       } else {
-        // If we found a valid hand point (with minimum) then unproject it
+        if (i < 3) {
+          // Push the depth back a little bit (to account for sphere in hand)
+          d += 15;  // 1.5cm for palm positions
+        } else {
+          d += 5;  // 0.5cm for finger positions
+        }
         uvd_pos_[i * 3 + 2] = d;
-        open_ni_funcs_.convertDepthToWorldCoordinates(&uvd_pos_[i * 3],
-          &xyz_pos_[i * 3], 1);
       }
     }
   }
