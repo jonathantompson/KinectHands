@@ -529,7 +529,7 @@ namespace hand_net {
     // APPROXIMATE USING CENTRAL DIFFERENCING
     memcpy(tmp_coeff, bfgs_hand_coeff, 
       sizeof(tmp_coeff[0]) * BFGS_NUM_PARAMETERS);
-    const double eps = 0.001f;
+    const double eps = 0.0001f;
     for (uint32_t i = 0; i < BFGS_NUM_PARAMETERS; i++) {
       tmp_coeff[i] = bfgs_hand_coeff[i] - eps;
       double f0 = objFunc(tmp_coeff);
