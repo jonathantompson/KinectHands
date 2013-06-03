@@ -280,6 +280,8 @@ namespace hand_net {
     // Now create bounding spheres:
     bspheres_.capacity(HandSphereIndices::NUM_BOUNDING_SPHERES);
     bspheres_.resize(HandSphereIndices::NUM_BOUNDING_SPHERES);
+    bsphere_parent_ind_.capacity(HandSphereIndices::NUM_BOUNDING_SPHERES);
+    bsphere_parent_ind_.resize(HandSphereIndices::NUM_BOUNDING_SPHERES);
     for (uint32_t i = 0; i < 4; i++) {
       addBoneBSphere((uint32_t)F1_KNU3_A + i * num_bspheres_per_group(), 
         nodes_[index_bone_finger4_[i]]);
@@ -326,6 +328,18 @@ namespace hand_net {
     BSphere* cur_sphere = new BSphere(HandModelCoeff::sph_size_[ibone], center,
       cur_bone);
     bspheres_[ibone] = cur_sphere;
+
+    // O(n) search for the correct parent index
+    bsphere_parent_ind_[ibone] = MAX_UINT32;
+    for (uint32_t i = 0; i < nodes_.size() && 
+      bsphere_parent_ind_[ibone] == MAX_UINT32; i++) {
+      if (nodes_[i] == cur_bone) {
+        bsphere_parent_ind_[ibone] = i;
+      }
+    }
+    if (bsphere_parent_ind_[ibone] == MAX_UINT32) {
+      throw std::wruntime_error("INTERNAL ERROR: Couldn't find bsphere parent");
+    }
   }
 
   void HandModel::updateMatrices(const float* coeff) {
@@ -1191,7 +1205,6 @@ namespace hand_net {
     true,   // THUMB_TWIST
   };
 
-  Float4x4 root_inverse, tmp2;
   void HandModel::calcBoundingSphereUVDPos(float* uvd, 
     const uint32_t b_sphere_index, const Float4x4& pv_mat) {
     BSphere* sphere = bspheres_[b_sphere_index];
@@ -1210,6 +1223,31 @@ namespace hand_net {
     // http://www.songho.ca/opengl/gl_transform.html
     uvd[0] = (float)src_width * 0.5f * (-uvd[0] + 1);  // Window X: 0 --> W
     uvd[1] = (float)src_height * 0.5f * (uvd[1] + 1);  // Window Y: 0 --> H
+    uvd[2] = xyz_pos[2];
+  }
+
+  void HandModel::calcBoundingSphereUVDPos(double* uvd, 
+    const uint32_t b_sphere_index, const Double4x4& pv_mat) {
+    BSphere* sphere = bspheres_[b_sphere_index];
+
+    Double4x4::mult(dtmp, nodes_heirachy_mat_[index_mesh_node_], 
+      nodes_bone_transform_[bsphere_parent_ind_[b_sphere_index]]);
+
+    Double3 xyz_pos;
+    Double3 center;
+    center[0] = (double)sphere->center()[0];
+    center[1] = (double)sphere->center()[1];
+    center[2] = (double)sphere->center()[2];
+    Double3::affineTransformPos(xyz_pos, dtmp, center);
+    
+    Double4 pos(xyz_pos[0], xyz_pos[1], xyz_pos[2], 1.0);
+    Double4 homog_pos;
+    Double4::mult(homog_pos, pv_mat, pos);
+    uvd[0] = (homog_pos[0] / (homog_pos[3] + (double)EPSILON));  // NDC X: -1 --> 1
+    uvd[1] = (homog_pos[1] / (homog_pos[3] + (double)EPSILON));  // NDC Y: -1 --> 1
+    // http://www.songho.ca/opengl/gl_transform.html
+    uvd[0] = (double)src_width * 0.5 * (-uvd[0] + 1);  // Window X: 0 --> W
+    uvd[1] = (double)src_height * 0.5 * (uvd[1] + 1);  // Window Y: 0 --> H
     uvd[2] = xyz_pos[2];
   }
 

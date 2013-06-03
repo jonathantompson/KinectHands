@@ -30,6 +30,7 @@
 #define NUM_COEFFS_PER_GAUSSIAN 5  // (mean_u, mean_v, std_u, std_v)
 #define X_DIM_LM_FIT 2
 #define BFGS_FINGER_NUM_COEFF 3
+#define RAD_UVD_SEARCH 2
 
 #if defined(__APPLE__)
   #define CONVNET_FILE string("./../../../../../../../../../data/" \
@@ -190,6 +191,7 @@ namespace hand_net {
     jtil::math::BFGS<double>* bfgs_; 
     jtil::math::PSOParallel* pso_; 
     jtil::renderer::Camera* camera_;
+    jtil::math::Double4x4 pv_mat_;  // Camera contains float, but we need 64bit
 
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in);
     void calcHPFHandBanks();
@@ -211,6 +213,7 @@ namespace hand_net {
       jtil::data_str::Vector<float*>& coeffs);
     static float objFuncInternal();
     static void jacobFunc(double* jacob, const double* bfgs_hand_coeff);
+    double cur_double_coeff[HandCoeff::NUM_PARAMETERS];
     double bfgs_coeff_start_[BFGSHandCoeff::BFGS_NUM_PARAMETERS];
     double bfgs_coeff_end_[BFGSHandCoeff::BFGS_NUM_PARAMETERS];
     float pso_coeff_start_[BFGSHandCoeff::BFGS_NUM_PARAMETERS];
@@ -219,15 +222,16 @@ namespace hand_net {
 
     static HandNet* g_hand_net_;  // BFGS is NOT multithreaded
     template <class T>
-    static void BFGSHandCoeffToHandCoeff(float* hand_coeff, 
+    static void BFGSHandCoeffToHandCoeff(T* hand_coeff, 
       const T* bfgs_hand_coeff);
     template <class T>
     static void HandCoeffToBFGSHandCoeff(T* bfgs_hand_coeff, 
-      const float* hand_coeff);
+      const T* hand_coeff);
     static void renormalizeBFGSCoeffs(double* coeff);
     static void renormalizePSOCoeffs(float* coeff);
     void setPSORadius();
     static float calcPenalty(const float* coeff);
+    static double calcPenalty(const double* coeff);
     void calc3DPos(const int16_t* depth, const uint8_t* label);
 
     // Non-copyable, non-assignable.
@@ -236,67 +240,67 @@ namespace hand_net {
   };
 
   template <class T>
-  void HandNet::BFGSHandCoeffToHandCoeff(float* hand_coeff, 
+  void HandNet::BFGSHandCoeffToHandCoeff(T* hand_coeff, 
     const T* bfgs_hand_coeff) {
-    hand_coeff[HAND_POS_X] = (float)(100.0 * (bfgs_hand_coeff[BFGS_HAND_POS_X]) / (2.0 * M_PI));
-    hand_coeff[HAND_POS_Y] = (float)(100.0 * (bfgs_hand_coeff[BFGS_HAND_POS_Y]) / (2.0 * M_PI));
-    hand_coeff[HAND_POS_Z] = (float)(100.0 * (bfgs_hand_coeff[BFGS_HAND_POS_Z]) / (2.0 * M_PI));
-    hand_coeff[HAND_ORIENT_X] = (float)bfgs_hand_coeff[BFGS_HAND_ORIENT_X];
-    hand_coeff[HAND_ORIENT_Y] = (float)bfgs_hand_coeff[BFGS_HAND_ORIENT_Y];
-    hand_coeff[HAND_ORIENT_Z] = (float)bfgs_hand_coeff[BFGS_HAND_ORIENT_Z];
-    hand_coeff[THUMB_THETA] = (float)bfgs_hand_coeff[BFGS_THUMB_THETA];
-    hand_coeff[THUMB_PHI] = (float)bfgs_hand_coeff[BFGS_THUMB_PHI];
-    hand_coeff[THUMB_K1_THETA] = (float)bfgs_hand_coeff[BFGS_THUMB_K1_THETA];
-    hand_coeff[THUMB_K1_PHI] = (float)bfgs_hand_coeff[BFGS_THUMB_K1_PHI];
-    hand_coeff[THUMB_K2_PHI] = (float)bfgs_hand_coeff[BFGS_THUMB_K2_PHI];
-    hand_coeff[F0_THETA] = (float)bfgs_hand_coeff[BFGS_F0_THETA];
-    hand_coeff[F0_PHI] = (float)bfgs_hand_coeff[BFGS_F0_PHI];
-    hand_coeff[F0_KNUCKLE_MID] = (float)bfgs_hand_coeff[BFGS_F0_CURL];
-    hand_coeff[F0_KNUCKLE_END] = (float)bfgs_hand_coeff[BFGS_F0_CURL];
-    hand_coeff[F1_THETA] = (float)bfgs_hand_coeff[BFGS_F1_THETA];
-    hand_coeff[F1_PHI] = (float)bfgs_hand_coeff[BFGS_F1_PHI];
-    hand_coeff[F1_KNUCKLE_MID] = (float)bfgs_hand_coeff[BFGS_F1_CURL];
-    hand_coeff[F1_KNUCKLE_END] = (float)bfgs_hand_coeff[BFGS_F1_CURL];
-    hand_coeff[F2_THETA] = (float)bfgs_hand_coeff[BFGS_F2_THETA];
-    hand_coeff[F2_PHI] = (float)bfgs_hand_coeff[BFGS_F2_PHI];
-    hand_coeff[F2_KNUCKLE_MID] = (float)bfgs_hand_coeff[BFGS_F2_CURL];
-    hand_coeff[F2_KNUCKLE_END] = (float)bfgs_hand_coeff[BFGS_F2_CURL];
-    hand_coeff[F3_THETA] = (float)bfgs_hand_coeff[BFGS_F3_THETA];
-    hand_coeff[F3_PHI] = (float)bfgs_hand_coeff[BFGS_F3_PHI];
-    hand_coeff[F3_KNUCKLE_MID] = (float)bfgs_hand_coeff[BFGS_F3_CURL];
-    hand_coeff[F3_KNUCKLE_END] = (float)bfgs_hand_coeff[BFGS_F3_CURL];
+    hand_coeff[HAND_POS_X] = ((T)100.0 * (bfgs_hand_coeff[BFGS_HAND_POS_X]) / (T)(2.0 * M_PI));
+    hand_coeff[HAND_POS_Y] = ((T)100.0 * (bfgs_hand_coeff[BFGS_HAND_POS_Y]) / (T)(2.0 * M_PI));
+    hand_coeff[HAND_POS_Z] = ((T)100.0 * (bfgs_hand_coeff[BFGS_HAND_POS_Z]) / (T)(2.0 * M_PI));
+    hand_coeff[HAND_ORIENT_X] = bfgs_hand_coeff[BFGS_HAND_ORIENT_X];
+    hand_coeff[HAND_ORIENT_Y] = bfgs_hand_coeff[BFGS_HAND_ORIENT_Y];
+    hand_coeff[HAND_ORIENT_Z] = bfgs_hand_coeff[BFGS_HAND_ORIENT_Z];
+    hand_coeff[THUMB_THETA] = bfgs_hand_coeff[BFGS_THUMB_THETA];
+    hand_coeff[THUMB_PHI] = bfgs_hand_coeff[BFGS_THUMB_PHI];
+    hand_coeff[THUMB_K1_THETA] = bfgs_hand_coeff[BFGS_THUMB_K1_THETA];
+    hand_coeff[THUMB_K1_PHI] = bfgs_hand_coeff[BFGS_THUMB_K1_PHI];
+    hand_coeff[THUMB_K2_PHI] = bfgs_hand_coeff[BFGS_THUMB_K2_PHI];
+    hand_coeff[F0_THETA] = bfgs_hand_coeff[BFGS_F0_THETA];
+    hand_coeff[F0_PHI] = bfgs_hand_coeff[BFGS_F0_PHI];
+    hand_coeff[F0_KNUCKLE_MID] = bfgs_hand_coeff[BFGS_F0_CURL];
+    hand_coeff[F0_KNUCKLE_END] = bfgs_hand_coeff[BFGS_F0_CURL];
+    hand_coeff[F1_THETA] = bfgs_hand_coeff[BFGS_F1_THETA];
+    hand_coeff[F1_PHI] = bfgs_hand_coeff[BFGS_F1_PHI];
+    hand_coeff[F1_KNUCKLE_MID] = bfgs_hand_coeff[BFGS_F1_CURL];
+    hand_coeff[F1_KNUCKLE_END] = bfgs_hand_coeff[BFGS_F1_CURL];
+    hand_coeff[F2_THETA] = bfgs_hand_coeff[BFGS_F2_THETA];
+    hand_coeff[F2_PHI] = bfgs_hand_coeff[BFGS_F2_PHI];
+    hand_coeff[F2_KNUCKLE_MID] = bfgs_hand_coeff[BFGS_F2_CURL];
+    hand_coeff[F2_KNUCKLE_END] = bfgs_hand_coeff[BFGS_F2_CURL];
+    hand_coeff[F3_THETA] = bfgs_hand_coeff[BFGS_F3_THETA];
+    hand_coeff[F3_PHI] = bfgs_hand_coeff[BFGS_F3_PHI];
+    hand_coeff[F3_KNUCKLE_MID] = bfgs_hand_coeff[BFGS_F3_CURL];
+    hand_coeff[F3_KNUCKLE_END] = bfgs_hand_coeff[BFGS_F3_CURL];
   }
 
   template <class T>
   void HandNet::HandCoeffToBFGSHandCoeff(T* bfgs_hand_coeff, 
-    const float* hand_coeff) {
+    const T* hand_coeff) {
     T curl;
-    bfgs_hand_coeff[BFGS_HAND_POS_X] = (T)(2.0 * M_PI) * ((T)hand_coeff[HAND_POS_X] / (T)100.0);
-    bfgs_hand_coeff[BFGS_HAND_POS_Y] = (T)(2.0 * M_PI) * ((T)hand_coeff[HAND_POS_Y] / (T)100.0);
-    bfgs_hand_coeff[BFGS_HAND_POS_Z] = (T)(2.0 * M_PI) * ((T)hand_coeff[HAND_POS_Z] / (T)100.0);
-    bfgs_hand_coeff[BFGS_HAND_ORIENT_X] = (T)hand_coeff[HAND_ORIENT_X];
-    bfgs_hand_coeff[BFGS_HAND_ORIENT_Y] = (T)hand_coeff[HAND_ORIENT_Y];
-    bfgs_hand_coeff[BFGS_HAND_ORIENT_Z] = (T)hand_coeff[HAND_ORIENT_Z];
-    bfgs_hand_coeff[BFGS_THUMB_THETA] = (T)hand_coeff[THUMB_THETA];
-    bfgs_hand_coeff[BFGS_THUMB_PHI] = (T)hand_coeff[THUMB_PHI];
-    bfgs_hand_coeff[BFGS_THUMB_K1_THETA] = (T)hand_coeff[THUMB_K1_THETA];
-    bfgs_hand_coeff[BFGS_THUMB_K1_PHI] = (T)hand_coeff[THUMB_K1_PHI];
-    bfgs_hand_coeff[BFGS_THUMB_K2_PHI] = (T)hand_coeff[THUMB_K2_PHI];
-    bfgs_hand_coeff[BFGS_F0_THETA] = (T)hand_coeff[F0_THETA];
-    bfgs_hand_coeff[BFGS_F0_PHI] = (T)hand_coeff[F0_PHI];
-    curl = (T)0.5 * (T)(hand_coeff[F0_KNUCKLE_MID] + hand_coeff[F0_KNUCKLE_END]);
+    bfgs_hand_coeff[BFGS_HAND_POS_X] = (T)(2.0 * M_PI) * (hand_coeff[HAND_POS_X] / (T)100.0);
+    bfgs_hand_coeff[BFGS_HAND_POS_Y] = (T)(2.0 * M_PI) * (hand_coeff[HAND_POS_Y] / (T)100.0);
+    bfgs_hand_coeff[BFGS_HAND_POS_Z] = (T)(2.0 * M_PI) * (hand_coeff[HAND_POS_Z] / (T)100.0);
+    bfgs_hand_coeff[BFGS_HAND_ORIENT_X] = hand_coeff[HAND_ORIENT_X];
+    bfgs_hand_coeff[BFGS_HAND_ORIENT_Y] = hand_coeff[HAND_ORIENT_Y];
+    bfgs_hand_coeff[BFGS_HAND_ORIENT_Z] = hand_coeff[HAND_ORIENT_Z];
+    bfgs_hand_coeff[BFGS_THUMB_THETA] = hand_coeff[THUMB_THETA];
+    bfgs_hand_coeff[BFGS_THUMB_PHI] = hand_coeff[THUMB_PHI];
+    bfgs_hand_coeff[BFGS_THUMB_K1_THETA] = hand_coeff[THUMB_K1_THETA];
+    bfgs_hand_coeff[BFGS_THUMB_K1_PHI] = hand_coeff[THUMB_K1_PHI];
+    bfgs_hand_coeff[BFGS_THUMB_K2_PHI] = hand_coeff[THUMB_K2_PHI];
+    bfgs_hand_coeff[BFGS_F0_THETA] = hand_coeff[F0_THETA];
+    bfgs_hand_coeff[BFGS_F0_PHI] = hand_coeff[F0_PHI];
+    curl = (T)0.5 * (hand_coeff[F0_KNUCKLE_MID] + hand_coeff[F0_KNUCKLE_END]);
     bfgs_hand_coeff[BFGS_F0_CURL] = curl;
-    bfgs_hand_coeff[BFGS_F1_THETA] = (T)hand_coeff[F1_THETA];
-    bfgs_hand_coeff[BFGS_F1_PHI] = (T)hand_coeff[F1_PHI];
-    curl = (T)0.5 * (T)(hand_coeff[F1_KNUCKLE_MID] + hand_coeff[F1_KNUCKLE_END]);
+    bfgs_hand_coeff[BFGS_F1_THETA] = hand_coeff[F1_THETA];
+    bfgs_hand_coeff[BFGS_F1_PHI] = hand_coeff[F1_PHI];
+    curl = (T)0.5 * (hand_coeff[F1_KNUCKLE_MID] + hand_coeff[F1_KNUCKLE_END]);
     bfgs_hand_coeff[BFGS_F1_CURL] = curl;
-    bfgs_hand_coeff[BFGS_F2_THETA] = (T)hand_coeff[F2_THETA];
-    bfgs_hand_coeff[BFGS_F2_PHI] = (T)hand_coeff[F2_PHI];
-    curl = (T)0.5 * (T)(hand_coeff[F2_KNUCKLE_MID] + hand_coeff[F2_KNUCKLE_END]);
+    bfgs_hand_coeff[BFGS_F2_THETA] = hand_coeff[F2_THETA];
+    bfgs_hand_coeff[BFGS_F2_PHI] = hand_coeff[F2_PHI];
+    curl = (T)0.5 * (hand_coeff[F2_KNUCKLE_MID] + hand_coeff[F2_KNUCKLE_END]);
     bfgs_hand_coeff[BFGS_F2_CURL] = curl;
-    bfgs_hand_coeff[BFGS_F3_THETA] = (T)hand_coeff[F3_THETA];
-    bfgs_hand_coeff[BFGS_F3_PHI] = (T)hand_coeff[F3_PHI];
-    curl = (T)0.5 * (T)(hand_coeff[F3_KNUCKLE_MID] + hand_coeff[F3_KNUCKLE_END]);
+    bfgs_hand_coeff[BFGS_F3_THETA] = hand_coeff[F3_THETA];
+    bfgs_hand_coeff[BFGS_F3_PHI] = hand_coeff[F3_PHI];
+    curl = (T)0.5 * (hand_coeff[F3_KNUCKLE_MID] + hand_coeff[F3_KNUCKLE_END]);
     bfgs_hand_coeff[BFGS_F3_CURL] = curl;
   }
 

@@ -52,6 +52,8 @@ namespace hand_net {
 
     void calcBoundingSphereUVDPos(float* uvd, const uint32_t b_sphere_index, 
       const jtil::math::Float4x4& pv_mat);
+    void calcBoundingSphereUVDPos(double* uvd, const uint32_t b_sphere_index, 
+      const jtil::math::Double4x4& pv_mat);
 
   private:
     // Note all geometry is attached to the global renderer's scene graph and
@@ -61,11 +63,13 @@ namespace hand_net {
     bool visible_;
 
     // BFS sorted array of nodes. Memory not owned here!
+    // We need to keep around doubles for BFGS
     jtil::data_str::Vector<jtil::renderer::GeometryInstance*> nodes_;
     jtil::data_str::Vector<jtil::math::Double4x4> nodes_mat_;
     jtil::data_str::Vector<jtil::math::Double4x4> nodes_heirachy_mat_;
     jtil::data_str::Vector<jtil::math::Double4x4> nodes_bone_rest_transform_;
     jtil::data_str::Vector<jtil::math::Double4x4> nodes_bone_transform_;
+    jtil::data_str::Vector<uint32_t> bsphere_parent_ind_;
     jtil::math::Double4x4 root_mat_hierachy_inv_;
     jtil::data_str::Vector<jtil::math::Double4x4> nodes_bone_offset_;
 
