@@ -9,11 +9,11 @@
 //, *********** SETTINGS ***********
 //, APPLICATION SPECIFIC
 track_openni_skeleton,            bool,      0
-kinect_output,                    int,       2
+kinect_output,                    int,       6
 detect_hands,                     bool,      1
 detect_pose,                      bool,      1
 detect_heat_map,                  bool,      1
-label_type_enum,                  int,       1
+label_type_enum,                  int,       3
 render_kinect_fps,                bool,      1
 show_hand_model,                  bool,      1
 continuous_snapshot,              bool,      0
@@ -23,13 +23,13 @@ cur_kinect,                       int,       0
 sync_ir_stream,                   bool,      0
 //, Also: Dont change flip image after startup!
 flip_image,                       bool,      1
-color_convnet_depth,              bool,      0
+color_convnet_depth,              bool,      1
 color_convnet_depth_feature,      int,       5
 color_convnet_depth_threshold,    int,       25
 show_gaussian_labels,             bool,      1
 
 //, RENDERER
-screen_resolution,                int,       83887040
+screen_resolution,                int,       125830560
 fullscreen,                       bool,      0
 double_buffering,                 bool,      0  
 clear_color,                      Float3,    0.529, 0.808, 0.980
