@@ -83,31 +83,43 @@
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Fit (Tr-data)
 
 // PRIMESENSE DATA
-//#define IM_DIR_BASE string("data/hand_depth_data/")
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_03_1/")  // Cal + Fit (6533)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_1/")  // Cal + Fit (8709)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_2/")  // Cal + Fit (8469)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_3/")  // Cal + Fit (5815)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_08_1/")  // Cal + Fit (2440) (Tr-data)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_19_1/")  // Cal + Fit (5969)
-#define IM_DIR_BASE string("data/hand_depth_data_2013_05_19_2/")  // Cal + Fit (6781)  Total: 47681 
+//#define BACKUP_HDD
+//#define IM_DIR_BASE string("hand_depth_data/")
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405)
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_03_1/")  // Cal + Fit (6533)
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_06_1/")  // Cal + Fit (8709)
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_06_2/")  // Cal + Fit (8469)
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_06_3/")  // Cal + Fit (5815)
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_08_1/")  // Cal + Fit (2440) (Tr-data)
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_19_1/")  // Cal + Fit (5969)
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_19_2/")  // Cal + Fit (6781)  Total: 47681 
+
+//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_1/")
+//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_2/")
+#define IM_DIR_BASE string("hand_depth_data_2013_06_15_3/")
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
 #define MAX_KINECTS 3
 #define NUM_WORKER_THREADS 6
 
 #if defined(__APPLE__)
-  #define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
+  #error "Apple is not yet supported!"
 #else
-  #define KINECT_HANDS_ROOT string("./../")
+#ifdef BACKUP_HDD
+    #define KINECT_HANDS_ROOT string("D:/hand_data/")
+  #else
+    #define KINECT_HANDS_ROOT string("./../data/")
+  #endif
+  #define FOREST_ROOT string("./../data/")
 #endif
 
 #ifndef HAND_FIT
   #error "HAND_FIT is not defined in the preprocessor definitions!"
 #endif
 
+//#define IM_DIR (KINECT_HANDS_ROOT + IM_DIR_BASE)
 #define IM_DIR (KINECT_HANDS_ROOT + IM_DIR_BASE)
+
 // #define LOAD_AND_SAVE_OLD_FORMAT_COEFFS
 const bool fit_left = false;
 const bool fit_right = true; 
@@ -1150,28 +1162,18 @@ void KeyboardCB(int key, int action) {
             std::string new_full_im_filename = IM_DIR + string("deleted_") + 
               string(im_files[0][cur_image].first);
             r_coeff_file = IM_DIR + string("coeffr_") + im_files[0][cur_image].first;
-            new_r_coeff_file = IM_DIR + string("deleted_") + string("coeffr_") + 
+            new_r_coeff_file = IM_DIR + string("deleted_coeffr_") + 
               im_files[0][cur_image].first;
             l_coeff_file = IM_DIR + string("coeffl_") + im_files[0][cur_image].first;
-            new_l_coeff_file = IM_DIR + string("deleted_") + string("coeffl_") + 
+            new_l_coeff_file = IM_DIR + string("deleted_coeffl_") + 
               im_files[0][cur_image].first;
 
-            bool move_OK = 
-              MoveFile(r_coeff_file.c_str(), new_r_coeff_file.c_str()) &&
-              MoveFile(l_coeff_file.c_str(), new_l_coeff_file.c_str()) &&
+            bool move_OK = (bool)
               MoveFile(full_im_filename.c_str(), new_full_im_filename.c_str());
             if (!move_OK) {
               cout << "Error moving files: " << endl;
-              cout << "    - " << full_im_filename.c_str() << endl;
-              cout << "    - " << r_coeff_file.c_str() << endl;
-              cout << "    - " << l_coeff_file.c_str() << endl;
-              cout << endl;
             } else {
-              cout << "Files marked as deleted sucessfully: " << endl;
-              cout << "    - " << full_im_filename.c_str() << endl;
-              cout << "    - " << r_coeff_file.c_str() << endl;
-              cout << "    - " << l_coeff_file.c_str() << endl;
-              cout << endl;
+              cout << "Image file marked as deleted sucessfully: " << endl;
               delete r_hand_coeffs[cur_image]; 
               delete l_hand_coeffs[cur_image];
               for (uint32_t i = cur_image; i < im_files[0].size() - 1; i++) {
@@ -1180,7 +1182,19 @@ void KeyboardCB(int key, int action) {
               }
               SAFE_DELETE(im_files[0][cur_image].first); 
               im_files[0].deleteAtAndShift(cur_image);
+
+              // Coeff file may not exist yet (if we haven't fit it)...
+              move_OK = 
+                MoveFile(r_coeff_file.c_str(), new_r_coeff_file.c_str()) &&
+                MoveFile(l_coeff_file.c_str(), new_l_coeff_file.c_str());
             }
+            cout << "    - " << full_im_filename.c_str() << " to " << endl;
+            cout << "      " << new_full_im_filename.c_str() << endl;
+            cout << "    - " << r_coeff_file.c_str() << endl;
+            cout << "      " << new_r_coeff_file.c_str() << endl;
+            cout << "    - " << l_coeff_file.c_str() << endl;
+            cout << "      " << new_l_coeff_file.c_str() << endl;
+            cout << endl;
           }  // for (int i = 0; i < repeat; i++) {
           loadCurrentImage();
           InitXYZPointsForRendering();
@@ -1496,7 +1510,7 @@ int main(int argc, char *argv[]) {
     }
 
     hand_detect = new HandDetector(tp);
-    hand_detect->init(src_width, src_height, KINECT_HANDS_ROOT +
+    hand_detect->init(src_width, src_height, FOREST_ROOT +
       FOREST_DATA_FILENAME);
  
     // Load the Kinect data for fitting from file and process it

@@ -313,29 +313,29 @@ namespace hand_net {
       float v = gauss_coeff_[i * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV];
       uvd_pos_[i * 3] = u;
       uvd_pos_[i * 3 + 1] = v;
+      int16_t d = MAX_INT16;
 
       // Now search for some small window for the minimum point
-      int16_t d = MAX_INT16;
-      uint32_t v_start = std::max<uint32_t>((uint32_t)floor(v) - RAD_UVD_SEARCH, 0);
-      uint32_t v_end = std::min<uint32_t>((uint32_t)floor(v) + RAD_UVD_SEARCH, src_height-1);
-      for (uint32_t v_search = v_start; v_search <= v_end; v_search++) {
-        uint32_t u_start = std::max<uint32_t>((uint32_t)floor(u) - RAD_UVD_SEARCH, 0);
-        uint32_t u_end = std::min<uint32_t>((uint32_t)floor(u) + RAD_UVD_SEARCH, src_width-1);
-        for (uint32_t u_search = u_start; u_search <= u_end; u_search++) {
-          uint32_t index = v_search * src_height + u_search;
-          if (depth[index] > 0 && label[index] == 1) {
-            d = std::min<int16_t>(depth[index], d);
-          }
-        }
-      }
+      //uint32_t v_start = std::max<uint32_t>((uint32_t)floor(v) - RAD_UVD_SEARCH, 0);
+      //uint32_t v_end = std::min<uint32_t>((uint32_t)floor(v) + RAD_UVD_SEARCH, src_height-1);
+      //for (uint32_t v_search = v_start; v_search <= v_end; v_search++) {
+      //  uint32_t u_start = std::max<uint32_t>((uint32_t)floor(u) - RAD_UVD_SEARCH, 0);
+      //  uint32_t u_end = std::min<uint32_t>((uint32_t)floor(u) + RAD_UVD_SEARCH, src_width-1);
+      //  for (uint32_t u_search = u_start; u_search <= u_end; u_search++) {
+      //    uint32_t index = v_search * src_height + u_search;
+      //    if (depth[index] > 0 && label[index] == 1) {
+      //      d = std::min<int16_t>(depth[index], d);
+      //    }
+      //  }
+      //}
 
       // No search, just grab the point
-      //uint32_t v_ind = std::min<uint32_t>((uint32_t)std::max<int32_t>((int32_t)floor(v), 0), src_height - 1);
-      //uint32_t u_ind = std::min<uint32_t>((uint32_t)std::max<int32_t>((int32_t)floor(u), 0), src_width - 1);
-      //uint32_t index = v_ind * src_height + u_ind;
-      //if (label[index] == 1) {
-      //  d = depth[index];
-      //} 
+      uint32_t v_ind = std::min<uint32_t>((uint32_t)std::max<int32_t>((int32_t)floor(v), 0), src_height - 1);
+      uint32_t u_ind = std::min<uint32_t>((uint32_t)std::max<int32_t>((int32_t)floor(u), 0), src_width - 1);
+      uint32_t index = v_ind * src_height + u_ind;
+      if (label[index] == 1) {
+        d = depth[index];
+      } 
 
       if (d == MAX_INT16) {
         uvd_pos_[i * 3 + 2] = 0;
@@ -448,17 +448,17 @@ namespace hand_net {
     c_start[GaussVarV] = var[1];
     heat_map_lm_->fitModel(gauss_coeff, c_start, hm_temp_, lm_fit_x_vals_,
       gauss2D, jacobGauss2D);
-    gauss_coeff[GaussMeanU] /= 23.0f;
-    gauss_coeff[GaussMeanV] /= 23.0f;
-    gauss_coeff[GaussVarU] /= 23.0f;
-    gauss_coeff[GaussVarV] /= 23.0f;
+    gauss_coeff[GaussMeanU] /= static_cast<float>(heat_map_size_ - 1);
+    gauss_coeff[GaussMeanV] /= static_cast<float>(heat_map_size_ - 1);
+    gauss_coeff[GaussVarU] /= static_cast<float>(heat_map_size_ - 1);
+    gauss_coeff[GaussVarV] /= static_cast<float>(heat_map_size_ - 1);
 #else
     // LM is too slow.  Just use the std and mean directly:
     gauss_coeff[GaussAmp] = max_weight;
-    gauss_coeff[GaussMeanU] = mean[0] / 23.0f;
-    gauss_coeff[GaussMeanV] = mean[1] / 23.0f;
-    gauss_coeff[GaussVarU] = var[0] / 23.0f;
-    gauss_coeff[GaussVarV] = var[1] / 23.0f;
+    gauss_coeff[GaussMeanU] = mean[0] / static_cast<float>(heat_map_size_ - 1);
+    gauss_coeff[GaussMeanV] = mean[1] / static_cast<float>(heat_map_size_ - 1);
+    gauss_coeff[GaussVarU] = var[0] / static_cast<float>(heat_map_size_ - 1);
+    gauss_coeff[GaussVarV] = var[1] / static_cast<float>(heat_map_size_ - 1);
 #endif
   }
 

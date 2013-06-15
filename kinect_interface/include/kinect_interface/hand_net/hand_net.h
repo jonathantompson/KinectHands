@@ -24,7 +24,7 @@
 #define HN_NUM_WORKER_THREADS 6
 #define FEATURE_SIZE 3  // UV = 2, UVD = 3
 #define NUM_FEATS_PER_FINGER 2
-#define NUM_FEATS_PER_THUMB 2
+#define NUM_FEATS_PER_THUMB 3
 #define NUM_FEATS_PER_PALM 3
 
 #define NUM_COEFFS_PER_GAUSSIAN 5  // (mean_u, mean_v, std_u, std_v)
@@ -60,10 +60,10 @@ namespace hand_net {
   // Note 3: These feature points are just the locations of some of the 
   //         bounding spheres that I attach to the model.
 
-  const uint32_t num_convnet_feats = 13;
+  const uint32_t num_convnet_feats = 14;
   const uint32_t convnet_sphere_indices[num_convnet_feats] =  {PALM_3, 
-    PALM_1, PALM_2, TH_KNU3_A, TH_KNU2_B, F1_KNU3_A, F1_KNU2_B, F2_KNU3_A,
-    F2_KNU2_B, F3_KNU3_A, F3_KNU2_B, F4_KNU3_A, F4_KNU2_B};
+    PALM_1, PALM_2, TH_KNU3_A, TH_KNU3_B, TH_KNU2_B, F1_KNU3_A, F1_KNU2_B, 
+    F2_KNU3_A, F2_KNU2_B, F3_KNU3_A, F3_KNU2_B, F4_KNU3_A, F4_KNU2_B};
 
   typedef enum {
     // HAND_POS1: Base hand position --> (0,0,0) in the palm coordinate system
@@ -72,20 +72,21 @@ namespace hand_net {
     HAND_POS3_U = 6,   HAND_POS3_V = 7,  HAND_POS3_D = 8,   // PALM_2
     // Thumb
     THUMB_TIP_U = 9,   THUMB_TIP_V = 10, THUMB_TIP_D = 11,  // TH_KNU3_A
-    THUMB_KNU_U = 12,  THUMB_KNU_V = 13, THUMB_KNU_D = 14,  // TH_KNU2_B
+    THUMB_MID_U = 12,  THUMB_MID_V = 13, THUMB_MID_D = 14,  // TH_KNU3_B
+    THUMB_KNU_U = 15,  THUMB_KNU_V = 16, THUMB_KNU_D = 17,  // TH_KNU2_B
     // F0
-    F0_TIP_U = 15,    F0_TIP_V = 16,   F0_TIP_D = 17,     // F1_KNU3_A
-    F0_KNU_U = 18,    F0_KNU_V = 19,   F0_KNU_D = 20,     // F1_KNU2_B
+    F0_TIP_U = 18,    F0_TIP_V = 19,   F0_TIP_D = 20,     // F1_KNU3_A
+    F0_KNU_U = 21,    F0_KNU_V = 22,   F0_KNU_D = 23,     // F1_KNU2_B
     // F1
-    F1_TIP_U = 21,    F1_TIP_V = 22,   F1_TIP_D = 23,     // F2_KNU3_A
-    F1_KNU_U = 24,    F1_KNU_V = 25,   F1_KNU_D = 26,     // F2_KNU2_B
+    F1_TIP_U = 24,    F1_TIP_V = 25,   F1_TIP_D = 26,     // F2_KNU3_A
+    F1_KNU_U = 27,    F1_KNU_V = 28,   F1_KNU_D = 29,     // F2_KNU2_B
     // F2
-    F2_TIP_U = 27,    F2_TIP_V = 28,   F2_TIP_D = 29,     // F3_KNU3_A
-    F2_KNU_U = 30,    F2_KNU_V = 31,   F2_KNU_D = 32,     // F3_KNU2_B
+    F2_TIP_U = 30,    F2_TIP_V = 31,   F2_TIP_D = 32,     // F3_KNU3_A
+    F2_KNU_U = 33,    F2_KNU_V = 34,   F2_KNU_D = 35,     // F3_KNU2_B
     // F3
-    F3_TIP_U = 33,    F3_TIP_V = 34,   F3_TIP_D = 35,     // F4_KNU3_A
-    F3_KNU_U = 36,    F3_KNU_V = 37,   F3_KNU_D = 38,     // F4_KNU2_B
-    HAND_NUM_COEFF_CONVNET = 39, 
+    F3_TIP_U = 36,    F3_TIP_V = 37,   F3_TIP_D = 38,     // F4_KNU3_A
+    F3_KNU_U = 39,    F3_KNU_V = 40,   F3_KNU_D = 41,     // F4_KNU2_B
+    HAND_NUM_COEFF_CONVNET = 42, 
   } HandCoeffConvnet;
 
   typedef enum { 

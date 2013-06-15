@@ -67,18 +67,19 @@
 // *************************************************************
 // ******************* CHANGEABLE PARAMETERS *******************
 // *************************************************************
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405) *
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_03_1/")  // Cal + Fit (6533) *
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_1/")  // Cal + Fit (8709) *
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_2/")  // Cal + Fit (8469) *
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_3/")  // Cal + Fit (5815) MURPHY *
-#define IM_DIR_BASE string("data/hand_depth_data_2013_05_08_1/")  // Cal + Fit (2440) (Tr-data)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_19_1/")  // Cal + Fit (5969) *
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_19_2/")  // Cal + Fit (6781) * Total: 47681 
+#define BACKUP_HDD
+#define IM_DIR_BASE string("hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405) 
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_03_1/")  // Cal + Fit (6533) 
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_06_1/")  // Cal + Fit (8709) 
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_06_2/")  // Cal + Fit (8469) 
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_06_3/")  // Cal + Fit (5815) MURPHY
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_08_1/")  // Cal + Fit (2440) (Tr-data)
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_19_1/")  // Cal + Fit (5969) 
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_19_2/")  // Cal + Fit (6781) Total: 47681 
 
-//#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN/") 
-#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN_testset/") 
-//#define DST_IM_DIR_BASE string("data/hand_depth_data_processed_for_CN_murphy/") 
+#define DST_IM_DIR_BASE string("hand_depth_data_processed_for_CN/") 
+//#define DST_IM_DIR_BASE string("hand_depth_data_processed_for_CN_testset/") 
+//#define DST_IM_DIR_BASE string("hand_depth_data_processed_for_CN_murphy/") 
 
 //#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
 #define SAVE_FILES  // Only enabled when we're not loading processed images
@@ -103,12 +104,17 @@
 #define FRAME_TIME (1.0f / DESIRED_PLAYBACK_FPS)
 // Some image defines, you shouldn't have to change these
 #if defined(__APPLE__)
-#define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
+  #error "Apple is not yet supported!"
 #else
-#define KINECT_HANDS_ROOT string("./../")
+  #ifdef BACKUP_HDD
+    #define KINECT_HANDS_ROOT string("D:/hand_data/")
+  #else
+    #define KINECT_HANDS_ROOT string("./../data/")
+  #endif
+  #define DST_KINECT_HANDS_ROOT string("./../data/")
 #endif
 #define IM_DIR (KINECT_HANDS_ROOT + IM_DIR_BASE)
-#define DST_IM_DIR (KINECT_HANDS_ROOT + DST_IM_DIR_BASE)
+#define DST_IM_DIR (DST_KINECT_HANDS_ROOT + DST_IM_DIR_BASE)
 
 #if defined(WIN32) || defined(_WIN32)
   #define snprintf _snprintf_s
@@ -697,7 +703,9 @@ int main(int argc, char *argv[]) {
     std::cout << "Image directory hash is: " << IM_DIR_hash << std::endl;
 
     hand_detect = new HandDetector(tp);
-    hand_detect->init(src_width, src_height, KINECT_HANDS_ROOT +
+    std::cout << "Loading forest from " << DST_KINECT_HANDS_ROOT << 
+      FOREST_DATA_FILENAME << std::endl;
+    hand_detect->init(src_width, src_height, DST_KINECT_HANDS_ROOT +
       FOREST_DATA_FILENAME);
     hand_image_generator_ = new HandImageGenerator(HN_DEFAULT_NUM_CONV_BANKS);
     for (uint32_t i = 0; i < HandCoeffConvnet::HAND_NUM_COEFF_CONVNET; i++) {
