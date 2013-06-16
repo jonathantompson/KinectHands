@@ -57,7 +57,7 @@
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
 // CALIBRATION MODE ONLY SETTINGS:
-// #define CALIBRATION_RUN
+//#define CALIBRATION_RUN
 #define FILTER_SIZE 60  
 #define CALIBRATION_MAX_FILES 100
 #define ICP_PC_MODEL_DIST_THRESH 15  // mm
@@ -83,7 +83,7 @@
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Fit (Tr-data)
 
 // PRIMESENSE DATA
-//#define BACKUP_HDD
+#define BACKUP_HDD
 //#define IM_DIR_BASE string("hand_depth_data/")
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405)
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_03_1/")  // Cal + Fit (6533)
@@ -94,9 +94,12 @@
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_19_1/")  // Cal + Fit (5969)
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_19_2/")  // Cal + Fit (6781)  Total: 47681 
 
-//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_1/")
+#define IM_DIR_BASE string("hand_depth_data_2013_06_15_1/")  // Cal
 //#define IM_DIR_BASE string("hand_depth_data_2013_06_15_2/")
-#define IM_DIR_BASE string("hand_depth_data_2013_06_15_3/")
+//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_3/")
+//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_4/")
+//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_5/")
+//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_6/")
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
 #define MAX_KINECTS 3
@@ -106,7 +109,7 @@
   #error "Apple is not yet supported!"
 #else
 #ifdef BACKUP_HDD
-    #define KINECT_HANDS_ROOT string("D:/hand_data/")
+    #define KINECT_HANDS_ROOT string("E:/hand_data/")
   #else
     #define KINECT_HANDS_ROOT string("./../data/")
   #endif

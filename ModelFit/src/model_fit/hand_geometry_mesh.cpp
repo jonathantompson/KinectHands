@@ -76,7 +76,7 @@ namespace model_fit {
     renderer_attachment_ = true;
 
     const float* cmax = coeff_max_limit();
-    const float* cmin = coeff_max_limit();
+    const float* cmin = coeff_min_limit();
      
     // Set the PSO static radius
     for (uint32_t i = HAND_POS_X; i <= HAND_POS_Z; i++) {
