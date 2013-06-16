@@ -367,6 +367,7 @@ namespace hand_net {
       Float4x4* mat;
       jtil::math::Float4x4 mat_tmp1;
       jtil::math::Float4x4 mat_tmp2;
+
       // Root
       theta = coeff[F0_ROOT_THETA + i * FINGER_NUM_COEFF];
       phi = coeff[F0_ROOT_PHI + i * FINGER_NUM_COEFF];

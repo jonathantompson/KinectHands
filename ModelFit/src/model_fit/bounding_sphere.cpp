@@ -52,18 +52,18 @@ namespace renderer {
 
     // Figure out the transformed radius.  The following WONT work if there is
     // sqew.  It's a bit of a hack...
-    jtil::math::Float3 rad_vec_(radius_, 0, 0);
-    Float3::affineTransformVec(transformed_rad_vec_, mat_hierarchy_, rad_vec_);
+    jtil::math::Float3 rad_vec(radius_, 0, 0);
+    Float3::affineTransformVec(transformed_rad_vec_, mat_hierarchy_, rad_vec);
     transformed_radius_ = transformed_rad_vec_.length();
     float rad_sq_ = Float3::dot(transformed_rad_vec_, transformed_rad_vec_);
 
-    rad_vec_.set(0, radius_, 0);
-    Float3::affineTransformVec(transformed_rad_vec_, mat_hierarchy_, rad_vec_);
+    rad_vec.set(0, radius_, 0);
+    Float3::affineTransformVec(transformed_rad_vec_, mat_hierarchy_, rad_vec);
     rad_sq_ = std::max<float>(Float3::dot(transformed_rad_vec_,
       transformed_rad_vec_), rad_sq_);
 
-    rad_vec_.set(0, 0, radius_);
-    Float3::affineTransformVec(transformed_rad_vec_, mat_hierarchy_, rad_vec_);
+    rad_vec.set(0, 0, radius_);
+    Float3::affineTransformVec(transformed_rad_vec_, mat_hierarchy_, rad_vec);
     rad_sq_ = std::max<float>(Float3::dot(transformed_rad_vec_,
       transformed_rad_vec_), rad_sq_);
     transformed_radius_ = sqrtf(rad_sq_);

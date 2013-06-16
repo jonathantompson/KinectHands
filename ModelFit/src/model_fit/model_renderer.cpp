@@ -765,24 +765,26 @@ namespace model_fit {
     const uint32_t num_spheres = bsph.size();
     // Assume bounding sphere matrices have been updated (they should be)!
     // For each bounding sphere transform the center and the radius:
-    for (uint32_t i = 0; i < num_spheres; i++) {
+//#pragma omp parallel for num_threads(4)
+    for (int32_t i = 0; i < (int32_t)num_spheres; i++) {
       bsph[i]->transform();
     }
 
     float total_penetration_distance = 0;
 
     // Just do O(n^2) tests --> I did have a sweap and prune implementation but
-    // it was actually slower
-    Float3 vec;
-    for (uint32_t i = 0; i < num_spheres; i++) {
-      for (uint32_t j = i+1; j < num_spheres; j++) {
-        uint32_t objA_group = i / NSPH_PER_GROUP;  // Which finger
-        uint32_t objB_group = j / NSPH_PER_GROUP;
-        uint32_t objA_sphere = i % NSPH_PER_GROUP;  // which sphere on the finger
-        uint32_t objB_sphere = j % NSPH_PER_GROUP;
+    // it was actually slower 
+//#pragma omp parallel for num_threads(4)
+    for (int32_t i = 0; i < (int32_t)num_spheres; i++) {
+      Float3 vec;
+      for (int32_t j = i+1; j < (int32_t)num_spheres; j++) {
+        int32_t objA_group = i / NSPH_PER_GROUP;  // Which finger
+        int32_t objB_group = j / NSPH_PER_GROUP;
+        int32_t objA_sphere = i % NSPH_PER_GROUP;  // which sphere on the finger
+        int32_t objB_sphere = j % NSPH_PER_GROUP;
         // ignore penetration within the same finger
-        if (objA_group != objB_group && objA_group < max_groups && 
-          objB_group < max_groups) {
+        if (objA_group != objB_group && objA_group < (int32_t)max_groups && 
+          objB_group < (int32_t)max_groups) {
           BoundingSphere* objA = bsph[i];
           BoundingSphere* objB = bsph[j];
           Float3::sub(vec, *objA->transformed_center(), *objB->transformed_center());
@@ -791,6 +793,7 @@ namespace model_fit {
           float min_dist_sq = min_dist * min_dist;
           float sep_dist_sq = center_dist_sq - min_dist_sq;
           if (sep_dist_sq < 0) {
+            //#pragma omp atomic
             total_penetration_distance += -sep_dist_sq;
           }
         }

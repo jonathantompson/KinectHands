@@ -125,6 +125,9 @@ namespace model_fit {
     for (uint32_t i = 0; i < num_models_; i++) {
       models_[i]->setRendererAttachement(old_attachement_vals[i]);
     }
+
+    float end_func_val = objectiveFunc(coeff_optim_);
+    cout << "Final objective function value = " << end_func_val << endl;
   }
 
 

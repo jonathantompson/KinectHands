@@ -513,6 +513,7 @@ namespace hand_net {
     }
 
     // Calculate the projected sphere positions:
+    // TO DO: PARALLELIZE THIS!
     Double3 uvd;
     for (uint32_t i = 0; i < num_convnet_feats; i++) {
       g_hand_net_->rhand_->calcBoundingSphereUVDPos(uvd.m, 
