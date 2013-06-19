@@ -70,7 +70,7 @@
 #define ICP_COS_NORM_THRESHOLD acosf((35.0f / 360.0f) * 2.0f * (float)M_PI);
 #define ICP_MIN_DISTANCE_SQ 1.0f
 #define ICP_MAX_DISTANCE_SQ 1600.0f  // 4cm ^ 2 = 40mm ^ 2
-#define MAX_ICP_PTS 100000
+#define MAX_ICP_PTS 100000 
 
 // KINECT DATA
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Fit
@@ -95,11 +95,10 @@
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_19_2/")  // Cal + Fit (6781)
 
 //#define IM_DIR_BASE string("hand_depth_data_2013_06_15_1/")  // Cal + Fit (3049)  Total: 53170 
-#define IM_DIR_BASE string("hand_depth_data_2013_06_15_2/")
-//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_3/")
-//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_4/")
-//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_5/")
-//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_6/")
+#define IM_DIR_BASE string("hand_depth_data_2013_06_15_2/")  // Cal + almost fit --> Up to 3456
+//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_3/")  // Cal + almost fit
+//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_4/")  // Cal + almost fit 
+//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_5/")  // Cal + almost fit 
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
 #define MAX_KINECTS 3
@@ -424,7 +423,10 @@ void loadCurrentImage(bool print_to_screen = true) {
       // Now we've found the correct file, load it
       file = im_files[k][i_match].first;
       full_filename = IM_DIR + string(file);
-      std::cout << "loading additional image: " << full_filename << std::endl;
+      if (!continuous_play || (cur_image % 30) == 0) {
+        std::cout << "loading image (frame " << cur_image << " of " << 
+          im_files[0].size() << "): " << full_filename << std::endl;
+      }
       image_io->LoadCompressedImage(full_filename, 
         cur_depth_data[k], cur_label_data[k], cur_image_rgb[k]);
       memset(cur_label_data[k], 0, src_dim * sizeof(cur_label_data[k][0]));
@@ -450,27 +452,28 @@ void InitXYZPointsForRendering() {
     jtil::data_str::Vector<jtil::math::Float3>* vert = geometry_points[k]->vertices();
     jtil::data_str::Vector<jtil::math::Float3>* cols = geometry_points[k]->colors();
 
-    float cur_col[3];
-    for (uint32_t i = 0; i < src_dim; i++) {
+    float red_mult = 1.0;
+    float green_mult = 1.0;
+    if (k == 2) {
+      red_mult = 0.1f;
+    }
+    if (k == 1) {
+      green_mult = 0.1f;
+    }
+
+#pragma omp parallel for num_threads(4)
+    for (int32_t i = 0; i < src_dim; i++) {
+      float* cur_col = cols->at(i)->m;
       vert->at(i)->set(&cur_xyz_data[k][i*3]);
       if (cur_label_data[k][i] == 0) {
-        if (k != 2) {
-          cur_col[0] = 1.0f * static_cast<float>(cur_image_rgb[k][i*3]) / 255.0f;
-        } else {
-           cur_col[0] = 0.1f * static_cast<float>(cur_image_rgb[k][i*3]) / 255.0f;
-        }
-        cur_col[1] = 1.0f * static_cast<float>(cur_image_rgb[k][i*3+1]) / 255.0f;
-        if (k != 1) {
-          cur_col[2] = 1.0f * static_cast<float>(cur_image_rgb[k][i*3+2]) / 255.0f;
-        } else {
-          cur_col[2] = 0.1f * static_cast<float>(cur_image_rgb[k][i*3+2]) / 255.0f;
-        }
+        cur_col[0] = red_mult * static_cast<float>(cur_image_rgb[k][i*3]) / 255.0f;
+        cur_col[1] = static_cast<float>(cur_image_rgb[k][i*3+1]) / 255.0f;
+        cur_col[2] = green_mult * static_cast<float>(cur_image_rgb[k][i*3+2]) / 255.0f;
       } else {
         cur_col[0] = std::max<float>(0.0f, (float)(cur_image_rgb[k][i*3]) / 255.0f - 0.1f);
         cur_col[1] = std::min<float>((float)(cur_image_rgb[k][i*3+1]) / 255.0f + 0.4f, 255.0f);
         cur_col[2] = std::max<float>(0.0f, (float)(cur_image_rgb[k][i*3+2]) / 255.0f - 0.1f);
       }
-      cols->at(i)->set(cur_col);
     }
     
     geometry_points[k]->syncVAO();
