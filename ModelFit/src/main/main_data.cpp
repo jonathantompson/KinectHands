@@ -64,68 +64,6 @@
 #include "jtil/math/math_base.h"  // for NextPrime
 #include "jtorch/jtorch.h"
 
-// *************************************************************
-// ******************* CHANGEABLE PARAMETERS *******************
-// *************************************************************
-#define BACKUP_HDD
-#define IM_DIR_BASE string("hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405) 
-//#define IM_DIR_BASE string("hand_depth_data_2013_05_03_1/")  // Cal + Fit (6533) 
-//#define IM_DIR_BASE string("hand_depth_data_2013_05_06_1/")  // Cal + Fit (8709) 
-//#define IM_DIR_BASE string("hand_depth_data_2013_05_06_2/")  // Cal + Fit (8469) 
-//#define IM_DIR_BASE string("hand_depth_data_2013_05_06_3/")  // Cal + Fit (5815) MURPHY
-//#define IM_DIR_BASE string("hand_depth_data_2013_05_08_1/")  // Cal + Fit (2440) (Tr-data)
-//#define IM_DIR_BASE string("hand_depth_data_2013_05_19_1/")  // Cal + Fit (5969) 
-//#define IM_DIR_BASE string("hand_depth_data_2013_05_19_2/")  // Cal + Fit (6781) Total: 47681 
-
-#define DST_IM_DIR_BASE string("hand_depth_data_processed_for_CN/") 
-//#define DST_IM_DIR_BASE string("hand_depth_data_processed_for_CN_testset/") 
-//#define DST_IM_DIR_BASE string("hand_depth_data_processed_for_CN_murphy/") 
-
-//#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
-#define SAVE_FILES  // Only enabled when we're not loading processed images
-//#define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
-//                              // HandForests, but save synthetic data (only 
-//                              // takes effect when not loading processed images)
-
-#define SAVE_DEPTH_IMAGES  // Save the regular depth files --> Only when SAVE_FILES defined
-#define SAVE_HPF_IMAGES  // Save the hpf files --> Only when SAVE_FILES defined
-
-#if !defined(LOAD_PROCESSED_IMAGES) && defined(SAVE_FILES)
-  #define DESIRED_PLAYBACK_FPS 100000.0f
-#else
-  #define DESIRED_PLAYBACK_FPS 30.0f  // fps
-#endif
-#define NUM_WORKER_THREADS 6
-
-// *************************************************************
-// *************** END OF CHANGEABLE PARAMETERS ****************
-// *************************************************************
-
-#define FRAME_TIME (1.0f / DESIRED_PLAYBACK_FPS)
-// Some image defines, you shouldn't have to change these
-#if defined(__APPLE__)
-  #error "Apple is not yet supported!"
-#else
-  #ifdef BACKUP_HDD
-    #define KINECT_HANDS_ROOT string("D:/hand_data/")
-  #else
-    #define KINECT_HANDS_ROOT string("./../data/")
-  #endif
-  #define DST_KINECT_HANDS_ROOT string("./../data/")
-#endif
-#define IM_DIR (KINECT_HANDS_ROOT + IM_DIR_BASE)
-#define DST_IM_DIR (DST_KINECT_HANDS_ROOT + DST_IM_DIR_BASE)
-
-#if defined(WIN32) || defined(_WIN32)
-  #define snprintf _snprintf_s
-#endif
-#define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
-#define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
-
-const bool fit_left = false;
-const bool fit_right = true; 
-const uint32_t num_hands = (fit_left ? 1 : 0) + (fit_right ? 1 : 0);
-
 using namespace std;
 using namespace jtil::math;
 using namespace jtil::data_str;
@@ -150,6 +88,82 @@ using renderer::GLState;
 using hand_net::HandNet;
 using hand_net::HandCoeffConvnet;
 
+// *************************************************************
+// ******************* CHANGEABLE PARAMETERS *******************
+// *************************************************************
+#define BACKUP_HDD
+// Training Set
+/*
+const uint32_t num_im_dirs = 12;
+string im_dirs[num_im_dirs] = {
+  string("hand_depth_data_2013_05_01_1/"),
+  string("hand_depth_data_2013_05_03_1/"),
+  string("hand_depth_data_2013_05_06_1/"),
+  string("hand_depth_data_2013_05_06_2/"),
+  string("hand_depth_data_2013_05_06_3/"),  // MURPHY
+  string("hand_depth_data_2013_05_19_1/"),
+  string("hand_depth_data_2013_05_19_2/"),
+  string("hand_depth_data_2013_06_15_1/"),
+  string("hand_depth_data_2013_06_15_2/"),
+  string("hand_depth_data_2013_06_15_3/"),
+  string("hand_depth_data_2013_06_15_4/"),
+  string("hand_depth_data_2013_06_15_5/")
+};
+*/
+
+// Test Set
+const uint32_t num_im_dirs = 1;
+string im_dirs[num_im_dirs] = {
+  string("hand_depth_data_2013_05_08_1/")
+};
+
+//#define DST_IM_DIR_BASE string("hand_depth_data_processed_for_CN/") 
+#define DST_IM_DIR_BASE string("hand_depth_data_processed_for_CN_testset/") 
+
+//#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
+#define SAVE_FILES  // Only enabled when we're not loading processed images
+//#define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
+//                              // HandForests, but save synthetic data (only 
+//                              // takes effect when not loading processed images)
+
+//#define SAVE_DEPTH_IMAGES  // Save the regular depth files --> Only when SAVE_FILES defined
+#define SAVE_HPF_IMAGES  // Save the hpf files --> Only when SAVE_FILES defined
+
+#if !defined(LOAD_PROCESSED_IMAGES) && defined(SAVE_FILES)
+  #define DESIRED_PLAYBACK_FPS 100000.0f
+#else
+  #define DESIRED_PLAYBACK_FPS 30.0f  // fps
+#endif
+#define NUM_WORKER_THREADS 6
+
+// *************************************************************
+// *************** END OF CHANGEABLE PARAMETERS ****************
+// *************************************************************
+
+#define FRAME_TIME (1.0f / DESIRED_PLAYBACK_FPS)
+// Some image defines, you shouldn't have to change these
+#if defined(__APPLE__)
+  #error "Apple is not yet supported!"
+#else
+  #ifdef BACKUP_HDD
+    #define DATA_ROOT string("E:/hand_data/")
+  #else
+    #define DATA_ROOT string("./../data/")
+  #endif
+  #define DST_DATA_ROOT string("./../data/")
+#endif
+#define DST_IM_DIR (DST_DATA_ROOT + DST_IM_DIR_BASE)
+
+#if defined(WIN32) || defined(_WIN32)
+  #define snprintf _snprintf_s
+#endif
+#define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
+#define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
+
+const bool fit_left = false;
+const bool fit_right = true; 
+const uint32_t num_hands = (fit_left ? 1 : 0) + (fit_right ? 1 : 0);
+
 jtil::clk::Clk* clk = NULL;
 double t1, t0;
 
@@ -168,9 +182,9 @@ ModelRenderer* hand_renderer = NULL;
 uint8_t label[src_dim];
 
 // Kinect Image data
-uint32_t IM_DIR_hash = HashString(MAX_UINT32, IM_DIR);
 DepthImagesIO* image_io = NULL;
 Vector<Triple<char*, int64_t, int64_t>> im_files;  // filename, kinect time, global time
+Vector<uint32_t> file_dir_indices;  // directory each file came from
 float cur_xyz_data[src_dim*3];
 float cur_uvd_data[src_dim*3];
 int16_t cur_depth_data[src_dim*3];
@@ -188,6 +202,7 @@ uint8_t tex_data[HN_IM_SIZE * HN_IM_SIZE * 3 * 2];
 OpenNIFuncs openni_funcs;
 Float4x4 camera_view;
 const uint32_t num_coeff_fit = HAND_NUM_COEFF;
+Float4x4 old_camera_view;
 
 // Decision forests
 HandDetector* hand_detect = NULL;
@@ -233,10 +248,25 @@ void loadCurrentImage() {
 #ifdef LOAD_PROCESSED_IMAGES
   string DIR = DST_IM_DIR;
 #else
-  string DIR = IM_DIR;
+  string DIR = DATA_ROOT + im_dirs[file_dir_indices[cur_image]];
 #endif
   string full_filename = DIR + string(file);
   //std::cout << "loading image: " << full_filename << std::endl;
+
+  try {
+    LoadArrayFromFile<float>(camera_view.m, 16, DIR + 
+      "calibration_data0.bin");
+  } catch (std::wruntime_error e) {
+    camera_view.identity();
+    std::cout << "WARNING: calibration_data0.bin doesn't exist.  ";
+    std::cout << "Using Identity camera matrix." << std::endl;
+  }
+  Float4x4 camera_view_inv, cur_view;
+  
+  Float4x4::inverse(camera_view_inv, camera_view);
+  Float4x4::mult(cur_view, old_camera_view, camera_view_inv);
+  hand_renderer->camera(0)->view()->set(cur_view);
+  hand_renderer->camera(0)->set_view_mat_directly = true;
 
 #ifdef LOAD_PROCESSED_IMAGES
   string full_hpf_im_filename = DIR + std::string("hpf_") + im_files[cur_image].first;
@@ -279,7 +309,8 @@ void loadCurrentImage() {
 #endif
   r_hand->loadFromFile(DIR, string("coeffr_") + src_file);
   if (cur_image % 100 == 0) {
-    cout << "loaded image " << cur_image+1 << " of " << im_files.size() << endl;
+    cout << "loaded image " << cur_image+1 << " of " << im_files.size() <<
+      " from directory " << file_dir_indices[cur_image] << endl;
   }
 
   if (!found_hand) {
@@ -325,6 +356,9 @@ void loadCurrentImage() {
 
 void saveFrame() {
 #if defined(SAVE_FILES) && !defined(LOAD_PROCESSED_IMAGES)
+  string DIR = DATA_ROOT + im_dirs[file_dir_indices[cur_image]];
+  uint32_t IM_DIR_hash = HashString(MAX_UINT32, DIR);
+
   // Check that the current coeff doesn't have features points that are off 
   // screen --> Usually an indicator that the HandDetector messed up
   for (uint32_t i = 0; i < HandCoeffConvnet::HAND_NUM_COEFF_CONVNET && 
@@ -662,10 +696,15 @@ int main(int argc, char *argv[]) {
     // Load the Kinect data for fitting from file and process it
     image_io = new DepthImagesIO();
 #ifdef LOAD_PROCESSED_IMAGES
+#error "GetProcessedFilesInDirectory needs updating!"
     GetProcessedFilesInDirectory(im_files, DST_IM_DIR, 0);
 #else
-    image_io->GetFilesInDirectory(im_files, IM_DIR, 0, NULL);
+    image_io->GetFilesInDirectories(im_files, file_dir_indices, im_dirs, 
+      DATA_ROOT, num_im_dirs, 0, NULL);
 #endif
+    if (im_files.size() == 0) {
+      quit();
+    }
 
     // Attach callback functions for event handling
     wnd->registerKeyboardCB(keyboardCB);
@@ -683,29 +722,17 @@ int main(int argc, char *argv[]) {
     r_hand = new HandModelCoeff(HandType::RIGHT);
     l_hand = new HandModelCoeff(HandType::LEFT);
 
-    try {
-      LoadArrayFromFile<float>(camera_view.m, 16, IM_DIR + 
-        "calibration_data0.bin");
-    } catch (std::wruntime_error e) {
-      std::cout << "WARNING: calibration_data0.bin doesn't exist.  ";
-      std::cout << "Identity camera matrix." << std::endl;
-    }
-    Float4x4 old_view, camera_view_inv, cur_view;
-    old_view.set(*hand_renderer->camera(0)->view());
-    Float4x4::inverse(camera_view_inv, camera_view);
-    Float4x4::mult(cur_view, old_view, camera_view_inv);
-    hand_renderer->camera(0)->view()->set(cur_view);
-    hand_renderer->camera(0)->set_view_mat_directly = true;
+    // We need to save the original camera view
+    old_camera_view.set(*hand_renderer->camera(0)->view());
 
     std::cout << "Using a cropped source image of " << HN_SRC_IM_SIZE;
     std::cout << std::endl << "Final image size after processing is ";
     std::cout << (HN_IM_SIZE) << std::endl;
-    std::cout << "Image directory hash is: " << IM_DIR_hash << std::endl;
 
     hand_detect = new HandDetector(tp);
-    std::cout << "Loading forest from " << DST_KINECT_HANDS_ROOT << 
+    std::cout << "Loading forest from " << DST_DATA_ROOT << 
       FOREST_DATA_FILENAME << std::endl;
-    hand_detect->init(src_width, src_height, DST_KINECT_HANDS_ROOT +
+    hand_detect->init(src_width, src_height, DST_DATA_ROOT +
       FOREST_DATA_FILENAME);
     hand_image_generator_ = new HandImageGenerator(HN_DEFAULT_NUM_CONV_BANKS);
     for (uint32_t i = 0; i < HandCoeffConvnet::HAND_NUM_COEFF_CONVNET; i++) {

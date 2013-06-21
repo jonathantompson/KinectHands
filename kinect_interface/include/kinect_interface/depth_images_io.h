@@ -52,11 +52,17 @@ namespace kinect_interface {
       const float frac_test_data, const uint32_t file_stride);
 
     // Get a listing of all the files in the directory
-    // - load_processed_images = true --> hands_*.bin
-    // - load_processed_images = false --> processed_hands_*.bin
     uint32_t GetFilesInDirectory(
       jtil::data_str::Vector<jtil::data_str::Triple<char*, int64_t, int64_t>>& files_names, 
       const std::string& directory, const uint32_t kinect_num, 
+      const char* prefix = NULL);
+
+    // Get a listing of all the files in the a string of directories
+    uint32_t GetFilesInDirectories(
+      jtil::data_str::Vector<jtil::data_str::Triple<char*, int64_t, int64_t>>& files_names,
+      jtil::data_str::Vector<uint32_t>& files_directory_indices,
+      const std::string* directories, const std::string directory_root, 
+      const uint32_t num_dirs, const uint32_t kinect_num, 
       const char* prefix = NULL);
 
     static void releaseImages(DepthImageData*& data);

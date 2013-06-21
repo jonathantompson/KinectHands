@@ -318,7 +318,7 @@ namespace kinect_interface {
     std::ifstream in_file(file.c_str(), std::ios::in | std::ios::binary | 
       std::ios::ate);
     if (!in_file.is_open()) {
-      throw std::runtime_error(std::string("LoadDepthImage()") + 
+      throw std::runtime_error(std::string("LoadCompressedImage()") + 
         std::string(": error opening file") + file);
     }
 
@@ -332,8 +332,12 @@ namespace kinect_interface {
       reinterpret_cast<void*>(uncompressed_data),
       data_size * 2);
     if (size_decompress != data_size) {
-      throw wruntime_error(string("LoadDepthImage() - ERROR: ") +
-        string("uncompressed data size is not what we expected!"));
+      std::stringstream ss;
+      ss << "LoadCompressedImage() - ERROR: uncompressed data size is not "
+        "what we expected!  File: ";
+      ss << file << ", size: " << size_decompress << ", expected: ";
+      ss << data_size;
+      throw wruntime_error(ss.str());
     }
 
     // Extract the user pixels and copy over the depth
@@ -527,8 +531,26 @@ namespace kinect_interface {
     memcpy(rgb, rgb_file, src_dim * sizeof(rgb[0]) * 3);
   }
 
+    uint32_t DepthImagesIO::GetFilesInDirectories(
+      Vector<Triple<char*, int64_t, int64_t>>& files_names, 
+      Vector<uint32_t>& files_directory_indices, const std::string* directories,
+      const std::string directory_root, const uint32_t num_dirs, 
+      const uint32_t kinect_num, const char* prefix) {
+      for (uint32_t i = 0; i < num_dirs; i++) {
+        Vector<Triple<char*, int64_t, int64_t>> files;
+        GetFilesInDirectory(files, directory_root + directories[i], kinect_num, 
+          prefix);
+
+        for (uint32_t j = 0; j < files.size(); j++) {
+          files_names.pushBack(files[j]);  // Transfer ownership of char*
+          files_directory_indices.pushBack(i);
+        }
+      }
+      return files_names.size();
+    }
+
   uint32_t DepthImagesIO::GetFilesInDirectory(
-    jtil::data_str::Vector<Triple<char*, int64_t, int64_t>>& files_in_directory, 
+    Vector<Triple<char*, int64_t, int64_t>>& files_in_directory, 
     const string& directory, const uint32_t kinect_num, const char* prefix) {
     std::vector<Triple<char*, int64_t, int64_t>> files;
 #if defined(WIN32) || defined(_WIN32)
@@ -569,44 +591,43 @@ namespace kinect_interface {
 
 #else
     throw std::wruntime_error("Apple version needs updating!");
-    string name_preamble;
-    uint32_t preamble_length;
-    if (!load_processed_images) {
-      name_preamble = string("hands_");
-      preamble_length = 6;
-    } else {
-      name_preamble = string("processed_hands_");
-      preamble_length = 16;
-    }
-    static unsigned char isFile =0x8;
-    static unsigned char isFolder =0x4;
-    struct dirent *dp;
-    DIR *dfd = opendir(directory.c_str());
-    if(dfd != NULL) {
-      while((dp = readdir(dfd)) != NULL) {
-        std::string cur_name = string(dp->d_name);
-        if (dp->d_type == isFile) {
-          if (cur_name.length() > 10) {
-            if (cur_name.substr(0,preamble_length) == name_preamble && 
-              cur_name.substr(cur_name.length()-4,4) == string(".bin")) {
-                char* name = new char[cur_name.length() + 1];
-                strcpy(name, cur_name.c_str());
-                files.push_back(Pair<char*, int64_t>(name, -1));
-            }
-          }
-        } else if (dp->d_type == isFolder) {
-          std::string cur_foldername = string(dp->d_name);
-          // std::cout << "Folder in directory: " << cur_foldername << std::endl;
-        }
-      }
-      closedir(dfd);
-    } else {
-      std::stringstream ss;
-      ss << "GetFilesInDirectory error getting dir info for dir: ";
-      ss << directory << std::endl;
-      throw std::wruntime_error(ss.str());
-    }
-
+    //string name_preamble;
+    //uint32_t preamble_length;
+    //if (!load_processed_images) {
+    //  name_preamble = string("hands_");
+    //  preamble_length = 6;
+    //} else {
+    //  name_preamble = string("processed_hands_");
+    //  preamble_length = 16;
+    //}
+    //static unsigned char isFile =0x8;
+    //static unsigned char isFolder =0x4;
+    //struct dirent *dp;
+    //DIR *dfd = opendir(directory.c_str());
+    //if(dfd != NULL) {
+    //  while((dp = readdir(dfd)) != NULL) {
+    //    std::string cur_name = string(dp->d_name);
+    //    if (dp->d_type == isFile) {
+    //      if (cur_name.length() > 10) {
+    //        if (cur_name.substr(0,preamble_length) == name_preamble && 
+    //          cur_name.substr(cur_name.length()-4,4) == string(".bin")) {
+    //            char* name = new char[cur_name.length() + 1];
+    //            strcpy(name, cur_name.c_str());
+    //            files.push_back(Pair<char*, int64_t>(name, -1));
+    //        }
+    //      }
+    //    } else if (dp->d_type == isFolder) {
+    //      std::string cur_foldername = string(dp->d_name);
+    //      // std::cout << "Folder in directory: " << cur_foldername << std::endl;
+    //    }
+    //  }
+    //  closedir(dfd);
+    //} else {
+    //  std::stringstream ss;
+    //  ss << "GetFilesInDirectory error getting dir info for dir: ";
+    //  ss << directory << std::endl;
+    //  throw std::wruntime_error(ss.str());
+    //}
 #endif
     // Now Parse the filenames and get their unique ID number
     for (uint32_t i = 0; i < files.size(); i++) {

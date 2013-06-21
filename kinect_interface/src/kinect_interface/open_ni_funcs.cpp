@@ -286,7 +286,7 @@ namespace kinect_interface {
 #endif
     std::ifstream file(filename, std::ios::in | std::ios::binary);
     if (!file.is_open()) {
-      throw std::wruntime_error(std::string("OpenNIFuncs::loadCalibrationData()"
+      throw std::runtime_error(std::string("OpenNIFuncs::loadCalibrationData()"
         " - ERROR: Cannot open output file:") + filename);
     }
 

@@ -93,12 +93,11 @@
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_08_1/")  // Cal + Fit (2440) (Tr-data)
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_19_1/")  // Cal + Fit (5969)
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_19_2/")  // Cal + Fit (6781)
-
-//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_1/")  // Cal + Fit (3049)  Total: 53170 
-#define IM_DIR_BASE string("hand_depth_data_2013_06_15_2/")  // Cal + almost fit --> Up to 3456
-//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_3/")  // Cal + almost fit
-//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_4/")  // Cal + almost fit 
-//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_5/")  // Cal + almost fit 
+//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_1/")  // Cal + Fit (3049)
+//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_2/")  // Cal + Fit (7676)
+//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_3/")  // Cal + Fit (4935)
+//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_4/")  // Cal + Fit (9752)
+#define IM_DIR_BASE string("hand_depth_data_2013_06_15_5/")  //Cal + Fit (5480)  Total: 81013
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
 #define MAX_KINECTS 3
