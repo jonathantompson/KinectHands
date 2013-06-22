@@ -1,3 +1,5 @@
+
+
 -- Top level function, preturbs the whole database
 -- Sits in another worker thread
 function preturbThread()
@@ -13,13 +15,14 @@ function preturbThread()
   -- Redefine helper functions
   dofile("distort.lua")
   dofile("preturb_data_and_labels.lua")
+  dofile('preturb_send_recieve.lua')
   dofile("pbar.lua")
 
   -- recieve the database from the parent
-  print('preturbThread(): waiting for database...')
-  local parent_packet = parallel.parent:receive()
-  database = parent_packet.database
-  trsize = parent_packet.size
+  print('preturbThread(): waiting for "data"...')
+  database, num_hpf_banks, trsize = recieveDatabase( parallel.parent )
+  print('preturbThread(): database recieved, num_hpf_banks = ' .. num_hpf_banks 
+    .. ', trsize = ' .. trsize)
 
   local data_rotated = {
     data = { },
@@ -27,12 +30,12 @@ function preturbThread()
     size = function() return trsize end,
     heat_maps = database.heat_maps:clone():float(),
   }
-  num_hpf_banks = #database.data
+
   for i=1,num_hpf_banks do
     table.insert(data_rotated.data, database.data[i]:clone():float())
   end
 
-  print('preturbThread(): database recieved starting loop...')
+  print('preturbThread(): starting loop...')
 
   while true do
     collectgarbage()
@@ -61,7 +64,7 @@ function preturbThread()
     end
 
     -- send some data back
-    parallel.parent:send(data_rotated)
+    sendDatabase(parallel.parent, data_rotated, num_hpf_banks)
   end
   
   print('preturbThread(): quiting...')

@@ -1,17 +1,4 @@
 
--- ******* Some preliminary calculations *********
-w = width
-h = height
-bank_dim = {}
-data_file_size = 0
-for i=1,num_hpf_banks do
-  table.insert(bank_dim, {h, w})
-  data_file_size = data_file_size + w * h
-  w = w / 2
-  h = h / 2
-end
-w = nil  -- To avoid confusion
-h = nil
 
 -- ************ Get Data locations ***************
 print '==> Scanning directory for hand data...'
