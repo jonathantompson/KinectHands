@@ -57,7 +57,7 @@
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
 // CALIBRATION MODE ONLY SETTINGS:
-// #define CALIBRATION_RUN
+//#define CALIBRATION_RUN
 #define FILTER_SIZE 60  
 #define CALIBRATION_MAX_FILES 100
 #define ICP_PC_MODEL_DIST_THRESH 15  // mm
@@ -70,7 +70,7 @@
 #define ICP_COS_NORM_THRESHOLD acosf((35.0f / 360.0f) * 2.0f * (float)M_PI);
 #define ICP_MIN_DISTANCE_SQ 1.0f
 #define ICP_MAX_DISTANCE_SQ 1600.0f  // 4cm ^ 2 = 40mm ^ 2
-#define MAX_ICP_PTS 100000
+#define MAX_ICP_PTS 100000 
 
 // KINECT DATA
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Fit
@@ -83,31 +83,44 @@
 //#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Fit (Tr-data)
 
 // PRIMESENSE DATA
-//#define IM_DIR_BASE string("data/hand_depth_data/")
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_03_1/")  // Cal + Fit (6533)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_1/")  // Cal + Fit (8709)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_2/")  // Cal + Fit (8469)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_06_3/")  // Cal + Fit (5815)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_08_1/")  // Cal + Fit (2440) (Tr-data)
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_05_19_1/")  // Cal + Fit (5969)
-#define IM_DIR_BASE string("data/hand_depth_data_2013_05_19_2/")  // Cal + Fit (6781)  Total: 47681 
+#define BACKUP_HDD
+//#define IM_DIR_BASE string("hand_depth_data/")
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405)
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_03_1/")  // Cal + Fit (6533)
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_06_1/")  // Cal + Fit (8709)
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_06_2/")  // Cal + Fit (8469)
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_06_3/")  // Cal + Fit (5815) MURPHY
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_08_1/")  // Cal + Fit (2440) (Tr-data)
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_19_1/")  // Cal + Fit (5969)
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_19_2/")  // Cal + Fit (6781)
+//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_1/")  // Cal + Fit (3049)
+//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_2/")  // Cal + Fit (7676)
+//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_3/")  // Cal + Fit (4935)
+//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_4/")  // Cal + Fit (9752)
+#define IM_DIR_BASE string("hand_depth_data_2013_06_15_5/")  //Cal + Fit (5480)  Total: 81013
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
 #define MAX_KINECTS 3
 #define NUM_WORKER_THREADS 6
 
 #if defined(__APPLE__)
-  #define KINECT_HANDS_ROOT string("./../../../../../../../../../../")
+  #error "Apple is not yet supported!"
 #else
-  #define KINECT_HANDS_ROOT string("./../")
+#ifdef BACKUP_HDD
+    #define KINECT_HANDS_ROOT string("E:/hand_data/")
+  #else
+    #define KINECT_HANDS_ROOT string("./../data/")
+  #endif
+  #define FOREST_ROOT string("./../data/")
 #endif
 
 #ifndef HAND_FIT
   #error "HAND_FIT is not defined in the preprocessor definitions!"
 #endif
 
+//#define IM_DIR (KINECT_HANDS_ROOT + IM_DIR_BASE)
 #define IM_DIR (KINECT_HANDS_ROOT + IM_DIR_BASE)
+
 // #define LOAD_AND_SAVE_OLD_FORMAT_COEFFS
 const bool fit_left = false;
 const bool fit_right = true; 
@@ -409,7 +422,10 @@ void loadCurrentImage(bool print_to_screen = true) {
       // Now we've found the correct file, load it
       file = im_files[k][i_match].first;
       full_filename = IM_DIR + string(file);
-      std::cout << "loading additional image: " << full_filename << std::endl;
+      if (!continuous_play || (cur_image % 30) == 0) {
+        std::cout << "loading image (frame " << cur_image << " of " << 
+          im_files[0].size() << "): " << full_filename << std::endl;
+      }
       image_io->LoadCompressedImage(full_filename, 
         cur_depth_data[k], cur_label_data[k], cur_image_rgb[k]);
       memset(cur_label_data[k], 0, src_dim * sizeof(cur_label_data[k][0]));
@@ -435,27 +451,28 @@ void InitXYZPointsForRendering() {
     jtil::data_str::Vector<jtil::math::Float3>* vert = geometry_points[k]->vertices();
     jtil::data_str::Vector<jtil::math::Float3>* cols = geometry_points[k]->colors();
 
-    float cur_col[3];
-    for (uint32_t i = 0; i < src_dim; i++) {
+    float red_mult = 1.0;
+    float green_mult = 1.0;
+    if (k == 2) {
+      red_mult = 0.1f;
+    }
+    if (k == 1) {
+      green_mult = 0.1f;
+    }
+
+#pragma omp parallel for num_threads(4)
+    for (int32_t i = 0; i < src_dim; i++) {
+      float* cur_col = cols->at(i)->m;
       vert->at(i)->set(&cur_xyz_data[k][i*3]);
       if (cur_label_data[k][i] == 0) {
-        if (k != 2) {
-          cur_col[0] = 1.0f * static_cast<float>(cur_image_rgb[k][i*3]) / 255.0f;
-        } else {
-           cur_col[0] = 0.1f * static_cast<float>(cur_image_rgb[k][i*3]) / 255.0f;
-        }
-        cur_col[1] = 1.0f * static_cast<float>(cur_image_rgb[k][i*3+1]) / 255.0f;
-        if (k != 1) {
-          cur_col[2] = 1.0f * static_cast<float>(cur_image_rgb[k][i*3+2]) / 255.0f;
-        } else {
-          cur_col[2] = 0.1f * static_cast<float>(cur_image_rgb[k][i*3+2]) / 255.0f;
-        }
+        cur_col[0] = red_mult * static_cast<float>(cur_image_rgb[k][i*3]) / 255.0f;
+        cur_col[1] = static_cast<float>(cur_image_rgb[k][i*3+1]) / 255.0f;
+        cur_col[2] = green_mult * static_cast<float>(cur_image_rgb[k][i*3+2]) / 255.0f;
       } else {
         cur_col[0] = std::max<float>(0.0f, (float)(cur_image_rgb[k][i*3]) / 255.0f - 0.1f);
         cur_col[1] = std::min<float>((float)(cur_image_rgb[k][i*3+1]) / 255.0f + 0.4f, 255.0f);
         cur_col[2] = std::max<float>(0.0f, (float)(cur_image_rgb[k][i*3+2]) / 255.0f - 0.1f);
       }
-      cols->at(i)->set(cur_col);
     }
     
     geometry_points[k]->syncVAO();
@@ -693,33 +710,33 @@ void KeyboardCB(int key, int action) {
       }
 #ifndef CALIBRATION_RUN
       if (action == RELEASED && shift_down && cur_image > 0) {
+        HandModelCoeff* src;
+        HandModelCoeff* dst;
         switch (key) {
           case static_cast<int>('5'):
             std::cout << "copying thumb from previous frame..." << std::endl;
             if (fit_left) {
-              l_hand_coeffs[cur_image]->setCoeff(HandCoeff::THUMB_THETA, 
-                l_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::THUMB_THETA));
-              l_hand_coeffs[cur_image]->setCoeff(HandCoeff::THUMB_PHI, 
-                l_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::THUMB_PHI));
-              l_hand_coeffs[cur_image]->setCoeff(HandCoeff::THUMB_K1_PHI, 
-                l_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::THUMB_K1_PHI));
-              l_hand_coeffs[cur_image]->setCoeff(HandCoeff::THUMB_K1_THETA, 
-                l_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::THUMB_K1_THETA));
-              l_hand_coeffs[cur_image]->setCoeff(HandCoeff::THUMB_K2_PHI, 
-                l_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::THUMB_K2_PHI));
+              src = l_hand_coeffs[cur_image-1];
+              dst = l_hand_coeffs[cur_image];
             }
             if (fit_right) {
-              r_hand_coeffs[cur_image]->setCoeff(HandCoeff::THUMB_THETA, 
-                r_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::THUMB_THETA));
-              r_hand_coeffs[cur_image]->setCoeff(HandCoeff::THUMB_PHI, 
-                r_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::THUMB_PHI));
-              r_hand_coeffs[cur_image]->setCoeff(HandCoeff::THUMB_K1_PHI, 
-                r_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::THUMB_K1_PHI));
-              r_hand_coeffs[cur_image]->setCoeff(HandCoeff::THUMB_K1_THETA, 
-                r_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::THUMB_K1_THETA));
-              r_hand_coeffs[cur_image]->setCoeff(HandCoeff::THUMB_K2_PHI, 
-                r_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::THUMB_K2_PHI));
+              src = r_hand_coeffs[cur_image-1];
+              dst = r_hand_coeffs[cur_image];
             }
+            dst->setCoeff(HandCoeff::THUMB_THETA, 
+              src->getCoeff(HandCoeff::THUMB_THETA));
+            dst->setCoeff(HandCoeff::THUMB_PHI, 
+              src->getCoeff(HandCoeff::THUMB_PHI));
+            dst->setCoeff(HandCoeff::THUMB_K1_PHI, 
+              src->getCoeff(HandCoeff::THUMB_K1_PHI));
+            dst->setCoeff(HandCoeff::THUMB_K1_THETA, 
+              src->getCoeff(HandCoeff::THUMB_K1_THETA));
+            dst->setCoeff(HandCoeff::THUMB_K2_PHI, 
+              src->getCoeff(HandCoeff::THUMB_K2_PHI));
+            dst->setCoeff(HandCoeff::THUMB_TWIST, 
+              src->getCoeff(HandCoeff::THUMB_TWIST));
+            dst->setCoeff(HandCoeff::THUMB_LENGTH, 
+              src->getCoeff(HandCoeff::THUMB_LENGTH));
             break;
           case static_cast<int>('1'):
           case static_cast<int>('2'):
@@ -730,33 +747,29 @@ void KeyboardCB(int key, int action) {
             std::cout << "copying finger " << finger;
             std::cout << " from previous frame..." << std::endl;
             if (fit_left) {
-              l_hand_coeffs[cur_image]->setCoeff(HandCoeff::F0_ROOT_PHI + off, 
-                l_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::F0_ROOT_PHI + off));
-              l_hand_coeffs[cur_image]->setCoeff(HandCoeff::F0_ROOT_THETA + off, 
-                l_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::F0_ROOT_THETA + off));
-              l_hand_coeffs[cur_image]->setCoeff(HandCoeff::F0_PHI + off, 
-                l_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::F0_PHI + off));
-              l_hand_coeffs[cur_image]->setCoeff(HandCoeff::F0_THETA + off, 
-                l_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::F0_THETA + off));
-              l_hand_coeffs[cur_image]->setCoeff(HandCoeff::F0_KNUCKLE_MID + off, 
-                l_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::F0_KNUCKLE_MID + off));
-              l_hand_coeffs[cur_image]->setCoeff(HandCoeff::F0_KNUCKLE_END + off, 
-                l_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::F0_KNUCKLE_END + off));
+              src = l_hand_coeffs[cur_image-1];
+              dst = l_hand_coeffs[cur_image];
             }
             if (fit_right) {
-              r_hand_coeffs[cur_image]->setCoeff(HandCoeff::F0_ROOT_PHI + off, 
-                r_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::F0_ROOT_PHI + off));
-              r_hand_coeffs[cur_image]->setCoeff(HandCoeff::F0_ROOT_THETA + off, 
-                r_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::F0_ROOT_THETA + off));
-              r_hand_coeffs[cur_image]->setCoeff(HandCoeff::F0_PHI + off, 
-                r_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::F0_PHI + off));
-              r_hand_coeffs[cur_image]->setCoeff(HandCoeff::F0_THETA + off, 
-                r_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::F0_THETA + off));
-              r_hand_coeffs[cur_image]->setCoeff(HandCoeff::F0_KNUCKLE_MID + off, 
-                r_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::F0_KNUCKLE_MID + off));
-              r_hand_coeffs[cur_image]->setCoeff(HandCoeff::F0_KNUCKLE_END + off, 
-                r_hand_coeffs[cur_image-1]->getCoeff(HandCoeff::F0_KNUCKLE_END + off));
+              src = r_hand_coeffs[cur_image-1];
+              dst = r_hand_coeffs[cur_image];
             }
+            dst->setCoeff(HandCoeff::F0_ROOT_PHI + off, 
+              src->getCoeff(HandCoeff::F0_ROOT_PHI + off));
+            dst->setCoeff(HandCoeff::F0_ROOT_THETA + off, 
+              src->getCoeff(HandCoeff::F0_ROOT_THETA + off));
+            dst->setCoeff(HandCoeff::F0_PHI + off, 
+              src->getCoeff(HandCoeff::F0_PHI + off));
+            dst->setCoeff(HandCoeff::F0_THETA + off, 
+              src->getCoeff(HandCoeff::F0_THETA + off));
+            dst->setCoeff(HandCoeff::F0_KNUCKLE_MID + off, 
+              src->getCoeff(HandCoeff::F0_KNUCKLE_MID + off));
+            dst->setCoeff(HandCoeff::F0_KNUCKLE_END + off, 
+              src->getCoeff(HandCoeff::F0_KNUCKLE_END + off));
+            dst->setCoeff(HandCoeff::F0_TWIST + finger, 
+              src->getCoeff(HandCoeff::F0_TWIST + finger));
+            dst->setCoeff(HandCoeff::F0_LENGTH + finger, 
+              src->getCoeff(HandCoeff::F0_LENGTH + finger));
             break;
         }
         saveCurrentCoeffs();
@@ -1150,28 +1163,18 @@ void KeyboardCB(int key, int action) {
             std::string new_full_im_filename = IM_DIR + string("deleted_") + 
               string(im_files[0][cur_image].first);
             r_coeff_file = IM_DIR + string("coeffr_") + im_files[0][cur_image].first;
-            new_r_coeff_file = IM_DIR + string("deleted_") + string("coeffr_") + 
+            new_r_coeff_file = IM_DIR + string("deleted_coeffr_") + 
               im_files[0][cur_image].first;
             l_coeff_file = IM_DIR + string("coeffl_") + im_files[0][cur_image].first;
-            new_l_coeff_file = IM_DIR + string("deleted_") + string("coeffl_") + 
+            new_l_coeff_file = IM_DIR + string("deleted_coeffl_") + 
               im_files[0][cur_image].first;
 
-            bool move_OK = 
-              MoveFile(r_coeff_file.c_str(), new_r_coeff_file.c_str()) &&
-              MoveFile(l_coeff_file.c_str(), new_l_coeff_file.c_str()) &&
+            bool move_OK = (bool)
               MoveFile(full_im_filename.c_str(), new_full_im_filename.c_str());
             if (!move_OK) {
               cout << "Error moving files: " << endl;
-              cout << "    - " << full_im_filename.c_str() << endl;
-              cout << "    - " << r_coeff_file.c_str() << endl;
-              cout << "    - " << l_coeff_file.c_str() << endl;
-              cout << endl;
             } else {
-              cout << "Files marked as deleted sucessfully: " << endl;
-              cout << "    - " << full_im_filename.c_str() << endl;
-              cout << "    - " << r_coeff_file.c_str() << endl;
-              cout << "    - " << l_coeff_file.c_str() << endl;
-              cout << endl;
+              cout << "Image file marked as deleted sucessfully: " << endl;
               delete r_hand_coeffs[cur_image]; 
               delete l_hand_coeffs[cur_image];
               for (uint32_t i = cur_image; i < im_files[0].size() - 1; i++) {
@@ -1180,7 +1183,19 @@ void KeyboardCB(int key, int action) {
               }
               SAFE_DELETE(im_files[0][cur_image].first); 
               im_files[0].deleteAtAndShift(cur_image);
+
+              // Coeff file may not exist yet (if we haven't fit it)...
+              move_OK = 
+                MoveFile(r_coeff_file.c_str(), new_r_coeff_file.c_str()) &&
+                MoveFile(l_coeff_file.c_str(), new_l_coeff_file.c_str());
             }
+            cout << "    - " << full_im_filename.c_str() << " to " << endl;
+            cout << "      " << new_full_im_filename.c_str() << endl;
+            cout << "    - " << r_coeff_file.c_str() << endl;
+            cout << "      " << new_r_coeff_file.c_str() << endl;
+            cout << "    - " << l_coeff_file.c_str() << endl;
+            cout << "      " << new_l_coeff_file.c_str() << endl;
+            cout << endl;
           }  // for (int i = 0; i < repeat; i++) {
           loadCurrentImage();
           InitXYZPointsForRendering();
@@ -1496,7 +1511,7 @@ int main(int argc, char *argv[]) {
     }
 
     hand_detect = new HandDetector(tp);
-    hand_detect->init(src_width, src_height, KINECT_HANDS_ROOT +
+    hand_detect->init(src_width, src_height, FOREST_ROOT +
       FOREST_DATA_FILENAME);
  
     // Load the Kinect data for fitting from file and process it

@@ -34,7 +34,8 @@ namespace hand_net {
     // Call before rendering hand depth maps:
     void updateMatrices(const float* coeff);
     void updateHeirachyMatrices();
-    void fixBoundingSphereMatrices();
+    void updateDoubleMatrices(const double* coeff);
+    void updateDoubleHeirachyMatrices();
 
     // setRendererAttachement - called when ModelFit wants to detach the model
     // from the global renderer
@@ -44,50 +45,68 @@ namespace hand_net {
     static const bool* angle_coeffs() { return angle_coeffs_; }
     static const float* coeff_min_limit() { return coeff_min_limit_; }
     static const float* coeff_max_limit() { return coeff_max_limit_; }
+    static const float* coeff_max_limit_conservative() { return coeff_max_limit_conservative_; }
     static const float* coeff_penalty_scale() { return coeff_penalty_scale_; }
     static const uint32_t max_bsphere_groups() { return 6; }
     static const uint32_t num_bspheres_per_group() { return 6; }
 
     void calcBoundingSphereUVDPos(float* uvd, const uint32_t b_sphere_index, 
       const jtil::math::Float4x4& pv_mat);
+    void calcBoundingSphereUVDPos(double* uvd, const uint32_t b_sphere_index, 
+      const jtil::math::Double4x4& pv_mat);
 
   private:
     // Note all geometry is attached to the global renderer's scene graph and
     // therefore we transfer ownership of the memory to it.
-    jtil::renderer::GeometryInstance* model_;  // The renderable geometry - Not owned here
+    jtil::renderer::GeometryInstance* model_;  // The geometry - Not owned here
     jtil::data_str::VectorManaged<jtil::renderer::objects::BSphere*> bspheres_;
     bool visible_;
 
+    // BFS sorted array of nodes. Memory not owned here!
+    // We need to keep around doubles for BFGS
+    jtil::data_str::Vector<jtil::renderer::GeometryInstance*> nodes_;
+    jtil::data_str::Vector<jtil::math::Double4x4> nodes_mat_;
+    jtil::data_str::Vector<jtil::math::Double4x4> nodes_heirachy_mat_;
+    jtil::data_str::Vector<jtil::math::Double4x4> nodes_bone_rest_transform_;
+    jtil::data_str::Vector<jtil::math::Double4x4> nodes_bone_transform_;
+    jtil::data_str::Vector<uint32_t> bsphere_parent_ind_;
+    jtil::math::Double4x4 root_mat_hierachy_inv_;
+    jtil::data_str::Vector<jtil::math::Double4x4> nodes_bone_offset_;
+
+    jtil::data_str::Vector<uint32_t> nodes_parents_;
+
     void loadHandGeometry(kinect_interface::hand_net::HandType type);
 
-    // References to bones for quick access (not owned here)
-    jtil::renderer::GeometryInstance* mesh_node_;
-    jtil::renderer::GeometryInstance* bone_wrist_;
-    jtil::renderer::GeometryInstance* bone_palm_;
-    jtil::renderer::GeometryInstance* bone_thumb_[3];
-    jtil::renderer::GeometryInstance* bone_finger1_[4];
-    jtil::renderer::GeometryInstance* bone_finger2_[4];
-    jtil::renderer::GeometryInstance* bone_finger3_[4];
-    jtil::renderer::GeometryInstance* bone_finger4_[4];
-
-    // Copy of the Renderer's stack interface methods, I'd rather duplicate
-    // them and keep the renderer seperate.
-    jtil::data_str::Vector<jtil::renderer::GeometryInstance*> render_stack_;
+    // References to bone indices for quick access (not owned here)
+    uint32_t index_mesh_node_;
+    uint32_t index_bone_wrist_;
+    uint32_t index_bone_palm_;
+    uint32_t index_bone_thumb_[3];
+    uint32_t index_bone_finger1_[4];
+    uint32_t index_bone_finger2_[4];
+    uint32_t index_bone_finger3_[4];
+    uint32_t index_bone_finger4_[4];
 
     void euler2RotMatGM(jtil::math::Float4x4& a, const float x_angle, 
       const float y_angle, const float z_angle);
     void rotateMatZAxisGM(jtil::math::Float4x4& ret, const float angle);
     void rotateMatYAxisGM(jtil::math::Float4x4& ret, const float angle);
     void rotateMatXAxisGM(jtil::math::Float4x4& ret, const float angle);
+    void euler2RotMatGM(jtil::math::Double4x4& a, const double x_angle, 
+      const double y_angle, const double z_angle);
+    void rotateMatZAxisGM(jtil::math::Double4x4& ret, const double angle);
+    void rotateMatYAxisGM(jtil::math::Double4x4& ret, const double angle);
+    void rotateMatXAxisGM(jtil::math::Double4x4& ret, const double angle);
 
     static const float coeff_min_limit_[HAND_NUM_COEFF];
     static const float coeff_max_limit_[HAND_NUM_COEFF];
+    static const float coeff_max_limit_conservative_[HAND_NUM_COEFF];
     static const float coeff_penalty_scale_[HAND_NUM_COEFF];
     static const bool angle_coeffs_[HAND_NUM_COEFF];
 
-    virtual void renderStackReset();
-    virtual jtil::renderer::GeometryInstance* renderStackPop();
-    virtual bool renderStackEmpty();
+    //virtual void renderStackReset();
+    //virtual jtil::renderer::GeometryInstance* renderStackPop();
+    //virtual bool renderStackEmpty();
 
     void addBoneBSphere(const uint32_t ibone, 
       jtil::renderer::GeometryInstance* bone);

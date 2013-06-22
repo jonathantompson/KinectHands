@@ -35,6 +35,8 @@
 #define PSO_RAD_THUMB 0.20f
 #define PSO_RAD_EULER 0.20f
 #define PSO_RAD_POSITION 2.0f * (float)M_PI * (5.0f / 100.0f)
+#define PSO_SWARM_SIZE 32
+#define PSO_NUM_ITERATIONS 50
 
 using jtil::threading::ThreadPool;
 using std::string;
@@ -148,7 +150,8 @@ namespace hand_net {
     heat_map_lm_ = new LMFit<float>(NUM_COEFFS_PER_GAUSSIAN, X_DIM_LM_FIT,
       heat_map_size_ * heat_map_size_);
     bfgs_ = new BFGS<double>(BFGSHandCoeff::BFGS_NUM_PARAMETERS);
-    pso_ = new PSOParallel(BFGSHandCoeff::BFGS_NUM_PARAMETERS, 64, 64);
+    pso_ = new PSOParallel(BFGSHandCoeff::BFGS_NUM_PARAMETERS, PSO_SWARM_SIZE,
+      PSO_SWARM_SIZE);
     bfgs_->max_iterations = 100;
     rest_pose_ = new HandModelCoeff(HandType::RIGHT);
     rhand_cur_pose_ = new HandModelCoeff(HandType::RIGHT);
@@ -166,7 +169,11 @@ namespace hand_net {
     camera_ = new jtil::renderer::Camera(eye_rot, eye_pos, src_width, 
       src_height, fov_vert_deg, -10.0f, -3000.0f);
     camera_->updateProjection();
-    camera_->updateView();
+    camera_->updateView();  // THIS SHOULD BE FIRST, BUT IT BREAKS IF IT IS!
+    for (uint32_t i = 0; i < 16; i++) {
+      pv_mat_[i] = (double)camera_->proj_view()[i];
+    }
+
   }
 
   void HandNet::calcHandImage(const int16_t* depth, const uint8_t* label) {
@@ -264,7 +271,7 @@ namespace hand_net {
     HandCoeffToBFGSHandCoeff<float>(pso_coeff_start_, rhand_cur_pose_->coeff());
     pso_->verbose = false;
     pso_->delta_coeff_termination = 1e-4f;
-    pso_->max_iterations = 100;
+    pso_->max_iterations = PSO_NUM_ITERATIONS;
     pso_->minimize(pso_coeff_end_, pso_coeff_start_, pso_radius_, 
       HandModel::angle_coeffs(), objFuncParallel, HandNet::renormalizePSOCoeffs);
     BFGSHandCoeffToHandCoeff<float>(rhand_cur_pose_->coeff(), pso_coeff_end_);
@@ -273,10 +280,13 @@ namespace hand_net {
 #ifdef USE_BFGS
     // The objfunc parameters are a sub-set, make a copy of the current pose 
     // into this smaller space
-    HandCoeffToBFGSHandCoeff<double>(bfgs_coeff_start_, rhand_cur_pose_->coeff());
+    for (uint32_t i = 0; i < HandCoeff::NUM_PARAMETERS; i++) {
+      cur_double_coeff[i] = (double)rhand_cur_pose_->coeff()[i];
+    }
+    HandCoeffToBFGSHandCoeff<double>(bfgs_coeff_start_, cur_double_coeff);
     bfgs_->verbose = false;
-    bfgs_->delta_f_term = 1e-12;
-    bfgs_->delta_x_2norm_term = 1e-12;
+    bfgs_->delta_f_term = 1e-21;
+    bfgs_->delta_x_2norm_term = 1e-21;
     bfgs_->jac_2norm_term = 1e-12;
     bfgs_->max_iterations = 150;
     bfgs_->descent_cond = jtil::math::SufficientDescentCondition::ARMIJO;
@@ -284,7 +294,10 @@ namespace hand_net {
     bfgs_->minimize(bfgs_coeff_end_, bfgs_coeff_start_, 
       HandModel::angle_coeffs(), objFunc, jacobFunc, 
       HandNet::renormalizeBFGSCoeffs);
-    BFGSHandCoeffToHandCoeff<double>(rhand_cur_pose_->coeff(), bfgs_coeff_end_);
+    BFGSHandCoeffToHandCoeff<double>(cur_double_coeff, bfgs_coeff_end_);
+    for (uint32_t i = 0; i < HandCoeff::NUM_PARAMETERS; i++) {
+      rhand_cur_pose_->coeff()[i] = (float)cur_double_coeff[i];
+    }
 #endif
 
     rhand_->updateMatrices(rhand_cur_pose_->coeff());
@@ -292,35 +305,48 @@ namespace hand_net {
   }
 
   void HandNet::calc3DPos(const int16_t* depth, const uint8_t* label) {
-    // For each feature, find the minimum Z point within some small radius
-    // If non exists (or it is not part of the hand) then set D = 0
+    // For each feature, find the Z point
+    // If non exists (or it is not part of the hand) then D is the same as last
+    // frame
     for (uint32_t i = 0; i < num_convnet_feats; i++) {
       float u = gauss_coeff_[i * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU];
       float v = gauss_coeff_[i * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV];
       uvd_pos_[i * 3] = u;
       uvd_pos_[i * 3 + 1] = v;
+      int16_t d = MAX_INT16;
 
       // Now search for some small window for the minimum point
-      int16_t d = MAX_INT16;
-      uint32_t v_start = std::max<uint32_t>((uint32_t)floor(v) - RAD_UVD_SEARCH, 0);
-      uint32_t v_end = std::min<uint32_t>((uint32_t)floor(v) + RAD_UVD_SEARCH, src_height-1);
-      for (uint32_t v_search = v_start; v_search <= v_end; v_search++) {
-        uint32_t u_start = std::max<uint32_t>((uint32_t)floor(u) - RAD_UVD_SEARCH, 0);
-        uint32_t u_end = std::min<uint32_t>((uint32_t)floor(u) + RAD_UVD_SEARCH, src_width-1);
-        for (uint32_t u_search = u_start; u_search <= u_end; u_search++) {
-          uint32_t index = v_search * src_height + u_search;
-          if (depth[index] > 0 && label[index] == 1) {
-            d = std::min<int16_t>(depth[index], d);
-          }
-        }
-      }
+      //uint32_t v_start = std::max<uint32_t>((uint32_t)floor(v) - RAD_UVD_SEARCH, 0);
+      //uint32_t v_end = std::min<uint32_t>((uint32_t)floor(v) + RAD_UVD_SEARCH, src_height-1);
+      //for (uint32_t v_search = v_start; v_search <= v_end; v_search++) {
+      //  uint32_t u_start = std::max<uint32_t>((uint32_t)floor(u) - RAD_UVD_SEARCH, 0);
+      //  uint32_t u_end = std::min<uint32_t>((uint32_t)floor(u) + RAD_UVD_SEARCH, src_width-1);
+      //  for (uint32_t u_search = u_start; u_search <= u_end; u_search++) {
+      //    uint32_t index = v_search * src_height + u_search;
+      //    if (depth[index] > 0 && label[index] == 1) {
+      //      d = std::min<int16_t>(depth[index], d);
+      //    }
+      //  }
+      //}
+
+      // No search, just grab the point
+      uint32_t v_ind = std::min<uint32_t>((uint32_t)std::max<int32_t>((int32_t)floor(v), 0), src_height - 1);
+      uint32_t u_ind = std::min<uint32_t>((uint32_t)std::max<int32_t>((int32_t)floor(u), 0), src_width - 1);
+      uint32_t index = v_ind * src_height + u_ind;
+      if (label[index] == 1) {
+        d = depth[index];
+      } 
+
       if (d == MAX_INT16) {
         uvd_pos_[i * 3 + 2] = 0;
       } else {
-        // If we found a valid hand point (with minimum) then unproject it
+        if (i < 3 || i == THUMB_KNU_U / FEATURE_SIZE) {
+          // Push the depth back a little bit (to account for sphere in hand)
+          d += 20;  // 2.0cm for palm and thumb knuckle positions
+        } else {
+          d += 5;  // 0.5cm for all other positions
+        }
         uvd_pos_[i * 3 + 2] = d;
-        open_ni_funcs_.convertDepthToWorldCoordinates(&uvd_pos_[i * 3],
-          &xyz_pos_[i * 3], 1);
       }
     }
   }
@@ -340,7 +366,7 @@ namespace hand_net {
       size += (*im_banks)(i)->dataSize();
     }
     return size;
-  }
+  } 
 
   const jtil::math::Float3& HandNet::uvd_com() const {
     return image_generator_->uvd_com();
@@ -422,17 +448,17 @@ namespace hand_net {
     c_start[GaussVarV] = var[1];
     heat_map_lm_->fitModel(gauss_coeff, c_start, hm_temp_, lm_fit_x_vals_,
       gauss2D, jacobGauss2D);
-    gauss_coeff[GaussMeanU] /= 23.0f;
-    gauss_coeff[GaussMeanV] /= 23.0f;
-    gauss_coeff[GaussVarU] /= 23.0f;
-    gauss_coeff[GaussVarV] /= 23.0f;
+    gauss_coeff[GaussMeanU] /= static_cast<float>(heat_map_size_ - 1);
+    gauss_coeff[GaussMeanV] /= static_cast<float>(heat_map_size_ - 1);
+    gauss_coeff[GaussVarU] /= static_cast<float>(heat_map_size_ - 1);
+    gauss_coeff[GaussVarV] /= static_cast<float>(heat_map_size_ - 1);
 #else
     // LM is too slow.  Just use the std and mean directly:
     gauss_coeff[GaussAmp] = max_weight;
-    gauss_coeff[GaussMeanU] = mean[0] / 23.0f;
-    gauss_coeff[GaussMeanV] = mean[1] / 23.0f;
-    gauss_coeff[GaussVarU] = var[0] / 23.0f;
-    gauss_coeff[GaussVarV] = var[1] / 23.0f;
+    gauss_coeff[GaussMeanU] = mean[0] / static_cast<float>(heat_map_size_ - 1);
+    gauss_coeff[GaussMeanV] = mean[1] / static_cast<float>(heat_map_size_ - 1);
+    gauss_coeff[GaussVarU] = var[0] / static_cast<float>(heat_map_size_ - 1);
+    gauss_coeff[GaussVarV] = var[1] / static_cast<float>(heat_map_size_ - 1);
 #endif
   }
 
@@ -474,9 +500,38 @@ namespace hand_net {
 
   double HandNet::objFunc(const double* bfgs_hand_coeff) {
     // Update the matrix heirachy
-    BFGSHandCoeffToHandCoeff<double>(g_hand_net_->rhand_cur_pose_->coeff(), 
+    BFGSHandCoeffToHandCoeff<double>(g_hand_net_->cur_double_coeff, 
       bfgs_hand_coeff);
-    return (double)objFuncInternal();
+
+    g_hand_net_->rhand_->updateDoubleMatrices(g_hand_net_->cur_double_coeff);
+    g_hand_net_->rhand_->updateDoubleHeirachyMatrices();
+    double ret_val = 0;
+
+    if (num_convnet_feats != g_hand_net_->num_output_features_) {
+      throw std::wruntime_error("HandNet::bfgsFunc() - ERROR: "
+        "incorrect number of convnet features!");
+    }
+
+    // Calculate the projected sphere positions:
+    // TO DO: PARALLELIZE THIS!
+    Double3 uvd;
+    for (uint32_t i = 0; i < num_convnet_feats; i++) {
+      g_hand_net_->rhand_->calcBoundingSphereUVDPos(uvd.m, 
+        convnet_sphere_indices[i], g_hand_net_->pv_mat_);
+
+      Double3 uvd_data;
+      uvd_data[0] = (double)g_hand_net_->uvd_pos_[i * 3];
+      uvd_data[1] = (double)g_hand_net_->uvd_pos_[i * 3 + 1];
+      uvd_data[2] = (double)g_hand_net_->uvd_pos_[i * 3 + 2];
+      if (uvd_data[2] < EPSILON) {
+        uvd.m[2] = uvd_data[2];  // Match in UV only
+      }
+      Double3 vec;
+      Double3::sub(vec, uvd_data, uvd);
+      ret_val += sqrt(Double3::dot(vec, vec)) * 1e-3;
+    }
+
+    return ret_val + g_hand_net_->calcPenalty(g_hand_net_->cur_double_coeff);
   }
 
   float HandNet::objFunc(const float* bfgs_hand_coeff) {
@@ -526,16 +581,18 @@ namespace hand_net {
   double tmp_coeff[BFGSHandCoeff::BFGS_NUM_PARAMETERS];
   void HandNet::jacobFunc(double* jacob, const double* bfgs_hand_coeff) {
     // APPROXIMATE USING CENTRAL DIFFERENCING
-    memcpy(tmp_coeff, bfgs_hand_coeff, 
-      sizeof(tmp_coeff[0]) * BFGS_NUM_PARAMETERS);
-    const double eps = 0.001f;
+    for (uint32_t i = 0; i < BFGS_NUM_PARAMETERS; i++) {
+      tmp_coeff[i] = bfgs_hand_coeff[i];
+    }
+
+    const double eps = 0.00001;
     for (uint32_t i = 0; i < BFGS_NUM_PARAMETERS; i++) {
       tmp_coeff[i] = bfgs_hand_coeff[i] - eps;
       double f0 = objFunc(tmp_coeff);
       tmp_coeff[i] = bfgs_hand_coeff[i] + eps;
       double f1 = objFunc(tmp_coeff);
       tmp_coeff[i] = bfgs_hand_coeff[i];
-      jacob[i] = (f1 - f0) / (2.0f * eps);
+      jacob[i] = (f1 - f0) / (2.0 * eps);
     }
   }
 
@@ -546,7 +603,7 @@ namespace hand_net {
     const uint32_t coeff_dim = HAND_NUM_COEFF;
     const uint32_t coeff_dim_per_model = HAND_NUM_COEFF;
     const float* penalty_scale = kinect_interface::hand_net::HandModel::coeff_penalty_scale();
-    const float* max_limit = kinect_interface::hand_net::HandModel::coeff_max_limit();
+    const float* max_limit = kinect_interface::hand_net::HandModel::coeff_max_limit_conservative();
     const float* min_limit = kinect_interface::hand_net::HandModel::coeff_min_limit();;
 
     for (uint32_t i = 0; i < coeff_dim; i++) {
@@ -573,6 +630,47 @@ namespace hand_net {
         if (cur_coeff_val < min_limit[i % coeff_dim_per_model]) { 
           float cur_penalty = penalty_scale[i % coeff_dim_per_model] * 
             fabsf(min_limit[i % coeff_dim_per_model] - cur_coeff_val) / 2.0f;
+          penalty += (cur_penalty * cur_penalty);
+        }
+#endif
+      }
+    }
+
+    return penalty;
+  }
+
+  double HandNet::calcPenalty(const double* coeff) {
+    double penalty = 1.0;
+    const uint32_t coeff_dim = HAND_NUM_COEFF;
+    const uint32_t coeff_dim_per_model = HAND_NUM_COEFF;
+    const float* penalty_scale = kinect_interface::hand_net::HandModel::coeff_penalty_scale();
+    const float* max_limit = kinect_interface::hand_net::HandModel::coeff_max_limit_conservative();
+    const float* min_limit = kinect_interface::hand_net::HandModel::coeff_min_limit();;
+
+    for (uint32_t i = 0; i < coeff_dim; i++) {
+      if (penalty_scale[i % coeff_dim_per_model] > EPSILON) {
+        double cur_coeff_val = coeff[i];
+
+#ifdef LINEAR_PENALTY
+        // Linear penalty
+        if (cur_coeff_val > (double)max_limit[i % coeff_dim_per_model]) {
+          penalty += (double)penalty_scale[i % coeff_dim_per_model] * 
+            fabs(cur_coeff_val - (double)max_limit[i % coeff_dim_per_model]) / 10.0;
+        }
+        if (cur_coeff_val < (double)min_limit[i % coeff_dim_per_model]) { 
+          penalty += (double)penalty_scale[i % coeff_dim_per_model] * 
+            fabs((double)min_limit[i % coeff_dim_per_model] - cur_coeff_val) / 10.0;
+        }
+#else
+        // Quadratic penalty
+        if (cur_coeff_val > (double)max_limit[i % coeff_dim_per_model]) {
+          double cur_penalty = (double)penalty_scale[i % coeff_dim_per_model] * 
+            fabs(cur_coeff_val - (double)max_limit[i % coeff_dim_per_model]) / 2.0;
+          penalty += (cur_penalty * cur_penalty);
+        }
+        if (cur_coeff_val < (double)min_limit[i % coeff_dim_per_model]) { 
+          double cur_penalty = (double)penalty_scale[i % coeff_dim_per_model] * 
+            fabs((double)min_limit[i % coeff_dim_per_model] - cur_coeff_val) / 2.0;
           penalty += (cur_penalty * cur_penalty);
         }
 #endif

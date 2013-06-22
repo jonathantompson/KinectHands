@@ -9,13 +9,13 @@
 //, *********** SETTINGS ***********
 //, APPLICATION SPECIFIC
 track_openni_skeleton,            bool,      0
-kinect_output,                    int,       1
-detect_hands,                     bool,      1
-detect_pose,                      bool,      1
-detect_heat_map,                  bool,      1
-label_type_enum,                  int,       0
+kinect_output,                    int,       3
+detect_hands,                     bool,      0
+detect_pose,                      bool,      0
+detect_heat_map,                  bool,      0
+label_type_enum,                  int,       3
 render_kinect_fps,                bool,      1
-show_hand_model,                  bool,      1
+show_hand_model,                  bool,      0
 continuous_snapshot,              bool,      0
 continuous_cal_snapshot,          bool,      0
 cur_kinect,                       int,       0
@@ -23,13 +23,13 @@ cur_kinect,                       int,       0
 sync_ir_stream,                   bool,      0
 //, Also: Dont change flip image after startup!
 flip_image,                       bool,      1
-color_convnet_depth,              bool,      1
+color_convnet_depth,              bool,      0
 color_convnet_depth_feature,      int,       5
 color_convnet_depth_threshold,    int,       25
-show_gaussian_labels,             bool,      1
+show_gaussian_labels,             bool,      0
 
 //, RENDERER
-screen_resolution,                int,       83887040
+screen_resolution,                int,       125830560
 fullscreen,                       bool,      0
 double_buffering,                 bool,      0  
 clear_color,                      Float3,    0.529, 0.808, 0.980
@@ -44,17 +44,17 @@ render_ui_renderer,               bool,      0
 render_ui_fps,                    bool,      1
 render_output_enum,               int,       0
 light_pass_stencil_opt,           bool,      0
-ssao_on,                          bool,      1
-ssao_sample_radius,               float,     0.4
+ssao_on,                          bool,      0
+ssao_sample_radius,               float,     40.0
 ssao_bias,                        float,     0.4
 ssao_intensity,                   float,     2.5
-ssao_scale,                       float,     0.5
+ssao_scale,                       float,     0.005
 ssao_enable,                      int,       1
 ssao_number_sample_enum,          int,       0
 ssao_blur_on,                     bool,      1
 global_ambient,                   float,     0.28
 directional_lights,               bool,      0
-spot_lights,                      bool,      1
+spot_lights,                      bool,      0
 point_lights,                     bool,      0
 render_light_volumes,             bool,      0
 render_light_sources,             bool,      0
@@ -73,8 +73,8 @@ vsm_overlap,                      float,     0.050
 vsm_depth_epsilon,                float,     0.001	
 vsm_visualize_split,              bool,      0
 vsm_min_variance,                 float,     0.0001
-vsm_soft_shadows,                 bool,      0
-vsm_lbr_amount,                   float,     0.8
+vsm_soft_shadows,                 bool,      1
+vsm_lbr_amount,                   float,     0.3
 force_texture_array_disable,      bool,      0
 render_wireframe,                 bool,      0
 render_aabboxes,                  bool,      0
@@ -83,11 +83,11 @@ aa_type_enum,                     int,       2
 fxaa_depth_threshold,             float,     1.0
 fxaa_angle_threshold,             float,     10.0
 fxaa_hq_subpix_quality,           float,     1.0
-motion_blur_on,                   bool,      1
+motion_blur_on,                   bool,      0
 motion_blur_max_samples,          int,       13
 motion_blur_depth_cutoff,         float,     5.0
 motion_blur_target_fps,           float,     60
-motion_blur_hq_boned,             bool,      0
+motion_blur_hq_boned,             bool,      1
 flashlight_on,                    bool,      0
 flashlight_dist,                  float,     40.0
 flashlight_outer_fov,             float,     20.0
@@ -102,7 +102,7 @@ tess_factor,                      int,       16
 tess_on,                          bool,      0
 tess_default_disp_factor,         float,     0.5
 visualize_normals,                bool,      0
-visualize_normals_length,         float,     0.25
+visualize_normals_length,         float,     10.0
 
 //, CAMERA
 //, Note camera near and far view planes are just Min and Max.  

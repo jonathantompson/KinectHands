@@ -72,8 +72,6 @@ __kernel void SpatialSubtractiveNormalizationAccumDiv(
   // Initilize the output to zero and accumulate the input values
   float sum = 0;
 
-  const int iout = x_out + width * (y_out + height * f_out);
-
   const int uvout = x_out + width * y_out;  // index on each input image
   const int im_dim = width * height;
   for (int f = 0; f < input_nfeats; f++) {

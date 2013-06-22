@@ -494,7 +494,7 @@ namespace kinect_interface {
   }
 
   void KinectInterface::initIR(const bool start) {
-    bool has_ir = device_->hasSensor(openni::SENSOR_IR);
+    bool has_ir = start && device_->hasSensor(openni::SENSOR_IR);
     if (!has_ir) {
       streams_[IR_STREAM] = NULL;
       frames_[IR_STREAM] = NULL;
@@ -506,7 +506,7 @@ namespace kinect_interface {
 
     // Find a resolution mode to match the depth mode
     const openni::SensorInfo& ir_sensor_info = 
-      streams_[IR_STREAM]->getSensorInfo();
+      streams_[IR_STREAM]->getSensorInfo(); 
 #if defined(DEBUG) || defined(_DEBUG)
     std::cout << "IR_STREAM ";
 #endif
@@ -554,8 +554,9 @@ namespace kinect_interface {
       if (i == IR_STREAM && !sync_ir_stream_) {
         continue;
       }
-      checkOpenNIRC(streams_[i]->setMirroringEnabled(flip_image), 
-        "Failed to set mirroring!");
+      // Note: mirroring fails on the Kinect, so it shouldn't be a termination
+      // error condition.
+      openni::Status rc = streams_[i]->setMirroringEnabled(flip_image);
     }
   }
 

@@ -76,7 +76,7 @@ namespace model_fit {
     renderer_attachment_ = true;
 
     const float* cmax = coeff_max_limit();
-    const float* cmin = coeff_max_limit();
+    const float* cmin = coeff_min_limit();
      
     // Set the PSO static radius
     for (uint32_t i = HAND_POS_X; i <= HAND_POS_Z; i++) {
@@ -316,23 +316,28 @@ namespace model_fit {
     Float4x4::multSIMD(*mat, rest_transforms_[bone_wrist_index_], mat_tmp3);
 
     // Set the finger bones
-    for (uint32_t i = 0; i < 4; i++) {
+//#pragma omp parallel for num_threads(4)
+    for (int32_t i = 0; i < 4; i++) {
       float theta, phi, psi;
+      Float4x4* mat;
+      jtil::math::Float4x4 mat_tmp1;
+      jtil::math::Float4x4 mat_tmp2;
+
       // Root
       theta = coeff[F0_ROOT_THETA + i * FINGER_NUM_COEFF];
       phi = coeff[F0_ROOT_PHI + i * FINGER_NUM_COEFF];
       psi = 0;
       mat = bones_in_file_->bones[bone_finger_1_index_[i]]->getNode()->mat();
-      euler2RotMatGM(mat_tmp3, psi, theta, phi);
-      Float4x4::multSIMD(*mat, rest_transforms_[bone_finger_1_index_[i]], mat_tmp3);
+      euler2RotMatGM(mat_tmp1, psi, theta, phi);
+      Float4x4::multSIMD(*mat, rest_transforms_[bone_finger_1_index_[i]], mat_tmp1);
 
       // K1 base
       theta = coeff[F0_THETA + i * FINGER_NUM_COEFF];
       phi = coeff[F0_PHI + i * FINGER_NUM_COEFF];
       psi = coeff[F0_TWIST + i];
       mat = bones_in_file_->bones[bone_finger_2_index_[i]]->getNode()->mat();
-      euler2RotMatGM(mat_tmp3, psi, theta, phi);
-      Float4x4::multSIMD(*mat, rest_transforms_[bone_finger_2_index_[i]], mat_tmp3);
+      euler2RotMatGM(mat_tmp1, psi, theta, phi);
+      Float4x4::multSIMD(*mat, rest_transforms_[bone_finger_2_index_[i]], mat_tmp1);
       mat->rightMultScale(1.0f, 1.0f + cur_lengths_[i], 1.0f);  // Scale this node
 
       mat = bones_in_file_->bones[bone_finger_3_index_[i]]->getNode()->mat();
@@ -370,8 +375,8 @@ namespace model_fit {
     float phi = coeff[THUMB_PHI];
     float psi = coeff[THUMB_TWIST];
     mat = bones_in_file_->bones[bone_thumb_1_index_]->getNode()->mat();
-    euler2RotMatGM(mat_tmp3, psi, theta, phi);
-    Float4x4::multSIMD(*mat, rest_transforms_[bone_thumb_1_index_], mat_tmp3);
+    euler2RotMatGM(mat_tmp1, psi, theta, phi);
+    Float4x4::multSIMD(*mat, rest_transforms_[bone_thumb_1_index_], mat_tmp1);
 
     theta = coeff[THUMB_K1_THETA];
     phi = coeff[THUMB_K1_PHI];
@@ -407,6 +412,8 @@ namespace model_fit {
     render_stack_.pushBack(scene_graph_);
   }
 
+  // TO DO: CREATE A FLATTENED HEIRACHY VECTOR (LIKE IN HAND_MODEL.CPP) TO
+  // AVOID THE RENDER OVERHEAD
   Geometry* HandGeometryMesh::renderStackPop() {
     Geometry* ret = NULL;
     if (render_stack_.size() > 0) {

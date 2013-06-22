@@ -125,6 +125,9 @@ namespace model_fit {
     for (uint32_t i = 0; i < num_models_; i++) {
       models_[i]->setRendererAttachement(old_attachement_vals[i]);
     }
+
+    float end_func_val = objectiveFunc(coeff_optim_);
+    cout << "Final objective function value = " << end_func_val << endl;
   }
 
 
@@ -336,7 +339,7 @@ namespace model_fit {
 
   void ModelFit::objectiveFuncTiled(Vector<float>& residues, 
     Vector<float*>& coeffs) {
-    if (coeffs.size() > NTILES) {
+    if (coeffs.size() > NTILES_DEFAULT) {
       throw runtime_error("objectiveFuncTiled() - coeffs.size() > NTILES");
     }
     if (residues.capacity() < coeffs.size()) {
@@ -372,7 +375,7 @@ namespace model_fit {
         calculateResidualTiled(&depth_term, NULL, coeffs, i_camera);
       }
     }
-    func_eval_count_ += NTILES;
+    func_eval_count_ += NTILES_DEFAULT;
 
     // Now calculate the final residue term
     residues.resize(0);

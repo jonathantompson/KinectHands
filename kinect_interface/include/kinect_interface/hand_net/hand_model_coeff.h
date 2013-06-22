@@ -124,6 +124,7 @@ namespace hand_net {
     OLD_NUM_PARAMETERS    = 28,  // NOTE: Not to be confused with HAND_NUM_COEFF!!
   } HandCoeffOld;
 
+  // For generating "colored glove" images for Murphy...
   typedef enum {
     WRIST             = 0, 
     PALM_FRONT        = 1,

@@ -163,9 +163,10 @@ namespace kinect_interface {
 
   void OpenNIFuncs::ConvertDepthImageToProjective(const uint16_t* aDepth,
     float* aProjective) {
-    int nIndex = 0;
-    for (uint32_t nY = 0; nY < nYRes_; nY += 1) {
-      for (uint32_t nX = 0; nX < nXRes_; nX += 1, nIndex += 1) {
+#pragma omp parallel for num_threads(4)
+    for (int32_t nY = 0; nY < (int32_t)nYRes_; nY += 1) {
+      for (int32_t nX = 0; nX < (int32_t)nXRes_; nX += 1) {
+        int32_t nIndex = nY * (int32_t)nXRes_ + nX;
         aProjective[nIndex*3] = static_cast<float>(nX);
         aProjective[nIndex*3+1] = static_cast<float>(nY);
         aProjective[nIndex*3+2] = aDepth[nIndex];
@@ -177,7 +178,8 @@ namespace kinect_interface {
   //h ttps://github.com/OpenNI/OpenNI2/blob/master/Source/Core/OniStream.cpp
   void OpenNIFuncs::convertDepthToWorldCoordinates(const float* uvd, float* xyz, 
     const uint32_t nCount) {
-    for (uint32_t i = 0; i < nCount; i++) {
+#pragma omp parallel for num_threads(4)
+    for (int32_t i = 0; i < (int32_t)nCount; i++) {
       float normalizedX = uvd[i*3] / nXRes_ - .5f;
 	    float normalizedY = .5f - uvd[i*3+1] / nYRes_;
       xyz[i*3] = normalizedX * uvd[i*3+2] * xzFactor_;
@@ -194,10 +196,18 @@ namespace kinect_interface {
     }
   }
 
+  bool TranslateSinglePixel_error_msg = false;
   bool OpenNIFuncs::TranslateSinglePixel(const uint32_t x, const uint32_t y, 
     uint16_t z, int& imageX, int& imageY, const bool m_isMirrored) {
     if (cal_data_ == NULL) {
-      throw std::wruntime_error("ERROR: calibration data wasn't loaded!");
+      imageX = 0;
+      imageY = 0;
+      if (!TranslateSinglePixel_error_msg) {
+        std::cout << "Warning: Calibration data wasn't loaded!" << std::endl;
+        std::cout << "  TranslateSinglePixel will only return (0,0)" << std::endl;
+        TranslateSinglePixel_error_msg = true;
+      }
+      return false;
     }
     imageX = 0;
     imageY = 0;
@@ -276,7 +286,7 @@ namespace kinect_interface {
 #endif
     std::ifstream file(filename, std::ios::in | std::ios::binary);
     if (!file.is_open()) {
-      throw std::wruntime_error(std::string("OpenNIFuncs::loadCalibrationData()"
+      throw std::runtime_error(std::string("OpenNIFuncs::loadCalibrationData()"
         " - ERROR: Cannot open output file:") + filename);
     }
 

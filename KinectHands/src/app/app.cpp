@@ -71,6 +71,9 @@ namespace app {
     hands_[0] = NULL;
     hands_[1] = NULL;
     convnet_hm_im_flipped_ = NULL;
+    kinect_update_cbs_ = NULL;
+    data_save_cbs_ = NULL;
+    tp_ = NULL;
   }
 
   App::~App() {
@@ -91,7 +94,7 @@ namespace app {
     SAFE_DELETE(convnet_src_background_tex_);
     SAFE_DELETE(convnet_hm_background_tex_);
     SAFE_DELETE(background_tex_);
-    SAFE_DELETE(kinect_update_cbs_);
+    SAFE_DELETE(kinect_update_cbs_); 
     SAFE_DELETE(data_save_cbs_);
     SAFE_DELETE_ARR(convnet_hm_im_flipped_);
     Renderer::ShutdownRenderer();
@@ -406,10 +409,6 @@ namespace app {
               float hm_min = 0.0f;
               float hm_range = hm_max - hm_min;
               const uint32_t upsample_factor = (uint32_t)HN_IM_SIZE / hm_size_;
-              if (fabsf((float)upsample_factor - (float)HN_IM_SIZE / (float)hm_size_) > EPSILON) {
-                throw std::wruntime_error("ERROR: heat map is not an integer"
-                  " multiple of the hand image");
-              }
               for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
                 for (uint32_t u = 0; u < HN_IM_SIZE; u++) {
                   uint32_t isrc = v * HN_IM_SIZE + u;
@@ -417,9 +416,12 @@ namespace app {
                   float val = 0.6f * ((float)depth_tmp_[isrc]/255.0f) + 0.4f;  // 0.4 to 1
                   float hm_val = (std::max<float>(cur_hm[isrc_hm], 0) - hm_min) / hm_range;  // 0 to 1
                   const uint32_t idst = (HN_IM_SIZE-v-1)*HN_IM_SIZE + u;
-                  convnet_im_flipped_[idst * 3] = (uint8_t)(std::max<float>(0, std::min<float>(255.0f * val, 254.0f)));
-                  convnet_im_flipped_[idst * 3 + 1] = (uint8_t)(std::max<float>(0, std::min<float>(255.0f * val * (1 - hm_val), 254.0f)));
-                  convnet_im_flipped_[idst * 3 + 2] = (uint8_t)(std::max<float>(0, std::min<float>(255.0f * val * (1 - hm_val), 254.0f)));
+                  convnet_im_flipped_[idst * 3] = (uint8_t)(std::max<float>(0, 
+                    std::min<float>(255.0f * val, 254.0f)));
+                  convnet_im_flipped_[idst * 3 + 1] = (uint8_t)(std::max<float>(0, 
+                    std::min<float>(255.0f * val * (1 - hm_val), 254.0f)));
+                  convnet_im_flipped_[idst * 3 + 2] = (uint8_t)(std::max<float>(0, 
+                    std::min<float>(255.0f * val * (1 - hm_val), 254.0f)));
                 }
               }
             } else {
