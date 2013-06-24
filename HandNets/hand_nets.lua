@@ -38,7 +38,7 @@ width = 96
 height = 96
 heat_map_width = 18  -- Decimation should equal the convnet pooling
 heat_map_height = 18
-heat_map_sigma = 1.0  -- Formally 0.75
+heat_map_sigma = 0.75  -- Formally 0.75
 num_hpf_banks = 3
 dim = width * height
 num_coeff = 42  -- 8 fingers + 3 thumb + 3 palm positions
@@ -94,10 +94,10 @@ if (perform_training == 1) then
 
   -- ***************** define the model parameters ********************
   nfeats = 1
-  nstates = {{16, 16}, {16, 16}, {16, 16}}  -- MUST BE MULTIPLES OF 16!
+  nstates = {{16, 32}, {16, 32}, {16, 32}}  -- MUST BE MULTIPLES OF 16!
   nn_stg1_out_size = (heat_map_width * heat_map_height * num_features)  -- formally * 2
   filtsize = {{5, 6}, {5, 5}, {4, 4}}
-  poolsize = {{4, 1}, {2, 1}, {1, 1}}  -- Note: 1 = no pooling
+  poolsize = {{4, 2}, {2, 2}, {1, 2}}  -- Note: 1 = no pooling
 
   -- *********************** define the model *************************
   collectgarbage()
