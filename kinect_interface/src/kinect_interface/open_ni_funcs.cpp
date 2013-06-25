@@ -18,6 +18,8 @@ using std::endl;
   #define XN_STATUS_OK   ((uint32_t)0)
 #endif
 
+// #define OPEN_NI_FUNCS_USE_OMP  // Actually slows down KinectHands
+
 namespace kinect_interface {
   
   // Kinect constants FROM: XnOpenNI.cpp (and slightly edited)
@@ -163,7 +165,9 @@ namespace kinect_interface {
 
   void OpenNIFuncs::ConvertDepthImageToProjective(const uint16_t* aDepth,
     float* aProjective) {
-#pragma omp parallel for num_threads(4)
+#ifdef OPEN_NI_FUNCS_USE_OMP
+    #pragma omp parallel for num_threads(4)
+#endif
     for (int32_t nY = 0; nY < (int32_t)nYRes_; nY += 1) {
       for (int32_t nX = 0; nX < (int32_t)nXRes_; nX += 1) {
         int32_t nIndex = nY * (int32_t)nXRes_ + nX;
@@ -178,7 +182,9 @@ namespace kinect_interface {
   //h ttps://github.com/OpenNI/OpenNI2/blob/master/Source/Core/OniStream.cpp
   void OpenNIFuncs::convertDepthToWorldCoordinates(const float* uvd, float* xyz, 
     const uint32_t nCount) {
-#pragma omp parallel for num_threads(4)
+#ifdef OPEN_NI_FUNCS_USE_OMP
+    #pragma omp parallel for num_threads(4)
+#endif
     for (int32_t i = 0; i < (int32_t)nCount; i++) {
       float normalizedX = uvd[i*3] / nXRes_ - .5f;
 	    float normalizedY = .5f - uvd[i*3+1] / nYRes_;

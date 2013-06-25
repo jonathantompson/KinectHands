@@ -208,7 +208,6 @@ namespace app {
     Renderer::g_renderer()->registerMousePosCB(App::mousePosCB);
     Renderer::g_renderer()->registerMouseButCB(App::mouseButtonCB);
     Renderer::g_renderer()->registerMouseWheelCB(App::mouseWheelCB);
-    Renderer::g_renderer()->registerCharInputCB(App::characterInputCB);
     Renderer::g_renderer()->registerResetScreenCB(App::resetScreenCB);
     Renderer::g_renderer()->getMousePosition(g_app_->mouse_pos_);
     Renderer::g_renderer()->registerCloseWndCB(App::closeWndCB);
@@ -814,7 +813,7 @@ namespace app {
     g_app_->registerNewRenderer();
   }
 
-  void App::keyboardCB(int key, int action) {
+  void App::keyboardCB(int key, int scancode, int action, int mods) {
     switch (key) {
     case KEY_ESC:
       if (action == PRESSED) {
@@ -826,19 +825,15 @@ namespace app {
     }
   }
   
-  void App::mousePosCB(int x, int y) {
+  void App::mousePosCB(double x, double y) {
 
   }
   
-  void App::mouseButtonCB(int button, int action) {
+  void App::mouseButtonCB(int button, int action, int mods) {
  
   }
   
-  void App::mouseWheelCB(int pos) {
-
-  }
-  
-  void App::characterInputCB(int character, int action) {
+  void App::mouseWheelCB(double xoffset, double yoffset) {
 
   }
 

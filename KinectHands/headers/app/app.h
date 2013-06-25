@@ -66,11 +66,10 @@ namespace app {
     
     static inline void requestShutdown() { g_app_->app_running_ = false; }
     static inline bool appRunning() { return g_app_->app_running_; }
-    static void keyboardCB(const int key, const int action);
-    static void mousePosCB(const int x, const int y);
-    static void mouseButtonCB(const int button, const int action);
-    static void mouseWheelCB(const int pos);
-    static void characterInputCB(const int character, const int action);
+    static void keyboardCB(int key, int scancode, int action, int mods);
+    static void mousePosCB(double x, double y);
+    static void mouseButtonCB(int button, int action, int mods);
+    static void mouseWheelCB(double xoffset, double yoffset);
     static void screenshotCB();
     static void resetTrackingCB();
     static void greyscaleScreenshotCB();
@@ -97,8 +96,8 @@ namespace app {
     kinect_interface::hand_net::HandModelCoeff* hands_[2];
 
     jtil::clk::Clk* clk_;
-    jtil::math::Int2 mouse_pos_;
-    jtil::math::Int2 mouse_pos_old_;
+    jtil::math::Double2 mouse_pos_;
+    jtil::math::Double2 mouse_pos_old_;
     double frame_time_;
     double frame_time_prev_;
     static uint32_t screenshot_counter_;
