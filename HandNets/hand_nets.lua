@@ -36,12 +36,12 @@ print(cutorch.getDeviceProperties(cutorch.getDevice()))
 
 width = 96
 height = 96
-heat_map_width = 24  -- Decimation should equal the convnet pooling
-heat_map_height = 24
-heat_map_sigma = 0.75  -- Formally 0.5
+heat_map_width = 18  -- Decimation should equal the convnet pooling
+heat_map_height = 18
+heat_map_sigma = 0.75  -- Formally 0.75
 num_hpf_banks = 3
 dim = width * height
-num_coeff = 39  -- 8 fingers + 2 thumb + 3 palm positions
+num_coeff = 42  -- 8 fingers + 3 thumb + 3 palm positions
 num_coeff_per_feature = 3  -- UV = 2, UVD = 3
 num_features = num_coeff / num_coeff_per_feature
 perform_training = 1
@@ -57,6 +57,19 @@ learning_rate_decay = 1e-8  -- Default 1e-6
 learning_momentum = 0.9 -- Default 0.9 --> Clement suggestion
 max_num_epochs = 500
 batch_size = 64  -- Default 128 (BUT MAYBE 32 IS BETTER!)
+
+w = width
+h = height
+bank_dim = {}
+data_file_size = 0
+for i=1,num_hpf_banks do
+  table.insert(bank_dim, {h, w})
+  data_file_size = data_file_size + w * h
+  w = w / 2
+  h = h / 2
+end
+w = nil  -- To avoid confusion
+h = nil
 
 -- ********************** Load data from Disk *************************
 dofile('load_data.lua')
@@ -81,12 +94,13 @@ if (perform_training == 1) then
 
   -- ***************** define the model parameters ********************
   nfeats = 1
-  nstates = {{32, 48}, {32, 48}, {32, 48}}  -- MUST BE MULTIPLES OF 16!
+  nstates = {{16, 32}, {16, 32}, {16, 32}}  -- MUST BE MULTIPLES OF 16!
   nn_stg1_out_size = (heat_map_width * heat_map_height * num_features)  -- formally * 2
-  filtsize = {{5, 6}, {5, 5}, {5, 5}}
-  poolsize = {{4, 2}, {2, 2}, {2, 1}}  -- Note: 1 = no pooling
+  filtsize = {{5, 6}, {5, 5}, {4, 4}}
+  poolsize = {{4, 2}, {2, 2}, {1, 2}}  -- Note: 1 = no pooling
 
   -- *********************** define the model *************************
+  collectgarbage()
   dofile('define_model.lua')
   
   -- ************************* Visualize model ************************
@@ -127,6 +141,7 @@ if (perform_training == 1) then
 
   -- ********************* Database manipulation **********************
   dofile('preturb.lua')
+  dofile('preturb_send_recieve.lua')
   -- rotatedData = preturbManual(testData, testData:size())
   -- VisualizeData(rotatedData)
   -- VisualizeData(testData)
@@ -154,14 +169,15 @@ if (perform_training == 1) then
   print '==> training!'
   test()
 
-
   function trainLoop()  
     c = parallel.fork()  -- Spawn a new thread for database manipulation
     c:exec(preturbThread)
+    print("trainingThread(): spawned preturbThread(), waiting 5 secs...")
+    os.execute("sleep 5")
 
-    -- Send the training set to the preturb thread
-    packet = { database = trainData, size = trainData:size() }
-    c:send(packet)
+    print("trainingThread(): Sending database to preturbThread()")
+    sendDatabase(c, trainData, num_hpf_banks)
+    print("trainingThread(): database sent starting loop...")
 
     for i = 1,max_num_epochs do
       collectgarbage()
@@ -176,7 +192,7 @@ if (perform_training == 1) then
       test()
       
       -- Recieve the new training data from the background thread
-      current_training_data = c:receive()
+      current_training_data, num_hpf_banks = recieveDatabase( c )
     end
 
     -- Tell the preturb thread that we're all done
@@ -186,8 +202,20 @@ if (perform_training == 1) then
   -- protected execution:
   ok,err = pcall(trainLoop)
   if not ok then print(err) end
-
   parallel.close()
+
+--[[
+  -- Train in the same thread as rotations (fallback)
+  for i = 1,max_num_epochs do
+    if ( i == 1 ) then
+      current_training_data = trainData
+    else
+      current_training_data = preturbManual(trainData, trainData:size())
+    end
+    train(current_training_data)
+    test()
+  end
+--]]
 
 --[[
   -- Simple training loop: No per-epoch rotations
