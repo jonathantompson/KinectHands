@@ -9,7 +9,7 @@
 //, *********** SETTINGS ***********
 //, APPLICATION SPECIFIC
 track_openni_skeleton,            bool,      0
-kinect_output,                    int,       2
+kinect_output,                    int,       6
 detect_hands,                     bool,      1
 detect_pose,                      bool,      1
 detect_heat_map,                  bool,      1
@@ -64,7 +64,7 @@ ui_render_crosshairs,             bool,      0
 ui_crosshairs_size,               float,     0.025
 ui_starting_height,               int,       600
 ui_starting_width,                int,       320
-vsm_on,                           bool,      1 
+vsm_on,                           bool,      0 
 vsm_resolution_enum,              int,       2
 vsm_default_softness,             float,     0.2
 vsm_cascade_split_log_factor,     float,     0.5
@@ -83,7 +83,7 @@ aa_type_enum,                     int,       2
 fxaa_depth_threshold,             float,     1.0
 fxaa_angle_threshold,             float,     10.0
 fxaa_hq_subpix_quality,           float,     1.0
-motion_blur_on,                   bool,      0
+motion_blur_on,                   bool,      1
 motion_blur_max_samples,          int,       13
 motion_blur_depth_cutoff,         float,     5.0
 motion_blur_target_fps,           float,     60

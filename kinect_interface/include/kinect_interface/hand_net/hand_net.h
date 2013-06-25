@@ -32,6 +32,13 @@
 #define BFGS_FINGER_NUM_COEFF 3
 #define RAD_UVD_SEARCH 2
 
+#define HN_PSO_RAD_FINGERS 0.30f  // Search radius in frac of min - max coeff
+#define HN_PSO_RAD_THUMB 0.20f
+#define HN_PSO_RAD_EULER 0.20f
+#define HN_PSO_RAD_POSITION 2.0f * (float)M_PI * (5.0f / 100.0f)
+#define HN_PSO_SWARM_SIZE 32
+#define HN_PSO_NUM_ITERATIONS 50
+
 #if defined(__APPLE__)
   #define CONVNET_FILE string("./../../../../../../../../../data/" \
           "handmodel_fullcoeffs_tanh_abs_mid_L2Pooling.net.convnet")

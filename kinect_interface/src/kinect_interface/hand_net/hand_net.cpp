@@ -31,13 +31,6 @@
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
-#define PSO_RAD_FINGERS 0.20f  // Search radius in frac of min - max coeff
-#define PSO_RAD_THUMB 0.20f
-#define PSO_RAD_EULER 0.20f
-#define PSO_RAD_POSITION 2.0f * (float)M_PI * (5.0f / 100.0f)
-#define PSO_SWARM_SIZE 32
-#define PSO_NUM_ITERATIONS 50
-
 using jtil::threading::ThreadPool;
 using std::string;
 using std::runtime_error;
@@ -150,8 +143,8 @@ namespace hand_net {
     heat_map_lm_ = new LMFit<float>(NUM_COEFFS_PER_GAUSSIAN, X_DIM_LM_FIT,
       heat_map_size_ * heat_map_size_);
     bfgs_ = new BFGS<double>(BFGSHandCoeff::BFGS_NUM_PARAMETERS);
-    pso_ = new PSOParallel(BFGSHandCoeff::BFGS_NUM_PARAMETERS, PSO_SWARM_SIZE,
-      PSO_SWARM_SIZE);
+    pso_ = new PSOParallel(BFGSHandCoeff::BFGS_NUM_PARAMETERS, HN_PSO_SWARM_SIZE,
+      HN_PSO_SWARM_SIZE);
     bfgs_->max_iterations = 100;
     rest_pose_ = new HandModelCoeff(HandType::RIGHT);
     rhand_cur_pose_ = new HandModelCoeff(HandType::RIGHT);
@@ -271,7 +264,7 @@ namespace hand_net {
     HandCoeffToBFGSHandCoeff<float>(pso_coeff_start_, rhand_cur_pose_->coeff());
     pso_->verbose = false;
     pso_->delta_coeff_termination = 1e-4f;
-    pso_->max_iterations = PSO_NUM_ITERATIONS;
+    pso_->max_iterations = HN_PSO_NUM_ITERATIONS;
     pso_->minimize(pso_coeff_end_, pso_coeff_start_, pso_radius_, 
       HandModel::angle_coeffs(), objFuncParallel, HandNet::renormalizePSOCoeffs);
     BFGSHandCoeffToHandCoeff<float>(rhand_cur_pose_->coeff(), pso_coeff_end_);
@@ -686,24 +679,24 @@ namespace hand_net {
 
     // Set the PSO static radius
     for (uint32_t i = BFGS_HAND_POS_X; i <= BFGS_HAND_POS_Z; i++) {
-      pso_radius_[i] = PSO_RAD_POSITION;
+      pso_radius_[i] = HN_PSO_RAD_POSITION;
     }
     for (uint32_t i = BFGS_HAND_ORIENT_X; i <= BFGS_HAND_ORIENT_Z; i++) {
-      pso_radius_[i] = PSO_RAD_EULER;
+      pso_radius_[i] = HN_PSO_RAD_EULER;
     }
     for (uint32_t i = BFGS_THUMB_THETA; i <= BFGS_THUMB_K2_PHI; i++) {  // thumb
-      pso_radius_[i] = (cmax[i] - cmin[i]) * PSO_RAD_THUMB;
+      pso_radius_[i] = (cmax[i] - cmin[i]) * HN_PSO_RAD_THUMB;
     }
     for (uint32_t i = 0; i < 4; i++) {  // All fingers
       pso_radius_[BFGS_F0_THETA+i*BFGS_FINGER_NUM_COEFF] = 
         (cmax[BFGS_F0_THETA+i*BFGS_FINGER_NUM_COEFF] - 
-        cmin[BFGS_F0_THETA+i*BFGS_FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
+        cmin[BFGS_F0_THETA+i*BFGS_FINGER_NUM_COEFF]) * HN_PSO_RAD_FINGERS;
       pso_radius_[BFGS_F0_PHI+i*BFGS_FINGER_NUM_COEFF] = 
         (cmax[BFGS_F0_PHI+i*BFGS_FINGER_NUM_COEFF] - 
-        cmin[BFGS_F0_PHI+i*BFGS_FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
+        cmin[BFGS_F0_PHI+i*BFGS_FINGER_NUM_COEFF]) * HN_PSO_RAD_FINGERS;
       pso_radius_[BFGS_F0_CURL+i*BFGS_FINGER_NUM_COEFF] = 
         (cmax[BFGS_F0_CURL+i*BFGS_FINGER_NUM_COEFF] - 
-        cmin[BFGS_F0_CURL+i*BFGS_FINGER_NUM_COEFF]) * PSO_RAD_FINGERS;
+        cmin[BFGS_F0_CURL+i*BFGS_FINGER_NUM_COEFF]) * HN_PSO_RAD_FINGERS;
     }
   }
 
