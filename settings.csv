@@ -9,13 +9,13 @@
 //, *********** SETTINGS ***********
 //, APPLICATION SPECIFIC
 track_openni_skeleton,            bool,      0
-kinect_output,                    int,       6
-detect_hands,                     bool,      1
-detect_pose,                      bool,      1
-detect_heat_map,                  bool,      1
+kinect_output,                    int,       2
+detect_hands,                     bool,      0
+detect_pose,                      bool,      0
+detect_heat_map,                  bool,      0
 label_type_enum,                  int,       3
 render_kinect_fps,                bool,      1
-show_hand_model,                  bool,      1
+show_hand_model,                  bool,      0
 continuous_snapshot,              bool,      0
 continuous_cal_snapshot,          bool,      0
 cur_kinect,                       int,       0

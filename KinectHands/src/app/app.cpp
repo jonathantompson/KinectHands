@@ -763,6 +763,11 @@ namespace app {
     jtil::renderer::Texture::saveRGBToFile(ss.str(), rgb_src, src_width, 
       src_height, true);
     std::cout << "RGB saved to file " << ss.str() << std::endl;
+    const uint16_t* depth =  g_app_->kinect_[cur_kinect]->depth();
+    ss.str("");
+    ss << "depth_screenshot" << g_app_->screenshot_counter_ << ".jpg";
+    jtil::file_io::SaveArrayToFile<uint16_t>(depth, src_dim, ss.str());
+    std::cout << "Depth saved to file " << ss.str() << std::endl;
     g_app_->screenshot_counter_++;
     /*
     // Also save the heatmaps (for debugging later)
@@ -799,6 +804,11 @@ namespace app {
     jtil::renderer::Texture::saveGreyscaleToFile(ss.str(), grey, src_width, 
       src_height, true);
     std::cout << "Greyscale saved to file " << ss.str() << std::endl;
+    const uint16_t* depth =  g_app_->kinect_[cur_kinect]->depth();
+    ss.str("");
+    ss << "depth_screenshot" << g_app_->screenshot_counter_ << ".jpg";
+    jtil::file_io::SaveArrayToFile<uint16_t>(depth, src_dim, ss.str());
+    std::cout << "Depth saved to file " << ss.str() << std::endl;
     g_app_->screenshot_counter_++;
     g_app_->kinect_[cur_kinect]->unlockData();
     SAFE_DELETE(grey);
