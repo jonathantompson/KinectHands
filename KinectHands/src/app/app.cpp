@@ -46,6 +46,20 @@ using namespace jtil::renderer;
 using namespace jtil::image_util;
 using namespace jtil::threading;
 
+const uint32_t num_pose_smoothing_factors = 10;
+const float pose_smoothing_factors[num_pose_smoothing_factors] = {
+  0.0f,
+  0.1f,
+  0.2f,
+  0.3f,
+  0.4f,
+  0.5f,
+  0.6f,
+  0.7f,
+  0.8f,
+  0.9f,
+};
+
 namespace app {
 
   App* App::g_app_ = NULL;
@@ -74,6 +88,8 @@ namespace app {
     kinect_update_cbs_ = NULL;
     data_save_cbs_ = NULL;
     tp_ = NULL;
+    drawing_ = false;
+    was_drawing_ = false;
   }
 
   App::~App() {
@@ -291,8 +307,13 @@ namespace app {
           hand_net_->calcConvnetHeatMap(kdata_[cur_kinect]->depth, 
             kdata_[cur_kinect]->labels);
           if (detect_pose) {
+            int smoothing_factor;
+            bool smoothing_on;
+            GET_SETTING("pose_smoothing_factor_enum", int, smoothing_factor);
+            GET_SETTING("pose_smoothing_on", bool, smoothing_on);
             hand_net_->calcConvnetPose(kdata_[cur_kinect]->depth, 
-              kdata_[cur_kinect]->labels);
+              kdata_[cur_kinect]->labels, 
+              smoothing_on ? pose_smoothing_factors[smoothing_factor] : 0);
           }
         }
       }  // if (new_data_)
@@ -680,7 +701,6 @@ namespace app {
         ui::UIEnumVal(i, ss.str().c_str()));
     }
     ui->addSelectbox("color_convnet_depth_threshold", "Feature Threshold");
-    ss;
     for (uint32_t i = 5; i <= 40; i+= 5) {
       ss.str("");
       ss << "Threshold " << i;
@@ -697,11 +717,18 @@ namespace app {
     ui->addCheckbox("detect_hands", "Enable Hand Detection");
     ui->addCheckbox("detect_heat_map", "Enable Heat Map Detection");
     ui->addCheckbox("detect_pose", "Enable Pose Detection");
+    ui->addCheckbox("pose_smoothing_on", "Enable Pose Smoothing");
+    ui->addSelectbox("pose_smoothing_factor_enum", "Smoothing Factor");
+    for (uint32_t i = 0; i < num_pose_smoothing_factors; i++) {
+      ss.str("");
+      ss << pose_smoothing_factors[i];
+      ui->addSelectboxItem("pose_smoothing_factor_enum", 
+        ui::UIEnumVal(i, ss.str().c_str()));
+    }
     ui->addCheckbox("show_gaussian_labels", "Show Gaussian Labels");
-
     ui->addButton("reset_tracking_button", "Reset Tracking", 
       App::resetTrackingCB);
-
+    ui->addCheckbox("in_air_drawing_enabled", "In Air Drawing");
     ui->addSelectbox("label_type_enum", "Hand label type");
     ui->addSelectboxItem("label_type_enum", 
       ui::UIEnumVal(OUTPUT_NO_LABELS, "Labels off"));
@@ -713,7 +740,6 @@ namespace app {
       ui::UIEnumVal(OUTPUT_FLOODFILL_LABELS, "Floodfill"));
     ui->addCheckbox("show_hand_model", "Show hand model");
     ui->addSelectbox("cur_kinect", "Current Kinect");
-    ss;
     for (uint32_t i = 0; i < MAX_NUM_KINECTS; i++) {
       ss.str("");
       ss << "device " << i;
@@ -733,11 +759,6 @@ namespace app {
     light_spot_vsm->inner_fov_deg() = 30.0f;
     light_spot_vsm->cvsm_count(1);
     Renderer::g_renderer()->addLight(light_spot_vsm);
-
-    //GeometryInstance* tmp = 
-    //  Renderer::g_renderer()->geometry_manager()->makeTorusKnot(lred, 7, 64, 512);
-    //tmp->mat().leftMultTranslation(300.0f, 0.0f, 1500.0f);
-    //tmp->mat().rightMultScale(100.0f, 100.0f, 100.0f);
 
     hand_net_->loadHandModels();
   }
@@ -769,16 +790,6 @@ namespace app {
     jtil::file_io::SaveArrayToFile<uint16_t>(depth, src_dim, ss.str());
     std::cout << "Depth saved to file " << ss.str() << std::endl;
     g_app_->screenshot_counter_++;
-    /*
-    // Also save the heatmaps (for debugging later)
-    const float* hm = g_app_->hand_net_->heat_map_convnet();
-    const uint32_t hm_dim = g_app_->hand_net_->heat_map_size();
-    const uint32_t hm_nfeats = g_app_->hand_net_->num_output_features();
-    ss.str("");
-    ss << "heatmap_screenshot" << g_app_->screenshot_counter_ << ".bin";
-    jtil::file_io::SaveArrayToFile<float>(hm, hm_dim * hm_dim * hm_nfeats, 
-      ss.str());
-    */
     g_app_->kinect_[cur_kinect]->unlockData();
   }
 

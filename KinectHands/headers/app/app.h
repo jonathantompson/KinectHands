@@ -125,6 +125,13 @@ namespace app {
     uint32_t hm_nfeats_;
     jtil::math::Int2 hm_feats_dim_;  // Number of tiles width and height
 
+    // In-air drawing
+    bool drawing_;
+    bool was_drawing_;
+    jtil::math::Int2 prev_pen_position_;
+    jtil::math::Int2 pen_position_;
+    uint8_t* drawing_canvas_;
+
     void run();
     void init();
     static void resetScreenCB();

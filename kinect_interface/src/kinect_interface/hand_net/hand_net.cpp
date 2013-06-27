@@ -251,7 +251,8 @@ namespace hand_net {
 //#define USE_BFGS
 #define USE_PSO
 
-  void HandNet::calcConvnetPose(const int16_t* depth, const uint8_t* label) {
+  void HandNet::calcConvnetPose(const int16_t* depth, const uint8_t* label,
+    const float smoothing_factor) {
     // Try fitting in projected space from the rest pose:
     rhand_prev_pose_->copyCoeffFrom(rhand_cur_pose_);
     g_hand_net_ = this;
@@ -292,6 +293,33 @@ namespace hand_net {
       rhand_cur_pose_->coeff()[i] = (float)cur_double_coeff[i];
     }
 #endif
+
+    // Some better ideas here: 
+    // http://msdn.microsoft.com/en-us/library/jj131429.aspx
+    if (smoothing_factor > 0) {
+      float* prev_coeff = rhand_prev_pose_->coeff();
+      float* curr_coeff = rhand_cur_pose_->coeff();
+      const float scale_fact_a = (1.0f - smoothing_factor);
+      const float scale_fact_b = smoothing_factor;
+      const bool* angle_coeffs = rhand_->angle_coeffs();
+      for (uint32_t i = 0; i < HAND_NUM_COEFF; i++) {
+        if (angle_coeffs[i]) {
+          // The current coefficient is an angle and needs to be interpolated
+          // correctly
+          float real_a = cosf(curr_coeff[i]);
+          float imag_a = sinf(curr_coeff[i]);
+          float real_b = cosf(prev_coeff[i]);
+          float imag_b = sinf(prev_coeff[i]);
+          float real_interp = real_a * scale_fact_a + real_b * scale_fact_b;
+          float imag_interp = imag_a * scale_fact_a + imag_b * scale_fact_b;
+          float interp_angle = atan2(imag_interp, real_interp);
+          curr_coeff[i] = interp_angle;
+        } else {
+          curr_coeff[i] = scale_fact_a * curr_coeff[i] + 
+            scale_fact_b * prev_coeff[i];
+        }
+      }
+    }
 
     rhand_->updateMatrices(rhand_cur_pose_->coeff());
     rhand_->updateHeirachyMatrices();

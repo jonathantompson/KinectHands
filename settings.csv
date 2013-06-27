@@ -10,12 +10,12 @@
 //, APPLICATION SPECIFIC
 track_openni_skeleton,            bool,      0
 kinect_output,                    int,       2
-detect_hands,                     bool,      0
-detect_pose,                      bool,      0
-detect_heat_map,                  bool,      0
+detect_hands,                     bool,      1
+detect_pose,                      bool,      1
+detect_heat_map,                  bool,      1
 label_type_enum,                  int,       3
 render_kinect_fps,                bool,      1
-show_hand_model,                  bool,      0
+show_hand_model,                  bool,      1
 continuous_snapshot,              bool,      0
 continuous_cal_snapshot,          bool,      0
 cur_kinect,                       int,       0
@@ -27,6 +27,9 @@ color_convnet_depth,              bool,      0
 color_convnet_depth_feature,      int,       5
 color_convnet_depth_threshold,    int,       25
 show_gaussian_labels,             bool,      0
+in_air_drawing_enabled,           bool,      1
+pose_smoothing_factor_enum,       int,       4
+pose_smoothing_on,                bool,      1
 
 //, RENDERER
 screen_resolution,                int,       83887040
@@ -64,7 +67,7 @@ ui_render_crosshairs,             bool,      0
 ui_crosshairs_size,               float,     0.025
 ui_starting_height,               int,       600
 ui_starting_width,                int,       320
-vsm_on,                           bool,      0 
+vsm_on,                           bool,      1 
 vsm_resolution_enum,              int,       2
 vsm_default_softness,             float,     0.2
 vsm_cascade_split_log_factor,     float,     0.5
