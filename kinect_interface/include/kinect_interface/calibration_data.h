@@ -4,8 +4,7 @@
 //  Container to store the intercepted Primesense calibration data
 //
 
-#ifndef KINECT_INTERFACE_CALIBRATION_DATA_HEADER
-#define KINECT_INTERFACE_CALIBRATION_DATA_HEADER
+#pragma once
 
 #include "jtil/math/math_types.h"
 #include "OpenNI.h"
@@ -31,5 +30,3 @@ namespace kinect_interface {
   };
   
 };  // namespace kinect_interface
-
-#endif  // KINECT_INTERFACE_CALIBRATION_DATA_HEADER

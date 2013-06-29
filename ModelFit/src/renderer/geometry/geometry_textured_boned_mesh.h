@@ -8,8 +8,7 @@
 //  skinning.
 //
 
-#ifndef RENDERER_GEOMETRY_TEXTURED_BONED_MESH_HEADER
-#define RENDERER_GEOMETRY_TEXTURED_BONED_MESH_HEADER
+#pragma once
 
 #include <map>
 #include "renderer/open_gl_common.h"  // For GLtypes
@@ -124,5 +123,3 @@ namespace renderer {
   };
   
 };  // renderer namespace
-
-#endif  // RENDERER_GEOMETRY_TEXTURED_BONED_MESH_HEADER

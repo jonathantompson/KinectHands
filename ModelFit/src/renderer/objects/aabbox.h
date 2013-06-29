@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 6/24/12.
 //
 
-#ifndef RENDERER_OBJECTS_AABBOX_HEADER
-#define RENDERER_OBJECTS_AABBOX_HEADER
+#pragma once
 
 #include "jtil/math/math_types.h"
 
@@ -42,5 +41,3 @@ namespace renderer {
     };
   };  // namespace objects
 };  // namespace renderer
-
-#endif  // RENDERER_OBJECTS_AABBOX_HEADER

@@ -12,8 +12,7 @@
 //  connected neural network.
 //
 
-#ifndef KINECT_INTERFACE_HAND_NET_HAND_NET_HEADER
-#define KINECT_INTERFACE_HAND_NET_HAND_NET_HEADER
+#pragma once
 
 #include "jtil/math/math_types.h"
 #include "kinect_interface/hand_net/hand_model_coeff.h"  // For HandCoeff
@@ -316,5 +315,3 @@ namespace hand_net {
   
 };  // namespace hand_net
 };  // namespace kinect_interface
-
-#endif  // KINECT_INTERFACE_HAND_NET_HAND_NET_HEADER

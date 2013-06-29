@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 4/1/13.
 //
 
-#ifndef JTORCH_SPATIAL_SUBTRACTIVE_NORMALIZATION_HEADER
-#define JTORCH_SPATIAL_SUBTRACTIVE_NORMALIZATION_HEADER
+#pragma once
 
 #include <mutex>
 #include <condition_variable>
@@ -48,5 +47,3 @@ namespace jtorch {
   };
   
 };  // namespace jtorch
-
-#endif  // JTORCH_SPATIAL_SUBTRACTIVE_NORMALIZATION_HEADER

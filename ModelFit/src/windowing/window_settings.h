@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 09/25/12.
 //
 
-#ifndef WINDOWING_WINDOW_SETTINGS_HEADER
-#define WINDOWING_WINDOW_SETTINGS_HEADER
+#pragma once
 
 #include <mutex>
 #include <string>
@@ -37,6 +36,3 @@ namespace windowing {
   };
 
 };  // namespace windowing
-
-#endif  // WINDOWING_WINDOW_SETTINGS_HEADER
-

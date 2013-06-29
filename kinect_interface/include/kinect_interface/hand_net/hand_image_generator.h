@@ -7,8 +7,7 @@
 //  depth image.
 //
 
-#ifndef KINECT_INTERFACE_HAND_NET_HAND_IMAGE_GENERATOR_HEADER
-#define KINECT_INTERFACE_HAND_NET_HAND_IMAGE_GENERATOR_HEADER
+#pragma once
 
 #include "jtil/math/math_types.h"
 #include "kinect_interface/depth_images_io.h"  // for src_dim
@@ -126,5 +125,3 @@ namespace hand_net {
   };
 };  // namespace hand_net
 };  // namespace kinect_interface
-
-#endif  // KINECT_INTERFACE_HAND_NET_HAND_IMAGE_GENERATOR_HEADER

@@ -8,8 +8,7 @@
 //  estimating the standard deviation.
 //
 
-#ifndef JTORCH_SPATIAL_DIVISIVE_NORMALIZATION_HEADER
-#define JTORCH_SPATIAL_DIVISIVE_NORMALIZATION_HEADER
+#pragma once
 
 #include <mutex>
 #include <condition_variable>
@@ -55,5 +54,3 @@ namespace jtorch {
   };
   
 };  // namespace jtorch
-
-#endif  // JTORCH_SPATIAL_DIVISIVE_NORMALIZATION_HEADER

@@ -29,6 +29,10 @@
     <ClCompile Include="src\kinect_interface\hand_net\hand_image_generator.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\hand_model_coeff.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\hand_net.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_net\robot_hand_model.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\kinect_interface\kinect_device_listener.cpp" />
     <ClCompile Include="src\kinect_interface\kinect_interface.cpp" />
     <ClCompile Include="src\kinect_interface\open_ni_funcs.cpp" />
@@ -53,6 +57,7 @@
     <ClInclude Include="include\kinect_interface\hand_net\hand_image_generator.h" />
     <ClInclude Include="include\kinect_interface\hand_net\hand_model_coeff.h" />
     <ClInclude Include="include\kinect_interface\hand_net\hand_net.h" />
+    <ClInclude Include="include\kinect_interface\hand_net\robot_hand_model.h" />
     <ClInclude Include="include\kinect_interface\kinect_device_listener.h" />
     <ClInclude Include="include\kinect_interface\kinect_interface.h" />
     <ClInclude Include="include\kinect_interface\open_ni_funcs.h" />

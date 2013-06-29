@@ -7,8 +7,7 @@
 //  assimp and rendering it.
 //
 
-#ifndef RENDERER_GEOMETRY_TEXTURED_MESH_HEADER
-#define RENDERER_GEOMETRY_TEXTURED_MESH_HEADER
+#pragma once
 
 #include "renderer/open_gl_common.h"  // For GLtypes
 #include "renderer/geometry/geometry.h"
@@ -103,5 +102,3 @@ namespace renderer {
   };
   
 };  // renderer namespace
-
-#endif  // RENDERER_GEOMETRY_TEXTURED_MESH_HEADER

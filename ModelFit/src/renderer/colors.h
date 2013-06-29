@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 9/12/2012.
 //
 
-#ifndef RENDERER_COLORS_HEADER
-#define RENDERER_COLORS_HEADER
+#pragma once
 
 #include "jtil/math/math_types.h"
 
@@ -29,5 +28,3 @@ namespace renderer {
   extern const jtil::math::Float3 colors[n_colors];
 
 };  // renderer namespace
-
-#endif  // RENDERER_COLORS_HEADER

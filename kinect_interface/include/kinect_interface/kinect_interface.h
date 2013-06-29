@@ -4,8 +4,7 @@
 //  Jonathan Tompson
 // 
 
-#ifndef KINECT_INTERFACE_KINECT_INTERFACE_HEADER
-#define KINECT_INTERFACE_KINECT_INTERFACE_HEADER
+#pragma once
 
 #include <mutex>
 #include <condition_variable>
@@ -168,5 +167,3 @@ namespace kinect_interface {
 #endif
   
 };  // namespace kinect_interface
-
-#endif  // KINECT_INTERFACE_KINECT_INTERFACE_HEADER

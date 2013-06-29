@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 11/06/12.
 //
 
-#ifndef RENDERER_BONE_INFO_HEADER
-#define RENDERER_BONE_INFO_HEADER
+#pragma once
 
 #include <map>
 #include <string>
@@ -63,5 +62,3 @@ namespace renderer {
   };
 
 };  // renderer namespace
-
-#endif  // RENDERER_BONE_INFO_HEADER

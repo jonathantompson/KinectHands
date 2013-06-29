@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 7/31/12.
 //
 
-#ifndef UNNAMED_LOAD_SETTINGS_FROM_FILE_HEADER
-#define UNNAMED_LOAD_SETTINGS_FROM_FILE_HEADER
+#pragma once
 
 #include <string>
 #include "jtil/math/math_types.h"
@@ -24,5 +23,3 @@ struct ProgramSettings {
 };
 
 void loadSettingsFromFile(ProgramSettings* settings, std::string filename);
-
-#endif  // UNNAMED_LOAD_SETTINGS_FROM_FILE_HEADER

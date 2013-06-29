@@ -5,8 +5,7 @@
 //
 //  A simple wrapper class to build and manage shader programs
 
-#ifndef RENDERER_SHADER_PROGRAM_HEADER
-#define RENDERER_SHADER_PROGRAM_HEADER
+#pragma once
 
 #include <string>
 #include <mutex>
@@ -66,5 +65,3 @@ namespace renderer {
     ShaderProgram& operator=(const ShaderProgram&);
   };
 };  // renderer namespace
-
-#endif  // RENDERER_SHADER_PROGRAM_HEADER

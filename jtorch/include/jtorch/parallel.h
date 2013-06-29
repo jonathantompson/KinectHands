@@ -7,8 +7,7 @@
 //  a FloatTensor.
 //
 
-#ifndef JTORCH_PARALLEL_HEADER
-#define JTORCH_PARALLEL_HEADER
+#pragma once
 
 #include <iostream>
 #include <iomanip>
@@ -49,6 +48,3 @@ namespace jtorch {
   };
 
 };  // namespace jtorch
-
-#endif  // JTORCH_PARALLEL_HEADER
-

@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 6/15/12.
 //
 
-#ifndef RENDERER_LIGHT_HEADER
-#define RENDERER_LIGHT_HEADER
+#pragma once
 
 #include "jtil/math/math_types.h"
 
@@ -36,5 +35,3 @@ namespace renderer {
   };
 
 };  // namespace renderer
-
-#endif  // RENDERER_LIGHT_HEADER

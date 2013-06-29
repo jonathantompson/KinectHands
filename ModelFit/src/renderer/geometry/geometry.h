@@ -13,8 +13,7 @@
 //  to load compressed binary format.  The load store memory overhead is high
 //  and will need to be fixed later.
 
-#ifndef RENDERER_GEOMETRY_HEADER
-#define RENDERER_GEOMETRY_HEADER
+#pragma once
 
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector_managed.h"
@@ -123,5 +122,3 @@ namespace renderer {
   };
 
 };  // renderer namespace
-
-#endif  // RENDERER_GEOMETRY_HEADER

@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 5/29/12.
 //
 
-#ifndef GLOBAL_OPENGL_COMMON_HEADER
-#define GLOBAL_OPENGL_COMMON_HEADER
+#pragma once
 
 #ifndef GLEW_STATIC
   #define GLEW_STATIC
@@ -40,5 +39,3 @@
 namespace renderer {
   void CheckOpenGLError();
 }  // namespace renderer
-
-#endif  // GLOBAL_OPENGL_COMMON_HEADER

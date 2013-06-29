@@ -10,8 +10,7 @@
 //  Call ShutdownJTorch() when finished.
 //
 
-#ifndef JTORCH_JTORCH_HEADER
-#define JTORCH_JTORCH_HEADER
+#pragma once
 
 // #define JTORCH_USE_GPU // Comment out to use the CPU
 
@@ -37,5 +36,3 @@ namespace jtorch {
   const uint32_t deviceid = 0;
 
 };  // namespace jtorch
-
-#endif  // JTORCH_JTORCH_HEADER

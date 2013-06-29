@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 4/2/13.
 //
 
-#ifndef JTORCH_SEQUENTIAL_HEADER
-#define JTORCH_SEQUENTIAL_HEADER
+#pragma once
 
 #include <iostream>
 #include <iomanip>
@@ -42,5 +41,3 @@ namespace jtorch {
   };
 
 };  // namespace jtorch
-
-#endif  // JTORCH_SEQUENTIAL_HEADER

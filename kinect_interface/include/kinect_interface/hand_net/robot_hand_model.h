@@ -1,12 +1,10 @@
 //
-//  hand_model.h
+//  robot_hand_model.h
 //
 //  Created by Jonathan Tompson on 5/22/13.
 //
-//  A dense modeled hand mesh (linear blend skinning) --> this version is for
-//  my deferred rendering engine, and doesn't include any of the PSO related 
-//  stuff from HandGeometryMesh.  It's a simple wrapper in order to update
-//  from a coeff input.
+//  A dense modeled robot hand mesh.  Wrapper makes setting bone positions
+//  from HandModelCoeff easier
 //
 
 #pragma once

@@ -7,8 +7,7 @@
 //  a vertex buffer only (draw as triplets of triangles).
 //
 
-#ifndef RENDERER_GEOMETRY_VERTICES_HEADER
-#define RENDERER_GEOMETRY_VERTICES_HEADER
+#pragma once
 
 #include "renderer/open_gl_common.h"  // For GLtypes
 #include "renderer/geometry/geometry.h"
@@ -63,5 +62,3 @@ namespace renderer {
   };
   
 };  // renderer namespace
-
-#endif  // RENDERER_GEOMETRY_VERTICES_HEADER

@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 7/22/12.
 //
 
-#ifndef KINECT_INTERFACE_HAND_DETECTOR_HAND_DETECTOR_HEADER
-#define KINECT_INTERFACE_HAND_DETECTOR_HAND_DETECTOR_HEADER
+#pragma once
 
 #include <string>
 #include <mutex>
@@ -155,5 +154,3 @@ namespace hand_detector {
 
 };  // namespace hand_detector
 };  // namespace kinect_interface
-
-#endif  // KINECT_INTERFACE_HAND_DETECTOR_HAND_DETECTOR_HEADER

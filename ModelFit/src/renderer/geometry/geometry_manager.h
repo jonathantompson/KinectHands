@@ -17,8 +17,7 @@
 //        IS TRANSFERED TO THE GEOMETRYMANAGER CLASS (IT WILL HANDLE 
 //        DESTRUCTION)
 
-#ifndef RENDERER_GEOMETRY_MANAGER_HEADER
-#define RENDERER_GEOMETRY_MANAGER_HEADER
+#pragma once
 
 #include <map>
 #include "jtil/math/math_types.h"
@@ -141,5 +140,3 @@ namespace renderer {
     GeometryManager& operator=(const GeometryManager&);
   };
 };  // renderer namespace
-
-#endif  // RENDERER_GEOMETRY_MANAGER_HEADER

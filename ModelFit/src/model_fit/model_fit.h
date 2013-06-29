@@ -19,8 +19,7 @@
 //  properly.
 //
 
-#ifndef MODEL_FIT_MODEL_FIT_HEADER
-#define MODEL_FIT_MODEL_FIT_HEADER
+#pragma once
 
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector.h"
@@ -116,5 +115,3 @@ namespace model_fit {
     ModelFit& operator=(const ModelFit&);
   };
 };  // namespace model_fit
-
-#endif  // MODEL_FIT_MODEL_FIT_HEADER

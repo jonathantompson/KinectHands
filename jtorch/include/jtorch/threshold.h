@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 4/1/13.
 //
 
-#ifndef JTORCH_THRESHOLD_HEADER
-#define JTORCH_THRESHOLD_HEADER
+#pragma once
 
 #include <mutex>
 #include <condition_variable>
@@ -41,5 +40,3 @@ namespace jtorch {
   };
   
 };  // namespace jtorch
-
-#endif  // JTORCH_THRESHOLD_HEADER

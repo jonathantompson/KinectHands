@@ -7,8 +7,7 @@
 //  them from/to file.
 //
 
-#ifndef KINECT_INTERFACE_HAND_FIT_HAND_MODEL_HEADER
-#define KINECT_INTERFACE_HAND_FIT_HAND_MODEL_HEADER
+#pragma once
 
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector.h"
@@ -248,5 +247,3 @@ namespace hand_net {
 
 };  // namespace hand_net
 };  // namespace kinect_interface
-
-#endif  // KINECT_INTERFACE_HAND_FIT_HAND_MODEL_COEFF_HEADER

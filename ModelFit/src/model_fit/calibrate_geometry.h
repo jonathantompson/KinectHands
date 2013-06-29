@@ -6,8 +6,7 @@
 //  3 Spheres connected by a stick
 //
 
-#ifndef MODEL_FIT_CALIBRATE_GEOMETRY_HEADER
-#define MODEL_FIT_CALIBRATE_GEOMETRY_HEADER
+#pragma once
 
 #include "renderer/open_gl_common.h"  // GLfloat
 #include "kinect_interface/hand_net/hand_model_coeff.h"
@@ -173,5 +172,3 @@ namespace model_fit {
     CalibrateGeometry& operator=(const CalibrateGeometry&);
   };
 };  // namespace hand_fit
-
-#endif  // MODEL_FIT_CALIBRATE_GEOMETRY_HEADER

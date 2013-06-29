@@ -10,8 +10,7 @@
 //         3. call syncVAO when done filling it.
 //         4. call draw when rendering it (with appropriate shaders)
 
-#ifndef RENDERER_GEOMETRY_POINTS_HEADER
-#define RENDERER_GEOMETRY_POINTS_HEADER
+#pragma once
 
 #include "renderer/open_gl_common.h"  // For GLtypes
 #include "renderer/geometry/geometry.h"
@@ -63,5 +62,3 @@ namespace renderer {
   };
   
 };  // renderer namespace
-
-#endif  // RENDERER_GEOMETRY_POINTS_HEADER
