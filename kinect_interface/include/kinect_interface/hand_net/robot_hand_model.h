@@ -22,57 +22,33 @@ namespace jtil { namespace renderer { namespace objects { class BSphere; } } }
 namespace kinect_interface {
 namespace hand_net {
 
-  class HandModel {
+  class RobotHandModel {
   public:
     // Constructor / Destructor
-    HandModel(kinect_interface::hand_net::HandType hand_type);
-    ~HandModel();
+    RobotHandModel(kinect_interface::hand_net::HandType hand_type);
+    ~RobotHandModel();
 
     // Call before rendering hand depth maps:
     void updateMatrices(const float* coeff);
     void updateHeirachyMatrices();
-    void updateDoubleMatrices(const double* coeff);
-    void updateDoubleHeirachyMatrices();
 
     // setRendererAttachement - called when ModelFit wants to detach the model
     // from the global renderer
     void setRenderVisiblity(const bool visible);
     const bool getRenderVisiblity();
 
-    static const bool* angle_coeffs() { return angle_coeffs_; }
-    static const float* coeff_min_limit() { return coeff_min_limit_; }
-    static const float* coeff_max_limit() { return coeff_max_limit_; }
-    static const float* coeff_max_limit_conservative() { return coeff_max_limit_conservative_; }
-    static const float* coeff_penalty_scale() { return coeff_penalty_scale_; }
-    static const uint32_t max_bsphere_groups() { return 6; }
-    static const uint32_t num_bspheres_per_group() { return 6; }
-
-    void calcBoundingSphereUVDPos(float* uvd, const uint32_t b_sphere_index, 
-      const jtil::math::Float4x4& pv_mat);
-    void calcBoundingSphereUVDPos(double* uvd, const uint32_t b_sphere_index, 
-      const jtil::math::Double4x4& pv_mat);
-
   private:
     // Note all geometry is attached to the global renderer's scene graph and
     // therefore we transfer ownership of the memory to it.
     jtil::renderer::GeometryInstance* model_;  // The geometry - Not owned here
-    jtil::data_str::VectorManaged<jtil::renderer::objects::BSphere*> bspheres_;
     bool visible_;
 
     // BFS sorted array of nodes. Memory not owned here!
     // We need to keep around doubles for BFGS
     jtil::data_str::Vector<jtil::renderer::GeometryInstance*> nodes_;
-    jtil::data_str::Vector<jtil::math::Double4x4> nodes_mat_;
-    jtil::data_str::Vector<jtil::math::Double4x4> nodes_heirachy_mat_;
-    jtil::data_str::Vector<jtil::math::Double4x4> nodes_bone_rest_transform_;
-    jtil::data_str::Vector<jtil::math::Double4x4> nodes_bone_transform_;
-    jtil::data_str::Vector<uint32_t> bsphere_parent_ind_;
-    jtil::math::Double4x4 root_mat_hierachy_inv_;
-    jtil::data_str::Vector<jtil::math::Double4x4> nodes_bone_offset_;
-
     jtil::data_str::Vector<uint32_t> nodes_parents_;
 
-    void loadHandGeometry(kinect_interface::hand_net::HandType type);
+    void loadRobotHandGeometry(kinect_interface::hand_net::HandType type);
 
     // References to bone indices for quick access (not owned here)
     uint32_t index_mesh_node_;
@@ -95,22 +71,9 @@ namespace hand_net {
     void rotateMatYAxisGM(jtil::math::Double4x4& ret, const double angle);
     void rotateMatXAxisGM(jtil::math::Double4x4& ret, const double angle);
 
-    static const float coeff_min_limit_[HAND_NUM_COEFF];
-    static const float coeff_max_limit_[HAND_NUM_COEFF];
-    static const float coeff_max_limit_conservative_[HAND_NUM_COEFF];
-    static const float coeff_penalty_scale_[HAND_NUM_COEFF];
-    static const bool angle_coeffs_[HAND_NUM_COEFF];
-
-    //virtual void renderStackReset();
-    //virtual jtil::renderer::GeometryInstance* renderStackPop();
-    //virtual bool renderStackEmpty();
-
-    void addBoneBSphere(const uint32_t ibone, 
-      jtil::renderer::GeometryInstance* bone);
-
     // Non-copyable, non-assignable.
-    HandModel(HandModel&);
-    HandModel& operator=(const HandModel&);
+    RobotHandModel(RobotHandModel&);
+    RobotHandModel& operator=(const RobotHandModel&);
   };
 };  // namespace hand_net
 };  // namespace kinect_interface

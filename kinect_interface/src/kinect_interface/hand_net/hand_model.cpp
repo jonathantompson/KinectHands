@@ -59,7 +59,7 @@ namespace hand_net {
     if (hand_type == HandType::RIGHT) {
       GeometryManager* gm = Renderer::g_renderer()->geometry_manager();
       Geometry* geom = gm->findGeometryByName("./models/lib_hand/hand_palm_"
-        "parent_medium_wrist_dec_0.05_right.dae//0");
+        "parent_medium_wrist_dec_0.05_right.dae/Armature_hand_mesh-skin/0");
       if (geom == NULL) {
         throw std::wruntime_error("HandModel::HandModel() - ERROR: "
           "Couldn't find Geoemtry for right hand mesh!");

@@ -30,8 +30,10 @@
     <ClCompile Include="src\kinect_interface\hand_net\hand_model_coeff.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\hand_net.cpp" />
     <ClCompile Include="src\kinect_interface\hand_net\robot_hand_model.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="src\kinect_interface\kinect_device_listener.cpp" />
     <ClCompile Include="src\kinect_interface\kinect_interface.cpp" />

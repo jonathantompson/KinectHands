@@ -12,6 +12,7 @@
 #include "kinect_interface/hand_detector/hand_detector.h"
 #include "kinect_interface/hand_net/hand_image_generator.h"
 #include "kinect_interface/hand_net/hand_model_coeff.h"  // for camera parameters
+#include "kinect_interface/hand_net/robot_hand_model.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
 #include "jtil/glew/glew.h"
 #include "jtil/image_util/image_util.h"
@@ -87,6 +88,7 @@ namespace app {
     convnet_hm_im_flipped_ = NULL;
     kinect_update_cbs_ = NULL;
     data_save_cbs_ = NULL;
+    robot_hand_model_ = NULL;
     tp_ = NULL;
     drawing_ = false;
     was_drawing_ = false;
@@ -103,6 +105,7 @@ namespace app {
     if (tp_) {
       tp_->stop();
     }
+    SAFE_DELETE(robot_hand_model_);
     SAFE_DELETE(hand_net_);
     SAFE_DELETE(clk_);
     SAFE_DELETE(tp_);
@@ -202,6 +205,8 @@ namespace app {
     }
 
     initRainbowPallet();
+
+    robot_hand_model_ = new RobotHandModel(HandType::RIGHT);
   }
 
   void App::killApp() {
