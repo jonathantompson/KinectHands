@@ -205,6 +205,7 @@ namespace hand_net {
     // Accessors
     const float getCoeff(const uint32_t index) const;
     float* coeff() { return coeff_; }
+    const float* coeff() const { return coeff_; }
     const HandType hand_type() const { return hand_type_; }
     void setRotation(const jtil::math::Float3& euler);
     void getRotation(jtil::math::Float3& euler) const;

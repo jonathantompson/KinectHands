@@ -319,6 +319,7 @@ namespace app {
             hand_net_->calcConvnetPose(kdata_[cur_kinect]->depth, 
               kdata_[cur_kinect]->labels, 
               smoothing_on ? pose_smoothing_factors[smoothing_factor] : 0);
+            robot_hand_model_->updateMatrices(hand_net_->rhand_cur_pose()->coeff());
           }
         }
       }  // if (new_data_)
@@ -599,12 +600,28 @@ namespace app {
       }
       moveStuff(dt);
 
-      bool render_kinect_fps, show_hand_model;
+      bool render_kinect_fps;
+      int show_hand_model_type;
       GET_SETTING("render_kinect_fps", bool, render_kinect_fps);
-      GET_SETTING("show_hand_model", bool, show_hand_model);
+      GET_SETTING("show_hand_model_type", int, show_hand_model_type);
       Renderer::g_renderer()->ui()->setTextWindowVisibility("kinect_fps_wnd",
         render_kinect_fps);
-      hand_net_->setModelVisibility(show_hand_model);
+      switch (show_hand_model_type) {
+      case HAND_TYPE_NONE:
+        hand_net_->setModelVisibility(false);
+        robot_hand_model_->setRenderVisiblity(false);
+        break;
+      case HAND_TYPE_LIBHAND:
+        hand_net_->setModelVisibility(true);
+        robot_hand_model_->setRenderVisiblity(false);
+        break;
+      case HAND_TYPE_ROBOT:
+        hand_net_->setModelVisibility(false);
+        robot_hand_model_->setRenderVisiblity(true);
+        break;
+      default:
+        throw std::wruntime_error("INTERNAL ERROR: Undefined model enum");
+      }
 
       Renderer::g_renderer()->renderFrame();
 
@@ -743,7 +760,14 @@ namespace app {
       ui::UIEnumVal(OUTPUT_FILTERED_LABELS, "Filtered DF"));
     ui->addSelectboxItem("label_type_enum", 
       ui::UIEnumVal(OUTPUT_FLOODFILL_LABELS, "Floodfill"));
-    ui->addCheckbox("show_hand_model", "Show hand model");
+    ui->addSelectbox("show_hand_model_type", "Show hand model");
+    ui->addSelectboxItem("show_hand_model_type", 
+      ui::UIEnumVal(HAND_TYPE_NONE, "None"));
+    ui->addSelectboxItem("show_hand_model_type", 
+      ui::UIEnumVal(HAND_TYPE_LIBHAND, "LibHand"));
+    ui->addSelectboxItem("show_hand_model_type", 
+      ui::UIEnumVal(HAND_TYPE_ROBOT, "Robot"));
+
     ui->addSelectbox("cur_kinect", "Current Kinect");
     for (uint32_t i = 0; i < MAX_NUM_KINECTS; i++) {
       ss.str("");

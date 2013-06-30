@@ -412,7 +412,6 @@ namespace hand_net {
       // Move bone by fraction of the bone length:
       mat_tmp2.leftMultTranslation(0, bone_mid_length * coeff[F0_LENGTH + i], 0);
       Float4x4::multSIMD(*mat, mat_tmp2, mat_tmp1);
-
       mat->leftMultScale(1.0f, 1.0f / (1.0f + coeff[F0_LENGTH + i]), 1.0f);  // Undo parent scale
       mat->rightMultScale(1.0f, 1.0f + coeff[F0_LENGTH + i], 1.0f);  // Scale this node
     }

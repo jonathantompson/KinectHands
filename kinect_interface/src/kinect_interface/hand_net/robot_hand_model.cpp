@@ -16,6 +16,8 @@
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 
+#define LOAD_ROBOT_HAND_MESH_JFILE  // Much faster and more compact format!
+
 #if defined(__APPLE__)
   #define HAND_ROBOT_MODEL_PATH string("./../../../../../../../../../models/robot_hand/")
 #else
@@ -51,8 +53,32 @@ namespace hand_net {
       index_bone_finger4_[i] = MAX_UINT32;
     }
 
+    hand_type_ = hand_type;
 
     loadRobotHandGeometry(hand_type);
+
+    // I'm not maintaining two hand models, instead make the scene graph's
+    // root node do a -1 scale in the y direction, then swap all the faces
+    // around and flip the normals.
+    if (hand_type == HandType::RIGHT) {
+      for (uint32_t i = 0; i < nodes_.size(); i++) {
+        Geometry* geom = (Geometry*)nodes_[i]->geom();
+        if (geom) {
+          geom->unsync();
+          Vector<uint32_t>& ind = geom->ind();
+          for (uint32_t i = 0; i < ind.size(); i += 3) {
+            uint32_t tmp = ind[i+1];
+            ind[i+1] = ind[i+2];
+            ind[i+2] = tmp;
+          }
+          //Vector<Float3>& norms = geom->nor();
+          //for (uint32_t i = 0; i < norms.size(); i++) {
+          //  Float3::scale(norms[i], -1.0f);
+          //}
+          geom->sync();
+        }
+      }
+    }
 
     visible_ = true;  
   }
@@ -61,9 +87,11 @@ namespace hand_net {
     // Note, ownership of all geometry is transfered to the renderer class
   }
 
+  const char* robot_finger_names[4] = {"pinky", "ring", "middle", "index"};
+
   void RobotHandModel::loadRobotHandGeometry(HandType type) {
     GeometryManager* gm = Renderer::g_renderer()->geometry_manager();
-#ifndef LOAD_HAND_MESH_JFILE
+#ifndef LOAD_ROBOT_HAND_MESH_JFILE
     if (type == HandType::LEFT) {
       model_ = gm->loadModelFromFile(HAND_ROBOT_MODEL_PATH, 
         LHAND_ROBOT_MODEL_FILE, false, false, true);
@@ -155,11 +183,7 @@ namespace hand_net {
       found_joint = false;
       for (uint32_t j = 0; j < 4 && !found_joint; j++) {
         ss.str("");
-        if (j == 0) {
-          ss << base_name << "Bone";
-        } else {
-          ss << base_name << "Bone.00" << j;
-        }
+        ss << base_name << "palm.0" << (j + 1) << ".L";
         if (cur_name == ss.str()) {
           index_bone_finger1_[j] = i;
           found_joint = true;
@@ -169,47 +193,32 @@ namespace hand_net {
         continue;
       }
 
-      // Get the 2nd joint of each finger
+      // Get the 2nd, 3rd and 4th joint of each finger
+      // This is expensive, but is only done once on startup so it's OK for now
       found_joint = false;
-      for (uint32_t j = 0; j < 4 && !found_joint; j++) {
-        ss.str("");
-        ss << base_name << "finger" << (j+1) << "joint1";
-        if (cur_name == ss.str()) {
-          index_bone_finger2_[j] = i;
-          found_joint = true;
+      for (uint32_t f = 0; f < 4 && !found_joint; f++) {
+        for (uint32_t j = 1; j < 4 && !found_joint; j++) {
+          ss.str("");
+          ss << base_name << "finger_" << robot_finger_names[f] << ".0" << j << ".L";
+          if (cur_name == ss.str()) {
+            found_joint = true;
+            switch (j) {
+            case 1:
+              index_bone_finger2_[f] = i;
+              break;
+            case 2:
+              index_bone_finger3_[f] = i;
+              break;
+            case 3:
+              index_bone_finger4_[f] = i;
+              break;
+            default:
+              throw std::wruntime_error("Internal Error: Out of bounds!");
+            }
+          }
         }
-      }
-      if (found_joint) {
-        continue;
       }
 
-      // Get the 3rd joint of each finger
-      found_joint = false;
-      for (uint32_t j = 0; j < 4 && !found_joint; j++) {
-        ss.str("");
-        ss << base_name << "finger" << (j+1) << "joint2";
-        if (cur_name == ss.str()) {
-          index_bone_finger3_[j] = i;
-          found_joint = true;
-        }
-      }
-      if (found_joint) {
-        continue;
-      }
-
-      // Get the 4th joint of each finger
-      found_joint = false;
-      for (uint32_t j = 0; j < 4 && !found_joint; j++) {
-        ss.str("");
-        ss << base_name << "finger" << (j+1) << "joint3";
-        if (cur_name == ss.str()) {
-          index_bone_finger4_[j] = i;
-          found_joint = true;
-        }
-      }
-      if (found_joint) {
-        continue;
-      }
     }
 
     // Now make sure we got all the bone indices
@@ -225,15 +234,26 @@ namespace hand_net {
       check |= index_bone_finger4_[i];
     }
     if (check == MAX_UINT32) {
-      throw std::wruntime_error("INTERNAL ERROR: Couldn't find a bone");
+      throw std::wruntime_error("INTERNAL ERROR: Couldn't find a robot hand "
+        "node");
     }
 
-
-    // For all meshes in the heirachy set the specular intensity low:
+    // Now make a copy of all the rest transforms
+    nodes_rest_transforms_.capacity(nodes_.size());
     for (uint32_t i = 0; i < nodes_.size(); i++) {
-      nodes_[i]->mtrl().spec_intensity = 0.3f;
+      nodes_rest_transforms_.pushBack(nodes_[i]->mat());
     }
   }
+
+  const float bone_finger4_offsets[4] = {-(float)(2*M_PI) * 5.754f / 360.0f, 
+    0.0f, 0.0f, 0.0f};
+  const float bone_finger3_offsets[4] = {-(float)(2*M_PI) * 19.902f / 360.0f, 
+    -(float)(2*M_PI) * 22.22f / 360.0f, -(float)(2*M_PI) * 23.722f / 360.0f, 
+    -(float)(2*M_PI) * 18.567f / 360.0f};
+  const float bone_finger2_offsets[4] = {-(float)(2*M_PI) * 37.619f / 360.0f, 
+    -(float)(2*M_PI) * 29.326f / 360.0f, -(float)(2*M_PI) * 28.014f / 360.0f, 
+    -(float)(2*M_PI) * 28.155f / 360.0f};
+  const float thumb2_phi_offset = -(float)(2*M_PI) * 26.726f / 360.0f;
 
   void RobotHandModel::updateMatrices(const float* coeff) {
     jtil::math::Float4x4 mat_tmp1;
@@ -241,18 +261,25 @@ namespace hand_net {
     jtil::math::Float4x4 mat_tmp3;
     // Set the root matrix:
     Float4x4* mat = &model_->mat();
-    euler2RotMatGM(*mat, coeff[HAND_ORIENT_X], coeff[HAND_ORIENT_Y],
+    Float4x4::rotateMatXAxis(mat_tmp1, static_cast<float>(M_PI) / 2.0f);
+    euler2RotMatGM(mat_tmp2, coeff[HAND_ORIENT_X], coeff[HAND_ORIENT_Y], 
       coeff[HAND_ORIENT_Z]);
+    Float4x4::multSIMD(*mat, mat_tmp2, mat_tmp1);
     mat->leftMultTranslation(coeff[HAND_POS_X], coeff[HAND_POS_Y], coeff[HAND_POS_Z]);
-    mat->rightMultScale(coeff[SCALE], coeff[SCALE], coeff[SCALE]); 
+    if (hand_type_ == HandType::RIGHT) {
+      mat->rightMultScale(coeff[SCALE], -coeff[SCALE], coeff[SCALE]); 
+    } else {
+      mat->rightMultScale(coeff[SCALE], coeff[SCALE], coeff[SCALE]); 
+    }
  
     // Set the palm bone (depending on wrist angle)
     mat = &nodes_[index_bone_wrist_]->mat();
     rotateMatXAxisGM(mat_tmp1, coeff[WRIST_PHI]);
     rotateMatZAxisGM(mat_tmp2, coeff[WRIST_THETA]);
     Float4x4::multSIMD(mat_tmp3, mat_tmp1, mat_tmp2);
-    Float4x4::multSIMD(*mat, nodes_[index_bone_wrist_]->bone()->rest_transform, mat_tmp3);
+    Float4x4::multSIMD(*mat, nodes_rest_transforms_[index_bone_wrist_], mat_tmp3);
 
+  
     // Set the finger bones
 // #pragma omp parallel for num_threads(4)
     for (int i = 0; i < 4; i++) {
@@ -261,29 +288,66 @@ namespace hand_net {
       //jtil::math::Float4x4 mat_tmp1;  // OMP Needs separate destination vars
       //jtil::math::Float4x4 mat_tmp2;
 
+      /*  // SIMPLE - NO SCALING
       // Root
       theta = coeff[F0_ROOT_THETA + i * FINGER_NUM_COEFF];
       phi = coeff[F0_ROOT_PHI + i * FINGER_NUM_COEFF];
       psi = 0;
       mat = &nodes_[index_bone_finger1_[i]]->mat();
       euler2RotMatGM(mat_tmp1, psi, theta, phi);
-      Float4x4::multSIMD(*mat, nodes_[index_bone_finger1_[i]]->bone()->rest_transform,
+      Float4x4::multSIMD(*mat, nodes_rest_transforms_[index_bone_finger1_[i]],
         mat_tmp1);
 
       // K1 base
       theta = coeff[F0_THETA + i * FINGER_NUM_COEFF];
-      phi = coeff[F0_PHI + i * FINGER_NUM_COEFF];
+      phi = coeff[F0_PHI + i * FINGER_NUM_COEFF] +
+        bone_finger2_offsets[i];
       psi = coeff[F0_TWIST + i];
+      euler2RotMatGM(mat_tmp1, psi, phi, -theta);
       mat = &nodes_[index_bone_finger2_[i]]->mat();
+      Float4x4::multSIMD(*mat, nodes_rest_transforms_[index_bone_finger2_[i]], 
+        mat_tmp1);
+
+      mat = &nodes_[index_bone_finger3_[i]]->mat();
+      float k2_theta = coeff[F0_KNUCKLE_MID + i * FINGER_NUM_COEFF] +
+        bone_finger3_offsets[i];
+      rotateMatZAxisGM(mat_tmp1, k2_theta);
+      const Float4x4& bone_mid = nodes_rest_transforms_[index_bone_finger3_[i]];
+      Float4x4::multSIMD(*mat, bone_mid, mat_tmp1);
+
+      mat = &nodes_[index_bone_finger4_[i]]->mat();
+      float k3_theta = coeff[F0_KNUCKLE_END + i * FINGER_NUM_COEFF] + 
+        bone_finger4_offsets[i];
+      rotateMatZAxisGM(mat_tmp1, k3_theta);
+      const Float4x4& bone_tip = nodes_rest_transforms_[index_bone_finger4_[i]];
+      Float4x4::multSIMD(*mat, bone_tip, mat_tmp1);
+      */
+
+      // Root
+      theta = coeff[F0_ROOT_THETA + i * FINGER_NUM_COEFF];
+      phi = coeff[F0_ROOT_PHI + i * FINGER_NUM_COEFF];
+      psi = 0;
+      mat = &nodes_[index_bone_finger1_[i]]->mat();
       euler2RotMatGM(mat_tmp1, psi, theta, phi);
-      Float4x4::multSIMD(*mat, nodes_[index_bone_finger2_[i]]->bone()->rest_transform, 
+      Float4x4::multSIMD(*mat, nodes_rest_transforms_[index_bone_finger1_[i]],
+        mat_tmp1);
+
+      // K1 base
+      theta = coeff[F0_THETA + i * FINGER_NUM_COEFF];
+      phi = coeff[F0_PHI + i * FINGER_NUM_COEFF] +
+        bone_finger2_offsets[i];
+      psi = coeff[F0_TWIST + i];
+      euler2RotMatGM(mat_tmp1, psi, phi, -theta);
+      mat = &nodes_[index_bone_finger2_[i]]->mat();
+      Float4x4::multSIMD(*mat, nodes_rest_transforms_[index_bone_finger2_[i]], 
         mat_tmp1);
       mat->rightMultScale(1.0f, 1.0f + coeff[F0_LENGTH + i], 1.0f);  // Scale this node
 
       mat = &nodes_[index_bone_finger3_[i]]->mat();
-      float k2_theta = coeff[F0_KNUCKLE_MID + i * FINGER_NUM_COEFF];
-      rotateMatXAxisGM(mat_tmp1, k2_theta);
-      const Float4x4& bone_mid = nodes_[index_bone_finger3_[i]]->bone()->rest_transform;
+      float k2_theta = coeff[F0_KNUCKLE_MID + i * FINGER_NUM_COEFF] +
+        bone_finger3_offsets[i];
+      rotateMatZAxisGM(mat_tmp1, k2_theta);
+      const Float4x4& bone_mid = nodes_rest_transforms_[index_bone_finger3_[i]];
       Float3 bone_mid_pos;
       Float4x4::getTranslation(bone_mid_pos, bone_mid);
       float bone_base_length = bone_mid_pos.length();
@@ -295,9 +359,10 @@ namespace hand_net {
       mat->rightMultScale(1.0f, 1.0f + coeff[F0_LENGTH + i], 1.0f);  // Scale this node
 
       mat = &nodes_[index_bone_finger4_[i]]->mat();
-      float k3_theta = coeff[F0_KNUCKLE_END + i * FINGER_NUM_COEFF];
-      rotateMatXAxisGM(mat_tmp1, k3_theta);
-      const Float4x4& bone_tip = nodes_[index_bone_finger4_[i]]->bone()->rest_transform;
+      float k3_theta = coeff[F0_KNUCKLE_END + i * FINGER_NUM_COEFF] + 
+        bone_finger4_offsets[i];
+      rotateMatZAxisGM(mat_tmp1, k3_theta);
+      const Float4x4& bone_tip = nodes_rest_transforms_[index_bone_finger4_[i]];
       Float3 bone_tip_pos;
       Float4x4::getTranslation(bone_tip_pos, bone_tip);
       float bone_mid_length = bone_tip_pos.length();
@@ -305,35 +370,33 @@ namespace hand_net {
       // Move bone by fraction of the bone length:
       mat_tmp2.leftMultTranslation(0, bone_mid_length * coeff[F0_LENGTH + i], 0);
       Float4x4::multSIMD(*mat, mat_tmp2, mat_tmp1);
-
       mat->leftMultScale(1.0f, 1.0f / (1.0f + coeff[F0_LENGTH + i]), 1.0f);  // Undo parent scale
       mat->rightMultScale(1.0f, 1.0f + coeff[F0_LENGTH + i], 1.0f);  // Scale this node
     }
 
     // Set the thumb bones
-    float theta = coeff[THUMB_THETA];
+    float theta = coeff[THUMB_THETA]; 
     float phi = coeff[THUMB_PHI];
     float psi = coeff[THUMB_TWIST];
-    mat = &nodes_[index_bone_thumb_[0]]->mat();
+    mat = &nodes_[index_bone_thumb_[0]]->mat(); 
     euler2RotMatGM(mat_tmp1, psi, theta, phi);
-    Float4x4::multSIMD(*mat, nodes_[index_bone_thumb_[0]]->bone()->rest_transform, mat_tmp1);
+    Float4x4::multSIMD(*mat, nodes_rest_transforms_[index_bone_thumb_[0]], mat_tmp1);
 
     theta = coeff[THUMB_K1_THETA];
-    phi = coeff[THUMB_K1_PHI];
+    phi = coeff[THUMB_K1_PHI] + thumb2_phi_offset;
     mat = &nodes_[index_bone_thumb_[1]]->mat();
-    rotateMatZAxisGM(mat_tmp1, theta);
-    rotateMatXAxisGM(mat_tmp2, phi);
+    rotateMatZAxisGM(mat_tmp1, phi);
+    rotateMatXAxisGM(mat_tmp2, -theta);
     Float4x4::multSIMD(mat_tmp3, mat_tmp1, mat_tmp2);
-
-    const Float4x4& bone_mid = nodes_[index_bone_thumb_[1]]->bone()->rest_transform;
+    const Float4x4& bone_mid = nodes_rest_transforms_[index_bone_thumb_[1]];
     mat_tmp2.set(bone_mid);
     Float4x4::multSIMD(*mat, mat_tmp2, mat_tmp3);
     mat->rightMultScale(1.0f, 1.0f + coeff[THUMB_LENGTH], 1.0f);  // Scale this node
 
     phi = coeff[THUMB_K2_PHI];
     mat = &nodes_[index_bone_thumb_[2]]->mat();
-    rotateMatXAxisGM(mat_tmp1, phi);
-    const Float4x4& bone_tip = nodes_[index_bone_thumb_[2]]->bone()->rest_transform;
+    rotateMatZAxisGM(mat_tmp1, phi);
+    const Float4x4& bone_tip = nodes_rest_transforms_[index_bone_thumb_[2]];
     Float3 bone_tip_pos;
     Float4x4::getTranslation(bone_tip_pos, bone_tip);
     float bone_mid_length = bone_tip_pos.length();

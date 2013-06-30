@@ -95,6 +95,7 @@ HandModelCoeff* lhand = NULL;
 HandModelCoeff* rhand_rest_pose = NULL;
 ModelRenderer* model_renderer = NULL;
 HandGeometryMesh* models[2];
+RobotHandGeometryMesh* robot_model;
 uint32_t cur_coeff = 0;
 uint32_t cur_sphere = 0;
 uint32_t cur_coord = 0;

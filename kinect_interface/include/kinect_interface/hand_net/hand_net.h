@@ -176,6 +176,7 @@ namespace hand_net {
     const int32_t size_images() const;
     const jtil::math::Float3& uvd_com() const;
     const float* gauss_coeff() const { return gauss_coeff_; }
+    const HandModelCoeff* rhand_cur_pose() const { return rhand_cur_pose_; }
 
   private:
     HandImageGenerator* image_generator_;

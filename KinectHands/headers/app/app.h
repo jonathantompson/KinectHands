@@ -51,6 +51,12 @@ namespace app {
     OUTPUT_FLOODFILL_LABELS = 3
   } LabelType;
 
+  typedef enum {
+    HAND_TYPE_NONE = 0,
+    HAND_TYPE_LIBHAND = 1,
+    HAND_TYPE_ROBOT = 2,
+  } HandModelType;
+
   class App {
   public:
     App();
