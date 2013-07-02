@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.4-1.40.13 (MiKTeX 2.9) (preloaded format=latex 2013.6.30)  30 JUN 2013 18:48
+This is pdfTeX, Version 3.1415926-2.4-1.40.13 (MiKTeX 2.9) (preloaded format=latex 2013.6.30)  1 JUL 2013 22:04
 entering extended mode
 **TOG-Sample.tex
 ("C:\Users\tompson\Documents\KinectHands\TOG Paper\TOG-Sample.tex"
@@ -92,90 +92,139 @@ File: dvips.def 1999/02/16 v3.0i Driver-dependant file (DPC,SPQR)
 \Gin@req@height=\dimen113
 \Gin@req@width=\dimen114
 ))
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\amsfonts\amssymb.sty"
+Package: amssymb 2013/01/14 v3.01 AMS font symbols
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\amsfonts\amsfonts.sty"
+Package: amsfonts 2013/01/14 v3.01 Basic AMSFonts support
+\@emptytoks=\toks15
+\symAMSa=\mathgroup9
+\symAMSb=\mathgroup10
+LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'
+(Font)                  U/euf/m/n --> U/euf/b/n on input line 106.
+))
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\amsmath\amsmath.sty"
+Package: amsmath 2013/01/14 v2.14 AMS math features
+\@mathmargin=\skip42
+
+For additional information on amsmath, use the `?' option.
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\amsmath\amstext.sty"
+Package: amstext 2000/06/29 v2.01
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\amsmath\amsgen.sty"
+File: amsgen.sty 1999/11/30 v2.0
+\@emptytoks=\toks16
+\ex@=\dimen115
+))
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\amsmath\amsbsy.sty"
+Package: amsbsy 1999/11/29 v1.2d
+LaTeX Info: Redefining \boldsymbol on input line 39.
+\pmbraise@=\dimen116
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\amsmath\amsopn.sty"
+Package: amsopn 1999/12/14 v2.01 operator names
+)
+\inf@bad=\count92
+LaTeX Info: Redefining \frac on input line 210.
+\uproot@=\count93
+\leftroot@=\count94
+LaTeX Info: Redefining \overline on input line 306.
+\classnum@=\count95
+\DOTSCASE@=\count96
+LaTeX Info: Redefining \ldots on input line 378.
+LaTeX Info: Redefining \dots on input line 381.
+LaTeX Info: Redefining \cdots on input line 466.
+\Mathstrutbox@=\box33
+\strutbox@=\box34
+\big@size=\dimen117
+LaTeX Font Info:    Redeclaring font encoding OML on input line 566.
+LaTeX Font Info:    Redeclaring font encoding OMS on input line 567.
+\macc@depth=\count97
+\c@MaxMatrixCols=\count98
+\dotsspace@=\muskip11
+\c@parentequation=\count99
+\dspbrk@lvl=\count100
+\tag@help=\toks17
+\row@=\count101
+\column@=\count102
+\maxfields@=\count103
+\andhelp@=\toks18
+\eqnshift@=\dimen118
+\alignsep@=\dimen119
+\tagshift@=\dimen120
+\tagwidth@=\dimen121
+\totwidth@=\dimen122
+\lineht@=\dimen123
+\@envbody=\toks19
+\multlinegap=\skip43
+\multlinetaggap=\skip44
+\mathdisplay@stack=\toks20
+LaTeX Info: Redefining \[ on input line 2665.
+LaTeX Info: Redefining \] on input line 2666.
+)
 ("C:\Users\tompson\Documents\KinectHands\TOG Paper\TOG-Sample.aux")
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 17.
-LaTeX Font Info:    ... okay on input line 17.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 17.
-LaTeX Font Info:    ... okay on input line 17.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 17.
-LaTeX Font Info:    ... okay on input line 17.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 17.
-LaTeX Font Info:    ... okay on input line 17.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 17.
-LaTeX Font Info:    ... okay on input line 17.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 17.
-LaTeX Font Info:    ... okay on input line 17.
-LaTeX Font Info:    Try loading font information for OT1+ptm on input line 17.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 19.
+LaTeX Font Info:    ... okay on input line 19.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 19.
+LaTeX Font Info:    ... okay on input line 19.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 19.
+LaTeX Font Info:    ... okay on input line 19.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 19.
+LaTeX Font Info:    ... okay on input line 19.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 19.
+LaTeX Font Info:    ... okay on input line 19.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 19.
+LaTeX Font Info:    ... okay on input line 19.
+LaTeX Font Info:    Try loading font information for OT1+ptm on input line 19.
 
 ("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\psnfss\ot1ptm.fd"
 File: ot1ptm.fd 2001/06/04 font definitions for OT1/ptm.
 )
-\bibhang=\skip42
-LaTeX Font Info:    Try loading font information for OT1+phv on input line 35.
+\bibhang=\skip45
+LaTeX Font Info:    Try loading font information for OT1+phv on input line 37.
 
 ("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\psnfss\ot1phv.fd"
 File: ot1phv.fd 2001/06/04 scalable font definitions for OT1/phv.
 )
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <17.28> on input line 35.
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <12> on input line 35.
-LaTeX Font Info:    Try loading font information for U+lasy on input line 35.
+LaTeX Font Info:    Try loading font information for U+lasy on input line 37.
 
 ("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\base\ulasy.fd"
 File: ulasy.fd 1998/08/17 v2.2e LaTeX symbol font definitions
 )
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <8> on input line 40.
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <6> on input line 40.
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <5> on input line 40.
+LaTeX Font Info:    Try loading font information for U+msa on input line 37.
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\amsfonts\umsa.fd"
+File: umsa.fd 2013/01/14 v3.01 AMS symbols A
+)
+LaTeX Font Info:    Try loading font information for U+msb on input line 37.
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\amsfonts\umsb.fd"
+File: umsb.fd 2013/01/14 v3.01 AMS symbols B
+)
 LaTeX Font Info:    Font shape `U/lasy/b/n' in size <8> not available
-(Font)              Font shape `U/lasy/m/n' tried instead on input line 40.
+(Font)              Font shape `U/lasy/m/n' tried instead on input line 42.
 LaTeX Font Info:    Font shape `U/lasy/b/n' in size <6> not available
-(Font)              Font shape `U/lasy/m/n' tried instead on input line 40.
+(Font)              Font shape `U/lasy/m/n' tried instead on input line 42.
 LaTeX Font Info:    Font shape `U/lasy/b/n' in size <5> not available
-(Font)              Font shape `U/lasy/m/n' tried instead on input line 40.
-LaTeX Font Info:    Try loading font information for OMS+ptm on input line 40.
+(Font)              Font shape `U/lasy/m/n' tried instead on input line 42.
+LaTeX Font Info:    Try loading font information for OMS+ptm on input line 42.
 
 ("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\psnfss\omsptm.fd"
 File: omsptm.fd 
 )
 LaTeX Font Info:    Font shape `OMS/ptm/m/n' in size <8> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 40.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 42.
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <8> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 45.
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <9> on input line 62.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 47.
 LaTeX Font Info:    Font shape `U/lasy/b/n' in size <9> not available
-(Font)              Font shape `U/lasy/m/n' tried instead on input line 62.
+(Font)              Font shape `U/lasy/m/n' tried instead on input line 64.
 
-Overfull \hbox (13.59036pt too wide) detected at line 64
+Overfull \hbox (11.69421pt too wide) detected at line 66
 \OML/cmm/m/it/9 f [] \OT1/cmr/m/n/9 = [] \OMS/cmsy/m/n/9  \OML/cmm/m/it/9 d[]
  []
 
-! Undefined control sequence.
-l.76 ...I_s,C\right)=\sum_{u,v}\left[\operatorname
-                                                  {min}\left(\left|d_I_s(u,v...
-The control sequence at the end of the top line
-of your error message was never \def'ed. If you have
-misspelled it (e.g., `\hobx'), type `I' and the correct
-spelling (e.g., `I\hbox'). Otherwise just continue,
-and I'll forget about whatever was undefined.
 
-! Double subscript.
-l.76 ...v}\left[\operatorname{min}\left(\left|d_I_
-                                                  s(u,v)-d_S_s(C,u,v)\right|...
-I treat `x_1_2' essentially like `x_1{}_2'.
-
-! Double subscript.
-l.76 ...eratorname{min}\left(\left|d_I_s(u,v)-d_S_
-                                                  s(C,u,v)\right|,d_{max}\ri...
-I treat `x_1_2' essentially like `x_1{}_2'.
-
-
-Overfull \hbox (15.6274pt too wide) detected at line 81
+Overfull \hbox (12.39592pt too wide) detected at line 87
 \OT1/cmr/m/n/9  [] = [] []
  []
 
@@ -188,12 +237,12 @@ LaTeX Warning: Empty `thebibliography' environment on input line 3.
 
 ] ("C:\Users\tompson\Documents\KinectHands\TOG Paper\TOG-Sample.aux") ) 
 Here is how much of TeX's memory you used:
- 1090 strings out of 493922
- 13531 string characters out of 3144893
- 68957 words of memory out of 3000000
- 4396 multiletter control sequences out of 15000+200000
- 22402 words of font info for 73 fonts, out of 3000000 for 9000
+ 1977 strings out of 493922
+ 23498 string characters out of 3144893
+ 79339 words of memory out of 3000000
+ 5245 multiletter control sequences out of 15000+200000
+ 26629 words of font info for 93 fonts, out of 3000000 for 9000
  841 hyphenation exceptions out of 8191
- 32i,6n,21p,219b,219s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 32i,6n,26p,219b,223s stack positions out of 5000i,500n,10000p,200000b,50000s
 
-Output written on TOG-Sample.dvi (1 page, 5092 bytes).
+Output written on TOG-Sample.dvi (1 page, 5960 bytes).
