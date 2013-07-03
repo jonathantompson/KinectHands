@@ -1,0 +1,22 @@
+#version 150
+
+in vec3 v_pos;
+in vec2 v_tex_coord;
+in vec3 v_nor;
+
+uniform mat4 pvw_mat;
+uniform mat4 vw_mat;
+uniform mat4 normal_mat;
+
+out vec2 f_rgb_coord;
+out vec3 f_normal_view;
+out vec3 f_position_view;
+
+void main(void) {
+  // Multiply the mvp matrix by the vertex to obtain our final vertex position
+  gl_Position = pvw_mat * vec4(v_pos, 1.0);
+
+  f_normal_view = (normal_mat * vec4(v_nor, 0.0)).xyz;
+  f_rgb_coord = v_tex_coord;
+  f_position_view = (vw_mat * vec4(v_pos, 1.0)).xyz;
+}

@@ -10,62 +10,65 @@ QMAKE_CFLAGS += -std=c++0x -static -pthread -static-libgcc -static-libstdc++ -D_
 QMAKE_CFLAGS_RELEASE	= -O3 -msse -msse2
 QMAKE_CXXFLAGS_RELEASE	= -O3 -msse -msse2
 LIBS += -static
-LIBS += -Wl,--whole-archive -lpthread
+LIBS += -Wl,--whole-archive -lpthread -lrt
 LIBS += -Wl,--no-whole-archive
 
 INCLUDEPATH += ../src/
-INCLUDEPATH += ../../src/
+INCLUDEPATH += ../../kinect_interface/include
+INCLUDEPATH += ../../../PRenderer2/jtil/include
+
 
 
 SOURCES += \
     ../src/main.cpp \
-    ../src/generate_decision_tree.cpp \
-    ../src/forest_io.cpp \
-    ../src/evaluate_decision_forest.cpp \
-    ../src/depth_images_io.cpp \
-    ../src/common_tree_funcs.cpp \
-    ../src/debug_util/debug_util_macosx.cpp \
-    ../src/threading/thread_pool.cpp \
-    ../src/threading/thread.cpp \
-    ../../src/fastlz/fastlz.c \
-    ../../src/string_util/string_util.cpp \
-    ../../src/exceptions/wruntime_error.cpp \
-    ../src/file_io/csv_handle_read.cpp \
-    ../src/file_io/csv_handle.cpp \
+    ../../kinect_interface/src/kinect_interface/hand_detector/generate_decision_tree.cpp \
+    ../../kinect_interface/src/kinect_interface/hand_detector/forest_io.cpp \
+    ../../kinect_interface/src/kinect_interface/hand_detector/evaluate_decision_forest.cpp \
+    ../../kinect_interface/src/kinect_interface/depth_images_io.cpp \
+    ../../kinect_interface/src/kinect_interface/hand_detector/common_tree_funcs.cpp \
+    ../../../PRenderer2/jtil/src/jtil/debug_util/debug_util_macosx.cpp \
+    ../../../PRenderer2/jtil/src/jtil/threading/thread_pool.cpp \
+    ../../../PRenderer2/jtil/src/jtil/threading/thread.cpp \
+    ../../../PRenderer2/jtil/src/jtil/fastlz/fastlz.c \
+    ../../../PRenderer2/jtil/src/jtil/string_util/string_util.cpp \
+    ../../../PRenderer2/jtil/src/jtil/exceptions/wruntime_error.cpp \
+    ../../../PRenderer2/jtil/src/jtil/file_io/csv_handle_read.cpp \
+    ../../../PRenderer2/jtil/src/jtil/file_io/csv_handle.cpp \
     ../src/load_settings_from_file.cpp \
-    ../../src/kinect_interface/open_ni_funcs.cpp
+    ../../kinect_interface/src/kinect_interface/open_ni_funcs.cpp
 
 HEADERS += \
-    ../src/image_util.h \
-    ../src/generate_decision_tree.h \
-    ../src/forest_io.h \
-    ../src/evaluate_decision_forest.h \
-    ../src/depth_images_io.h \
-    ../src/decision_tree_func.h \
-    ../src/common_tree_funcs.h \
-    ../src/debug_util/debug_util.h \
-    ../src/threading/thread_pool.h \
-    ../src/threading/thread.h \
-    ../src/threading/callback_queue_item.h \
-    ../src/threading/callback_queue.h \
-    ../src/threading/callback_instances.h \
-    ../src/threading/callback.h \
-    ../../src/fastlz/fastlz.h \
-    ../../src/math/vec4.h \
-    ../../src/math/vec3.h \
-    ../../src/math/vec2.h \
-    ../../src/math/math_types.h \
-    ../../src/math/mat4x4.h \
-    ../../src/math/mat3x3.h \
-    ../../src/math/mat2x2.h \
-    ../../src/string_util/string_util.h \
-    ../../src/exceptions/wruntime_error.h \
-    ../src/data_str/vector_managed.h \
-    ../src/file_io/csv_handle_read.h \
-    ../src/file_io/csv_handle.h \
+    ../../../PRenderer2/jtil/include/jtil/image_util/image_util.h \
+    ../../kinect_interface/include/kinect_interface/hand_detector/generate_decision_tree.h \
+    ../../kinect_interface/include/kinect_interface/hand_detector/forest_io.h \
+    ../../kinect_interface/include/kinect_interface/hand_detector/evaluate_decision_forest.h \
+    ../../kinect_interface/include/kinect_interface/depth_images_io.h \
+    ../../kinect_interface/include/kinect_interface/hand_detector/decision_tree_func.h \
+    ../../kinect_interface/include/kinect_interface/hand_detector/common_tree_funcs.h \
+    ../../../PRenderer2/jtil/include/jtil/debug_util/debug_util.h \
+    ../../../PRenderer2/jtil/include/jtil/threading/thread_pool.h \
+    ../../../PRenderer2/jtil/include/jtil/threading/thread.h \
+    ../../../PRenderer2/jtil/include/jtil/threading/callback_queue_item.h \
+    ../../../PRenderer2/jtil/include/jtil/threading/callback_queue.h \
+    ../../../PRenderer2/jtil/include/jtil/threading/callback_instances.h \
+    ../../../PRenderer2/jtil/include/jtil/threading/callback.h \
+    ../../../PRenderer2/jtil/include/jtil/fastlz/fastlz.h \
+    ../../../PRenderer2/jtil/include/jtil/math/vec4.h \
+    ../../../PRenderer2/jtil/include/jtil/math/vec3.h \
+    ../../../PRenderer2/jtil/include/jtil/math/vec2.h \
+    ../../../PRenderer2/jtil/include/jtil/math/math_types.h \
+    ../../../PRenderer2/jtil/include/jtil/math/mat4x4.h \
+    ../../../PRenderer2/jtil/include/jtil/math/mat3x3.h \
+    ../../../PRenderer2/jtil/include/jtil/math/mat2x2.h \
+    ../../../PRenderer2/jtil/include/jtil/string_util/string_util.h \
+    ../../../PRenderer2/jtil/include/jtil/exceptions/wruntime_error.h \
+    ../../../PRenderer2/jtil/include/jtil/data_str/vector_managed.h \
+    ../../../PRenderer2/jtil/include/jtil/file_io/csv_handle_read.h \
+    ../../../PRenderer2/jtil/include/jtil/file_io/csv_handle.h \
+    ../../../PRenderer2/jtil/include/jtil/clk/clk.h \
     ../src/load_settings_from_file.h \
-    ../../src/kinect_interface/open_ni_funcs.h
+    ../../kinect_interface/include/kinect_interface/open_ni_funcs.h
 
 OTHER_FILES += \
-    ../src/threading/callback_instances.py
-
+    ../../../PRenderer2/jtil/include/jtil/threading/callback_instances.py \
+    ../../hand_forests_settings.csv

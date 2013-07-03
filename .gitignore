@@ -58,3 +58,22 @@ hand_data
 forest_data.bin
 
 data
+
+
+build
+build_intermediate
+Debug
+Release
+assimp.dll
+HandFit.exe
+FreeImage.dll
+HandForests.exe
+Drivers
+NiTE2.dll
+OpenNI2.dll
+NiTE.ini
+OpenNI.ini
+PS1080.ini
+OpenNI2
+calibration_info*
+Modified_OpenNI_src

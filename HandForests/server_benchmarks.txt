@@ -1,0 +1,35 @@
+    load_forest_from_file = 0
+    num_trees = 4
+    num_workers = 4
+    tree_height = 25
+    min_info_gain = 99999
+    max_pixels_per_image_per_label = 10000
+    num_wl_samples_per_node = 500
+    max_num_images = 100000000
+    wl_func_type = 1
+    file_stride = 10
+
+texier:
+2192.01sec (36.53min)
+2233.88sec (37.23min)
+
+My PC (Win7):
+628.408sec  (10.47min)
+647.673sec  (10.79min)
+
+My PC (ubuntu virtual):
+540.488sec (9.008min)
+537.408sec
+
+rose1:
+457.310sec  (7.621min)
+480.286sec
+
+Amazon EC2 M3 Extra Large: 
+857.67sec
+
+crunchy3:
+2519.7sec
+
+crunchy5:
+1873.49sec

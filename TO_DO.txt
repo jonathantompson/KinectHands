@@ -1,0 +1,4 @@
+1. Fix the Hand model so that the wrist is a bone off the palm --> Done
+   1. a) Re-fit all the coeffs!  Annoying but necessary.
+3. Added the new data to the Decision Forest and re-train it.  It messes up
+   a lot of frames and I wonder if we can do better (even just taller trees?)

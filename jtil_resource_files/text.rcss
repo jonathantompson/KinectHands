@@ -1,0 +1,92 @@
+body
+{
+	font-family: Delicious;
+	font-weight: bold;
+	font-style: normal;
+	font-size: 20;
+	color: white;
+	shadow-font-effect: shadow;
+    shadow-offset: 1px 1px;
+    shadow-color: black;
+	white-space: pre;
+}
+
+body.window
+{
+	padding-left: 10px;
+	padding-right: 5px;
+	padding-top: 5px;
+	padding-bottom: 5px;
+	
+	min-width: 400px;
+	max-width: 800px;
+	
+	min-height: 50px;
+	max-height: 1000px;
+}
+
+div#window
+{
+	width: auto;
+	height: auto;
+	padding-top: 0px;
+	padding-bottom: 0px;
+	padding-right: 0px;
+	padding-left: 0px;
+}
+
+div#content
+{
+	z-index: 2;
+
+	width: 400px;
+	height: 100%;
+
+	overflow: scroll;
+	clip: auto;
+
+	text-align: center;
+
+	margin: 0px;
+	
+}
+
+
+
+p
+{
+	text-align: left;
+	margin-bottom: 1em;
+}
+
+h1
+{
+	margin-left: 0.4em;
+	margin-bottom: 0.4em;
+
+	text-align: left;
+	font-size: 16;
+	font-weight: bold;
+
+	shadow-font-effect: shadow;
+	shadow-offset: 1px 1px;
+	shadow-color: black;
+}
+
+input.text
+{
+	height: 31px;
+	padding: 10px 10px 0px;
+
+	background-decorator: tiled-horizontal;
+	background-left-image: invader.tga 162px 192px 176px 223px;
+	background-center-image: invader.tga stretch 176px 192px 177px 223px;
+}
+
+input.text,
+select,
+dataselect
+{
+	color: black;
+	font-size: 15;
+}

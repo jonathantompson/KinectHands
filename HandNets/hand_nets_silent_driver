@@ -1,0 +1,3 @@
+#!/bin/bash
+nohup torch hand_nets.lua > handmodel.net.log &
+tail -f handmodel.net.log

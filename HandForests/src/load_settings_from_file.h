@@ -8,7 +8,7 @@
 #define UNNAMED_LOAD_SETTINGS_FROM_FILE_HEADER
 
 #include <string>
-#include "math/math_types.h"
+#include "jtil/math/math_types.h"
 
 struct ProgramSettings {
   bool load_forest_from_file;
@@ -19,9 +19,8 @@ struct ProgramSettings {
   uint32_t max_pixels_per_image_per_label;
   uint32_t num_wl_samples_per_node;  // Def ~ 500-5000
   uint32_t max_num_images;  // There may not be this many images
-  uint32_t num_bootstrap_passes;
-  uint32_t bootstrap_tree_height;
   uint32_t wl_func_type;  // 0 - both, 1 - my WL only, 2 - Kinect WL only
+  uint32_t file_stride;
 };
 
 void loadSettingsFromFile(ProgramSettings* settings, std::string filename);
