@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 7/24/12.
 //
 
-#ifndef UNNAMED_DECISION_TREE_FUNC_HEADER
-#define UNNAMED_DECISION_TREE_FUNC_HEADER
+#pragma once
 
 #if defined(WIN32) || defined(_WIN32)
 #define FORCEINLINE __forceinline
@@ -85,5 +84,3 @@ FORCEINLINE bool WL_FUNC(const int32_t index, const int32_t coeff0,
     return (image_data[index_offset] - image_data[index]) >= coeff2;
   }
 }
-
-#endif  // UNNAMED_DECISION_TREE_FUNC_HEADER

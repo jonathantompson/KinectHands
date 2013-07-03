@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 6/7/12.
 //
 
-#ifndef GLOBAL_HEADER
-#define GLOBAL_HEADER
+#pragma once
 
 #ifndef GLEW_STATIC
   #define GLEW_STATIC
@@ -19,5 +18,3 @@
 
 #define GL3_PROTOTYPES 1  // Ensure we're using OpenGL's core profile only
 #include <GL/glfw.h>
-
-#endif  // GLOBAL_HEADER

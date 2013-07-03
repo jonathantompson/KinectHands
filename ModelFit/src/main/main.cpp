@@ -16,6 +16,8 @@
 #include <iomanip>
 #include <limits>
 
+#define OPEN_NI_FUNCS_USE_OMP
+
 #include "renderer/open_gl_common.h"
 #include "renderer/renderer.h"
 #include "renderer/geometry/geometry.h"

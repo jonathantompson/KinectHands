@@ -278,6 +278,9 @@ int main(int argc, char *argv[]) {
       prog_settings.num_trees = (uint32_t)ntrees;
     }
     
+    // NOTE, THE COMBINATION CODE IS MISSING!  IT MUST HAVE BEEN LOST IN A
+    // COMMIT SOMEWHERE AND NEEDS TO BE RE-WRITTEN :-(
+    // NUM_TREES CHOOSE 4 COMBINATIONS AND SEARCH FOR LOWEST TEST SET ERROR
     const int32_t evaluate_median_radius = 2;
     if (test_data->num_images > 0) {
       cout << "Evaluating results..." << endl;

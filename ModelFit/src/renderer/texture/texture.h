@@ -5,8 +5,7 @@
 //
 //  The underlining loading of textures uses the FreeImage library.
 
-#ifndef RENDERER_TEXURE_HEADER
-#define RENDERER_TEXURE_HEADER
+#pragma once
 
 #include <mutex>
 #include <string>
@@ -78,5 +77,3 @@ namespace renderer {
     Texture& operator=(const Texture&);
   };
 };  // namespace renderer
-
-#endif  // RENDERER_TEXURE_HEADER

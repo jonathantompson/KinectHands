@@ -10,8 +10,7 @@
 //  of the residue overhead.
 //
 
-#ifndef MODEL_FIT_MODEL_RENDERER_HEADER
-#define MODEL_FIT_MODEL_RENDERER_HEADER
+#pragma once
 
 #include "renderer/open_gl_common.h"  // GLfloat
 #include "jtil/math/math_types.h"
@@ -190,5 +189,3 @@ namespace model_fit {
    };
 
 };  // unnamed namespace
-
-#endif  // MODEL_FIT_MODEL_RENDERER_HEADER

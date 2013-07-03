@@ -7,8 +7,7 @@
 //  the simple forward renderer
 //
 
-#ifndef MODEL_FIT_HAND_GEOMETRY_MESH_HEADER
-#define MODEL_FIT_HAND_GEOMETRY_MESH_HEADER
+#pragma once
 
 #include "renderer/open_gl_common.h"  // GLfloat
 #include "kinect_interface/hand_net/hand_model_coeff.h"
@@ -147,5 +146,3 @@ namespace model_fit {
     HandGeometryMesh& operator=(const HandGeometryMesh&);
   };
 };  // namespace hand_fit
-
-#endif  // MODEL_FIT_HAND_GEOMETRY_MESH_HEADER

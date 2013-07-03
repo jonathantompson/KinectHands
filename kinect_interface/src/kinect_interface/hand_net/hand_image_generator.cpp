@@ -182,7 +182,7 @@ namespace hand_net {
       float dmax = uvd_com_[2] + (HN_HAND_SIZE * 0.5f);
       const float background = 1.0f;
       const bool use_synthetic = synthetic_depth != NULL;
-#pragma omp parallel for num_threads(4)
+//#pragma omp parallel for num_threads(4)
       for (int32_t v = v_start; v < v_start + HN_SRC_IM_SIZE; v++) {
         for (int32_t u = u_start; u < u_start + HN_SRC_IM_SIZE; u++) {
           int32_t dst_index = (v-v_start)* HN_SRC_IM_SIZE + (u-u_start);

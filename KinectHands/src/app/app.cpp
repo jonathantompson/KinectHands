@@ -12,6 +12,7 @@
 #include "kinect_interface/hand_detector/hand_detector.h"
 #include "kinect_interface/hand_net/hand_image_generator.h"
 #include "kinect_interface/hand_net/hand_model_coeff.h"  // for camera parameters
+#include "kinect_interface/hand_net/robot_hand_model.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
 #include "jtil/glew/glew.h"
 #include "jtil/image_util/image_util.h"
@@ -46,6 +47,20 @@ using namespace jtil::renderer;
 using namespace jtil::image_util;
 using namespace jtil::threading;
 
+const uint32_t num_pose_smoothing_factors = 10;
+const float pose_smoothing_factors[num_pose_smoothing_factors] = {
+  0.0f,
+  0.1f,
+  0.2f,
+  0.3f,
+  0.4f,
+  0.5f,
+  0.6f,
+  0.7f,
+  0.8f,
+  0.9f,
+};
+
 namespace app {
 
   App* App::g_app_ = NULL;
@@ -73,7 +88,10 @@ namespace app {
     convnet_hm_im_flipped_ = NULL;
     kinect_update_cbs_ = NULL;
     data_save_cbs_ = NULL;
+    robot_hand_model_ = NULL;
     tp_ = NULL;
+    drawing_ = false;
+    was_drawing_ = false;
   }
 
   App::~App() {
@@ -87,6 +105,7 @@ namespace app {
     if (tp_) {
       tp_->stop();
     }
+    SAFE_DELETE(robot_hand_model_);
     SAFE_DELETE(hand_net_);
     SAFE_DELETE(clk_);
     SAFE_DELETE(tp_);
@@ -186,6 +205,8 @@ namespace app {
     }
 
     initRainbowPallet();
+
+    robot_hand_model_ = new RobotHandModel(HandType::RIGHT);
   }
 
   void App::killApp() {
@@ -208,7 +229,6 @@ namespace app {
     Renderer::g_renderer()->registerMousePosCB(App::mousePosCB);
     Renderer::g_renderer()->registerMouseButCB(App::mouseButtonCB);
     Renderer::g_renderer()->registerMouseWheelCB(App::mouseWheelCB);
-    Renderer::g_renderer()->registerCharInputCB(App::characterInputCB);
     Renderer::g_renderer()->registerResetScreenCB(App::resetScreenCB);
     Renderer::g_renderer()->getMousePosition(g_app_->mouse_pos_);
     Renderer::g_renderer()->registerCloseWndCB(App::closeWndCB);
@@ -292,8 +312,14 @@ namespace app {
           hand_net_->calcConvnetHeatMap(kdata_[cur_kinect]->depth, 
             kdata_[cur_kinect]->labels);
           if (detect_pose) {
+            int smoothing_factor;
+            bool smoothing_on;
+            GET_SETTING("pose_smoothing_factor_enum", int, smoothing_factor);
+            GET_SETTING("pose_smoothing_on", bool, smoothing_on);
             hand_net_->calcConvnetPose(kdata_[cur_kinect]->depth, 
-              kdata_[cur_kinect]->labels);
+              kdata_[cur_kinect]->labels, 
+              smoothing_on ? pose_smoothing_factors[smoothing_factor] : 0);
+            robot_hand_model_->updateMatrices(hand_net_->rhand_cur_pose()->coeff());
           }
         }
       }  // if (new_data_)
@@ -574,12 +600,28 @@ namespace app {
       }
       moveStuff(dt);
 
-      bool render_kinect_fps, show_hand_model;
+      bool render_kinect_fps;
+      int show_hand_model_type;
       GET_SETTING("render_kinect_fps", bool, render_kinect_fps);
-      GET_SETTING("show_hand_model", bool, show_hand_model);
+      GET_SETTING("show_hand_model_type", int, show_hand_model_type);
       Renderer::g_renderer()->ui()->setTextWindowVisibility("kinect_fps_wnd",
         render_kinect_fps);
-      hand_net_->setModelVisibility(show_hand_model);
+      switch (show_hand_model_type) {
+      case HAND_TYPE_NONE:
+        hand_net_->setModelVisibility(false);
+        robot_hand_model_->setRenderVisiblity(false);
+        break;
+      case HAND_TYPE_LIBHAND:
+        hand_net_->setModelVisibility(true);
+        robot_hand_model_->setRenderVisiblity(false);
+        break;
+      case HAND_TYPE_ROBOT:
+        hand_net_->setModelVisibility(false);
+        robot_hand_model_->setRenderVisiblity(true);
+        break;
+      default:
+        throw std::wruntime_error("INTERNAL ERROR: Undefined model enum");
+      }
 
       Renderer::g_renderer()->renderFrame();
 
@@ -681,7 +723,6 @@ namespace app {
         ui::UIEnumVal(i, ss.str().c_str()));
     }
     ui->addSelectbox("color_convnet_depth_threshold", "Feature Threshold");
-    ss;
     for (uint32_t i = 5; i <= 40; i+= 5) {
       ss.str("");
       ss << "Threshold " << i;
@@ -698,11 +739,18 @@ namespace app {
     ui->addCheckbox("detect_hands", "Enable Hand Detection");
     ui->addCheckbox("detect_heat_map", "Enable Heat Map Detection");
     ui->addCheckbox("detect_pose", "Enable Pose Detection");
+    ui->addCheckbox("pose_smoothing_on", "Enable Pose Smoothing");
+    ui->addSelectbox("pose_smoothing_factor_enum", "Smoothing Factor");
+    for (uint32_t i = 0; i < num_pose_smoothing_factors; i++) {
+      ss.str("");
+      ss << pose_smoothing_factors[i];
+      ui->addSelectboxItem("pose_smoothing_factor_enum", 
+        ui::UIEnumVal(i, ss.str().c_str()));
+    }
     ui->addCheckbox("show_gaussian_labels", "Show Gaussian Labels");
-
     ui->addButton("reset_tracking_button", "Reset Tracking", 
       App::resetTrackingCB);
-
+    ui->addCheckbox("in_air_drawing_enabled", "In Air Drawing");
     ui->addSelectbox("label_type_enum", "Hand label type");
     ui->addSelectboxItem("label_type_enum", 
       ui::UIEnumVal(OUTPUT_NO_LABELS, "Labels off"));
@@ -712,9 +760,15 @@ namespace app {
       ui::UIEnumVal(OUTPUT_FILTERED_LABELS, "Filtered DF"));
     ui->addSelectboxItem("label_type_enum", 
       ui::UIEnumVal(OUTPUT_FLOODFILL_LABELS, "Floodfill"));
-    ui->addCheckbox("show_hand_model", "Show hand model");
+    ui->addSelectbox("show_hand_model_type", "Show hand model");
+    ui->addSelectboxItem("show_hand_model_type", 
+      ui::UIEnumVal(HAND_TYPE_NONE, "None"));
+    ui->addSelectboxItem("show_hand_model_type", 
+      ui::UIEnumVal(HAND_TYPE_LIBHAND, "LibHand"));
+    ui->addSelectboxItem("show_hand_model_type", 
+      ui::UIEnumVal(HAND_TYPE_ROBOT, "Robot"));
+
     ui->addSelectbox("cur_kinect", "Current Kinect");
-    ss;
     for (uint32_t i = 0; i < MAX_NUM_KINECTS; i++) {
       ss.str("");
       ss << "device " << i;
@@ -734,11 +788,6 @@ namespace app {
     light_spot_vsm->inner_fov_deg() = 30.0f;
     light_spot_vsm->cvsm_count(1);
     Renderer::g_renderer()->addLight(light_spot_vsm);
-
-    //GeometryInstance* tmp = 
-    //  Renderer::g_renderer()->geometry_manager()->makeTorusKnot(lred, 7, 64, 512);
-    //tmp->mat().leftMultTranslation(300.0f, 0.0f, 1500.0f);
-    //tmp->mat().rightMultScale(100.0f, 100.0f, 100.0f);
 
     hand_net_->loadHandModels();
   }
@@ -764,17 +813,12 @@ namespace app {
     jtil::renderer::Texture::saveRGBToFile(ss.str(), rgb_src, src_width, 
       src_height, true);
     std::cout << "RGB saved to file " << ss.str() << std::endl;
-    g_app_->screenshot_counter_++;
-    /*
-    // Also save the heatmaps (for debugging later)
-    const float* hm = g_app_->hand_net_->heat_map_convnet();
-    const uint32_t hm_dim = g_app_->hand_net_->heat_map_size();
-    const uint32_t hm_nfeats = g_app_->hand_net_->num_output_features();
+    const uint16_t* depth =  g_app_->kinect_[cur_kinect]->depth();
     ss.str("");
-    ss << "heatmap_screenshot" << g_app_->screenshot_counter_ << ".bin";
-    jtil::file_io::SaveArrayToFile<float>(hm, hm_dim * hm_dim * hm_nfeats, 
-      ss.str());
-    */
+    ss << "depth_screenshot" << g_app_->screenshot_counter_ << ".jpg";
+    jtil::file_io::SaveArrayToFile<uint16_t>(depth, src_dim, ss.str());
+    std::cout << "Depth saved to file " << ss.str() << std::endl;
+    g_app_->screenshot_counter_++;
     g_app_->kinect_[cur_kinect]->unlockData();
   }
 
@@ -800,6 +844,11 @@ namespace app {
     jtil::renderer::Texture::saveGreyscaleToFile(ss.str(), grey, src_width, 
       src_height, true);
     std::cout << "Greyscale saved to file " << ss.str() << std::endl;
+    const uint16_t* depth =  g_app_->kinect_[cur_kinect]->depth();
+    ss.str("");
+    ss << "depth_screenshot" << g_app_->screenshot_counter_ << ".jpg";
+    jtil::file_io::SaveArrayToFile<uint16_t>(depth, src_dim, ss.str());
+    std::cout << "Depth saved to file " << ss.str() << std::endl;
     g_app_->screenshot_counter_++;
     g_app_->kinect_[cur_kinect]->unlockData();
     SAFE_DELETE(grey);
@@ -814,7 +863,7 @@ namespace app {
     g_app_->registerNewRenderer();
   }
 
-  void App::keyboardCB(int key, int action) {
+  void App::keyboardCB(int key, int scancode, int action, int mods) {
     switch (key) {
     case KEY_ESC:
       if (action == PRESSED) {
@@ -826,19 +875,15 @@ namespace app {
     }
   }
   
-  void App::mousePosCB(int x, int y) {
+  void App::mousePosCB(double x, double y) {
 
   }
   
-  void App::mouseButtonCB(int button, int action) {
+  void App::mouseButtonCB(int button, int action, int mods) {
  
   }
   
-  void App::mouseWheelCB(int pos) {
-
-  }
-  
-  void App::characterInputCB(int character, int action) {
+  void App::mouseWheelCB(double xoffset, double yoffset) {
 
   }
 

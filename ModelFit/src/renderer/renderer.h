@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 5/29/12.
 //
 
-#ifndef RENDERER_RENDERER_HEADER
-#define RENDERER_RENDERER_HEADER
+#pragma once
 
 #include "renderer/open_gl_common.h"
 #include "jtil/data_str/vector.h"
@@ -253,5 +252,3 @@ namespace renderer {
     Renderer& operator=(const Renderer&);
   };
 };  // renderer namespace
-
-#endif  // RENDERER_RENDERER_HEADER

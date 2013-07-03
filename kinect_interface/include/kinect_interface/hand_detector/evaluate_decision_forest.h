@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 7/20/12.
 //
 
-#ifndef KINECT_INTERFACE_HAND_DETECTOR_EVALUATE_DECISION_FOREST_HEADER
-#define KINECT_INTERFACE_HAND_DETECTOR_EVALUATE_DECISION_FOREST_HEADER
+#pragma once
 
 // #define VERBOSE_EVALUATE  // Print perbose messages during tree generation
 // #define MULTIPLY_LEAVES  // If not defined leaves will be added
@@ -41,5 +40,3 @@ namespace hand_detector {
 
 };  // namespace hand_detector
 };  // namespace kinect_interface
-
-#endif  // KINECT_INTERFACE_HAND_DETECTOR_EVALUATE_DECISION_FOREST_HEADER

@@ -31,8 +31,7 @@
 //    Window::killWindowSystem();
 //  }
 
-#ifndef WINDOWING_WINDOW_HEADER
-#define WINDOWING_WINDOW_HEADER
+#pragma once
 
 #include <mutex>
 #include <string>
@@ -125,6 +124,3 @@ namespace windowing {
   void NativeErrorBox(const wchar_t* str);
 
 };  // namespace windowing
-
-#endif  // WINDOWING_WINDOW_HEADER
-

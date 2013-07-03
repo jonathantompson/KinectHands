@@ -7,8 +7,7 @@
 //  them from/to file.
 //
 
-#ifndef KINECT_INTERFACE_HAND_FIT_HAND_MODEL_HEADER
-#define KINECT_INTERFACE_HAND_FIT_HAND_MODEL_HEADER
+#pragma once
 
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector.h"
@@ -206,6 +205,7 @@ namespace hand_net {
     // Accessors
     const float getCoeff(const uint32_t index) const;
     float* coeff() { return coeff_; }
+    const float* coeff() const { return coeff_; }
     const HandType hand_type() const { return hand_type_; }
     void setRotation(const jtil::math::Float3& euler);
     void getRotation(jtil::math::Float3& euler) const;
@@ -248,5 +248,3 @@ namespace hand_net {
 
 };  // namespace hand_net
 };  // namespace kinect_interface
-
-#endif  // KINECT_INTERFACE_HAND_FIT_HAND_MODEL_COEFF_HEADER

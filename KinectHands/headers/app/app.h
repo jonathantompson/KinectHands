@@ -26,6 +26,7 @@ class DebugBuf;
 namespace kinect_interface { class KinectInterface; }
 namespace kinect_interface { namespace hand_net { class HandNet; } }
 namespace kinect_interface { namespace hand_net { class HandModelCoeff; } }
+namespace kinect_interface { namespace hand_net { class RobotHandModel; } }
 
 namespace app {
   struct FrameData;
@@ -50,6 +51,12 @@ namespace app {
     OUTPUT_FLOODFILL_LABELS = 3
   } LabelType;
 
+  typedef enum {
+    HAND_TYPE_NONE = 0,
+    HAND_TYPE_LIBHAND = 1,
+    HAND_TYPE_ROBOT = 2,
+  } HandModelType;
+
   class App {
   public:
     App();
@@ -66,11 +73,10 @@ namespace app {
     
     static inline void requestShutdown() { g_app_->app_running_ = false; }
     static inline bool appRunning() { return g_app_->app_running_; }
-    static void keyboardCB(const int key, const int action);
-    static void mousePosCB(const int x, const int y);
-    static void mouseButtonCB(const int button, const int action);
-    static void mouseWheelCB(const int pos);
-    static void characterInputCB(const int character, const int action);
+    static void keyboardCB(int key, int scancode, int action, int mods);
+    static void mousePosCB(double x, double y);
+    static void mouseButtonCB(int button, int action, int mods);
+    static void mouseWheelCB(double xoffset, double yoffset);
     static void screenshotCB();
     static void resetTrackingCB();
     static void greyscaleScreenshotCB();
@@ -95,10 +101,11 @@ namespace app {
     // Convolutional Neural Network
     kinect_interface::hand_net::HandNet* hand_net_;
     kinect_interface::hand_net::HandModelCoeff* hands_[2];
+    kinect_interface::hand_net::RobotHandModel* robot_hand_model_;
 
     jtil::clk::Clk* clk_;
-    jtil::math::Int2 mouse_pos_;
-    jtil::math::Int2 mouse_pos_old_;
+    jtil::math::Double2 mouse_pos_;
+    jtil::math::Double2 mouse_pos_old_;
     double frame_time_;
     double frame_time_prev_;
     static uint32_t screenshot_counter_;
@@ -125,6 +132,13 @@ namespace app {
     uint32_t hm_size_;
     uint32_t hm_nfeats_;
     jtil::math::Int2 hm_feats_dim_;  // Number of tiles width and height
+
+    // In-air drawing
+    bool drawing_;
+    bool was_drawing_;
+    jtil::math::Int2 prev_pen_position_;
+    jtil::math::Int2 pen_position_;
+    uint8_t* drawing_canvas_;
 
     void run();
     void init();

@@ -2,8 +2,7 @@
 //  kinect_device_listener.h
 // 
 
-#ifndef KINECT_INTERFACE_KINECT_DEVICE_LISTENER_HEADER
-#define KINECT_INTERFACE_KINECT_DEVICE_LISTENER_HEADER
+#pragma once
 
 #include "OpenNI.h"
 		
@@ -22,5 +21,3 @@ namespace kinect_interface {
   };
 
 };  // namespace kinect_interface
-
-#endif  // KINECT_INTERFACE_KINECT_DEVICE_LISTENER_HEADER

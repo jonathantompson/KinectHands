@@ -10,8 +10,7 @@
 //  since a valid OpenCL context must exist.
 //
 
-#ifndef JTORCH_TORCH_STAGE_HEADER
-#define JTORCH_TORCH_STAGE_HEADER
+#pragma once
 
 #include <iostream>
 #include <iomanip>
@@ -67,5 +66,3 @@ namespace jtorch {
   };
 
 };  // namespace jtorch
-
-#endif  // JTORCH_TORCH_STAGE_HEADER

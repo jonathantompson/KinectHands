@@ -10,8 +10,7 @@
 //  we define tensors as float* anyway).
 //
 
-#ifndef JTORCH_RESHAPE_HEADER
-#define JTORCH_RESHAPE_HEADER
+#pragma once
 
 #include <mutex>
 #include <condition_variable>
@@ -41,5 +40,3 @@ namespace jtorch {
   };
   
 };  // namespace jtorch
-
-#endif  // JTORCH_RESHAPE_HEADER

@@ -6,8 +6,7 @@
 //  NOTE: This version of Join Table ALWAYS joins along dimension 0
 //
 
-#ifndef JTORCH_JOIN_TABLE_HEADER
-#define JTORCH_JOIN_TABLE_HEADER
+#pragma once
 
 #include <iostream>
 #include <iomanip>
@@ -39,6 +38,3 @@ namespace jtorch {
   };
 
 };  // namespace jtorch
-
-#endif  // JTORCH_JOIN_TABLE_HEADER
-

@@ -12,8 +12,7 @@
 //  connected neural network.
 //
 
-#ifndef KINECT_INTERFACE_HAND_NET_HAND_NET_HEADER
-#define KINECT_INTERFACE_HAND_NET_HAND_NET_HEADER
+#pragma once
 
 #include "jtil/math/math_types.h"
 #include "kinect_interface/hand_net/hand_model_coeff.h"  // For HandCoeff
@@ -31,6 +30,13 @@
 #define X_DIM_LM_FIT 2
 #define BFGS_FINGER_NUM_COEFF 3
 #define RAD_UVD_SEARCH 2
+
+#define HN_PSO_RAD_FINGERS 0.30f  // Search radius in frac of min - max coeff
+#define HN_PSO_RAD_THUMB 0.20f
+#define HN_PSO_RAD_EULER 0.20f
+#define HN_PSO_RAD_POSITION 2.0f * (float)M_PI * (5.0f / 100.0f)
+#define HN_PSO_SWARM_SIZE 32
+#define HN_PSO_NUM_ITERATIONS 50
 
 #if defined(__APPLE__)
   #define CONVNET_FILE string("./../../../../../../../../../data/" \
@@ -146,7 +152,8 @@ namespace hand_net {
     // the same as the coeffs the renderer uses - see above)
     // Result is placed in coeff_convnet
     void calcConvnetHeatMap(const int16_t* depth, const uint8_t* label);
-    void calcConvnetPose(const int16_t* depth, const uint8_t* label);
+    void calcConvnetPose(const int16_t* depth, const uint8_t* label,
+      const float smoothing_factor);
     void resetTracking();
 
     // If you don't want the full convnet computation but you want the hand 
@@ -169,6 +176,7 @@ namespace hand_net {
     const int32_t size_images() const;
     const jtil::math::Float3& uvd_com() const;
     const float* gauss_coeff() const { return gauss_coeff_; }
+    const HandModelCoeff* rhand_cur_pose() const { return rhand_cur_pose_; }
 
   private:
     HandImageGenerator* image_generator_;
@@ -308,5 +316,3 @@ namespace hand_net {
   
 };  // namespace hand_net
 };  // namespace kinect_interface
-
-#endif  // KINECT_INTERFACE_HAND_NET_HAND_NET_HEADER

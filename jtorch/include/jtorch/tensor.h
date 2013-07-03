@@ -8,8 +8,7 @@
 //  This is escentially a wrap around my opencl buffer class.
 //
 
-#ifndef JTORCH_TENSOR_HEADER
-#define JTORCH_TENSOR_HEADER
+#pragma once
 
 #include <iostream>
 #include <iomanip>
@@ -229,5 +228,3 @@ namespace jtorch {
   }
 
 };  // namespace jtorch
-
-#endif  // JTORCH_TENSOR_HEADER

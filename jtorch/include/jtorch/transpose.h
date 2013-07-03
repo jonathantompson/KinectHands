@@ -6,8 +6,7 @@
 //  NOTE: Transpose is NOT implemented, it just passes the data through
 //
 
-#ifndef JTORCH_TRANSPOSE_HEADER
-#define JTORCH_TRANSPOSE_HEADER
+#pragma once
 
 #include <iostream>
 #include <iomanip>
@@ -38,6 +37,3 @@ namespace jtorch {
   };
 
 };  // namespace jtorch
-
-#endif  // JTORCH_TRANSPOSE_HEADER
-

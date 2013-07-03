@@ -10,8 +10,7 @@
 //            syncVBO() is called, then an index buffer will by synced with 
 //            OpenGL and the tringles will be rendered using it.
 
-#ifndef RENDERER_GEOMETRY_COLORED_MESH_HEADER
-#define RENDERER_GEOMETRY_COLORED_MESH_HEADER
+#pragma once
 
 #include "renderer/open_gl_common.h"  // For GLtypes
 #include "renderer/geometry/geometry.h"
@@ -158,5 +157,3 @@ namespace renderer {
   };
   
 };  // renderer namespace
-
-#endif  // RENDERER_GEOMETRY_COLORED_MESH_HEADER

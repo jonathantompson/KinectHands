@@ -7,8 +7,7 @@
 //  One should be created per context.
 //  
 
-#ifndef RENDERER_GL_STATE_HEADER
-#define RENDERER_GL_STATE_HEADER
+#pragma once
 
 #include <mutex>
 #include "renderer/open_gl_common.h"
@@ -294,5 +293,3 @@ namespace renderer {
   };
 
 };  // renderer namespace
-
-#endif  // RENDERER_GL_STATE_HEADER

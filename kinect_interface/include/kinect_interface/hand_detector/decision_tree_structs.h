@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 7/20/12.
 //
 
-#ifndef KINECT_INTERFACE_HAND_DETECTOR_DECISION_TREE_STRUCTS_HEADER
-#define KINECT_INTERFACE_HAND_DETECTOR_DECISION_TREE_STRUCTS_HEADER
+#pragma once
 
 #include "jtil/math/math_types.h"
 
@@ -61,5 +60,3 @@ namespace hand_detector {
 
 };  // namespace hand_detector
 };  // namespace kinect_interface
-
-#endif  // KINECT_INTERFACE_HAND_DETECTOR_DECISION_TREE_STRUCTS_HEADER

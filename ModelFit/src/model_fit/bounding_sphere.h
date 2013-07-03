@@ -5,8 +5,7 @@
 //
 //  Just a wireframe version of the colored mesh.
 
-#ifndef RENDERER_BOUNDING_SPHERE_HEADER
-#define RENDERER_BOUNDING_SPHERE_HEADER
+#pragma once
 
 #include "renderer/open_gl_common.h"  // For GLtypes
 #include "renderer/geometry/geometry_colored_mesh.h"
@@ -65,5 +64,3 @@ namespace renderer {
   };
   
 };  // renderer namespace
-
-#endif  // RENDERER_BOUNDING_SPHERE_HEADER

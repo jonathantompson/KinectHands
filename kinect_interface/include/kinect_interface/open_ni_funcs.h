@@ -7,8 +7,7 @@
 //  without OpenNI).
 //
 
-#ifndef KINECT_INTERFACE_OPEN_NI_FUNCS_HEADER
-#define KINECT_INTERFACE_OPEN_NI_FUNCS_HEADER
+#pragma once
 
 #include "jtil/math/math_types.h"
 		
@@ -92,5 +91,3 @@ namespace kinect_interface {
   };
   
 };  // namespace kinect_interface
-
-#endif  // KINECT_INTERFACE_OPEN_NI_FUNCS_HEADER

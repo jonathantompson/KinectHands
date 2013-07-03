@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 7/20/12.
 //
 
-#ifndef KINECT_INTERFACE_DEPTH_IMAGES_IO_HEADER
-#define KINECT_INTERFACE_DEPTH_IMAGES_IO_HEADER
+#pragma once
 
 #include <string>
 #include <iostream>
@@ -187,5 +186,3 @@ namespace kinect_interface {
   }
 
 };  // namespace depth_images_io
-
-#endif  // UNNAMED_LOAD_DEPTH_IMAGE_HEADER

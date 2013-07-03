@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 6/3/12.
 //
 
-#ifndef RENDERER_CAMERA_HEADER
-#define RENDERER_CAMERA_HEADER
+#pragma once
 
 #include "jtil/math/math_types.h"
 
@@ -61,5 +60,3 @@ namespace renderer {
   };
 
 };  // namespace renderer
-
-#endif  // RENDERER_CAMERA_HEADER

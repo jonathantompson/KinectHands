@@ -6,8 +6,7 @@
 //  Note: the framebuffer may have many textures (multiple render targets),
 //  num_textures controls the number of renderable textures.
 
-#ifndef RENDERER_TEXURE_RENDERABLE_HEADER
-#define RENDERER_TEXURE_RENDERABLE_HEADER
+#pragma once
 
 #include <mutex>
 #include <string>
@@ -74,5 +73,3 @@ namespace renderer {
   }
 
 };  // namespace renderer
-
-#endif  // RENDERER_TEXURE_RENDERABLE_HEADER

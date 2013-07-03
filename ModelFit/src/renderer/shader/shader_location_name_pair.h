@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 9/12/12.
 //
 
-#ifndef RENDERER_SHADER_LOCATION_NAME_PAIR_HEADER
-#define RENDERER_SHADER_LOCATION_NAME_PAIR_HEADER
+#pragma once
 
 #include <string>
 #include "jtil/math/math_types.h"
@@ -20,5 +19,3 @@ namespace renderer {
   };
 
 };  // renderer namespace
-
-#endif  // RENDERER_SHADER_LOCATION_NAME_PAIR_HEADER

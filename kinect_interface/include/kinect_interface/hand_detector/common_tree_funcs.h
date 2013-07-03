@@ -6,8 +6,7 @@
 //  For internal use only
 //
 
-#ifndef KINECT_INTERFACE_HAND_DETECTOR_COMMON_TREE_FUNCS_HEADER
-#define KINECT_INTERFACE_HAND_DETECTOR_COMMON_TREE_FUNCS_HEADER
+#pragma once
 
 #include "jtil/math/math_types.h"
 
@@ -23,5 +22,3 @@ namespace hand_detector {
 
 };
 };
-
-#endif  // KINECT_INTERFACE_HAND_DETECTOR_COMMON_TREE_FUNCS_HEADER

@@ -5,8 +5,7 @@
 //
 //  Base container class for all the hand geometry
 
-#ifndef MODEL_FIT_POSE_MODEL_HEADER
-#define MODEL_FIT_POSE_MODEL_HEADER
+#pragma once
 
 #include "model_fit/bounding_sphere.h"
 #include "jtil/data_str/vector.h"
@@ -60,5 +59,3 @@ namespace model_fit {
     PoseModel& operator=(const PoseModel&);
   };
 };  // namespace hand_fit
-
-#endif  // MODEL_FIT_POSE_MODEL_HEADER

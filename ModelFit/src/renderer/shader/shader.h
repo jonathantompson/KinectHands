@@ -6,8 +6,7 @@
 //  A simple wrapper class to load OpenGL shaders from disk and manage their
 //  resources
 
-#ifndef RENDERER_SHADER_HEADER
-#define RENDERER_SHADER_HEADER
+#pragma once
 
 #include <string>
 #include "renderer/open_gl_common.h"  // For GL* types and ERROR_CHECK
@@ -51,5 +50,3 @@ namespace renderer {
     Shader& operator=(const Shader&);
   };
 };  // renderer namespace
-
-#endif  // RENDERER_SHADER_HEADER

@@ -9,8 +9,7 @@
 //  from a coeff input.
 //
 
-#ifndef KINECT_INTERFACE_HAND_NET_HAND_MODEL_HEADER
-#define KINECT_INTERFACE_HAND_NET_HAND_MODEL_HEADER
+#pragma once
 
 #include "kinect_interface/hand_net/hand_model_coeff.h"
 #include "jtil/math/math_types.h"
@@ -81,11 +80,11 @@ namespace hand_net {
     uint32_t index_mesh_node_;
     uint32_t index_bone_wrist_;
     uint32_t index_bone_palm_;
-    uint32_t index_bone_thumb_[3];
-    uint32_t index_bone_finger1_[4];
-    uint32_t index_bone_finger2_[4];
-    uint32_t index_bone_finger3_[4];
-    uint32_t index_bone_finger4_[4];
+    uint32_t index_bone_thumb_[3];  // thumb, joint1, joint2, joint3
+    uint32_t index_bone_finger1_[4];  // Joint1 of pinky, ring, middle, index
+    uint32_t index_bone_finger2_[4];  // Joint2 of pinky, ring, middle, index
+    uint32_t index_bone_finger3_[4];  // Joint3 of pinky, ring, middle, index
+    uint32_t index_bone_finger4_[4];  // Joint4 of pinky, ring, middle, index
 
     void euler2RotMatGM(jtil::math::Float4x4& a, const float x_angle, 
       const float y_angle, const float z_angle);
@@ -117,5 +116,3 @@ namespace hand_net {
   };
 };  // namespace hand_net
 };  // namespace kinect_interface
-
-#endif  // KINECT_INTERFACE_HAND_NET_HAND_MODEL_HEADER

@@ -59,7 +59,7 @@ namespace hand_net {
     if (hand_type == HandType::RIGHT) {
       GeometryManager* gm = Renderer::g_renderer()->geometry_manager();
       Geometry* geom = gm->findGeometryByName("./models/lib_hand/hand_palm_"
-        "parent_medium_wrist_dec_0.05_right.dae//0");
+        "parent_medium_wrist_dec_0.05_right.dae/Armature_hand_mesh-skin/0");
       if (geom == NULL) {
         throw std::wruntime_error("HandModel::HandModel() - ERROR: "
           "Couldn't find Geoemtry for right hand mesh!");
@@ -361,12 +361,12 @@ namespace hand_net {
     Float4x4::multSIMD(*mat, nodes_[index_bone_wrist_]->bone()->rest_transform, mat_tmp3);
 
     // Set the finger bones
-#pragma omp parallel for num_threads(4)
+// #pragma omp parallel for num_threads(4)
     for (int i = 0; i < 4; i++) {
       float theta, phi, psi;
       Float4x4* mat;
-      jtil::math::Float4x4 mat_tmp1;
-      jtil::math::Float4x4 mat_tmp2;
+      //jtil::math::Float4x4 mat_tmp1;  // OMP Needs separate destination vars
+      //jtil::math::Float4x4 mat_tmp2;
 
       // Root
       theta = coeff[F0_ROOT_THETA + i * FINGER_NUM_COEFF];
@@ -412,7 +412,6 @@ namespace hand_net {
       // Move bone by fraction of the bone length:
       mat_tmp2.leftMultTranslation(0, bone_mid_length * coeff[F0_LENGTH + i], 0);
       Float4x4::multSIMD(*mat, mat_tmp2, mat_tmp1);
-
       mat->leftMultScale(1.0f, 1.0f / (1.0f + coeff[F0_LENGTH + i]), 1.0f);  // Undo parent scale
       mat->rightMultScale(1.0f, 1.0f + coeff[F0_LENGTH + i], 1.0f);  // Scale this node
     }
@@ -471,12 +470,13 @@ namespace hand_net {
     Double4x4::mult(*mat, nodes_bone_rest_transform_[index_bone_wrist_], mat_tmp3);
 
     // Set the finger bones
-#pragma omp parallel for num_threads(4)
+//#pragma omp parallel for num_threads(4)
     for (int i = 0; i < 4; i++) {
       double theta, phi, psi;
       Double4x4* mat;
-      jtil::math::Double4x4 mat_tmp1;
-      jtil::math::Double4x4 mat_tmp2;
+      //jtil::math::Double4x4 mat_tmp1;  // OMP Needs separate destination vars
+      //jtil::math::Double4x4 mat_tmp2;
+
       // Root
       theta = coeff[F0_ROOT_THETA + i * FINGER_NUM_COEFF];
       phi = coeff[F0_ROOT_PHI + i * FINGER_NUM_COEFF];

@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 9/18/12.
 //
 
-#ifndef RENDERER_LIGHT_DIR_HANDLES_HEADER
-#define RENDERER_LIGHT_DIR_HANDLES_HEADER
+#pragma once
 
 #include "renderer/open_gl_common.h"
 
@@ -25,5 +24,3 @@ namespace renderer {
   };
 
 };  // renderer namespace
-
-#endif  // RENDERER_LIGHT_DIR_HANDLES_HEADER

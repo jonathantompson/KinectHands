@@ -4,8 +4,7 @@
 //  Created by Jonathan Tompson on 11/06/12.
 //
 
-#ifndef RENDERER_VERTEX_BONE_DATA_HEADER
-#define RENDERER_VERTEX_BONE_DATA_HEADER
+#pragma once
 
 #include "jtil/math/math_types.h"
 
@@ -27,5 +26,3 @@ namespace renderer {
   };
   
 };  // renderer namespace
-
-#endif  // RENDERER_VERTEX_BONE_DATA_HEADER
