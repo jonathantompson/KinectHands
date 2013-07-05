@@ -41,8 +41,8 @@
 #include "renderer/geometry/geometry_colored_mesh.h"
 #include "renderer/geometry/geometry_manager.h"
 #include "renderer/geometry/geometry_colored_points.h"
-#include "windowing/window.h"
-#include "windowing/window_settings.h"
+#include "jtil/windowing/window.h"
+#include "jtil/windowing/window_settings.h"
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector.h"
 #include "jtil/clk/clk.h"
@@ -74,6 +74,7 @@ using namespace kinect_interface;
 using namespace model_fit;
 using namespace jtil::file_io;
 using namespace jtil::string_util;
+using namespace jtil::windowing;
 using renderer::Renderer;
 using renderer::Geometry;
 using renderer::GeometryManager;
@@ -82,8 +83,6 @@ using renderer::GeometryColoredPoints;
 using renderer::Texture;
 using renderer::TEXTURE_WRAP_MODE;
 using renderer::TEXTURE_FILTER_MODE;
-using windowing::Window;
-using windowing::WindowSettings;
 using renderer::GLState;
 using hand_net::HandNet;
 using hand_net::HandCoeffConvnet;
@@ -121,7 +120,7 @@ string im_dirs[num_im_dirs] = {
 #define DST_IM_DIR_BASE string("hand_depth_data_processed_for_CN_testset/") 
 
 //#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
-#define SAVE_FILES  // Only enabled when we're not loading processed images
+//#define SAVE_FILES  // Only enabled when we're not loading processed images
 //#define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
 //                              // HandForests, but save synthetic data (only 
 //                              // takes effect when not loading processed images)
@@ -146,7 +145,7 @@ string im_dirs[num_im_dirs] = {
   #error "Apple is not yet supported!"
 #else
   #ifdef BACKUP_HDD
-    #define DATA_ROOT string("E:/hand_data/")
+    #define DATA_ROOT string("D:/hand_data/")
   #else
     #define DATA_ROOT string("./../data/")
   #endif
@@ -406,7 +405,7 @@ void saveFrame() {
 #endif
 }
 
-void keyboardCB(int key, int action) {
+void keyboardCB(int key, int scancode, int action, int mods) {
   string full_im_filename;
   string full_hpf_im_filename;
   string r_coeff_file;
@@ -535,7 +534,7 @@ void renderFrame() {
     }
   }
 
-  hand_image_generator_->annotateFeatsToHandImage(tex_data_depth, coeff_convnet);
+  // hand_image_generator_->annotateFeatsToHandImage(tex_data_depth, coeff_convnet);
 
   for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
     for (uint32_t u = 0; u < HN_IM_SIZE; u++) {
@@ -703,15 +702,18 @@ int main(int argc, char *argv[]) {
       DATA_ROOT, num_im_dirs, 0, NULL);
 #endif
     if (im_files.size() == 0) {
+      std::cout << "No Files found!" << std::endl;
+#if defined(WIN32) || defined(_WIN32)
+      system("pause");
+#endif
       quit();
     }
 
     // Attach callback functions for event handling
     wnd->registerKeyboardCB(keyboardCB);
     wnd->registerMousePosCB(NULL);
-    wnd->registerMouseButtonCB(NULL);
+    wnd->registerMouseButCB(NULL);
     wnd->registerMouseWheelCB(NULL);
-    wnd->registerCharacterInputCB(NULL);
     
     // Create the hand data and attach it to the renderer for lighting
     if (num_hands != 1) {

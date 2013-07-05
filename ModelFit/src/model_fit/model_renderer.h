@@ -42,7 +42,7 @@ namespace renderer { class GeometryTexturedBonedMesh; }
 namespace renderer { class GeometryColoredMesh; }
 namespace renderer { class BoundingSphere; }
 namespace renderer { class GeometryColoredBonedMesh; }
-namespace windowing { class Window; }
+namespace jtil { namespace windowing { class Window; } }
 
 namespace model_fit {
   class PoseModel;
@@ -69,8 +69,8 @@ namespace model_fit {
       jtil::data_str::Vector<float>* interpenetration,
       const uint32_t max_num_interpenetration_groups);
 
-    void visualizeDepthMap(windowing::Window* wnd, const uint32_t i_camera,
-      const bool color = false);
+    void visualizeDepthMap(jtil::windowing::Window* wnd,
+      const uint32_t i_camera, const bool color = false);
 
     float calculateResidualDataTerm(const uint32_t i_camera);
     void calculateResidualDataTermTiled(jtil::data_str::Vector<float>& residues,
@@ -82,6 +82,8 @@ namespace model_fit {
     inline renderer::TextureRenderable* cdepth_texture() { return cdepth_texture_; }
     inline float** depth_tmp() { return depth_tmp_; }
     inline renderer::Camera* camera(const uint32_t id) { return cameras_[id]; }
+
+    renderer::TextureRenderable* residue_texture_1() { return residue_texture_1_; }
 
   private:
     renderer::Renderer* g_renderer_;  // Not owned here

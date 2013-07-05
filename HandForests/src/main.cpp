@@ -25,6 +25,7 @@
 #include "jtil/threading/callback.h"
 #include "jtil/threading/thread.h"
 #include "load_settings_from_file.h"
+#include "jtil/file_io/file_io.h"
 #include "jtil/debug_util/debug_util.h"  // Must come last in .cpp that includes main
 
 using std::string;
@@ -281,19 +282,35 @@ int main(int argc, char *argv[]) {
     // NOTE, THE COMBINATION CODE IS MISSING!  IT MUST HAVE BEEN LOST IN A
     // COMMIT SOMEWHERE AND NEEDS TO BE RE-WRITTEN :-(
     // NUM_TREES CHOOSE 4 COMBINATIONS AND SEARCH FOR LOWEST TEST SET ERROR
-    const int32_t evaluate_median_radius = 2;
     if (test_data->num_images > 0) {
-      cout << "Evaluating results..." << endl;
+      cout << "Evaluating results on test set..." << endl;
       for (uint32_t i = 0; i < prog_settings.num_trees; i++) {
         float error = evaluateDecisionForestError(test_data, forest, i+1, false, 
-          evaluate_median_radius);
-        cout << i+1 << " trees --> error on test set = " << error*100 << endl;
-        error = evaluateDecisionForestError(test_data, forest, i+1, true, 
-          evaluate_median_radius);
-        cout << i+1 << " trees --> error on test set using " << evaluate_median_radius;
-        cout << " rad median filter = " << error*100 << endl;
+          0);
+        cout << i+1 << " trees --> error on test set = " << (error*100) << "%" << endl;
+      }
+      cout << "Evaluating results on trainint set..." << endl;
+      for (uint32_t i = 0; i < prog_settings.num_trees; i++) {
+        float error = evaluateDecisionForestError(training_data, forest, i+1, false, 
+          0);
+        cout << i+1 << " trees --> error on training set = " << (error*100) << "%" << endl;
       }
     }
+
+    // Save some data to create pictures for the paper:
+    uint8_t* label_data_evaluated = new uint8_t[training_data->im_width * training_data->im_height];
+    evaluateDecisionForest(label_data_evaluated, forest, forest->tree_height, 
+        prog_settings.num_trees, training_data->image_data, training_data->im_width, 
+        training_data->im_height);
+    jtil::file_io::SaveArrayToFile<uint8_t>(label_data_evaluated, 
+      training_data->im_width * training_data->im_height, "./TOG_Paper/figures/rdf_evaluated_labels.bin");
+    jtil::file_io::SaveArrayToFile<uint8_t>(training_data->label_data, 
+      training_data->im_width * training_data->im_height, "./TOG_Paper/figures/rdf_labels.bin");
+    jtil::file_io::SaveArrayToFile<int16_t>(training_data->image_data, 
+      training_data->im_width * training_data->im_height, "./TOG_Paper/figures/rdf_depth.bin");
+    delete[] label_data_evaluated;
+
+
   } catch(runtime_error e) {
     printf("std::runtime_error caught!:\n");
     printf("  %s\n", e.what());

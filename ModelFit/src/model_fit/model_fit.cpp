@@ -12,6 +12,7 @@
 #include "jtil/file_io/csv_handle_write.h"
 #include "renderer/gl_state.h"
 #include "renderer/camera/camera.h"
+#include "renderer/texture/texture_renderable.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
 #include "kinect_interface/depth_images_io.h"
 
@@ -40,6 +41,7 @@ namespace model_fit {
       throw std::wruntime_error("ModelFit::ModelFit() - ERROR: check inputs!");
     }
 
+    save_next_image_set_ = false;
     num_cameras_ = num_cameras;
     num_models_ = num_models;
     coeff_dim_per_model_ = coeff_dim_per_model;
@@ -167,8 +169,12 @@ namespace model_fit {
     prepareOptimization(depth, label, models, coeffs, NULL,
       old_attachement_vals);
 
+    jtil::file_io::SaveArrayToFile<int16_t>(depth[0], 640*480, 
+      "./kinect_texture.bin");
+
     // This is a hack: There's something wrong with the first iteration using
     // tiled rendering --> Doing one regular render pass helps.
+    save_next_image_set_ = true;
     float start_func_val = objectiveFunc(coeff_optim_);
     cout << "objective function value = " << start_func_val << endl;
 
@@ -317,6 +323,7 @@ namespace model_fit {
     return PREV_FRAME_DIST_PENALTY_SCALE * dist;
   }
 
+  float data_temp[640*480*3];
   float ModelFit::objectiveFunc(const float* coeff) {
     float depth_term = 0.0f;
     float penalty_term = 0.0f;
@@ -332,6 +339,17 @@ namespace model_fit {
           &interpenetration_term);
       } else {
         calculateResidual(coeff, i_camera, &depth_term, NULL, NULL);
+      }
+
+      if (cur_fit_->save_next_image_set_) {
+        cur_fit_->model_renderer_->depth_texture()->getTexture0Data<float>(data_temp);
+        jtil::file_io::SaveArrayToFile<float>(data_temp, 640*480, 
+          "./synth_texture.bin");
+        cur_fit_->model_renderer_->residue_texture_1()->getTexture0Data<float>(data_temp);
+        jtil::file_io::SaveArrayToFile<float>(data_temp, 640*480, 
+          "./residue_texture.bin");
+        cur_fit_->save_next_image_set_ = false;
+
       }
     }
     return depth_term * penalty_term * interpenetration_term;

@@ -21,7 +21,7 @@
 #include "renderer/lights/light_dir.h"
 #include "renderer/lights/light_dir_handles.h"
 #include "model_fit/bounding_sphere.h"
-#include "windowing/window.h"
+#include "jtil/windowing/window.h"
 #include "jtil/math/math_types.h"
 #include "renderer/gl_state.h"
 
@@ -118,6 +118,8 @@ namespace renderer {
     frame_counter_ = 0;
     wireframe = false;
     render_bounding_spheres = false;
+
+    background_color.set(0.15f, 0.15f, 0.3f, 1.0f);
   }
 
   Renderer::~Renderer() {
@@ -459,8 +461,8 @@ namespace renderer {
     GLState::glsDepthFunc(GL_LESS);
     // GLState::glsDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
     
-    // setClearColor(0.1f, 0.1f, 0.2f, 1.0f);
-    GLState::glsClearColor(0.15f, 0.15f, 0.3f, 1.0f);
+    GLState::glsClearColor(background_color[0], background_color[1],
+      background_color[2], background_color[3]);
     GLState::glsClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
     // Render all the Bounding sphere's in wireframe

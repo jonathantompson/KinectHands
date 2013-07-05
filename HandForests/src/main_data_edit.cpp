@@ -67,7 +67,7 @@ using namespace jtil::threading;
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_03_04_6/")
 //#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_03_04_7/") 
 
-#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_2013_01_11_and_03_04_DFProcessed/") 
+#define IMAGE_DIRECTORY_BASE string("data/hand_depth_data_processed_for_DF/") 
 #define IMAGE_DIRECTORY KINECT_HANDS_ROOT + IMAGE_DIRECTORY_BASE
 
 #define SAFE_DELETE(x) do { if (x != NULL) { delete x; x = NULL; } } while (0); 

@@ -32,9 +32,6 @@
     <Filter Include="Source Files\src\renderer\texture">
       <UniqueIdentifier>{689a7b5a-be31-4450-aabd-b0003ab9b1e1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\src\windowing">
-      <UniqueIdentifier>{33221297-60fa-4008-8fb8-8f5e762d6582}</UniqueIdentifier>
-    </Filter>
     <Filter Include="shaders">
       <UniqueIdentifier>{85e2da50-ebe2-4a02-aded-017e44bef53e}</UniqueIdentifier>
     </Filter>
@@ -84,12 +81,6 @@
     </ClCompile>
     <ClCompile Include="src\renderer\camera\camera.cpp">
       <Filter>Source Files\src\renderer\camera</Filter>
-    </ClCompile>
-    <ClCompile Include="src\windowing\window.cpp">
-      <Filter>Source Files\src\windowing</Filter>
-    </ClCompile>
-    <ClCompile Include="src\windowing\window_settings.cpp">
-      <Filter>Source Files\src\windowing</Filter>
     </ClCompile>
     <ClCompile Include="src\renderer\geometry\geometry_colored_points.cpp">
       <Filter>Source Files\src\renderer\geometry</Filter>
@@ -191,18 +182,6 @@
     </ClInclude>
     <ClInclude Include="src\renderer\camera\camera.h">
       <Filter>Source Files\src\renderer\camera</Filter>
-    </ClInclude>
-    <ClInclude Include="src\windowing\keys_and_buttons.h">
-      <Filter>Source Files\src\windowing</Filter>
-    </ClInclude>
-    <ClInclude Include="src\windowing\window.h">
-      <Filter>Source Files\src\windowing</Filter>
-    </ClInclude>
-    <ClInclude Include="src\windowing\window_settings.h">
-      <Filter>Source Files\src\windowing</Filter>
-    </ClInclude>
-    <ClInclude Include="src\windowing\glfw.h">
-      <Filter>Source Files\src\windowing</Filter>
     </ClInclude>
     <ClInclude Include="src\renderer\geometry\geometry_colored_points.h">
       <Filter>Source Files\src\renderer\geometry</Filter>

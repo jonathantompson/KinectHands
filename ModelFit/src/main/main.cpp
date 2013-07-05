@@ -31,8 +31,8 @@
 #include "renderer/geometry/geometry_colored_points.h"
 #include "renderer/geometry/geometry_colored_lines.h"
 #include "renderer/gl_state.h"
-#include "windowing/window.h"
-#include "windowing/window_settings.h"
+#include "jtil/windowing/window.h"
+#include "jtil/windowing/window_settings.h"
 #include "model_fit/calibrate_geometry.h"
 #include "model_fit/hand_geometry_mesh.h"
 #include "model_fit/model_renderer.h"
@@ -94,12 +94,12 @@
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_06_3/")  // Cal + Fit (5815) MURPHY
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_08_1/")  // Cal + Fit (2440) (Tr-data)
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_19_1/")  // Cal + Fit (5969)
-//#define IM_DIR_BASE string("hand_depth_data_2013_05_19_2/")  // Cal + Fit (6781)
+#define IM_DIR_BASE string("hand_depth_data_2013_05_19_2/")  // Cal + Fit (6781)
 //#define IM_DIR_BASE string("hand_depth_data_2013_06_15_1/")  // Cal + Fit (3049)
 //#define IM_DIR_BASE string("hand_depth_data_2013_06_15_2/")  // Cal + Fit (7676)
 //#define IM_DIR_BASE string("hand_depth_data_2013_06_15_3/")  // Cal + Fit (4935)
 //#define IM_DIR_BASE string("hand_depth_data_2013_06_15_4/")  // Cal + Fit (9752)
-#define IM_DIR_BASE string("hand_depth_data_2013_06_15_5/")  //Cal + Fit (5480)  Total: 81013
+//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_5/")  //Cal + Fit (5480)  Total: 81013
 
 //#define KINECT_DATA  // Otherwise Primesense 1.09 data
 #define MAX_KINECTS 3
@@ -109,7 +109,7 @@
   #error "Apple is not yet supported!"
 #else
 #ifdef BACKUP_HDD
-    #define KINECT_HANDS_ROOT string("E:/hand_data/")
+    #define KINECT_HANDS_ROOT string("D:/hand_data/")
   #else
     #define KINECT_HANDS_ROOT string("./../data/")
   #endif
@@ -135,7 +135,7 @@ using namespace jtil::image_util;
 using namespace jtil::threading;
 using namespace model_fit;
 using namespace renderer;
-using namespace windowing;
+using namespace jtil::windowing;
 using namespace kinect_interface;
 using namespace kinect_interface::hand_net;
 using namespace kinect_interface::hand_detector;
@@ -510,7 +510,7 @@ void saveCurrentCoeffs() {
 #endif
 }
 
-void MouseButtonCB(int button, int action) {
+void MouseButtonCB(int button, int action, int mods) {
   if (button == MOUSE_BUTTON_LEFT) {
     if (action == PRESSED) {
       camera_rotate = true;
@@ -535,11 +535,11 @@ void MouseButtonCB(int button, int action) {
   }
 }
 
-void MousePosCB(int x, int y) {
+void MousePosCB(double x, double y) {
   mouse_x_prev = mouse_x;
   mouse_y_prev = mouse_y;
-  mouse_x = x;
-  mouse_y = y;
+  mouse_x = (int)floor(x);
+  mouse_y = (int)floor(y);
   if (camera_rotate) {
     int dx = mouse_x - mouse_x_prev;
     int dy = mouse_y - mouse_y_prev;
@@ -616,7 +616,7 @@ string l_coeff_file;
 string new_full_im_filename;
 string new_r_coeff_file;
 string new_l_coeff_file;
-void KeyboardCB(int key, int action) {
+void KeyboardCB(int key, int scancode, int action, int mods) {
   int repeat = 1;
 
   switch (key) {
@@ -1217,6 +1217,7 @@ jtil::math::Float4x4 mat_tmp;
 WindowSettings settings;
 
 void fitFrame(bool seed_with_last_frame, bool query_only) {
+  // if query_only = true then we'll save the images to file (for the paper)
 #ifdef CALIBRATION_RUN
   if (seed_with_last_frame && cur_image > 0) {
     for (uint32_t k = 0; k < MAX_KINECTS; k++) {
@@ -1489,6 +1490,7 @@ int main(int argc, char *argv[]) {
     FloatQuat eye_rot; eye_rot.identity();
     Float3 eye_pos(0, 0, 0);
     render = new Renderer();
+    render->background_color.set(1.0f, 1.0f, 1.0f, 1.0f);
     float fov_vert_deg = 360.0f * OpenNIFuncs::fVFOV_primesense_109 / 
       (2.0f * (float)M_PI);
     render->init(eye_rot, eye_pos, settings.width, settings.height,
@@ -1587,9 +1589,8 @@ int main(int argc, char *argv[]) {
     // Attach callback functions for event handling
     wnd->registerKeyboardCB(&KeyboardCB);
     wnd->registerMousePosCB(&MousePosCB);
-    wnd->registerMouseButtonCB(&MouseButtonCB);
+    wnd->registerMouseButCB(&MouseButtonCB);
     wnd->registerMouseWheelCB(NULL);
-    wnd->registerCharacterInputCB(NULL);
 
     // Create instances of the models to fit
     coeff = new float*[num_models];

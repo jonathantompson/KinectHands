@@ -119,13 +119,13 @@ namespace hand_detector {
         label_data_evaluated = temp;
       }
       for (int32_t i = 0; i < data->im_width * data->im_height; i++) {
-        if(cur_image_data[i] != 0 && cur_image_data[i] < GDT_MAX_DIST) {
+        //if(cur_image_data[i] != 0 && cur_image_data[i] < GDT_MAX_DIST) {
           if (cur_label_data[i] == label_data_evaluated[i]) {
             num_correct++;
           } else {
             num_incorrect++;
           }
-        }
+        //}
       }
     }
     delete[] label_data_evaluated;

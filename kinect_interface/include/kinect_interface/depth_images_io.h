@@ -54,7 +54,7 @@ namespace kinect_interface {
     uint32_t GetFilesInDirectory(
       jtil::data_str::Vector<jtil::data_str::Triple<char*, int64_t, int64_t>>& files_names, 
       const std::string& directory, const uint32_t kinect_num, 
-      const char* prefix = NULL);
+      const char* prefix = NULL, const bool kinect_num_in_filename = true);
 
     // Get a listing of all the files in the a string of directories
     uint32_t GetFilesInDirectories(

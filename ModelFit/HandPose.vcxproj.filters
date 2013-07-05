@@ -25,9 +25,6 @@
     <Filter Include="src\renderer\texture">
       <UniqueIdentifier>{a7f35cd5-5810-4bf5-9a82-704fd4955cbb}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\windowing">
-      <UniqueIdentifier>{bb3effa1-1f8f-41d2-bf5b-e4140e01919d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="shaders">
       <UniqueIdentifier>{167be54f-ebed-4b2b-8a60-ef81ca9c4163}</UniqueIdentifier>
     </Filter>
@@ -77,12 +74,6 @@
     </ClCompile>
     <ClCompile Include="src\renderer\texture\texture.cpp">
       <Filter>src\renderer\texture</Filter>
-    </ClCompile>
-    <ClCompile Include="src\windowing\window.cpp">
-      <Filter>src\windowing</Filter>
-    </ClCompile>
-    <ClCompile Include="src\windowing\window_settings.cpp">
-      <Filter>src\windowing</Filter>
     </ClCompile>
     <ClCompile Include="src\renderer\lights\light.cpp">
       <Filter>src\renderer\lights</Filter>
@@ -181,18 +172,6 @@
     </ClInclude>
     <ClInclude Include="src\renderer\texture\texture.h">
       <Filter>src\renderer\texture</Filter>
-    </ClInclude>
-    <ClInclude Include="src\windowing\keys_and_buttons.h">
-      <Filter>src\windowing</Filter>
-    </ClInclude>
-    <ClInclude Include="src\windowing\window.h">
-      <Filter>src\windowing</Filter>
-    </ClInclude>
-    <ClInclude Include="src\windowing\window_settings.h">
-      <Filter>src\windowing</Filter>
-    </ClInclude>
-    <ClInclude Include="src\windowing\glfw.h">
-      <Filter>src\windowing</Filter>
     </ClInclude>
     <ClInclude Include="src\renderer\lights\light.h">
       <Filter>src\renderer\lights</Filter>

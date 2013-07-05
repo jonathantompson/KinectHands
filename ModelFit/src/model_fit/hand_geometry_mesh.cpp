@@ -246,7 +246,7 @@ namespace model_fit {
     renderStackReset(); 
     while (!renderStackEmpty()) {
       Geometry* geom = renderStackPop();
-      geom->mtrl()->specular_intensity = 0.15f;
+      geom->mtrl()->specular_intensity = 0.05f;
     }
 
     // Now save the rest transforms for each bone:

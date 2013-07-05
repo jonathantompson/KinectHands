@@ -42,7 +42,7 @@ open_gl_core_profile,             bool,      1
 window_depth_buffer_bits,         int,       32
 window_stencil_buffer_bits,       int,       0
 window_rgba_bits,                 int,       8
-render_ui_app,                    bool,      1
+render_ui_app,                    bool,      0
 render_ui_renderer,               bool,      0
 render_ui_fps,                    bool,      1
 render_output_enum,               int,       0

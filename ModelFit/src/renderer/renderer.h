@@ -108,6 +108,8 @@ namespace renderer {
     void downsample4IntegTexture(TextureRenderable* dst, TextureRenderable* src);
     void downsample5IntegTexture(TextureRenderable* dst, TextureRenderable* src);
 
+    jtil::math::Float4 background_color;
+
   private:
     static Renderer* g_renderer_;
     int screen_width_, screen_height_;

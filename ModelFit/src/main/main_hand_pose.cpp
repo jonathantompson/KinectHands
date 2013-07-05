@@ -21,8 +21,8 @@
 #include "renderer/lights/light_dir.h"
 #include "renderer/texture/texture.h"
 #include "renderer/texture/texture_renderable.h"
-#include "windowing/window.h"
-#include "windowing/window_settings.h"
+#include "jtil/windowing/window.h"
+#include "jtil/windowing/window_settings.h"
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector.h"
 #include "jtil/string_util/string_util.h"
@@ -62,8 +62,7 @@ using namespace kinect_interface::hand_net;
 using namespace kinect_interface::hand_detector;
 using namespace kinect_interface;
 using namespace renderer;
-using windowing::Window;
-using windowing::WindowSettings;
+using namespace jtil::windowing;
 using jtil::renderer::mesh_simplification::MeshSimplification;
 using jtil::renderer::mesh_simplification::MeshSettings;
 
@@ -95,7 +94,6 @@ HandModelCoeff* lhand = NULL;
 HandModelCoeff* rhand_rest_pose = NULL;
 ModelRenderer* model_renderer = NULL;
 HandGeometryMesh* models[2];
-RobotHandGeometryMesh* robot_model;
 uint32_t cur_coeff = 0;
 uint32_t cur_sphere = 0;
 uint32_t cur_coord = 0;
@@ -146,7 +144,7 @@ void saveCDepthDataToDisk(float* data, std::string filename) {
   cout << "saved frame: " << filename << endl;
 }
 
-void MouseButtonCB(int button, int action) {
+void MouseButtonCB(int button, int action, int mods) {
   if (button == MOUSE_BUTTON_LEFT) {
     if (action == PRESSED) {
       camera_rotate = true;
@@ -172,11 +170,11 @@ float yoffset = 0;
 float zoffset = 0;
 uint64_t frame_count = 0;
 
-void MousePosCB(int x, int y) {
+void MousePosCB(double x, double y) {
   mouse_x_prev = mouse_x;
   mouse_y_prev = mouse_y;
-  mouse_x = x;
-  mouse_y = y;
+  mouse_x = (int)floor(x);
+  mouse_y = (int)floor(y);
   if (camera_rotate) {
     int dx = mouse_x - mouse_x_prev;
     int dy = mouse_y - mouse_y_prev;
@@ -218,12 +216,13 @@ void MousePosCB(int x, int y) {
       trans_mat.translationMat(xoffset, yoffset, zoffset);
       jtil::math::Float4x4::mult(new_bone_mat, *start_mat, trans_mat);
       mat->set(new_bone_mat);
-      cout << "offset = " << xoffset << ", " << yoffset << ", " << zoffset << endl << endl;
+      cout << "offset = " << xoffset << ", " << yoffset << ", " << zoffset << 
+        endl << endl;
     }
   }
 }
 
-void KeyboardCB(int key, int action) {
+void KeyboardCB(int key, int scancode, int action, int mods) {
   bool decimate_mesh = false;
   switch (key) {
     case KEY_LSHIFT:
@@ -576,9 +575,8 @@ int main(int argc, char *argv[]) {
     // Attach callback functions for event handling
     wnd->registerKeyboardCB(&KeyboardCB);
     wnd->registerMousePosCB(&MousePosCB);
-    wnd->registerMouseButtonCB(&MouseButtonCB);
+    wnd->registerMouseButCB(&MouseButtonCB);
     wnd->registerMouseWheelCB(NULL);
-    wnd->registerCharacterInputCB(NULL);
 
     model_renderer = new ModelRenderer(1);
     rhand = new HandModelCoeff(HandType::RIGHT);

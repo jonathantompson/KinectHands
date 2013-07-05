@@ -170,7 +170,7 @@ namespace kinect_interface {
     const float frac_test_data, const uint32_t file_stride) {
     Vector<Triple<char*, int64_t, int64_t>> files_in_directory;
     uint32_t num_files = GetFilesInDirectory(files_in_directory, directory, 0,
-      "processed_hands");
+      "processed_hands", false);
     if (num_files == 0) {
       throw std::runtime_error("ERROR: no files in the database!\n");
     }
@@ -551,7 +551,8 @@ namespace kinect_interface {
 
   uint32_t DepthImagesIO::GetFilesInDirectory(
     Vector<Triple<char*, int64_t, int64_t>>& files_in_directory, 
-    const string& directory, const uint32_t kinect_num, const char* prefix) {
+    const string& directory, const uint32_t kinect_num, const char* prefix, 
+    const bool kinect_num_in_filename) {
     std::vector<Triple<char*, int64_t, int64_t>> files;
 #if defined(WIN32) || defined(_WIN32)
     // Prepare string for use with FindFile functions.  First, copy the
@@ -561,11 +562,14 @@ namespace kinect_interface {
       jtil::string_util::ToWideString(directory).c_str());
     std::wstringstream ss;
     if (prefix == NULL) {
-      ss << L"\\hands" << kinect_num << L"_*.bin";
+      ss << L"\\hands";
     } else {
-      ss << L"\\" << jtil::string_util::ToWideString(prefix) << kinect_num;
-      ss << L"_*.bin";
+      ss << L"\\" << jtil::string_util::ToWideString(prefix);
     }
+    if (kinect_num_in_filename) {
+      ss << kinect_num;
+    }
+    ss << L"_*.bin";
     StringCchCat(szDir, MAX_PATH, ss.str().c_str());
 
     // Find the first file in the directory.

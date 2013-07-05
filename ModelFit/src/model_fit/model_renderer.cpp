@@ -26,7 +26,7 @@
 #include "renderer/shader/shader_program.h"
 #include "renderer/camera/camera.h"
 #include "kinect_interface/open_ni_funcs.h"
-#include "windowing/window.h"
+#include "jtil/windowing/window.h"
 #include "jtil/file_io/file_io.h"
 #include "jtil/data_str/vector.h"
 #include "renderer/gl_state.h"
@@ -381,7 +381,7 @@ namespace model_fit {
     }
   }
 
-  void ModelRenderer::visualizeDepthMap(windowing::Window* wnd, 
+  void ModelRenderer::visualizeDepthMap(jtil::windowing::Window* wnd, 
     const uint32_t i_camera, const bool color) {
     // Get the depth data, and find the min and max values
     if (color) {

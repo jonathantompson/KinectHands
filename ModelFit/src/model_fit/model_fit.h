@@ -91,6 +91,10 @@ namespace model_fit {
     int16_t* kinect_depth_masked_;
     static const float finger_crossover_penalty_threshold;
 
+    // save_next_image_set_ --> The next synthetic, depth and residue textures
+    // will be saved (so that we can plot them nicely in Matlab)
+    bool save_next_image_set_;
+
     // static functions for non-linear fitting
     static float objectiveFunc(const float* coeff);
     static void objectiveFuncTiled(jtil::data_str::Vector<float>& residues, 
