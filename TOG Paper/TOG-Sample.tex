@@ -105,7 +105,11 @@ w_c = \frac{\operatorname{max}\left(0, \frac{n_{q_c}\cdot n_{d_c} - k}{ 1 - k}\r
 \section{Feature Detection}
 \label{sec:realtimefeaturedetection}
 
-Feature Detection Here.
+\begin{eqnarray}
+\gamma_i = \operatorname{max}\left(\gamma_{min},\gamma_0-k\left(i-1\right)\right) \\
+\Delta_i = \gamma_i\Delta_{i-1}-\lambda\left(\eta w_i-\frac{\partial L}{\partial w_i}\right) \\
+w_{i+1} = w_i + \Delta_i
+\end{eqnarray}
 
 \section{Pose Detection}
 \label{sec:realtimeposedetection}
