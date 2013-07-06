@@ -593,7 +593,8 @@ namespace hand_net {
       }
       Float3 vec;
       Float3::sub(vec, uvd_data, uvd);
-      ret_val += sqrtf(Float3::dot(vec, vec)) * 1e-3f;
+      ret_val += Float3::dot(vec, vec) * 0.000001f;
+      //ret_val += sqrtf(Float3::dot(vec, vec)) * 1e-3f;
     }
 
     return ret_val + g_hand_net_->calcPenalty(g_hand_net_->rhand_cur_pose_->coeff());

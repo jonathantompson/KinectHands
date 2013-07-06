@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
 #endif
 
   try {
-    const bool use_cpu = false;
+    const bool use_cpu = true;
     jtorch::InitJTorch("../jtorch", use_cpu);
 
     Tensor<float> data_in(Int3(width, height, num_feats_in));
@@ -318,8 +318,7 @@ int main(int argc, char *argv[]) {
     
     float* convnet_input_cpu = new float[data_size];
     LoadArrayFromFile<float>(convnet_input_cpu, data_size, 
-      "../data/hand_depth_data_processed_for_CN/"
-      "hpf_processed_1294371228_hands0_263917398000.bin");
+      "hpf_processed_2271250584_hands0_493030668000.bin");
 
     // Create some dummy data (all zeros for now)
     Table* convnet_input = new Table();

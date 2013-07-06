@@ -81,11 +81,6 @@ double t1; double t0;
 Vector<Triple<char*, int64_t, int64_t>> im_files;
 int32_t cur_image = 0;
 DepthImagesIO* image_io = NULL;
-#ifndef LOAD_PROCESSED_IMAGES
-  const int32_t im_stride = 30;
-#else
-  const int32_t im_stride = 1;
-#endif
 
 // The current image being worked on
 int16_t cur_depth_data[src_dim*3];
@@ -112,6 +107,7 @@ IM_TYPE render_image_type = IM_TYPE::IM_DEPTH;  // Leave as depth
 bool render_labels = true;
 uint32_t label_type = 0;
 bool continuously_play = false;
+uint32_t depth_visualization_type = 0;
 
 void shutdown();
 
@@ -144,6 +140,8 @@ void loadImageForRendering(bool force_reprocessing = false) {
     cur_label_data);
 #endif
   hd->evaluateForest(cur_depth_data);
+  DownsampleBoolImageConservative<uint8_t>(cur_label_data_downsampled, 
+    cur_label_data, src_width, src_height, DT_DOWNSAMPLE, 0, 1);
 
   // When rendering HSV, Hue, Sat or Val, copy over the current rgb array with
   // what we want to render to screen.
@@ -166,9 +164,6 @@ void loadImageForRendering(bool force_reprocessing = false) {
   case IM_TYPE::IM_DOWNSAMPLED_DEPTH:
     UpsampleNoFiltering<int16_t>(cur_depth_data, hd->depth_downsampled(),
       src_width / DT_DOWNSAMPLE, src_height / DT_DOWNSAMPLE, DT_DOWNSAMPLE);
-    DownsampleBoolImageConservative<uint8_t>(
-      cur_label_data_downsampled, cur_label_data, src_width, src_height, 
-      DT_DOWNSAMPLE, 0, 1);
     UpsampleNoFiltering<uint8_t>(cur_label_data, cur_label_data_downsampled,
       src_width / DT_DOWNSAMPLE, src_height / DT_DOWNSAMPLE, DT_DOWNSAMPLE);
     break;
@@ -221,50 +216,96 @@ const float max_color_scale = 255.0f;
 
 template <class T>
 void UpdateGreyscaleImageForRendering(T* src) {
-  for (int32_t i = 0; i < src_dim; i++) {
-    if (src[i] < GDT_MAX_DIST && src[i] != 0) {
-      uint32_t cur_pixel = static_cast<uint32_t>(src[i]) << 2;
-      float cur_color_scale = static_cast<float>(cur_pixel % 255) / 255; // 0 --> 1
-      cur_color_scale = min_color_scale + (max_color_scale - min_color_scale) * cur_color_scale;
-      uint32_t cur_color = (cur_pixel / 255) % num_colors;
+  if (depth_visualization_type == 0) {
+    for (int32_t i = 0; i < src_dim; i++) {
+      if (src[i] < GDT_MAX_DIST && src[i] != 0) {
+        uint32_t cur_pixel = static_cast<uint32_t>(src[i]) << 2;
+        float cur_color_scale = static_cast<float>(cur_pixel % 255) / 255; // 0 --> 1
+        cur_color_scale = min_color_scale + (max_color_scale - min_color_scale) * cur_color_scale;
+        uint32_t cur_color = (cur_pixel / 255) % num_colors;
 
-      texture_data[4*i] = static_cast<uint8_t>(colors[cur_color][0] * cur_color_scale);
-      texture_data[4*i+1] = static_cast<uint8_t>(colors[cur_color][1] * cur_color_scale);
-      texture_data[4*i+2] = static_cast<uint8_t>(colors[cur_color][2] * cur_color_scale);
-      texture_data[4*i+3] = 255;
-    } else if (src[i] >= GDT_MAX_DIST) {
-      texture_data[4*i] = 0;
-      texture_data[4*i+1] = 0;
-      texture_data[4*i+2] = 255;
-      texture_data[4*i+3] = 255;
-    } else if (src[i] == 0) {
-      texture_data[4*i] = 0;
-      texture_data[4*i+1] = 0;
-      texture_data[4*i+2] = 0;
-      texture_data[4*i+3] = 255;
+        texture_data[4*i] = static_cast<uint8_t>(colors[cur_color][0] * cur_color_scale);
+        texture_data[4*i+1] = static_cast<uint8_t>(colors[cur_color][1] * cur_color_scale);
+        texture_data[4*i+2] = static_cast<uint8_t>(colors[cur_color][2] * cur_color_scale);
+        texture_data[4*i+3] = 255;
+      } else if (src[i] >= GDT_MAX_DIST) {
+        texture_data[4*i] = 0;
+        texture_data[4*i+1] = 0;
+        texture_data[4*i+2] = 255;
+        texture_data[4*i+3] = 255;
+      } else if (src[i] == 0) {
+        texture_data[4*i] = 0;
+        texture_data[4*i+1] = 0;
+        texture_data[4*i+2] = 0;
+        texture_data[4*i+3] = 255;
+      }
+    }
+  } else {
+    for (int32_t i = 0; i < src_dim; i++) {
+      if (src[i] < GDT_MAX_DIST && src[i] != 0) {
+        uint32_t cur_pixel = static_cast<uint32_t>(src[i]) << 2;
+        float cur_scale = static_cast<float>(cur_pixel % 255) / 255; // 0 --> 1
+
+        texture_data[4*i] = (uint8_t)((cur_scale * 0.8f + 0.2f) * 255.0f);
+        texture_data[4*i+1] = (uint8_t)((cur_scale * 0.8f + 0.2f) * 255.0f);
+        texture_data[4*i+2] = (uint8_t)((cur_scale * 0.8f + 0.2f) * 255.0f);
+        texture_data[4*i+3] = 255;
+      } else if (src[i] >= GDT_MAX_DIST) {
+        texture_data[4*i] = 255;
+        texture_data[4*i+1] = 255;
+        texture_data[4*i+2] = 255;
+        texture_data[4*i+3] = 255;
+      } else if (src[i] == 0) {
+        texture_data[4*i] = 0;
+        texture_data[4*i+1] = 0;
+        texture_data[4*i+2] = 0;
+        texture_data[4*i+3] = 255;
+      }
     }
   }
 }
 
 template <class T>
 void PaintLabelData(T* src) {
-  for (int32_t i = 0; i < src_dim; i++) {
-    switch(src[i]) {
-    case 0:
-      // texture_data[4*i+3] = 128;  // dim everything else slightly
-      break;
-    case 1:
-      texture_data[4*i] = 255;
-      texture_data[4*i+1] = 0;
-      texture_data[4*i+2] = 0;
-      texture_data[4*i+3] = 255;
-      break;
-    case 2:
-      texture_data[4*i] = 0;
-      texture_data[4*i+1] = 0;
-      texture_data[4*i+2] = 255;
-      texture_data[4*i+3] = 255;
-      break;
+  if (depth_visualization_type == 0) {
+    for (int32_t i = 0; i < src_dim; i++) {
+      switch(src[i]) {
+      case 0:
+        // texture_data[4*i+3] = 128;  // dim everything else slightly
+        break;
+      case 1:
+        texture_data[4*i] = 255;
+        texture_data[4*i+1] = 0;
+        texture_data[4*i+2] = 0;
+        texture_data[4*i+3] = 255;
+        break;
+      case 2:
+        texture_data[4*i] = 0;
+        texture_data[4*i+1] = 0;
+        texture_data[4*i+2] = 255;
+        texture_data[4*i+3] = 255;
+        break;
+      }
+    }
+  } else {
+    for (int32_t i = 0; i < src_dim; i++) {
+      switch(src[i]) {
+      case 0:
+        // Don't do anything
+        break;
+      case 1:
+        texture_data[4*i] = (uint8_t)std::min<uint32_t>((uint32_t)((float)texture_data[4*i] * 1.0f), 255);
+        texture_data[4*i+1] = (uint8_t)std::min<uint32_t>((uint32_t)((float)texture_data[4*i+1] * 0.25f), 255);
+        texture_data[4*i+2] = (uint8_t)std::min<uint32_t>((uint32_t)((float)texture_data[4*i+2] * 0.25f), 255);
+        texture_data[4*i+3] = (uint8_t)std::min<uint32_t>((uint32_t)((float)texture_data[4*i+3] * 1.0f), 255);
+        break;
+      case 2:
+        texture_data[4*i] = (uint8_t)std::min<uint32_t>((uint32_t)((float)texture_data[4*i] * 0.25f), 255);
+        texture_data[4*i+1] = (uint8_t)std::min<uint32_t>((uint32_t)((float)texture_data[4*i+1] * 0.25f), 255);
+        texture_data[4*i+2] = (uint8_t)std::min<uint32_t>((uint32_t)((float)texture_data[4*i+2] * 1.0f), 255);
+        texture_data[4*i+3] = (uint8_t)std::min<uint32_t>((uint32_t)((float)texture_data[4*i+3] * 1.0f), 255);
+        break;
+      }
     }
   }
 }
@@ -277,13 +318,13 @@ void display() {
 
   if (continuously_play) {
     saveData();
-    if (cur_image >= (int32_t)im_files.size() - im_stride) {
+    if (cur_image >= (int32_t)im_files.size() - 1) {
       continuously_play = false;
       time_accumulate = 0;
     } else {
       time_accumulate += t1 - t0;
       if (time_accumulate > PLAY_SPEED) {
-        cur_image += im_stride;
+        cur_image += 1;
         std::cout << "loading image " << cur_image << " of ";
         std::cout << im_files.size() << std::endl;
         loadImageForRendering();
@@ -310,6 +351,11 @@ void display() {
       break;
     case 2:
       UpsampleNoFiltering<uint8_t>(cur_label_data_temp, hd->labels_evaluated(),
+        src_width / DT_DOWNSAMPLE, src_height / DT_DOWNSAMPLE, DT_DOWNSAMPLE);
+      PaintLabelData<uint8_t>(cur_label_data_temp);
+      break;
+    case 3:
+      UpsampleNoFiltering<uint8_t>(cur_label_data_temp, cur_label_data_downsampled,
         src_width / DT_DOWNSAMPLE, src_height / DT_DOWNSAMPLE, DT_DOWNSAMPLE);
       PaintLabelData<uint8_t>(cur_label_data_temp);
       break;
@@ -390,12 +436,16 @@ void initGL() {
 
 int delete_confirmed = 0;
 std::string cur_filename;
+bool shift_down = false;
 void keyboard(unsigned char key, int x, int y) {
+  bool shift_down = (glutGetModifiers() & GLUT_ACTIVE_SHIFT) != 0;
+
   string full_filename = IMAGE_DIRECTORY + string(im_files[cur_image].first);
   if (key != 'd') {
     delete_confirmed = 0;
   }
   bool image_changed = false;
+  int32_t skip;
   switch (key) {
   case 27: // ESC
   case 'q':
@@ -404,17 +454,26 @@ void keyboard(unsigned char key, int x, int y) {
     break;
   case '-':
   case '_':
-    if (cur_image > 0) {
-      cur_image -= im_stride;
+    skip = 1;
+    if (shift_down) {
+      skip = 100;
+    }
+    if (cur_image > skip - 1) {
+      saveData();
+      cur_image -= skip;
       loadImageForRendering();
     }
     cout << "depth image " << cur_image+1 << " of " << im_files.size() << endl;
     break;
   case '=':
   case '+':
-    if (cur_image < static_cast<int32_t>(im_files.size())-im_stride) {
+    skip = 1;
+    if (shift_down) {
+      skip = 100;
+    }
+    if (cur_image < static_cast<int32_t>(im_files.size())-skip) {
       saveData();
-      cur_image += im_stride;
+      cur_image += skip;
       loadImageForRendering();
     }
     cout << "depth image " << cur_image+1 << " of " << im_files.size() << endl;
@@ -459,16 +518,19 @@ void keyboard(unsigned char key, int x, int y) {
     break;
   case 'K':
   case 'k':
-    label_type = (label_type + 1) % 3;
+    label_type = (label_type + 1) % 4;
     switch (label_type) {
     case 0:
-      cout << "Full resolution labels" << endl;
+      cout << "Full resolution target labels" << endl;
       break;
     case 1:
       cout << "Filtered red-pixel labels" << endl;
       break;
     case 2:
       cout << "Decision forest labels" << endl;
+      break;
+    case 3:
+      cout << "Downsampled target labels" << endl;
       break;
     }
     break;
@@ -488,6 +550,10 @@ void keyboard(unsigned char key, int x, int y) {
   case '{':
     cur_image = 0;
     loadImageForRendering();
+    break;
+  case 'z':
+  case 'Z':
+    depth_visualization_type = (depth_visualization_type + 1) % 2;
     break;
   }      
   
@@ -683,6 +749,7 @@ int main(int argc, char *argv[]) {
   cout << "- - Go to the prev image" << endl;
   cout << "p - Play images and save labeling to file" << endl;
   cout << "[ - Go back to the start image" << endl;
+  cout << "z - Change depth coloring (0 - rainbow, 1 - grey)" << endl << endl;
   cout << "mouse-left - Flood fill inverse label large (when rendering depth)" << endl;
   cout << "mouse-right - Flood fill inverse label small (when rendering depth)" << endl << endl;
   cout << "1/! - Increase/Decrease Red Hue Threshold" << endl;
@@ -728,11 +795,11 @@ int main(int argc, char *argv[]) {
     }
     loadImageForRendering();
 
-    std::cout << "Profiling decision forest for 10 seconds:" << std::endl;
+    std::cout << "Profiling decision forest for 2 seconds:" << std::endl;
     jtil::clk::Clk clk;
     double time_accum = 0;
     uint64_t num_frames = 0;
-    while (time_accum < 10) {
+    while (time_accum < 2) {
       double t0 = clk.getTime();
       hd->evaluateForest(cur_depth_data);
       double t1 = clk.getTime();

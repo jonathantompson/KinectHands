@@ -36,7 +36,8 @@ namespace hand_detector {
 
   float evaluateDecisionForestError(const DepthImageData* data,
     const DecisionTree* forest, const uint32_t num_trees,
-    const bool run_median_filter, const int32_t median_filter_rad);
+    const bool run_median_filter, const int32_t median_filter_rad,
+    const int32_t tree_height);
 
 };  // namespace hand_detector
 };  // namespace kinect_interface

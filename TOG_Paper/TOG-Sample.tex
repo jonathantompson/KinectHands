@@ -62,7 +62,7 @@ Randomized Decision Forest Classifier Here.
 
 \begin{equation}
 \textstyle
-f\left(I, u, v\right)=\left[d_I\left(u + \frac{u_{off}}{d_I\left(u,v\right)}, v + \frac{v_{off}}{d_I\left(u,v\right)}\right) - d_I\left(u,v\right)\right]\geq d_{t}
+f\left(I, u, v\right)=\left[d_I\left(u + \frac{\Delta u}{d_I\left(u,v\right)}, v + \frac{\Delta v}{d_I\left(u,v\right)}\right) - d_I\left(u,v\right)\right]\geq d_{t}
 \end{equation}
 
 \section{Dataset Creation}
@@ -115,7 +115,15 @@ w_{i+1} = w_i + \Delta_i
 \section{Pose Detection}
 \label{sec:realtimeposedetection}
 
-Pose Detection Here.
+\begin{eqnarray}
+\textstyle
+\Delta_{f}\left(m\right) = \left\{
+    \begin{array}{l l}
+      \left\|\ \left(u_f^t, v_f^t, d_f^t\right) - \left(u_f^m, v_f^m, d_f^m\right) \right\|_2 & \text{If $d_f^t \neq 0$} \\
+      \left\|\ \left(u_f^t, v_f^t\right) - \left(u_f^m, v_f^m\right) \right\|_2 & \text{otherwise}
+    \end{array} \right.\ \\
+f\left(m\right) = \sum\limits_{f=1}^n\left[ \Delta_{f}\left(m\right) \right] + \Phi\left(C\right) \text{   }
+\end{eqnarray}
 
 \section{Results}
 \label{sec:results}

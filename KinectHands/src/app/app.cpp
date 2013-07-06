@@ -276,6 +276,13 @@ namespace app {
     }
   }
 
+//#define PROFILE
+#ifdef PROFILE
+  double hand_pose_time = 0;
+  uint32_t hand_pose_nframes = 0;
+  double convnet_time = 0;
+  uint32_t convnet_nframes = 0;
+#endif
   void App::run() {
     while (app_running_) {
       frame_time_prev_ = frame_time_;
@@ -309,16 +316,45 @@ namespace app {
         GET_SETTING("detect_pose", bool, detect_pose);
         GET_SETTING("detect_heat_map", bool, detect_heat_map);
         if (detect_heat_map) {
+#ifdef PROFILE
+          double t0 = clk_->getTime();
+#endif
           hand_net_->calcConvnetHeatMap(kdata_[cur_kinect]->depth, 
             kdata_[cur_kinect]->labels);
+#ifdef PROFILE
+          double t1 = clk_->getTime();
+          convnet_time += (t1 - t0);
+          convnet_nframes++;
+          if ( convnet_nframes >= 60 ) {
+            std::cout << "Convnet time per frame = " << convnet_time / 
+              convnet_nframes << std::endl;
+            convnet_time = 0;
+            convnet_nframes = 0;
+          }
+#endif
+
           if (detect_pose) {
             int smoothing_factor;
             bool smoothing_on;
             GET_SETTING("pose_smoothing_factor_enum", int, smoothing_factor);
             GET_SETTING("pose_smoothing_on", bool, smoothing_on);
+#ifdef PROFILE
+            double t0 = clk_->getTime();
+#endif
             hand_net_->calcConvnetPose(kdata_[cur_kinect]->depth, 
               kdata_[cur_kinect]->labels, 
               smoothing_on ? pose_smoothing_factors[smoothing_factor] : 0);
+#ifdef PROFILE
+            double t1 = clk_->getTime();
+            hand_pose_time += (t1 - t0);
+            hand_pose_nframes++;
+            if ( hand_pose_nframes >= 60 ) {
+              std::cout << "Hand Pose time per frame = " << hand_pose_time / 
+                hand_pose_nframes << std::endl;
+              hand_pose_time = 0;
+              hand_pose_nframes = 0;
+            }
+#endif
             robot_hand_model_->updateMatrices(hand_net_->rhand_cur_pose()->coeff());
           }
         }

@@ -1,6 +1,7 @@
 clearvars; clc; clear global; close all; format shortG;
 addpath('./export_fig/');
 
+%% Kinect Plots
 filename = 'kinect_texture.bin';
 width = 640;
 height = 480;
@@ -65,35 +66,51 @@ imshow((residue_cropped - min(min(residue_cropped)))/ (0.75*(max(max(residue_cro
 set(gcf, 'Color', 'w');
 export_fig Residue.png -m2 -painters -a4 -nocrop
 
-filename = 'rdf_depth.bin';
-width = 640 / 4;
-height = 480 / 4;
-channels = 1;
-type = 'int16';
-kinect = single(loadImageFile(filename, width, height, channels, type));
-min_max_depth = [inf, -inf];
-for v = 1:height
-    for u = 1:width
-        if (kinect(v, u) < 1300) 
-            if (min_max_depth(1) > kinect(v, u))
-                min_max_depth(1) = kinect(v, u);
-            end
-            if (min_max_depth(2) < kinect(v, u))
-                min_max_depth(2) = kinect(v, u);
-            end            
-        end
-    end
-end
-
-im_kinect = (1-(kinect - min_max_depth(1))/ (min_max_depth(2)-min_max_depth(1)));
-im_kinect(find(im_kinect<0)) = 0;
-im_kinect = im_kinect * 0.7 + 0.3;
+%% Decision tree plots
+dt_file = '../../HandForests/results.xlsx';
+num_trees_test = xlsread(dt_file, 'TOG_num_trees_test');
+num_trees_train = xlsread(dt_file, 'TOG_num_trees_train');
+height_test = xlsread(dt_file, 'TOG_height_test');
+height_train = xlsread(dt_file, 'TOG_height_train');
+headings = ['Height or Number of Trees', 'Number Incorrect Pixels', 'Number Correct Pixels', 'Number of Hand Pixels', 'Number False Positives', 'Number False Negatives'];
 
 figure;
-imshow(im_kinect, 'InitialMagnification', 400);
+plot(num_trees_test(:,1), 100 * (num_trees_test(:,2) ./ num_trees_test(:,4)), 'r', 'LineWidth', 1.5); hold on;
+plot(num_trees_train(:,1), 100 * (num_trees_train(:,2) ./ num_trees_train(:,4)), 'b', 'LineWidth', 1.5);
+xlabel('Number of Trees');
+ylabel('Percentage Error');
+legend({'Test Set', 'Training Set'}, 'Location', 'NorthEast');
+grid on;
+makePlotNice();
+set(gca, 'Position', [.7 .7 4.5 3.125]); 
+export_fig error_vs_num_trees.png -m2 -painters -a4 -nocrop
 
+figure;
+plot(height_test(:,1), 100 * (height_test(:,2) ./ height_test(:,4)), 'r', 'LineWidth', 1.5); hold on;
+plot(height_train(:,1), 100 * (height_train(:,2) ./ height_train(:,4)), 'b', 'LineWidth', 1.5);
+xlabel('Height of Trees');
+ylabel('Percentage Error');
+legend({'Test Set', 'Training Set'}, 'Location', 'NorthEast');
+set(gcf, 'Color', 'w');
+grid on;
+makePlotNice();
+export_fig error_vs_height.png -m2 -painters -a4 -nocrop
 
-% figure;
-% imshow((synthetic - min(min(synthetic)))/ (max(max(synthetic))-min(min(synthetic))));
-% figure;
-% imshow((residue - min(min(residue)))/ (max(max(residue))-min(min(residue))));
+%% Convnet Plots
+cnn_file = '../../HandNets/results.xls';
+epoch_test = xlsread(cnn_file, 'MSE Errors 8','B4:B318');
+error_test = xlsread(cnn_file, 'MSE Errors 8','D4:D318');
+epoch_train = xlsread(cnn_file, 'MSE Errors 8','AA4:AA317');
+error_train = xlsread(cnn_file, 'MSE Errors 8','AC4:AC317');
+
+figure;
+loglog(epoch_test, error_test, 'r', 'LineWidth', 1.5); hold on;
+loglog(epoch_train, error_train, 'b', 'LineWidth', 1.5);
+axis([min(epoch_test) max(epoch_test) min(error_train) max(error_test)]);
+xlabel('Learning Epoch');
+ylabel('MSE Error');
+legend({'Test Set', 'Training Set'}, 'Location', 'NorthEast');
+grid on;
+makePlotNice();
+set(gca, 'Position', [.8 .75 4.5 3.125]); 
+export_fig conv_learning_graph.png -m2 -painters -a4 -nocrop

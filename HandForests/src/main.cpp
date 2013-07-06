@@ -283,16 +283,30 @@ int main(int argc, char *argv[]) {
     // COMMIT SOMEWHERE AND NEEDS TO BE RE-WRITTEN :-(
     // NUM_TREES CHOOSE 4 COMBINATIONS AND SEARCH FOR LOWEST TEST SET ERROR
     if (test_data->num_images > 0) {
-      cout << "Evaluating results on test set..." << endl;
+      // MEASURE VS TREE HEIGHT
+      const uint32_t ntrees = std::min<uint32_t>(prog_settings.num_trees, 4);
+      for (uint32_t i = 5; i <= forest->tree_height; i+= 1) {
+        float error = evaluateDecisionForestError(test_data, forest, ntrees, false, 
+          0, i);
+        cout << i << " height --> error on test set = " << (error*100) << "%" << endl;
+      }
+      for (uint32_t i = 5; i <= forest->tree_height; i+= 1) {
+        float error = evaluateDecisionForestError(training_data, forest, ntrees, false, 
+          0, i);
+        cout << i << " height --> error on training set = " << (error*100) << "%" << endl;
+      }
+
+      // MEASURE VS NUMBER OF TREES
+      cout << "Evaluating results on test set vs num_trees..." << endl;
       for (uint32_t i = 0; i < prog_settings.num_trees; i++) {
         float error = evaluateDecisionForestError(test_data, forest, i+1, false, 
-          0);
+          0, forest->tree_height);
         cout << i+1 << " trees --> error on test set = " << (error*100) << "%" << endl;
       }
-      cout << "Evaluating results on trainint set..." << endl;
+      cout << "Evaluating results on training set vs num_trees..." << endl;
       for (uint32_t i = 0; i < prog_settings.num_trees; i++) {
         float error = evaluateDecisionForestError(training_data, forest, i+1, false, 
-          0);
+          0, forest->tree_height);
         cout << i+1 << " trees --> error on training set = " << (error*100) << "%" << endl;
       }
     }

@@ -92,7 +92,6 @@ using hand_net::HandCoeffConvnet;
 // *************************************************************
 #define BACKUP_HDD
 // Training Set
-/*
 const uint32_t num_im_dirs = 12;
 string im_dirs[num_im_dirs] = {
   string("hand_depth_data_2013_05_01_1/"),
@@ -108,22 +107,25 @@ string im_dirs[num_im_dirs] = {
   string("hand_depth_data_2013_06_15_4/"),
   string("hand_depth_data_2013_06_15_5/")
 };
-*/
 
 // Test Set
+/*
 const uint32_t num_im_dirs = 1;
 string im_dirs[num_im_dirs] = {
   string("hand_depth_data_2013_05_08_1/")
 };
+*/
 
-//#define DST_IM_DIR_BASE string("hand_depth_data_processed_for_CN/") 
-#define DST_IM_DIR_BASE string("hand_depth_data_processed_for_CN_testset/") 
+#define DST_IM_DIR_BASE string("hand_depth_data_processed_for_CN/") 
+//#define DST_IM_DIR_BASE string("hand_depth_data_processed_for_CN_testset/") 
 
 //#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
 //#define SAVE_FILES  // Only enabled when we're not loading processed images
 //#define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
 //                              // HandForests, but save synthetic data (only 
 //                              // takes effect when not loading processed images)
+#define MEASURE_PERFORMANCE_ON_STARTUP  // Use RDF + Convnet to figure out UV 
+                                        // positions and compares against truth
 
 //#define SAVE_DEPTH_IMAGES  // Save the regular depth files --> Only when SAVE_FILES defined
 #define SAVE_HPF_IMAGES  // Save the hpf files --> Only when SAVE_FILES defined
@@ -242,7 +244,7 @@ void quit() {
   exit(0);
 }
 
-void loadCurrentImage() {
+void loadCurrentImage(bool calc_hand_image = true) {
   char* file = im_files[cur_image].first;
 #ifdef LOAD_PROCESSED_IMAGES
   string DIR = DST_IM_DIR;
@@ -318,38 +320,40 @@ void loadCurrentImage() {
     std::cout << std::endl;
   }
 
-  // Create the downsampled hand image, background is at 1 and hand is
-  // from 0 --> 1.  Also calculates the convnet input.
+  if (calc_hand_image) {
+    // Create the downsampled hand image, background is at 1 and hand is
+    // from 0 --> 1.  Also calculates the convnet input.
 #ifdef SAVE_HPF_IMAGES
-  const bool create_hpf_images = true;
+    const bool create_hpf_images = true;
 #else
-  const bool create_hpf_images = false;
+    const bool create_hpf_images = false;
 #endif
 
-  model[0]->setRendererAttachement(false);
-  HandGeometryMesh::setCurrentStaticHandProperties(r_hand->coeff());
+    model[0]->setRendererAttachement(false);
+    HandGeometryMesh::setCurrentStaticHandProperties(r_hand->coeff());
 
 #ifdef SAVE_SYNTHETIC_IMAGE
-  GLState::glsViewport(0, 0, 640, 480);
-  float coeff[num_hands * num_coeff_fit];
-  memcpy(coeff, r_hand->coeff(), sizeof(coeff[0])*num_coeff_fit);
-  hand_renderer->drawDepthMap(coeff, num_coeff_fit, (PoseModel**)model, 
-    num_hands, 0, false);
-  hand_renderer->extractDepthMap(cur_synthetic_depth_data);
-  hand_image_generator_->calcHandImage(cur_depth_data, label,
-    create_hpf_images, cur_synthetic_depth_data);
-  GLState::glsViewport(0, 0, wnd->width(), wnd->height());
+    GLState::glsViewport(0, 0, 640, 480);
+    float coeff[num_hands * num_coeff_fit];
+    memcpy(coeff, r_hand->coeff(), sizeof(coeff[0])*num_coeff_fit);
+    hand_renderer->drawDepthMap(coeff, num_coeff_fit, (PoseModel**)model, 
+      num_hands, 0, false);
+    hand_renderer->extractDepthMap(cur_synthetic_depth_data);
+    hand_image_generator_->calcHandImage(cur_depth_data, label,
+      create_hpf_images, cur_synthetic_depth_data);
+    GLState::glsViewport(0, 0, wnd->width(), wnd->height());
 #else
-  hand_image_generator_->calcHandImage(cur_depth_data, label,
-    create_hpf_images);
+    hand_image_generator_->calcHandImage(cur_depth_data, label,
+      create_hpf_images);
 #endif
 
-  hand_renderer->camera(0)->updateProjection();
-  // Correctly modify the coeff values to those that are learnable by the
-  // convnet (for instance angles are bad --> store cos(x), sin(x) instead)
-  model[0]->handCoeff2CoeffConvnet(r_hand, coeff_convnet,
-    hand_image_generator_->hand_pos_wh(), hand_image_generator_->uvd_com(),
-    *hand_renderer->camera(0)->proj(), *hand_renderer->camera(0)->view());
+    hand_renderer->camera(0)->updateProjection();
+    // Correctly modify the coeff values to those that are learnable by the
+    // convnet (for instance angles are bad --> store cos(x), sin(x) instead)
+    model[0]->handCoeff2CoeffConvnet(r_hand, coeff_convnet,
+      hand_image_generator_->hand_pos_wh(), hand_image_generator_->uvd_com(),
+      *hand_renderer->camera(0)->proj(), *hand_renderer->camera(0)->view());
+  }
 #endif
 }
 
@@ -732,20 +736,64 @@ int main(int argc, char *argv[]) {
     std::cout << (HN_IM_SIZE) << std::endl;
 
     hand_detect = new HandDetector(tp);
-    std::cout << "Loading forest from " << DST_DATA_ROOT << 
-      FOREST_DATA_FILENAME << std::endl;
-    hand_detect->init(src_width, src_height, DST_DATA_ROOT +
-      FOREST_DATA_FILENAME);
+    std::cout << "Loading forest from " << "./../" << FOREST_DATA_FILENAME << 
+      std::endl;
+    hand_detect->init(src_width, src_height,"./../" + FOREST_DATA_FILENAME);
     hand_image_generator_ = new HandImageGenerator(HN_DEFAULT_NUM_CONV_BANKS);
     for (uint32_t i = 0; i < HandCoeffConvnet::HAND_NUM_COEFF_CONVNET; i++) {
       blank_coeff[i] = 0.0f;
     }
+
+#ifdef MEASURE_PERFORMANCE_ON_STARTUP
+    HandNet* hn = new HandNet();
+    hn->loadFromFile("../data/handmodel.net.convnet"); 
+
+    float ave_heatmap_uv_dist_error[num_convnet_feats];
+    for (uint32_t i = 0; i < num_convnet_feats; i++) {
+      ave_heatmap_uv_dist_error[i] = 0;
+    }
+
+    for (int32_t i = 0; i < (int32_t)im_files.size(); i++) {
+      if (i % 100 == 0 || i == im_files.size() - 1) {
+        std::cout << "measuring error on image " << i + 1 << " of " <<
+          im_files.size() << std::endl;
+      }
+      cur_image = i;
+      // Note loadCurrentImage will calculate the hand image AND 
+      // calcConvnetHeatMap will also calculate the coeff, so there is some 
+      // redundancy here.
+      loadCurrentImage();
+      hn->calcConvnetHeatMap(cur_depth_data, label);
+      const float* gauss_coeff = hn->gauss_coeff();  // (mean_u, mean_v, std_u, std_v)
+      const Int4* pos_wh = &hn->image_generator()->hand_pos_wh();
+      for (uint32_t i = 0; i < num_convnet_feats; i++) {
+        float u = gauss_coeff[i * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU];
+        float v = gauss_coeff[i * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV];
+        float u_target = coeff_convnet[i * FEATURE_SIZE] * 
+          (float)(*pos_wh)[2] + (float)(*pos_wh)[0];
+        float v_target = coeff_convnet[i * FEATURE_SIZE + 1]  * 
+          (float)(*pos_wh)[3] + (float)(*pos_wh)[1];
+        float dist = sqrtf(powf(u-u_target, 2) + powf(v-v_target,2));
+        ave_heatmap_uv_dist_error[i] += dist;
+      }
+    }
+
+    for (uint32_t i = 0; i < num_convnet_feats; i++) {
+      ave_heatmap_uv_dist_error[i] /= (float)im_files.size();
+      std::cout << "Ave UV error for feature " << i << " is " << 
+        ave_heatmap_uv_dist_error[i] << std::endl;
+    }
+    delete hn;
+    cur_image = 0;
+#endif
 
     loadCurrentImage();
     tex = new Texture(GL_RGB8, 2 * HN_IM_SIZE, HN_IM_SIZE, GL_RGB, 
       GL_UNSIGNED_BYTE, (unsigned char*)tex_data, 
       TEXTURE_WRAP_MODE::TEXTURE_CLAMP, false,
       TEXTURE_FILTER_MODE::TEXTURE_NEAREST);
+
+
 
     render->renderFrame(0);
 
