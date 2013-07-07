@@ -336,27 +336,27 @@ namespace hand_net {
       uvd_pos_[i * 3 + 1] = v;
       int16_t d = MAX_INT16;
 
-      // Now search for some small window for the minimum point
-      uint32_t v_start = std::max<uint32_t>((uint32_t)floor(v) - RAD_UVD_SEARCH, 0);
-      uint32_t v_end = std::min<uint32_t>((uint32_t)floor(v) + RAD_UVD_SEARCH, src_height-1);
-      for (uint32_t v_search = v_start; v_search <= v_end; v_search++) {
-        uint32_t u_start = std::max<uint32_t>((uint32_t)floor(u) - RAD_UVD_SEARCH, 0);
-        uint32_t u_end = std::min<uint32_t>((uint32_t)floor(u) + RAD_UVD_SEARCH, src_width-1);
-        for (uint32_t u_search = u_start; u_search <= u_end; u_search++) {
-          uint32_t index = v_search * src_height + u_search;
-          if (depth[index] > 0 && label[index] == 1) {
-            d = std::min<int16_t>(depth[index], d);
-          }
-        }
-      }
+      //// Now search for some small window for the minimum point
+      //uint32_t v_start = std::max<uint32_t>((uint32_t)floor(v) - RAD_UVD_SEARCH, 0);
+      //uint32_t v_end = std::min<uint32_t>((uint32_t)floor(v) + RAD_UVD_SEARCH, src_height-1);
+      //for (uint32_t v_search = v_start; v_search <= v_end; v_search++) {
+      //  uint32_t u_start = std::max<uint32_t>((uint32_t)floor(u) - RAD_UVD_SEARCH, 0);
+      //  uint32_t u_end = std::min<uint32_t>((uint32_t)floor(u) + RAD_UVD_SEARCH, src_width-1);
+      //  for (uint32_t u_search = u_start; u_search <= u_end; u_search++) {
+      //    uint32_t index = v_search * src_height + u_search;
+      //    if (depth[index] > 0 && label[index] == 1) {
+      //      d = std::min<int16_t>(depth[index], d);
+      //    }
+      //  }
+      //}
 
-      //// No search, just grab the point
-      //uint32_t v_ind = std::min<uint32_t>((uint32_t)std::max<int32_t>((int32_t)floor(v), 0), src_height - 1);
-      //uint32_t u_ind = std::min<uint32_t>((uint32_t)std::max<int32_t>((int32_t)floor(u), 0), src_width - 1);
-      //uint32_t index = v_ind * src_height + u_ind;
-      //if (label[index] == 1) {
-      //  d = depth[index];
-      //} 
+      // No search, just grab the point
+      uint32_t v_ind = std::min<uint32_t>((uint32_t)std::max<int32_t>((int32_t)floor(v), 0), src_height - 1);
+      uint32_t u_ind = std::min<uint32_t>((uint32_t)std::max<int32_t>((int32_t)floor(u), 0), src_width - 1);
+      uint32_t index = v_ind * src_height + u_ind;
+      if (label[index] == 1) {
+        d = depth[index];
+      } 
 
       if (d == MAX_INT16) {
         uvd_pos_[i * 3 + 2] = 0;

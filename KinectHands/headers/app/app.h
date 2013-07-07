@@ -42,6 +42,7 @@ namespace app {
     OUTPUT_CONVNET_SRC_DEPTH = 7,
     OUTPUT_CONVNET_HEAT_MAPS = 8,
     OUTPUT_HAND_NORMALS = 9,
+    OUTPUT_BLUE = 10,
   } KinectOutput;
 
   typedef enum {

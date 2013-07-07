@@ -393,6 +393,16 @@ namespace app {
           memcpy(im_, kdata_[cur_kinect]->registered_rgb, 
             sizeof(im_[0]) * src_dim * 3);
           break;
+        case OUTPUT_BLUE:
+          {
+            // Set to 0.15f, 0.15f, 0.3f
+            for (uint32_t i = 0; i < src_dim; i++) {
+              im_[i*3] = 38;
+              im_[i*3+1] = 38;
+              im_[i*3+2] = 77;
+            }
+          }
+          break;
         case OUTPUT_DEPTH: 
           {
             int16_t* depth = kdata_[cur_kinect]->depth;
@@ -748,6 +758,8 @@ namespace app {
       ui::UIEnumVal(OUTPUT_CONVNET_HEAT_MAPS, "Convnet Heat Map"));
     ui->addSelectboxItem("kinect_output",
       ui::UIEnumVal(OUTPUT_HAND_NORMALS, "Hand Normals"));
+    ui->addSelectboxItem("kinect_output",
+      ui::UIEnumVal(OUTPUT_BLUE, "Blue Background"));
     ui->addCheckbox("render_kinect_fps", "Render Kinect FPS");
     ui->addCheckbox("continuous_snapshot", "Save continuous video stream");
     ui->addCheckbox("continuous_cal_snapshot", "Save continuous calibration stream");
