@@ -43,6 +43,7 @@ namespace hand_net {
 
     static const bool* angle_coeffs() { return angle_coeffs_; }
     static const float* coeff_min_limit() { return coeff_min_limit_; }
+    static const float* coeff_min_limit_conservative() { return coeff_min_limit_conservative_; }
     static const float* coeff_max_limit() { return coeff_max_limit_; }
     static const float* coeff_max_limit_conservative() { return coeff_max_limit_conservative_; }
     static const float* coeff_penalty_scale() { return coeff_penalty_scale_; }
@@ -100,6 +101,7 @@ namespace hand_net {
     static const float coeff_min_limit_[HAND_NUM_COEFF];
     static const float coeff_max_limit_[HAND_NUM_COEFF];
     static const float coeff_max_limit_conservative_[HAND_NUM_COEFF];
+    static const float coeff_min_limit_conservative_[HAND_NUM_COEFF];
     static const float coeff_penalty_scale_[HAND_NUM_COEFF];
     static const bool angle_coeffs_[HAND_NUM_COEFF];
 

@@ -534,43 +534,45 @@ int main(int argc, char *argv[]) {
     render->init(eye_rot, eye_pos, wnd_settings->width, wnd_settings->height,
       -1.0f, -2000.0f, fov_vert_deg);
     
-    // Spawn some pretty objects (to test the renderer)
-    GeometryColoredMesh* tmp;
-    tmp = GeometryColoredMesh::makeTorusKnot(renderer::red, 5, 64, 512);
-    tmp->mat()->scaleMat(100, 100, 100);
-    tmp->mat()->leftMultTranslation(0.0f, 100.0f, 1000.0f);
-    GeometryManager::scene_graph_root()->addChild(tmp);
-    tmp = GeometryColoredMesh::makeSphere(64, 64, 1.0f, renderer::blue);
-    tmp->mat()->scaleMat(100, 100, 100);
-    tmp->mat()->leftMultTranslation(0.0f, 100.0f, 1000.0f);
-    GeometryManager::scene_graph_root()->addChild(tmp);
+    //// Spawn some pretty objects (to test the renderer)
+    //GeometryColoredMesh* tmp;
+    //tmp = GeometryColoredMesh::makeTorusKnot(renderer::red, 5, 64, 512);
+    //tmp->mat()->scaleMat(100, 100, 100);
+    //tmp->mat()->leftMultTranslation(0.0f, 100.0f, 1000.0f);
+    //GeometryManager::scene_graph_root()->addChild(tmp);
+    //tmp = GeometryColoredMesh::makeSphere(64, 64, 1.0f, renderer::blue);
+    //tmp->mat()->scaleMat(100, 100, 100);
+    //tmp->mat()->leftMultTranslation(0.0f, 100.0f, 1000.0f);
+    //GeometryManager::scene_graph_root()->addChild(tmp);
 
-    // Try loading some meshes from file
-    // Some nice ones here: http://graphics.cs.williams.edu/data/meshes.xml
-    // and here: http://www.models-resource.com/
-    // and definitely here: http://www.blendswap.com/blends/category/characters/
-    bunny = GeometryManager::g_geom_manager()->loadFromFile(
-      MODELS_PATH, "bunny.obj");
-    bunny->mtrl()->specular_intensity = 1.0f;
-    bunny->mtrl()->specular_power = 32.0f;
-    bunny->mat()->scaleMat(1000, 1000, 1000);
-    bunny->mat()->leftMultTranslation(-300.0f, 0, 750.0f);
-    bunny_copy = bunny->copy();
-    GeometryManager::scene_graph_root()->addChild(bunny);
+    //// Try loading some meshes from file
+    //// Some nice ones here: http://graphics.cs.williams.edu/data/meshes.xml
+    //// and here: http://www.models-resource.com/
+    //// and definitely here: http://www.blendswap.com/blends/category/characters/
+    //bunny = GeometryManager::g_geom_manager()->loadFromFile(
+    //  MODELS_PATH, "bunny.obj");
+    //bunny->mtrl()->specular_intensity = 1.0f;
+    //bunny->mtrl()->specular_power = 32.0f;
+    //bunny->mat()->scaleMat(1000, 1000, 1000);
+    //bunny->mat()->leftMultTranslation(-300.0f, 0, 750.0f);
+    //bunny_copy = bunny->copy();
+    //GeometryManager::scene_graph_root()->addChild(bunny);
 
-    Geometry* dog = GeometryManager::g_geom_manager()->loadFromFile(
-      MODELS_PATH + "SmallDog/", "small_dog.dae");
-    dog->mat()->scaleMat(200, 200, 200);
-    dog->mat()->leftMultTranslation(300.0f, 0, 750.0f);
-    GeometryManager::scene_graph_root()->addChild(dog);
+    //Geometry* dog = GeometryManager::g_geom_manager()->loadFromFile(
+    //  MODELS_PATH + "SmallDog/", "small_dog.dae");
+    //dog->mat()->scaleMat(200, 200, 200);
+    //dog->mat()->leftMultTranslation(300.0f, 0, 750.0f);
+    //GeometryManager::scene_graph_root()->addChild(dog);
 
     models[0] = new HandGeometryMesh(LEFT);
     models[1] = new HandGeometryMesh(RIGHT);
+    models[0]->setRendererAttachement(true);
+    models[1]->setRendererAttachement(true);
     
-    sphere = GeometryColoredMesh::makeSphere(64, 64, 1.0f, renderer::white);
-    sphere->mat()->scaleMat(50, 50, 50);
-    sphere->mat()->leftMultTranslation(0.0f, 100.0f, 1000.0f);
-    GeometryManager::scene_graph_root()->addChild(sphere);
+    //sphere = GeometryColoredMesh::makeSphere(64, 64, 1.0f, renderer::white);
+    //sphere->mat()->scaleMat(50, 50, 50);
+    //sphere->mat()->leftMultTranslation(0.0f, 100.0f, 1000.0f);
+    //GeometryManager::scene_graph_root()->addChild(sphere);
     
     // Attach callback functions for event handling
     wnd->registerKeyboardCB(&KeyboardCB);

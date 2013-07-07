@@ -362,18 +362,20 @@ namespace app {
 
       if (kinect_output == OUTPUT_CONVNET_DEPTH) {
         const float* src_depth = hand_net_->hpf_hand_image();
-        float min = std::numeric_limits<float>::infinity();
-        float max = -std::numeric_limits<float>::infinity();
-        for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
-          for (uint32_t u = 0; u < HN_IM_SIZE; u++) {
-            min = std::min<float>(min, src_depth[v * HN_IM_SIZE + u]);
-            max = std::max<float>(max, src_depth[v * HN_IM_SIZE + u]);
-          }
-        }
-        // Rescale convnet depth 0-->1
-        const float range = max - min;
+        //float min = std::numeric_limits<float>::infinity();
+        //float max = -std::numeric_limits<float>::infinity();
+        //for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
+        //  for (uint32_t u = 0; u < HN_IM_SIZE; u++) {
+        //    min = std::min<float>(min, src_depth[v * HN_IM_SIZE + u]);
+        //    max = std::max<float>(max, src_depth[v * HN_IM_SIZE + u]);
+        //  }
+        //}
+        //const float scale = 2.0f * std::max<float>(fabsf(max), fabsf(min));
+        const float scale = 4.0f;
         for (uint32_t i = 0; i < HN_IM_SIZE * HN_IM_SIZE; i++) {
-          depth_tmp_[i] = (uint16_t)(255.0f * (src_depth[i] - min) / range);
+          float val = 0.5f + src_depth[i] / scale;  // Centered around 0.5
+          val = std::min<float>(1.0f, std::max<float>(0.0f, val));  // 0 to 1
+          depth_tmp_[i] = (uint16_t)(255.0f * val);
         }
       } else if (kinect_output == OUTPUT_CONVNET_SRC_DEPTH) {
         const float* src_depth = hand_net_->image_generator()->cropped_hand_image();
@@ -475,22 +477,22 @@ namespace app {
                 for (uint32_t u = 0; u < HN_IM_SIZE; u++) {
                   uint32_t isrc = v * HN_IM_SIZE + u;
                   uint32_t isrc_hm = (v / upsample_factor) * hm_size_ + u / upsample_factor;
-                  float val = 0.6f * ((float)depth_tmp_[isrc]/255.0f) + 0.4f;  // 0.4 to 1
+                  float val = (float)depth_tmp_[isrc]/255.0f;  // 0 to 1
                   float hm_val = (std::max<float>(cur_hm[isrc_hm], 0) - hm_min) / hm_range;  // 0 to 1
                   const uint32_t idst = (HN_IM_SIZE-v-1)*HN_IM_SIZE + u;
                   convnet_im_flipped_[idst * 3] = (uint8_t)(std::max<float>(0, 
-                    std::min<float>(255.0f * val, 254.0f)));
+                    std::min<float>(255.0f * (val + 0.25f * hm_val), 255.0f)));
                   convnet_im_flipped_[idst * 3 + 1] = (uint8_t)(std::max<float>(0, 
-                    std::min<float>(255.0f * val * (1 - hm_val), 254.0f)));
+                    std::min<float>(255.0f * val * (1 - hm_val), 255.0f)));
                   convnet_im_flipped_[idst * 3 + 2] = (uint8_t)(std::max<float>(0, 
-                    std::min<float>(255.0f * val * (1 - hm_val), 254.0f)));
+                    std::min<float>(255.0f * val * (1 - hm_val), 255.0f)));
                 }
               }
             } else {
               uint32_t isrc = 0;
               for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
                 for (uint32_t u = 0; u < HN_IM_SIZE; u++, isrc++) {
-                  const uint8_t val = (uint8_t)(depth_tmp_[isrc] * 255.0f);
+                  const uint8_t val = (uint8_t)(depth_tmp_[isrc]);
                   const uint32_t idst = (HN_IM_SIZE-v-1)*HN_IM_SIZE + u;
                   convnet_im_flipped_[idst * 3] = val;
                   convnet_im_flipped_[idst * 3 + 1] = val;
@@ -816,12 +818,16 @@ namespace app {
     ui->setTextWindowPos("kinect_fps_wnd", pos);
 
     LightSpotCVSM* light_spot_vsm = new LightSpotCVSM(Renderer::g_renderer());
-    light_spot_vsm->dir_world().set(0, 0, 1);
     light_spot_vsm->pos_world().set(-200, 0, 200);
+    Float3 target(0, 0, 1000);
+    Float3 dir;
+    Float3::sub(dir, target, light_spot_vsm->pos_world());
+    dir.normalize();
+    light_spot_vsm->dir_world().set(dir);
     light_spot_vsm->near_far().set(1.0f, 2000.0f);
-    light_spot_vsm->outer_fov_deg() = 35.0f;
+    light_spot_vsm->outer_fov_deg() = 40.0f;
     light_spot_vsm->diffuse_intensity() = 1.0f;
-    light_spot_vsm->inner_fov_deg() = 30.0f;
+    light_spot_vsm->inner_fov_deg() = 35.0f;
     light_spot_vsm->cvsm_count(1);
     Renderer::g_renderer()->addLight(light_spot_vsm);
 

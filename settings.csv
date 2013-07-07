@@ -9,7 +9,7 @@
 //, *********** SETTINGS ***********
 //, APPLICATION SPECIFIC
 track_openni_skeleton,            bool,      0
-kinect_output,                    int,       6
+kinect_output,                    int,       2
 detect_hands,                     bool,      1
 detect_pose,                      bool,      1
 detect_heat_map,                  bool,      1
@@ -24,11 +24,11 @@ sync_ir_stream,                   bool,      0
 //, Also: Dont change flip image after startup!
 flip_image,                       bool,      1
 color_convnet_depth,              bool,      0
-color_convnet_depth_feature,      int,       5
-color_convnet_depth_threshold,    int,       25
+color_convnet_depth_feature,      int,       12
+color_convnet_depth_threshold,    int,       15
 show_gaussian_labels,             bool,      0
 in_air_drawing_enabled,           bool,      1
-pose_smoothing_factor_enum,       int,       3
+pose_smoothing_factor_enum,       int,       4
 pose_smoothing_on,                bool,      1
 
 //, RENDERER
@@ -42,7 +42,7 @@ open_gl_core_profile,             bool,      1
 window_depth_buffer_bits,         int,       32
 window_stencil_buffer_bits,       int,       0
 window_rgba_bits,                 int,       8
-render_ui_app,                    bool,      0
+render_ui_app,                    bool,      1
 render_ui_renderer,               bool,      0
 render_ui_fps,                    bool,      1
 render_output_enum,               int,       0
@@ -50,7 +50,7 @@ light_pass_stencil_opt,           bool,      0
 ssao_on,                          bool,      1
 ssao_sample_radius,               float,     40.0
 ssao_bias,                        float,     0.4
-ssao_intensity,                   float,     2.5
+ssao_intensity,                   float,     3.5
 ssao_scale,                       float,     0.005
 ssao_enable,                      int,       1
 ssao_number_sample_enum,          int,       0

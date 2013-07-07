@@ -23,11 +23,13 @@
   #define HAND_MODEL_PATH string("./models/lib_hand/")
 #endif
 
-//#define LOAD_HAND_MESH_JFILE  // Much faster and more compact format!
+#define LOAD_HAND_MESH_JFILE  // Much faster and more compact format!
 #define LHAND_MODEL_FILE "hand_palm_parent_medium_wrist_dec_0.05.dae"
 #define LHAND_MODEL_JFILE "hand_palm_parent_medium_wrist_dec_0.05.jbin"
-#define RHAND_MODEL_FILE "hand_palm_parent_medium_wrist_dec_0.05_right.dae"
-#define RHAND_MODEL_JFILE "hand_palm_parent_medium_wrist_dec_0.05_right.jbin"
+//#define RHAND_MODEL_FILE "hand_palm_parent_medium_wrist_dec_0.05_right.dae"
+//#define RHAND_MODEL_JFILE "hand_palm_parent_medium_wrist_dec_0.05_right.jbin"
+#define RHAND_MODEL_FILE "hand_palm_parent_short_wrist_right.dae"
+#define RHAND_MODEL_JFILE "hand_palm_parent_short_wrist_right.jbin"
 
 using namespace jtil::renderer::objects;
 using namespace jtil::renderer;
@@ -58,8 +60,8 @@ namespace hand_net {
     // HACK: The model's normals are inside out --> Fix them
     if (hand_type == HandType::RIGHT) {
       GeometryManager* gm = Renderer::g_renderer()->geometry_manager();
-      Geometry* geom = gm->findGeometryByName("./models/lib_hand/hand_palm_"
-        "parent_medium_wrist_dec_0.05_right.dae/Armature_hand_mesh-skin/0");
+      Geometry* geom = gm->findGeometryByName(string(HAND_MODEL_PATH) + 
+        string(RHAND_MODEL_FILE) + "/Armature_hand_mesh-skin/0");
       if (geom == NULL) {
         throw std::wruntime_error("HandModel::HandModel() - ERROR: "
           "Couldn't find Geoemtry for right hand mesh!");
@@ -1016,6 +1018,53 @@ namespace hand_net {
     -0.300f,  // F3_TWIST
     -0.300f,  // THUMB_TWIST
   };
+
+  // coeff_min_limit_ is the minimum coefficient value before the penalty
+  // function heavily penalizes configurations with this value
+  const float HandModel::coeff_min_limit_conservative_[HAND_NUM_COEFF] = {
+    -std::numeric_limits<float>::infinity(),    // HAND_POS_X
+    -std::numeric_limits<float>::infinity(),    // HAND_POS_Y
+    -std::numeric_limits<float>::infinity(),    // HAND_POS_Z
+    -3.14159f,  // HAND_ORIENT_X
+    -3.14159f,  // HAND_ORIENT_Y
+    -3.14159f,  // HAND_ORIENT_Z
+    -0.903f,  // WRIST_THETA
+    -1.580f,  // WRIST_PHI
+    -0.523f,  // THUMB_THETA
+    -0.523f,  // THUMB_PHI
+    -0.170f,  // THUMB_K1_THETA
+    -1.253f,  // THUMB_K1_PHI
+    -1.733f,  // THUMB_K2_PHI
+    -0.300f,  // F0_ROOT_THETA
+    -0.300f,  // F0_ROOT_PHI
+    -0.800f,  // F0_THETA
+    -1.443f,  // F0_PHI
+    -1.400f,  // F0_KNUCKLE_MID  // Formally -1.363 4/12/2013
+    -1.500f,  // F0_KNUCKLE_END  // Formally -1.363 4/12/2013
+    -0.300f,  // F1_ROOT_THETA
+    -0.300f,  // F1_ROOT_PHI
+    -0.800f,  // F1_THETA
+    -1.443f,  // F1_PHI
+    -1.400f,  // F1_KNUCKLE_MID  // Formally -1.363 4/12/2013
+    -1.500f,  // F1_KNUCKLE_END  // Formally -1.363 4/12/2013
+    -0.300f,  // F2_ROOT_THETA
+    -0.300f,  // F2_ROOT_PHI
+    -0.800f,  // F2_THETA
+    -1.443f,  // F2_PHI
+    -1.400f,  // F2_KNUCKLE_MID  // Formally -1.363 4/12/2013
+    -1.500f,  // F2_KNUCKLE_END  // Formally -1.363 4/12/2013
+    -0.300f,  // F3_ROOT_THETA
+    -0.300f,  // F3_ROOT_PHI
+    -0.800f,  // F3_THETA
+    -1.443f,  // F3_PHI
+    -1.400f,  // F3_KNUCKLE_MID  // Formally -1.363 4/12/2013
+    -1.500f,  // F3_KNUCKLE_END  // Formally -1.363 4/12/2013
+    -0.300f,  // F0_TWIST
+    -0.400f,  // F1_TWIST
+    -0.300f,  // F2_TWIST
+    -0.300f,  // F3_TWIST
+    -0.300f,  // THUMB_TWIST
+  };
   
   // coeff_max_limit_ is the maximum coefficient value before the penalty
   // function heavily penalizes configurations with this value
@@ -1076,7 +1125,7 @@ namespace hand_net {
     0.905f,  // WRIST_THETA
     1.580f,  // WRIST_PHI
     0.350f,  // THUMB_THETA
-    0.380f,  // THUMB_PHI
+    0.300f,  // THUMB_PHI
     0.700f,  // THUMB_K1_THETA
     0.550f,  // THUMB_K1_PHI
     0.300f,  // THUMB_K2_PHI

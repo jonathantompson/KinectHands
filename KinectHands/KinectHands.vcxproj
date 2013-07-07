@@ -104,6 +104,7 @@ COPY /Y $(SolutionDir)lib\WIN7\OpenNI2\Drivers\* $(SolutionDir)OpenNI2\Drivers
       <AdditionalIncludeDirectories>$(ProjectDir)../jtorch/include;$(ProjectDir)..\kinect_interface\include;$(ProjectDir)headers;$(ProjectDir)..\..\PRenderer2\jtil\include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <OpenMPSupport>true</OpenMPSupport>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
