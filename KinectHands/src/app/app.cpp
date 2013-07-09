@@ -20,6 +20,9 @@
 #include "jtil/threading/thread_pool.h"
 #include "jtil/threading/thread.h"
 #include "jtorch/jtorch.h"
+#include "jtil/video/video_stream.h"
+
+jtil::video::VideoStream videostream(640, 480, true, L"output.avi");
 
 #ifndef NULL
 #define NULL 0
@@ -412,6 +415,7 @@ namespace app {
               im_[i*3+1] = val;
               im_[i*3+2] = val;
             }
+            // videostream.addFrame(im_);
           }
           break;
         case OUTPUT_DEPTH_ALL_VIEWS:

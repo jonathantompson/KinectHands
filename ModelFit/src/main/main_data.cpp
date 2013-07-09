@@ -749,8 +749,10 @@ int main(int argc, char *argv[]) {
     hn->loadFromFile("../data/handmodel.net.convnet"); 
 
     float ave_heatmap_uv_dist_error[num_convnet_feats];
+    float ave_heatmap_uv_dist_sq_error[num_convnet_feats];
     for (uint32_t i = 0; i < num_convnet_feats; i++) {
       ave_heatmap_uv_dist_error[i] = 0;
+      ave_heatmap_uv_dist_sq_error[i] = 0;
     }
 
     for (int32_t i = 0; i < (int32_t)im_files.size(); i++) {
@@ -775,6 +777,7 @@ int main(int argc, char *argv[]) {
           (float)(*pos_wh)[3] + (float)(*pos_wh)[1];
         float dist = sqrtf(powf(u-u_target, 2) + powf(v-v_target,2));
         ave_heatmap_uv_dist_error[i] += dist;
+        ave_heatmap_uv_dist_sq_error[i] += dist * dist;
       }
     }
 
@@ -782,6 +785,11 @@ int main(int argc, char *argv[]) {
       ave_heatmap_uv_dist_error[i] /= (float)im_files.size();
       std::cout << "Ave UV error for feature " << i << " is " << 
         ave_heatmap_uv_dist_error[i] << std::endl;
+      float std = sqrtf((ave_heatmap_uv_dist_sq_error[i] / 
+        (float)im_files.size()) - 
+        ave_heatmap_uv_dist_error[i]*ave_heatmap_uv_dist_error[i]);
+      std::cout << "Ave UV error std for feature " << i << " is " << 
+        std << std::endl;
     }
     delete hn;
     cur_image = 0;
