@@ -268,7 +268,7 @@ namespace hand_detector {
     ShrinkFilter<uint8_t>(tmp, src, w, h, 
       stage1_shrink_filter_radius_);
     MedianLabelFilter<uint8_t, int16_t>(dst, tmp, depth, w, h, 
-      stage2_med_filter_radius_);
+      stage2_med_filter_radius_, NUM_LABELS, GDT_MAX_DIST);
     GrowFilter<uint8_t>(tmp, dst, w, h, stage3_grow_filter_radius_);
     // Now swap the buffers
     uint8_t* tmp_local = tmp;

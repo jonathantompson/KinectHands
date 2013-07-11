@@ -115,7 +115,7 @@ namespace hand_detector {
         label_data_filtered = new uint8_t[data->im_width * data->im_height];
         MedianLabelFilter<uint8_t, int16_t>(label_data_filtered, 
           label_data_evaluated, cur_image_data,
-          data->im_width, data->im_height, median_filter_rad);
+          data->im_width, data->im_height, median_filter_rad, NUM_LABELS, GDT_MAX_DIST);
         // swap the buffers
         uint8_t* temp;
         temp = label_data_filtered;
