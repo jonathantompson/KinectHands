@@ -165,6 +165,8 @@ namespace hand_net {
     void loadHandModels();
     void setModelVisibility(const bool visible);
 
+    void setHandSize(const float size);
+
     // Getter methods
     const float* hpf_hand_image() const;
     const float* heat_map_convnet() const { return heat_map_convnet_; }
@@ -201,6 +203,7 @@ namespace hand_net {
     jtil::math::PSOParallel* pso_; 
     jtil::renderer::Camera* camera_;
     jtil::math::Double4x4 pv_mat_;  // Camera contains float, but we need 64bit
+    float hand_size_;
 
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in);
     void calcHPFHandBanks();

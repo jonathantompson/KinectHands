@@ -10,12 +10,12 @@
 //, APPLICATION SPECIFIC
 track_openni_skeleton,            bool,      0
 kinect_output,                    int,       2
-detect_hands,                     bool,      1
-detect_pose,                      bool,      1
-detect_heat_map,                  bool,      1
-label_type_enum,                  int,       3
-render_kinect_fps,                bool,      1
-show_hand_model_type,             int,       1
+detect_hands,                     bool,      0
+detect_pose,                      bool,      0
+detect_heat_map,                  bool,      0
+label_type_enum,                  int,       0
+render_kinect_fps,                bool,      0
+show_hand_model_type,             int,       0
 continuous_snapshot,              bool,      0
 continuous_cal_snapshot,          bool,      0
 cur_kinect,                       int,       0
@@ -26,14 +26,15 @@ flip_image,                       bool,      1
 color_convnet_depth,              bool,      0
 color_convnet_depth_feature,      int,       12
 color_convnet_depth_threshold,    int,       15
-show_gaussian_labels,             bool,      1
+show_gaussian_labels,             bool,      0
 in_air_drawing_enabled,           bool,      0
 pose_smoothing_factor_enum,       int,       4
-pose_smoothing_on,                bool,      1
+pose_smoothing_on,                bool,      0
+hand_size,                        int,       0
 
 //, RENDERER
-screen_resolution,                int,       62915280
-fullscreen,                       bool,      0
+screen_resolution,                int,       125830560
+fullscreen,                       bool,      1
 double_buffering,                 bool,      0  
 clear_color,                      Float3,    0.529, 0.808, 0.980
 open_gl_major_version,            int,       4
@@ -42,9 +43,9 @@ open_gl_core_profile,             bool,      1
 window_depth_buffer_bits,         int,       32
 window_stencil_buffer_bits,       int,       0
 window_rgba_bits,                 int,       8
-render_ui_app,                    bool,      1
+render_ui_app,                    bool,      0
 render_ui_renderer,               bool,      0
-render_ui_fps,                    bool,      1
+render_ui_fps,                    bool,      0
 render_output_enum,               int,       0
 light_pass_stencil_opt,           bool,      0
 ssao_on,                          bool,      1

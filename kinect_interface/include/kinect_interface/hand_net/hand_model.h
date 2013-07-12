@@ -31,7 +31,7 @@ namespace hand_net {
     ~HandModel();
 
     // Call before rendering hand depth maps:
-    void updateMatrices(const float* coeff);
+    void updateMatrices(const float* coeff, const float hand_size = 1.0f);
     void updateHeirachyMatrices();
     void updateDoubleMatrices(const double* coeff);
     void updateDoubleHeirachyMatrices();

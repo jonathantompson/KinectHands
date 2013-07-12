@@ -315,9 +315,13 @@ namespace app {
               kdata_[cur_kinect]->normals_xyz, kdata_[cur_kinect]->xyz, 
               kdata_[cur_kinect]->labels);
         } 
+        int hand_size_enum;
         bool detect_pose, detect_heat_map;
         GET_SETTING("detect_pose", bool, detect_pose);
         GET_SETTING("detect_heat_map", bool, detect_heat_map);
+        GET_SETTING("hand_size", int, hand_size_enum);
+        float hand_size = 1.0f - 0.05f * hand_size_enum;
+        hand_net_->setHandSize(hand_size);
         if (detect_heat_map) {
 #ifdef PROFILE
           double t0 = clk_->getTime();
@@ -410,10 +414,16 @@ namespace app {
           {
             int16_t* depth = kdata_[cur_kinect]->depth;
             for (uint32_t i = 0; i < src_dim; i++) {
-              const uint8_t val = (depth[i] / 5) % 255;
-              im_[i*3] = val;
-              im_[i*3+1] = val;
-              im_[i*3+2] = val;
+              if (depth[i] < 1250 && depth[i] > 0) {
+                const uint8_t val = (depth[i] / 5) % 255;
+                im_[i*3] = val;
+                im_[i*3+1] = val;
+                im_[i*3+2] = val;
+              } else {
+                im_[i*3] = 25;
+                im_[i*3+1] = 25;
+                im_[i*3+2] = 100;
+              }
             }
             // videostream.addFrame(im_);
           }
@@ -827,6 +837,14 @@ namespace app {
       ss.str("");
       ss << "device " << i;
       ui->addSelectboxItem("cur_kinect", ui::UIEnumVal(i, ss.str().c_str()));
+    }
+
+    ui->addSelectbox("hand_size", "Hand Size");
+    for (uint32_t i = 0; i < 8; i++) {
+      ss.str("");
+      float val = 1.0f - (0.05f * i); 
+      ss << (val * 100) << "%";
+      ui->addSelectboxItem("hand_size", ui::UIEnumVal(i, ss.str().c_str()));
     }
 
     ui->createTextWindow("kinect_fps_wnd", " ");
