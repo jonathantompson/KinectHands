@@ -72,7 +72,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_AMD64_;WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)../jtorch/include;$(ProjectDir)..\kinect_interface\include;$(ProjectDir)headers;$(ProjectDir)..\..\PRenderer2\jtil\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)../jtorch/include;$(ProjectDir)..\..\PRenderer2\jtil\include;$(ProjectDir)..\kinect_interface\include;$(ProjectDir)headers</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
@@ -101,7 +101,7 @@ COPY /Y $(SolutionDir)lib\WIN7\OpenNI2\Drivers\* $(SolutionDir)OpenNI2\Drivers
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_AMD64_;WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)../jtorch/include;$(ProjectDir)..\kinect_interface\include;$(ProjectDir)headers;$(ProjectDir)..\..\PRenderer2\jtil\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\jtorch\include;$(ProjectDir)..\..\PRenderer2\jtil\include;$(ProjectDir)..\kinect_interface\include;$(ProjectDir)headers</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <OpenMPSupport>true</OpenMPSupport>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
