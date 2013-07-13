@@ -344,7 +344,8 @@ namespace hand_net {
     }
   }
 
-  void HandModel::updateMatrices(const float* coeff) {
+  void HandModel::updateMatrices(const float* coeff, 
+    const float hand_size) {
     jtil::math::Float4x4 mat_tmp1;
     jtil::math::Float4x4 mat_tmp2;
     jtil::math::Float4x4 mat_tmp3;
@@ -353,7 +354,8 @@ namespace hand_net {
     euler2RotMatGM(*mat, coeff[HAND_ORIENT_X], coeff[HAND_ORIENT_Y],
       coeff[HAND_ORIENT_Z]);
     mat->leftMultTranslation(coeff[HAND_POS_X], coeff[HAND_POS_Y], coeff[HAND_POS_Z]);
-    mat->rightMultScale(coeff[SCALE], coeff[SCALE], coeff[SCALE]); 
+    mat->rightMultScale(hand_size * coeff[SCALE], hand_size * coeff[SCALE], 
+      hand_size * coeff[SCALE]); 
  
     // Set the palm bone (depending on wrist angle)
     mat = &nodes_[index_bone_wrist_]->mat();

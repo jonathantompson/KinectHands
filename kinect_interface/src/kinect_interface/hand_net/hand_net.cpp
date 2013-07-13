@@ -66,6 +66,7 @@ namespace hand_net {
     camera_ = NULL;
     bfgs_ = NULL;
     pso_ = NULL;
+    hand_size_ = 1.0f;
   }
 
   HandNet::~HandNet() {
@@ -175,11 +176,15 @@ namespace hand_net {
 
   void HandNet::loadHandModels() {
     rhand_ = new HandModel(HandType::RIGHT);
-    rhand_->updateMatrices(rest_pose_->coeff());
+    rhand_->updateMatrices(rest_pose_->coeff(), hand_size_);
   }
 
   void HandNet::setModelVisibility(const bool visible) {
     rhand_->setRenderVisiblity(visible);
+  }
+
+  void HandNet::setHandSize(const float size) {
+    hand_size_ = size;
   }
 
   void HandNet::calcConvnetHeatMap(const int16_t* depth, 
@@ -321,7 +326,7 @@ namespace hand_net {
       }
     }
 
-    rhand_->updateMatrices(rhand_cur_pose_->coeff());
+    rhand_->updateMatrices(rhand_cur_pose_->coeff(), hand_size_);
     rhand_->updateHeirachyMatrices();
   }
 
@@ -572,7 +577,8 @@ namespace hand_net {
   }
 
   float HandNet::objFuncInternal() {
-    g_hand_net_->rhand_->updateMatrices(g_hand_net_->rhand_cur_pose_->coeff());
+    g_hand_net_->rhand_->updateMatrices(g_hand_net_->rhand_cur_pose_->coeff(), 
+      g_hand_net_->hand_size_);
     g_hand_net_->rhand_->updateHeirachyMatrices();
     float ret_val = 0;
 
