@@ -22,8 +22,6 @@
 #include "jtorch/jtorch.h"
 #include "jtil/video/video_stream.h"
 
-jtil::video::VideoStream videostream(640, 480, true, L"output.avi");
-
 #ifndef NULL
 #define NULL 0
 #endif
@@ -425,7 +423,6 @@ namespace app {
                 im_[i*3+2] = 100;
               }
             }
-            // videostream.addFrame(im_);
           }
           break;
         case OUTPUT_DEPTH_ALL_VIEWS:
