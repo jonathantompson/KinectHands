@@ -84,8 +84,6 @@ namespace app {
     background_tex_ = NULL;
     convnet_hm_background_tex_ = NULL;
     hand_net_ = NULL;
-    hands_[0] = NULL;
-    hands_[1] = NULL;
     convnet_hm_im_flipped_ = NULL;
     kinect_update_cbs_ = NULL;
     data_save_cbs_ = NULL;
@@ -206,8 +204,6 @@ namespace app {
     }
 
     initRainbowPallet();
-
-    robot_hand_model_ = new RobotHandModel(HandType::RIGHT);
   }
 
   void App::killApp() {
@@ -863,6 +859,7 @@ namespace app {
     Renderer::g_renderer()->addLight(light_spot_vsm);
 
     hand_net_->loadHandModels();
+    robot_hand_model_ = new RobotHandModel(HandType::RIGHT);
   }
 
   void App::resetTrackingCB() {

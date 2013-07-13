@@ -101,7 +101,6 @@ namespace app {
 
     // Convolutional Neural Network
     kinect_interface::hand_net::HandNet* hand_net_;
-    kinect_interface::hand_net::HandModelCoeff* hands_[2];
     kinect_interface::hand_net::RobotHandModel* robot_hand_model_;
 
     jtil::clk::Clk* clk_;
