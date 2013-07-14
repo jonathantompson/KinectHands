@@ -261,6 +261,7 @@ void quit() {
   SAFE_DELETE_ARR(prev_coeff);
   SAFE_DELETE(image_io);
   SAFE_DELETE(clk);
+  SAFE_DELETE(video_stream);
   SAFE_DELETE_ARR(screendat);
   if (cur_depth_data) {
     for (uint32_t i = 0; i < MAX_KINECTS; i++) {

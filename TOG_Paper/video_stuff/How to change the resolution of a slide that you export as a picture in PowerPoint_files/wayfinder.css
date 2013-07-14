@@ -1,0 +1,244 @@
+﻿.wayfinder
+{
+    height: 143px;
+    background: #0072c6;
+    color: #333;
+    position: relative;
+    z-index: 10;
+}
+
+    .wayfinder a, .wayfinder a:hover
+    {
+        color: #fff;
+        text-decoration: none;
+    }
+
+    .wayfinder .products
+    {
+        margin-left: 220px;
+    }
+
+    .wayfinder .modalities
+    {
+        width: 220px;
+        float: left;
+    }
+
+        .wayfinder .modalities a, .wayfinder .modalities a:hover
+        {
+            color: White;
+            height: 100%;
+            width: 100%;
+            display: table;
+            *display: block;
+            *line-height: 47px;
+            vertical-align: middle;
+            font-size: 16px;
+        }
+
+            .wayfinder .modalities a span
+            {
+                display: table-cell;
+                vertical-align: middle;
+                height: 100%;
+                overflow: hidden;
+                padding-left: 15px;
+            }
+
+                .wayfinder .modalities a span > span
+                {
+                    display: inline-block;
+                    max-width: 170px;
+                    padding-left: 3px;
+                    height: auto;
+                    *line-height: 20px;
+                }
+
+                .wayfinder .modalities a span > img
+                {
+                    display: inline-block;
+                }
+
+        .wayfinder .modalities ul
+        {
+            background: #002050;
+            height: 100%;
+        }
+
+        .wayfinder .modalities li
+        {
+            border-bottom: 1px solid #fff;
+            border-right: 1px solid #fff;
+            overflow: hidden;
+        }
+
+            .wayfinder .modalities li.selected
+            {
+                background: #0072c6;
+                border-right-color: #0072c6;
+            }
+
+                .wayfinder .modalities li.selected a
+                {
+                    font-weight: bold;
+                }
+
+            .wayfinder .modalities li .arrow
+            {
+                margin-left: 10px;
+                display: none;
+            }
+
+            .wayfinder .modalities li.selected .arrow
+            {
+                display: inline;
+            }
+
+        .wayfinder .modalities li
+        {
+            height: 47px;
+        }
+
+    .wayfinder .products h3
+    {
+        padding: 0;
+        margin: 0;
+        font-size: 16px;
+        font-weight: normal;
+        color: #fff;
+        height: 48px;
+        line-height: 45px;
+        margin-left: 20px;
+    }
+
+    .wayfinder .products > ul
+    {
+        margin-left: 10px;
+    }
+
+
+        .wayfinder .products > ul > li
+        {
+            float: left;
+            width: 80px;
+            height: 95px;
+            position: relative;
+        }
+
+            .wayfinder .products > ul > li.last
+            {
+                margin-left: 10px;
+                width: 120px;
+            }
+
+                .wayfinder .products > ul > li.last span.icon img
+                {
+                    position: absolute;
+                    top: 50px;
+                    right: 1px;
+                }
+
+                .wayfinder .products > ul > li.last span.title
+                {
+                    text-align: center;
+                    width: 100px;
+                }
+
+            .wayfinder .products > ul > li a
+            {
+                display: block;
+                height: 100%;
+                text-align: left;
+                font-size: 12px;
+                overflow: hidden;
+                line-height: 15px;
+                cursor: pointer;
+            }
+
+            .wayfinder .products > ul > li span
+            {
+                display: block;
+            }
+
+                .wayfinder .products > ul > li span.icon
+                {
+                    position: inherit;
+                    left: 0;
+                    top: 0;
+                    overflow: hidden;
+                    width: 100%;
+                    height: 100%;
+                }
+
+                .wayfinder .products > ul > li span.title
+                {
+                    position: absolute;
+                    left: 0;
+                    top: 50px;
+                    text-align: center;
+                    width: 100%;
+                }
+
+                .wayfinder .products > ul > li span.selected-indicator
+                {
+                    position: absolute;
+                    left: 0;
+                    bottom: 0;
+                    display: block;
+                    width: 100%;
+                    text-align: center;
+                }
+
+                    .wayfinder .products > ul > li span.selected-indicator img
+                    {
+                        width: 15px;
+                        height: 7px;
+                    }
+
+            .wayfinder .products > ul > li .show-when-selected
+            {
+                display: none !important;
+            }
+
+            .wayfinder .products > ul > li.selected .show-when-selected
+            {
+                display: block !important;
+            }
+
+        .wayfinder .products > ul ul
+        {
+            left: 0;
+            top: 100%;
+            position: absolute;
+            background: #fff;
+            border: 2px solid #d1d3d4;
+            display: none;
+            min-width: 200px;
+        }
+        
+        .wayfinder .products > ul ul li:hover
+        {
+            background: #0072c6;
+        }
+
+            .wayfinder .products > ul ul li:hover a
+            {
+                color: #fff;
+            }
+
+        .wayfinder .products > ul ul li a
+        {
+            padding: 10px;
+            padding-right: 30px;
+            color: #333;
+            text-align: left;
+            white-space: nowrap;
+            overflow: visible;
+        }
+
+    .wayfinder ul
+    {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }

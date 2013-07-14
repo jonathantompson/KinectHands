@@ -61,6 +61,7 @@
 #include "jtil/threading/thread_pool.h"
 #include "jtil/debug_util/debug_util.h"
 #include "jtil/data_str/hash_funcs.h"
+#include "jtil/video/video_stream.h"
 #include "jtil/math/math_base.h"  // for NextPrime
 #include "jtorch/jtorch.h"
 
@@ -124,8 +125,8 @@ string im_dirs[num_im_dirs] = {
 //#define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
 //                              // HandForests, but save synthetic data (only 
 //                              // takes effect when not loading processed images)
-#define MEASURE_PERFORMANCE_ON_STARTUP  // Use RDF + Convnet to figure out UV 
-                                        // positions and compares against truth
+//#define MEASURE_PERFORMANCE_ON_STARTUP  // Use RDF + Convnet to figure out UV 
+                                          // positions and compares against truth
 
 //#define SAVE_DEPTH_IMAGES  // Save the regular depth files --> Only when SAVE_FILES defined
 #define SAVE_HPF_IMAGES  // Save the hpf files --> Only when SAVE_FILES defined
@@ -170,6 +171,7 @@ double t1, t0;
 
 // The main window and basic rendering system
 Window* wnd = NULL;
+WindowSettings settings;
 Renderer* render = NULL;
 bool is_running = true;
 bool continuous_playback = false;
@@ -216,6 +218,11 @@ float coeff_convnet[HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
 // Multithreading
 ThreadPool* tp;
 
+// Video stream
+jtil::video::VideoStream* video_stream = NULL;
+const uint32_t video_frame_rate = 30;
+uint8_t* screendat = NULL;
+
 void quit() {
   tp->stop();
   delete tp;
@@ -238,10 +245,30 @@ void quit() {
   delete geometry_points;
   delete hand_detect;
   delete hand_image_generator_;
+  SAFE_DELETE(video_stream);
+  SAFE_DELETE_ARR(screendat);
   Texture::shutdownTextureSystem();
   GLState::shutdownGLState();
   Window::killWindowSystem();
   exit(0);
+}
+
+uint32_t cur_buff_size = 0;
+void saveFrameToVideoStream(uint32_t num_frames) {
+  if ((int)cur_buff_size < settings.width * settings.height * 3) {
+    SAFE_DELETE_ARR(screendat);
+    cur_buff_size = settings.width * settings.height * 3;
+    screendat = new uint8_t[cur_buff_size];
+  }
+  if (video_stream) {
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glReadPixels(0, 0, settings.width, settings.height, GL_BGR_EXT, 
+      GL_UNSIGNED_BYTE, screendat);
+    for (uint32_t i = 0; i < num_frames; i++) {
+      video_stream->addBGRFrame(screendat);
+    }
+    std::cout << num_frames << " frames saved to file" << std::endl;
+  }
 }
 
 void loadCurrentImage(bool calc_hand_image = true) {
@@ -489,6 +516,21 @@ void keyboardCB(int key, int scancode, int action, int mods) {
 #endif
     break;
 #endif
+  case 'z':
+  case 'Z':
+    if (action == RELEASED) {
+      if (video_stream) {
+        SAFE_DELETE(video_stream);
+        std::cout << "Video stream closed" << std::endl;
+      } else {
+        std::wstring file = L"model_fit_data_video.avi";
+        video_stream = new jtil::video::VideoStream(settings.width,
+          settings.height, 3, video_frame_rate, file);
+        std::cout << "Video stream opened: " << 
+          jtil::string_util::ToNarrowString(file) << std::endl;
+      }
+    }
+    break;
     }
     if (key == KEY_KP_ADD || key == KEY_KP_SUBTRACT || key == '0' || 
       key == '9') {
@@ -502,23 +544,36 @@ void renderFrame() {
 
   // Render the images for debugging
   const float* im = hand_image_generator_->hpf_hand_image_cpu();
-  float min = im[0];
-  float max = im[0];
-  for (uint32_t i = 1; i < HN_IM_SIZE * HN_IM_SIZE; i++) {
-    min = std::min<float>(min, im[i]);
-    max = std::max<float>(max, im[i]); 
-  }
-  float range = max - min;
+  // This version flashes too much
+  //float min = im[0];
+  //float max = im[0];
+  //for (uint32_t i = 1; i < HN_IM_SIZE * HN_IM_SIZE; i++) {
+  //  min = std::min<float>(min, im[i]);
+  //  max = std::max<float>(max, im[i]); 
+  //}
+  //float range = max - min;
+  //for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
+  //  for (uint32_t u = 0; u < HN_IM_SIZE; u++) {
+  //    uint32_t val = (uint32_t)((im[v * HN_IM_SIZE + u] - min)/range * 255.0f);
+  //    // Clamp the value from 0 to 255 (otherwise we'll get wrap around)
+  //    uint8_t val8 = (uint8_t)std::min<uint32_t>(std::max<uint32_t>(val,0),255);
+  //    uint32_t idst = (HN_IM_SIZE-v-1) * HN_IM_SIZE + u;
+  //    // Texture needs to be flipped vertically and 0 --> 255
+  //    tex_data_hpf[idst * 3] = val8;
+  //    tex_data_hpf[idst * 3 + 1] = val8;
+  //    tex_data_hpf[idst * 3 + 2] = val8;
+  //  }
+  //}
+  const float scale = 4.0f;
   for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
     for (uint32_t u = 0; u < HN_IM_SIZE; u++) {
-      uint32_t val = (uint32_t)((im[v * HN_IM_SIZE + u] - min)/range * 255.0f);
-      // Clamp the value from 0 to 255 (otherwise we'll get wrap around)
-      uint8_t val8 = (uint8_t)std::min<uint32_t>(std::max<uint32_t>(val,0),255);
+      float val = 0.5f + im[v * HN_IM_SIZE + u] / scale;  // Centered around 0.5
+      val = std::min<float>(1.0f, std::max<float>(0.0f, val));  // 0 to 1
+      uint8_t cval = (uint8_t)(255.0f * val);
       uint32_t idst = (HN_IM_SIZE-v-1) * HN_IM_SIZE + u;
-      // Texture needs to be flipped vertically and 0 --> 255
-      tex_data_hpf[idst * 3] = val8;
-      tex_data_hpf[idst * 3 + 1] = val8;
-      tex_data_hpf[idst * 3 + 2] = val8;
+      tex_data_hpf[idst * 3] = cval;
+      tex_data_hpf[idst * 3 + 1] = cval;
+      tex_data_hpf[idst * 3 + 2] = cval;
     }
   }
 
@@ -567,14 +622,14 @@ uint32_t GetProcessedFilesInDirectory(
     // Prepare string for use with FindFile functions.  First, copy the
     // string to a buffer, then append '\*' to the directory name.
     TCHAR szDir[MAX_PATH];
-    StringCchCopy(szDir, MAX_PATH, directory.c_str());
-    std::stringstream ss;
-    ss << "\\processed_*_hands" << kinect_num << "_*.bin";
-    StringCchCat(szDir, MAX_PATH, ss.str().c_str());
+    StringCchCopyW(szDir, MAX_PATH, jtil::string_util::ToWideString(directory).c_str());
+    std::wstringstream ss;
+    ss << L"\\processed_*_hands" << kinect_num << L"_*.bin";
+    StringCchCatW(szDir, MAX_PATH, ss.str().c_str());
 
     // Find the first file in the directory.
-    WIN32_FIND_DATA ffd;
-    HANDLE hFind = FindFirstFile(szDir, &ffd);
+    WIN32_FIND_DATAW ffd;
+    HANDLE hFind = FindFirstFileW(szDir, &ffd);
     if (hFind == INVALID_HANDLE_VALUE) {
       cout << "GetFilesInDirectory error getting dir info. Check that ";
       cout << "directory is not empty!" << endl;
@@ -584,12 +639,12 @@ uint32_t GetProcessedFilesInDirectory(
     do {
       if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
       } else {
-        std::string cur_filename = ffd.cFileName;
+        std::string cur_filename = jtil::string_util::ToNarrowString(ffd.cFileName);
         char* name = new char[cur_filename.length() + 1];
         strcpy(name, cur_filename.c_str());
         files.push_back(Triple<char*, int64_t, int64_t>(name, -1, -1));
       }
-    } while (FindNextFile(hFind, &ffd) != 0);
+    } while (FindNextFileW(hFind, &ffd) != 0);
     FindClose(hFind);
 
 #else
@@ -638,7 +693,6 @@ uint32_t GetProcessedFilesInDirectory(
 using std::cout;
 using std::endl;
 Float4x4 mat_tmp;
-WindowSettings settings;
 
 int main(int argc, char *argv[]) {
   static_cast<void>(argc); static_cast<void>(argv);
@@ -653,6 +707,7 @@ int main(int argc, char *argv[]) {
   cout << "+/- - Forward and back a frame" << endl;
   cout << "9/0 - Forward and back 100 frames" << endl;
   cout << "d - Delete frame (when loading processed images)" << endl;
+  cout << "z - Open video stream" << endl;
   cout << "q/ESC - Quit" << endl;
   
   try {
@@ -820,6 +875,7 @@ int main(int argc, char *argv[]) {
         t0 = t1;
         if (cur_image < (int32_t)im_files.size() - 1) {
           cur_image++;
+          saveFrameToVideoStream(1);
           loadCurrentImage();
         } else {
           continuous_playback = false;

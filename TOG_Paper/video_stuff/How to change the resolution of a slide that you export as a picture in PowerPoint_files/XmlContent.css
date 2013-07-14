@@ -1,0 +1,1568 @@
+﻿/* general kb */
+.kb
+{
+    font-size: 13px;
+    margin: 0px 0px 5px 0px;
+    width:auto;
+    color: #333333;
+}
+.kb a 
+{
+    color: #0072c6;
+}
+.kb td
+{
+    padding: 0;
+    vertical-align: top;
+}
+
+.kb ol, .kb ul, .kb li
+{
+    position:inherit;
+}
+.table ol,.table.ul,.table li
+{
+    position:static;
+}
+
+.kb div.sbody .list td
+{
+    background: transparent!important;
+    border-top: none!important;
+}
+
+.kb div.pLink
+{
+    display: none;
+    font-size: 11px;
+    font-weight: normal;
+}
+
+.kb .toc img,
+.kbSurvey .topOfPage img,
+.kb .topOfPage img
+{
+    vertical-align: baseline;
+    margin:0px 3px;
+}
+.clear {
+    clear: both;
+}
+
+.kb #kb_hotfix_link
+{
+    text-decoration: none;
+    margin-bottom: 20px;
+    float: left;
+    position: relative;
+    font-size: 18px;
+    line-height: 40px;
+    display: block;
+    color: #FFFFFF;
+    min-width: 160px;
+    height: 40px;
+    background-color: #00a600;
+    padding: 0px 5px;
+}
+.kb #kb_hotfix_link img 
+{
+    position: relative;
+    top: 6px;
+    margin: 0px 10px;
+    line-height: 40px;
+    *left: 10px;
+    *right: 10px;
+    *top: 5px;
+}
+.kb #kb_hotfix_link span
+{
+    line-height: 38px;
+    *line-height: 34px;
+}
+.kb h1.title
+{
+    font-size: 30px;
+    margin: 20px 0px 10px 0px;
+    font-weight: lighter;
+    word-wrap: break-word;
+}
+
+.kb h2
+{
+    font-size: 20px;
+}
+
+.kb h3
+{
+    font-size: 20px;
+    font-weight:lighter;
+}
+
+.kb h4
+{
+    font-size: 16px;
+}
+
+.kb h5
+{
+    font-size: 13px;
+    font-weight:600;
+}
+
+.kb h6
+{
+    font-size: 11px;
+}
+
+.kb .graphic
+{
+    margin:0px 10px;	
+    padding:1px;
+}
+
+.kb .message
+{
+    padding: 10px 30px;
+}
+
+.kb div.author
+{
+    margin: 0px 0px 6px 0px;
+}
+
+.kb div.author .label
+{
+    font-weight: bold;
+}
+
+.kb div.expandcollapseall
+{
+    display:none;	
+} 
+
+.kb div.expandcollapseall_open
+{
+    margin: 15px 0px;
+    color:#115F87;	
+} 
+
+.kb div.expandcollapseall_open a:hover
+{
+    text-decoration:underline;	
+} 
+
+.kb div.csDisclaimerLink,
+.kb div.mtDisclaimerLink,
+.kb div.rtDisclaimerLink,
+.kb div.mtSBSLink
+{
+    padding: 3px 0px 3px 0px;
+}
+
+.kb div.csDisclaimerLink img,
+.kb div.mtDisclaimerLink img,
+.kb div.rtDisclaimerLink img,
+.kb div.mtSBSLink img
+{
+    margin: 0px 4px;
+    vertical-align:middle;
+}
+
+.kb div.disclaimer.mt .text,
+.kb div.disclaimer.cc .text,
+.kb div.disclaimer.retiredkb .text,
+.kb div.disclaimer.text
+{
+    font-size: 11px;
+}
+
+.kb div.disclaimer .label
+{
+    font-size: 13px;
+    color: #333333;
+    font-weight: bold;
+}
+
+.kb div.securedisclaimer,
+.kb div.securesection
+{
+    margin: 1px 0;
+}
+
+.kb div.securedisclaimer hr,
+.kb div.securesection hr
+{
+    border: 1px solid #e92;
+    background-color: #efba43;
+    margin: 5px auto;
+}
+
+.kbhf
+{
+    border-bottom: 2px solid #e92;
+    border-top: 2px solid #e92;
+    padding: 0 15px;
+}
+
+.kb div.securedisclaimer .seclabel,
+.kb div.securedisclaimer .label,
+.kb div.securesection .seclabel,
+.kb div.securesection .label,
+.kbhf .label
+{
+    text-transform: uppercase;
+    text-align:center;
+    font-weight: bold;
+    color: #c60;
+    margin-bottom: 5px;
+}
+
+.kbhf .label
+{
+    margin-top: 15px;
+}
+
+.kb div.securesection .secdisclaimer
+{
+    text-align: center;
+}
+
+.kb div.securedisclaimer .text,
+.kb div.securesection .text
+{
+    margin: 0 10px;
+}
+
+.kb div.securesection .secdisclaimer.text
+{
+    margin: 0 0 10px;
+}
+
+.kb div.notice
+{
+    margin: 20px 0px 0px 0px;
+    background-color: #F5F5F5;
+    padding: 5px 10px 10px 10px;
+    font-size: 13px;
+}
+.kb div.notice a 
+{
+    font-size: 13px;
+}
+
+.kb .notice h5
+{
+    margin: 0px 0px 5px 0px;
+}
+.kb .notice div.indent 
+{
+    padding-bottom: 0px;
+    padding-top: 5px;
+}
+.kb div.notice div.notice
+{
+    font-size:13px;
+    margin-top: 0px;
+    padding-bottom: 0px;
+}
+.kb .notShow,.kbSurvey .notShow 
+{
+    display: none;
+}
+.kb .subSection 
+{
+    margin-bottom: 5px;
+}
+.kb .subSectionHead 
+{
+    cursor: pointer;
+    padding: 0px 25px;
+    display: block;
+    min-height: 20px;
+    line-height: 20px;
+}
+
+.kb .subSectionHead.headCollapse {
+    background: url("/library/images/support/en-us/20x20_grey_plus.png") no-repeat 0px center;
+    
+}
+
+.kb .subSectionHead.headExpand {
+    background: url("/library/images/support/en-us/20x20_grey_minus.png") no-repeat 0px center;
+}
+
+/* Atricle Properties */
+.kb div.articleProperty
+{
+    color:#999999;
+    padding:2px;
+    font-size: 11px;
+    margin-bottom: 17px;
+}
+
+/* Table of Content */
+.kb .toc h5
+{
+    font-size: 120%;
+    margin: 0;
+    margin-bottom:3px;
+}
+
+.kb .toc .tallTable
+{
+    border-collapse: collapse;
+}
+
+.kb .toc .hfdl
+{
+    display: none;
+}
+
+.kb .toc .tallTable td
+{
+    font-size: 10%;
+    padding: 4px 0 0;
+    width: 10px;
+}
+
+.kb .toc .tallTable td.text
+{    
+    padding: 1px 3px;
+    width: 100%;
+}
+
+.kb .toc .tallTable span
+{
+    width: 10px;
+}
+
+.kb .section .table 
+{
+    border-bottom: solid 1px #000000;
+    border-collapse: collapse;
+}
+
+.kb .section .table th
+{
+    padding: 5px 10px 5px 0px;
+    border-bottom: solid 1px #000000;
+    font-weight: normal;
+    text-align: left;
+}
+
+.kb .section .table td
+{
+    padding: 5px 10px 5px 0px;
+    border-top: solid 1px #c9c9c9;
+    border-bottom: solid 1px #c9c9c9;
+    border-left: 0px;
+    border-right: 0px;
+    empty-cells: show;
+    text-align: left;
+}
+.kb .section .kb_tablewrapper .table td,.kb .section .kb_tablewrapper .table th
+{
+    padding: 5px 10px 5px 10px;
+}
+
+.kb .section .kb_tablewrapper .table th
+{
+    border-top: solid 1px #000000;
+}
+
+.kb .section .table tr:last-child td
+{
+    border-bottom: solid 1px #000000;
+}
+.kb .list
+{
+    margin: 0;
+}
+
+.kb .list .list
+{
+    margin: 0;
+}
+
+.kb .list .bullet
+{
+    padding:0;
+}
+
+.kb .list .text
+{
+    padding-left: 2px;
+    padding-right: 2px;
+}
+.kb .kb_subList
+{
+    list-style-type:none;
+    Margin-left:2px;
+}
+
+.kb .section h2.subTitle.tocTitle, .kb .section h2.subTitle.tocTitle span
+{
+    background-color: #f5f5f5;
+}
+.kb .section h2.subTitle.tocTitle img.kb_tabs_toggle
+{
+    padding-left: 12px;
+    padding-top: 12px;
+}
+.kb .rtl .section h2.subTitle.tocTitle img.kb_tabs_toggle
+{
+    padding-left: 0px;
+    padding-right: 12px;
+}
+.kb .section h2.subTitle.tocTitle span 
+{
+    padding-bottom: 12px;
+    padding-top: 12px;
+}
+.kb h2
+{
+    margin: 0px 0px 5px 0px;
+}
+
+.kb .section h2.subTitle,.kbSurvey h2.subTitle
+{
+    width:100%;
+    cursor:pointer;
+    background-color: #d1d3d4;
+    position: relative;
+    overflow: hidden;
+}
+
+.kbSurvey 
+{
+    margin: 0px 0px 0px 0px;
+}
+
+.kbSurvey.noShow,.kb .noShow
+{
+    display: none;
+}
+.kbSurvey .topOfPage 
+{
+    margin: 0px 52px;
+}
+.kbSurvey .topOfPage a {
+    color: #0072c6;
+    font-size: 13px;
+}
+.kbSurvey .bookmark a 
+{
+    display: block;
+    height: 0px;
+}
+.kb .section h2.subTitle span,.kbSurvey h2.subTitle span
+{
+    background-color: #d1d3d4;
+    float:left;
+    font-size: 16px;
+    font-weight: lighter;
+    padding: 10px 0px 10px 10px;
+    width: 732px;
+}
+.kb .section h2.subTitle span a, .kbSurvey h2.subTitle span a
+{
+    color:#333333;
+}
+
+* html .kb .section h2.subTitle span
+{    
+    background-image:none;
+    filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='/library/images/support/cn/gsfx_kb_tab.png', sizingMethod='crop');    
+}
+
+.kb .rtl .section h2.subTitle span
+{
+    float:right;
+    padding-left: 0px;
+    padding-right: 10px;
+}
+
+.kb div.kb_graphictop,
+.kb div.kb_tabletop,
+.kb div.kb_graphictop_open,
+.kb div.kb_tabletop_open
+{
+    height:60px;
+    margin:0px;  
+}
+
+.kb div.kb_graphictop_open,
+.kb div.kb_tabletop_open
+{
+    height:60px;
+    display:table;
+}
+
+.kb span.kb_collapsetext_close,
+.kb span.kb_expandtext_close,
+.kb span.kb_expandtext
+{
+    display:none;
+}
+
+.kb span.kb_collapsetext_open,
+.kb span.kb_expandtext_open
+{
+    color:#0072C6;
+    vertical-align:top;
+    cursor:pointer;	
+    margin:4px 0px;
+    font-size: 16px;
+    line-height: 49px;
+    display: inline-block;
+} 
+
+.kb span.kb_expandtext_background,
+.kb span.kb_collapsetext_background
+{
+    width:49px;
+    height:49px;
+    margin: 0px 10px 0px 0px;
+    display:block;
+    float:left;
+    font-weight: normal;
+}
+
+.kb .rtl span.kb_expandtext_background,
+.kb .rtl span.kb_collapsetext_background
+{
+    float:right;
+}
+
+.kb span.kb_collapsetext_background
+{
+    background-image: url('/library/images/support/cn/48x48_collapse-image.png');
+}
+
+.kb span.kb_expandtext_background
+{
+    background-image: url('/library/images/support/cn/48x48_expand-image.png');
+}
+
+* html .kb span.kb_collapsetext_open,
+* html .kb span.kb_expandtext_open
+{
+    position:fixed;
+}
+
+.kb  span.kb_collapsetext_open img,
+.kb  span.kb_expandtext_open img
+{
+    vertical-align:middle;
+}
+.kb div.kb_errormsgbody,
+.kb div.kb_codebody,
+.kb div.kb_intextwrapper
+{
+    background-color: #F5F5F5;
+}
+
+.kb div.kb_errormsgbody,
+.kb div.kb_codebody,
+.kb div.kb_intextwrapper
+{
+    position:relative;
+    overflow-x:auto;
+    margin-bottom:10px;
+}
+.kb div.kb_outertablewrapper,.kb div.kb_outergraphicwrapper
+{
+    margin-bottom: 10px;
+}
+.kb div.kb_outergraphicwrapper,
+.kb div.kb_outertablewrapper,
+.kb table.table
+{
+    border-width:3px;
+    border-top-width:0px;
+    border-bottom-width:2px;
+}
+
+.kb div.kb_outergraphicwrapper_closed,
+.kb div.kb_outertablewrapper_closed  
+{
+    margin:10px 0px;
+}
+.kb div.kb_outertablewrapper_closed  
+{
+    width:430px;
+}
+.kb div.kb_outertablewrapper .kb_tablewrapper 
+{
+    border-bottom: solid 1px #C9C9C9;
+    border-left: solid 1px #C9C9C9;
+    border-right: solid 1px #C9C9C9;
+}
+.kb .section div.kb_outertablewrapper .table,.kb .section div.kb_outertablewrapper .table tr:last-child td 
+{
+    border-bottom: 0px;
+}
+.kb div.kb_outergraphicwrapper_closed
+{
+    overflow-y:hidden;
+}
+
+.kb div.kb_nowrapper  
+{
+    display:inline;
+    vertical-align:middle;
+}
+
+.kb div.kb_graphicwrapper .graphic,
+.kb div.kb_nowrapper .graphic,
+.kb div.kb_nowrapper table,
+.kb div.kb_tablewrapper table
+{
+    position: relative;
+    z-index: 1000;
+}
+
+.kb div.kb_graphicwrapper,
+.kb div.kb_tablewrapper,
+.kb div.kb_codecontent,
+.kb div.kb_errorcontent,
+.kb div.kb_intextbody
+{
+    width:100%;
+    margin:0px;
+    padding:0px;
+}
+
+* html .kb div.kb_graphicwrapper,
+* html .kb div.kb_tablewrapper,
+* html .kb div.kb_codecontent,
+* html .kb div.kb_errorcontent,
+* html .kb div.kb_intextbody
+{
+    overflow-x:auto;
+}
+
+.kb div.kb_codecontent,
+.kb div.kb_errorcontent,
+.kb div.kb_intextbody
+{
+    background-color: #f5f5f5;
+}
+
+.kb div.kb_graphicwrapper,
+.kb div.kb_tablewrapper
+{
+    border-bottom-width:2px;
+    background-color: white;
+    overflow-x: auto;
+    position: relative;
+    *overflow-y: hidden;
+}
+
+* html .kb div.kb_graphicwrapper,
+* html .kb div.kb_tablewrapper
+{
+    float:left;
+}
+
+.kb .kb_whitebox
+{
+    width:100%;
+    height:100em;    
+    background-color:#fff;
+    opacity:.8;
+    filter:alpha(opacity=80);
+    position:absolute;
+    top: 0px;
+    left:0px;
+    display:none;
+    cursor:pointer;
+    text-align:center;
+}
+
+.kb .kb_whitebox_img
+{
+    background:url('/library/images/support/cn/gsfx_kb_cluster.png') no-repeat -157px -16px;
+    height:50px;
+    width:50px;
+    position:relative;
+    top:20px;
+    margin:0px auto;
+    display:block;
+}
+
+.kb .kb_whitebox_text
+{
+    position:relative;
+    top:30px;
+    font-size:2em;
+    text-decoration:underline;
+    color:#115F87;
+}
+
+.kb div.kb_graphicwrapper .graphic
+{
+    padding:1px;
+    margin:0px;
+}
+
+.kb div.errormsg
+{
+    min-height:20px;	
+}
+
+.kb div.kb_outergraphicwrapper_open,
+.kb div.kb_outertablewrapper_open
+{
+    position:relative;
+    width:100%;
+    z-index:100;
+}
+ 
+.kb .section h2.subTitle img.kb_tabs_toggle, .kbSurvey h2.subTitle img.kb_tabs_toggle
+{
+    float:left;
+    padding-top: 10px;
+    padding-left: 10px;
+}
+
+.kb .rtl .section h2.subTitle img.kb_tabs_toggle
+{
+    float:right;
+    left:auto;
+    padding-left: 0px;
+    padding-right: 10px;
+}
+
+.kb .section h3
+{
+    margin: 15px 0px
+}
+
+.kb .section h4
+{
+    margin: 15px 0px;
+}
+
+.kb .section h5
+{
+    margin: 8px 0 5px;
+}
+
+.kb .section h6
+{
+    margin: 8px 0 5px;
+}
+
+.kb hr.divider,
+.kb hr
+{
+    border-bottom: none;
+    height:2px;
+    color: #ddd;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.kb div.indent
+{
+    padding:0px 20px 10px 20px;
+}
+
+.kb div.indent div.indent
+{
+    margin: 10px;
+}
+
+/* SBODY styles */
+.kb div.sbody
+{
+    margin: 12px 0px 30px 40px;
+}
+
+.kb div.sbody,
+.kb .appliesTo,
+.kb .keywords,
+.kb .disclaimer
+{
+    margin-bottom: 12px;
+}
+.kb .appliesTo ul,
+.kb .appliesTo li
+{
+    position:static !important;
+    font-size: 11px;
+}
+.kb .appliesTo ul 
+{
+    margin-top: 0px;
+}
+
+.kb .rtl div.sbody
+{
+    margin-left: 0px;
+    margin-right: 40px;
+}
+
+.kb .disclaimer div.text
+{
+    width:auto;
+}
+
+.kb div.sbody div.sbody,
+.kb .rtl div.sbody div.sbody
+{
+    margin:0px;
+}
+
+.kb .section div.sbody.kb_tabs_toggle_open,.kbSurvey div.sbody.kb_tabs_toggle_open
+{
+    display:auto;
+}
+
+.kb .section div.sbody.kb_tabs_toggle_closed,.kbSurvey div.sbody.kb_tabs_toggle_closed
+{
+    display:none;
+}
+
+.kb .topOfPage
+{
+    margin:15px 0px 30px 0px;
+}
+
+.kb div.sbody span.abbr,
+.kb div.sbody acronym
+{
+    border-bottom: 1px dotted #000;
+    cursor: help;
+}
+
+.kb div.sbody .code,
+.kb div.sbody .errormsg,
+.kb div.sbody .in_text
+{
+    position:relative;
+    padding:10px 10px 10px 10px;    
+    color:#333;
+    margin:0px;
+} 
+
+* html .kb div.sbody .code,
+* html .kb div.sbody .errormsg,
+* html .kb div.sbody .in_text
+{
+    float:left;
+}
+
+.kb div.sbody .code,
+.kb div.sbody .in_text
+{
+    width:auto;
+    /*width:1px; FIX for firefox pre tag issue*/
+    font-family:Consolas, "Courier New", Courier, Monospace;
+}
+
+.kb div.sbody div.center
+{
+    text-align: center;
+}
+
+.kb div.sbody fieldset
+{
+    padding: 10px;
+}
+
+/* List styles */
+.kb .list
+{
+    border-collapse: collapse;
+    border-spacing: 0;
+    margin: 10px 5px;
+}
+
+.kb .appliesTo .list
+{
+    margin: 0 10px;
+}
+
+.kb div.sbody .list td
+{
+    background: #f7f7ff;
+    border-top: 1px solid #fff
+}
+
+.kb div.sbody .list .image
+{ 
+    vertical-align: top;
+    width: 16px;
+}
+
+.kb .bullet
+{
+    font-size: 80%;
+    text-align: center;
+    vertical-align: top;
+    width: 1em;
+}
+
+.kb div.sbody .list .number
+{ 
+    padding: 3px;
+    vertical-align: top;
+    white-space: nowrap;
+}
+
+.kb div.sbody .list .text
+{
+    padding: 3px 8px;
+}
+
+.kb div.sbody .sTable td
+{
+    padding: 2px 3px;
+}
+
+.kb .appliesTo .list td
+{
+    font-size: 65%;
+    padding: 4px 0 0;
+}
+
+.kb .appliesTo .list td.bullet
+{
+    font-size: 70%;
+}
+
+.kb .appliesTo .list td.textSub
+{
+    padding: 0;
+}
+
+.kb pre.in_text
+{
+    color: black;
+}
+
+.kb .appliesTo h5
+{
+    font-size: 13px;
+    margin: 5px 0;
+}
+
+.kb .appliesTo .kb_appliesTo_toggle
+{
+    display:inline-block;
+    height:11px;
+    width:11px;
+    margin-right:5px;
+}
+.kb .appliesTo .kb_appliesTo_toggle_opened
+{
+    background:url('/library/images/support/cn/gsfx_kb_cluster.png') 0px -16px no-repeat;
+}
+
+.kb .appliesTo .kb_appliesTo_toggle_closed
+{
+    background:url('/library/images/support/cn/gsfx_kb_cluster.png') -12px -16px no-repeat;
+}
+
+.kb .userInput
+{
+    font-weight: bold;    
+}
+
+.kb .keywords td
+{
+    vertical-align: bottom;
+}
+
+.kb .keywords td.header
+{
+    vertical-align: top;
+}
+
+.kb .keywords td.header h5
+{
+    font-size: 13px;
+    margin: 0;
+    padding: 0;
+    white-space: nowrap;
+}
+
+.kb .weboutput table
+{
+    border-color: #000;
+    border-collapse: collapse;
+    width: auto;
+}
+
+.kb .weboutput table th
+{
+    background: #dedede;
+}
+
+.kb .weboutput table th,
+.kb .weboutput table td
+{
+    border-color: #000;    
+    padding: 3px 5px;
+}
+
+.kb .weboutput table th font,
+.kb .weboutput table td font
+{
+    font-size: 95%;
+}
+
+/* qa */
+.kb .qa .qa_section
+{
+    margin-top:10px;
+    table-layout: fixed;
+    width: 100%;
+}
+
+.kb .qa .qa_section td > div
+{
+    padding:0px 5px;
+}
+
+.kb .qa .qa_section .label
+{
+    color: #fff;
+    font-size:32pt;
+    font-weight:bold;
+    background: url('/library/images/support/cn/gsfx_kb_cluster.png') no-repeat -74px -16px;
+    width:48px;
+    height:58px;    
+    padding:20px 0px 0px 30px;
+}
+
+.kb .rtl .qa .qa_section .label
+{
+    padding:20px 30px 0px 0px;
+}
+
+.kb .qa .bigspace
+{
+    height: 50px;
+}
+
+.kb .qa .smallspace
+{
+    height: 20px;
+}
+
+/* tt */
+.kb .tt .section h2.subTitle
+{
+    color: #000;
+}
+
+/* sc */
+.kb .sc .section hr.hidden
+{
+    border: 1px solid #fff;
+    background-color: #fff;
+}
+
+.kb .sc .section div.blurb
+{
+    margin-bottom: 20px;
+}
+
+.kb .sc .section .more
+{
+    margin-top: 20px;
+}
+
+.kb .sc .section .textQuestion,
+.kb .sc .section .textAnswer
+{
+    padding: 5px;
+    vertical-align: top;
+}
+
+.kb .sc .section .textQuestion
+{
+    background-color: #fffff3;
+}
+
+.kb .sc .section .textAnswer
+{
+    background-color: #f6f6ff;
+}
+
+.kb .sc .section .imgQuestionColumn
+{
+    vertical-align: top;
+}
+
+.kb .sc .section .imgAnswerColumn
+{
+    vertical-align: bottom;
+}
+
+.kb .sc .section .qImg,
+.kb .sc .section .aImg
+{
+    margin: 2px;
+}
+
+.kb .sc .section .qImg
+{
+    border-right: 3px solid #999;
+}
+
+.kb .sc .section .aImg
+{
+    border-left: 3px solid #999;
+}
+
+.kb .sc 
+{
+    margin: 0px;
+}
+
+/* si */
+.kb .si .section .graphic
+{
+    margin: 5px;
+    float: left;	
+}
+
+.kb .kb_acwtable
+{
+    margin-bottom :20px;
+}
+
+*html .kb .kb_acwtable td
+{
+    padding: 10px;
+}
+
+.kb .awbkg .desc,
+.kb .awbkg .title
+{
+    padding:5px 5px 10px 5px;	
+}
+
+.AWlink
+{
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.AWlink a
+{
+    background-color:#339900;
+    color: #FFFFFF;
+    padding:4px 20px 4px 20px;
+}
+
+.kb #tocDiv ul
+{
+    list-style: none;
+    margin:5px 0px;
+    padding:0px;
+    position:static !important;
+}
+.kb #tocDiv ul li
+{
+    position:static !important;
+    list-style: none;
+}
+
+.kb #tocDiv ul ul
+{
+    padding:0px 15px;
+    position:static !important;
+}
+.kb #tocDiv ul ul li
+{
+    position:static !important;
+}
+
+#kb_warning_divider
+{
+    background-color:#F5F5F5;
+    padding: 5px 10px 10px 10px;
+}
+#kb_warning_divider span
+{
+    color: #333333;
+    font-size: 13px;
+    display:block;
+    margin-bottom:5px;
+}
+#kb_warning_divider #mt_kb_warning_head
+{
+    font-size: 16px;
+}
+.kb .reg_path
+{
+    word-break: break-all;
+}
+/* FMS Survey */
+#contentArea #mainColumn #fmsSurvey
+{
+    padding-left: 32px;
+    padding-right: 0px;
+    color: #333333;
+    margin-left: 10px;
+    margin-right: 0px;
+}
+.wp div.fms 
+{
+    background-color: transparent;
+}
+#mainColumn .wp div.fms .QUESTIONTEXT
+{
+    font-size: 16px;
+    font-weight: normal;
+    margin-bottom: 5px;
+    margin-top: 20px;
+}
+
+.wp .fms .ANSWERTEXT 
+{
+    font-size: 13px;
+    line-height: 23px;    
+}
+.wp .fms .CHOICEROW 
+{
+    padding: 5px 5px 3px 10px;
+    *padding-top: 2px;/*ie7*/
+}
+.wp .fms .CHOICEROW input[type|="radio"] 
+{
+    padding: 0px 4px;
+}
+.wp div.fms .NAVBUTTON 
+{
+    margin-top: 5px;
+    background-color: transparent;
+    border: solid 1px #999999;
+    font-size: 13px;
+    line-height: 13px;
+    padding: 3px 5px;
+    margin: 0px 3px;
+}
+.wp .fms .QUESTIONCONTAINER {
+    line-height: 13px;
+}
+#mainColumn .wp .fms .NAVIGATION
+{
+    margin-top: 6px;
+}
+.wp .fms .ANSWERBOX
+{
+    margin-top: 8px;
+    width: 728px;
+}
+/* Mini-Router WebPart*/
+.MRlinkCon
+{
+    display: block;
+    z-index:2;
+    background:none;
+    padding:3px 6px;
+    margin-top:7px;
+}
+
+#MiniRouter h3 span 
+{
+    padding: 3px 0px;
+}
+#MiniRouter ul
+{
+    background-color:#ffffff;
+    padding: 0px 0px 0px 25px;
+    margin-bottom: 20px;
+}
+#MiniRouter .gethelp .imglink
+{
+    display:block;
+    float:left; 
+    margin-right:5px;
+    width:48px;
+    height:48px;
+}
+#MiniRouter .gethelp .txtlink
+{
+    display:block;
+    float:left;
+    width:106px;
+}
+#MiniRouter .gethelp
+{
+    padding-right:10px;
+    background-color:#ffffff;
+    padding-top:10px;
+    padding-bottom:10px;
+}
+
+#MiniRouter li
+{
+    color:#AAAAAA;
+    padding:3px;
+}
+#MiniRouter div,#thinColumn #MiniRouter
+{
+    width:auto;
+}
+
+/*   Light Box    */
+#lb
+{
+    position:absolute;   
+    margin:0px;
+    padding:0px;
+    background:#ffffff;  
+    border:1px;     
+    z-index:2000;
+    display:none;   
+    width:472px;
+    font-family: Segoe UI,Tahoma,Arial,Sans-Serif;
+    border:solid 5px white;
+}
+
+.lbbrand,
+.lbcontent
+{   
+    border: none;
+    margin:0px;
+    padding:0px;
+}
+
+.lbcontent a:link,
+.lbcontent a:visited
+{
+    color: #0066cc;
+    text-decoration: underline;
+    white-space:nowrap;
+}
+
+.lbcontent hr
+{
+    margin-top:0px;
+    margin-bottom:0px;
+    margin-left: 10px; 
+    margin-right: 10px;
+}
+
+.lbcontent table
+{
+    margin-top:15px;
+    margin-bottom:5px;
+    margin-left: 10px; 
+    margin-right: 10px; 
+    font-size: 11px;
+    width: 452px;
+}
+
+.lbcontent tr,
+.lbcontent td
+{
+    margin:0px;
+    padding:0px;
+}
+#lbClose
+{
+    cursor: hand; 
+    top: 10px; 
+    right: 15px; 
+    position: absolute;
+}
+#lbHead1
+{
+    text-align: left; 
+    margin-top:10px;
+    margin-bottom:10px;
+    margin-left: 10px; 
+    margin-right: 10px; 
+    font-size: 14px;
+}
+#lbHead2
+{
+    text-align: left; 
+    margin-left: 10px; 
+    margin-right: 10px; 
+    margin-top:10px;
+    margin-bottom: 15px;
+    font-size: 12px;
+}
+
+.lbBtn
+{
+    text-align: center; 
+    min-width: 80px;
+}
+
+.lbBtn a,
+.lbBtn a:link,
+.lbBtn a:hover
+{
+    float:right;
+    margin:0px;
+    cursor: hand; 
+    text-decoration: none;
+    text-align: center;
+}
+.lbBtn div
+{
+    margin:0px;
+    padding-left:10px;
+    padding-right:10px;
+    padding-top:5px;
+    padding-bottom:5px;
+}
+
+.lbRowNowBtn div
+{
+    border:solid 1px #6e9200;
+}
+
+.lbLearnMoreBtn div
+{
+    border:solid 1px #0fa1b8;
+}
+
+.lbBtnText
+{
+    color: White; 
+    font-weight: bold; 
+    font-size: 14px;
+}
+
+#lbCloseTd
+{
+    text-align: right
+}
+
+.MaskDiv
+{
+    position:absolute;
+    top: 0px;
+    left: 0px;
+    margin: 0px;
+    padding: 0px;
+    width: 100%;
+    height: 100%;
+    background:#777;
+    filter:Alpha(opacity=40);
+    opacity: 0.3;
+    z-index: 1900;
+}
+#thinColumn #RelatedSupportCenters 
+{
+    margin-bottom: 20px;
+}
+.kb .notice h3
+{
+    font-size: 16px;
+}
+#bottomRow .wp.getHelp 
+{
+    margin: 0px 10px;
+}
+.kbSurvey h2
+{
+    margin: 0px;
+}
+
+/* Media Print */
+@media print
+{
+    .kb *
+    {
+        position:static;
+        float:none;
+    }
+    
+    /* override the contentArea */
+    #contentArea
+    {
+        margin: 0!important;
+        padding: 0!important;
+    }
+
+    .kb .topOfPage,
+    .kb .toc,
+    .kb .csDisclaimerLink,
+    .kb .securedisclaimer.kbdllink,
+    .kb div.kb_graphictop,
+    .kb div.kb_tabletop,
+    .kb div.kb_graphictop_open,
+    .kb div.kb_tabletop_open,
+    .kb div.kb_graphictop_closed,
+    .kb div.kb_tabletop_closed,
+    #contentArea #mainColumn #fmsSurvey,
+    .kb .tocTitle,
+    .kb #tocDiv,
+    .kb #kb_expandcollapseall,
+    .kb .kb_whitebox
+    {
+        display: none!important;
+    }
+
+    .kb div.pLink
+    {
+        display: inline;
+    }
+
+    #kb,
+    .kb
+    {
+        margin: 5px 0 0!important;
+        width: auto!important;
+    }
+
+    .kb div.sbody .code,
+    .kb div.sbody .errormsg,
+    .kb div.sbody .in_text
+    {
+        float:none;
+        width:auto;
+    }
+
+    .kb div.kb_graphictop,
+    .kb div.kb_tabletop,
+    .kb div.kb_graphictop_open,
+    .kb div.kb_tabletop_open,
+    .kb div.kb_errormsgbody,
+    .kb div.kb_codebody,
+    .kb div.kb_intextwrapper,
+    .kb div.kb_outergraphicwrapper,
+    .kb div.kb_outertablewrapper,
+    .kb div.kb_graphicwrapper,
+    .kb div.kb_tablewrapper,
+    .kb div.kb_codecontent,
+    .kb div.kb_errorcontent,
+    .kb div.kb_intextbody,
+    .kb div.kb_graphicwrapper .graphic
+    {
+        border:0px;
+    }    
+
+    .kb div.disclaimer.cc,
+    .kb div.disclaimer.mt,
+    .kb div.disclaimer.retiredkb
+    {
+        background:none;
+        border:0px;
+        padding:0px;
+    }
+    #kb_warning_divider
+    {
+        background-color: #F5F5F5;
+        padding: 10px;
+    }
+    #kb_warning_divider span
+    {
+        color: #333333;
+        font-size: 16px;
+        display:block;
+        margin-bottom:5px;
+    }
+}
