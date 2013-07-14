@@ -678,6 +678,7 @@ int main(int argc, char *argv[]) {
     settings.num_depth_bits = 24;
     settings.num_stencil_bits = 0;
     settings.num_rgba_bits = 8;
+    settings.samples = 1;
     
     // Create the window so that we have a valid openGL context
     wnd = new Window(settings);

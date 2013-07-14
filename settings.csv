@@ -28,12 +28,12 @@ color_convnet_depth_feature,      int,       12
 color_convnet_depth_threshold,    int,       15
 show_gaussian_labels,             bool,      0
 in_air_drawing_enabled,           bool,      0
-pose_smoothing_factor_enum,       int,       4
-pose_smoothing_on,                bool,      1
+pose_smoothing_factor_enum,       int,       3
+pose_smoothing_on,                bool,      0
 hand_size,                        int,       0
 
 //, RENDERER
-screen_resolution,                int,       125830560
+screen_resolution,                int,       83887040
 fullscreen,                       bool,      0
 double_buffering,                 bool,      0  
 clear_color,                      Float3,    0.529, 0.808, 0.980
@@ -77,7 +77,7 @@ vsm_overlap,                      float,     0.050
 vsm_depth_epsilon,                float,     0.001	
 vsm_visualize_split,              bool,      0
 vsm_min_variance,                 float,     0.0001
-vsm_soft_shadows,                 bool,      0
+vsm_soft_shadows,                 bool,      1
 vsm_lbr_amount,                   float,     0.3
 force_texture_array_disable,      bool,      0
 render_wireframe,                 bool,      0

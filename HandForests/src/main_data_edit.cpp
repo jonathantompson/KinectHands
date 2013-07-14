@@ -30,6 +30,7 @@
 #include "jtil/threading/callback.h"
 #include "jtil/threading/thread.h"
 #include "jtil/threading/thread_pool.h"
+#include "jtil/video/video_stream.h"
 #include "jtorch/jtorch.h"
 #include "jtil/debug_util/debug_util.h"  // Must come last in main.cpp
 
@@ -98,8 +99,8 @@ HandDetector* hd = NULL;
 // OPEN GL VARIABLES
 int main_window;
 uint8_t cur_display_rgb[src_dim*3];
-uint32_t window_width = 2 * src_width;
-uint32_t window_height = 2 * src_height;
+const uint32_t window_width = 2 * src_width;
+const uint32_t window_height = 2 * src_height;
 const int num_textures = 2;
 GLuint textures[num_textures];
 unsigned char *texture_data;
@@ -108,6 +109,10 @@ bool render_labels = true;
 uint32_t label_type = 0;
 bool continuously_play = false;
 uint32_t depth_visualization_type = 0;
+
+// Video stream
+jtil::video::VideoStream* video_stream = NULL;
+const uint32_t video_frame_rate = 30;
 
 void shutdown();
 
@@ -121,6 +126,7 @@ void mouse(int button, int state, int x, int y);
 void mouseMotion(int x, int y) { }
 void initGL();
 void initTextures();
+void saveFrameToVideoStream(uint32_t num_frames);
 
 void idle() {
   glutSetWindow(main_window);
@@ -204,6 +210,18 @@ void saveData() {
 #endif
 }
 
+uint8_t screendat[window_width * window_height * 3];
+void saveFrameToVideoStream(uint32_t num_frames) {
+  if (video_stream) {
+    glReadPixels(0, 0, window_width, window_height, GL_BGR_EXT, 
+      GL_UNSIGNED_BYTE, screendat);
+    for (uint32_t i = 0; i < num_frames; i++) {
+      video_stream->addBGRFrame(screendat);
+    }
+    std::cout << num_frames << " frames saved to file" << std::endl;
+  }
+}
+
 const uint32_t num_colors = 5;
 const float colors[num_colors][3] = {
   {1, 1, 1}, 
@@ -243,22 +261,22 @@ void UpdateGreyscaleImageForRendering(T* src) {
   } else {
     for (int32_t i = 0; i < src_dim; i++) {
       if (src[i] < GDT_MAX_DIST && src[i] != 0) {
-        uint32_t cur_pixel = static_cast<uint32_t>(src[i]) << 2;
+        uint32_t cur_pixel = (static_cast<uint32_t>(src[i])) % 255;
         float cur_scale = static_cast<float>(cur_pixel % 255) / 255; // 0 --> 1
 
-        texture_data[4*i] = (uint8_t)((cur_scale * 0.8f + 0.2f) * 255.0f);
-        texture_data[4*i+1] = (uint8_t)((cur_scale * 0.8f + 0.2f) * 255.0f);
-        texture_data[4*i+2] = (uint8_t)((cur_scale * 0.8f + 0.2f) * 255.0f);
+        texture_data[4*i] = (uint8_t)((cur_scale * 0.6f + 0.4f) * 255.0f);
+        texture_data[4*i+1] = (uint8_t)((cur_scale * 0.6f + 0.4f) * 255.0f);
+        texture_data[4*i+2] = (uint8_t)((cur_scale * 0.6f + 0.4f) * 255.0f);
         texture_data[4*i+3] = 255;
       } else if (src[i] >= GDT_MAX_DIST) {
-        texture_data[4*i] = 255;
-        texture_data[4*i+1] = 255;
-        texture_data[4*i+2] = 255;
+        texture_data[4*i] = 25;
+        texture_data[4*i+1] = 25;
+        texture_data[4*i+2] = 100;
         texture_data[4*i+3] = 255;
       } else if (src[i] == 0) {
-        texture_data[4*i] = 0;
-        texture_data[4*i+1] = 0;
-        texture_data[4*i+2] = 0;
+        texture_data[4*i] = 25;
+        texture_data[4*i+1] = 25;
+        texture_data[4*i+2] = 100;
         texture_data[4*i+3] = 255;
       }
     }
@@ -318,6 +336,7 @@ void display() {
 
   if (continuously_play) {
     saveData();
+    saveFrameToVideoStream(2);
     if (cur_image >= (int32_t)im_files.size() - 1) {
       continuously_play = false;
       time_accumulate = 0;
@@ -484,7 +503,7 @@ void keyboard(unsigned char key, int x, int y) {
     cur_filename = IMAGE_DIRECTORY;
     cur_filename += string(im_files[cur_image].first);
     if (delete_confirmed == 1) {
-      if(!DeleteFile(cur_filename.c_str())) {
+      if(!DeleteFile(jtil::string_util::ToWideString(cur_filename).c_str())) {
         cout << "Error deleting file: " << cur_filename.c_str() << endl;
       } else {
         cout << "File deleted sucessfully: " << cur_filename.c_str() << endl;
@@ -554,6 +573,23 @@ void keyboard(unsigned char key, int x, int y) {
   case 'z':
   case 'Z':
     depth_visualization_type = (depth_visualization_type + 1) % 2;
+    break;
+  case 'x':
+  case 'X':
+    if (video_stream) {
+      SAFE_DELETE(video_stream);
+      std::cout << "Video stream closed" << std::endl;
+    } else {
+      std::wstring file = L"hand_forests_video.avi";
+      video_stream = new jtil::video::VideoStream(window_width, window_height,
+        3, video_frame_rate, file);
+      std::cout << "Video stream opened: " << 
+        jtil::string_util::ToNarrowString(file) << std::endl;
+    }
+    break;
+  case 'c':
+  case 'C':
+    saveFrameToVideoStream(video_frame_rate * 2);
     break;
   }      
   
@@ -670,9 +706,9 @@ void mouse(int button, int state, int x, int y) {
 }
 
 void reshape(const int width, const int height) {
-  window_width = width;
-  window_height = height;
-  glutPostRedisplay();
+  //window_width = width;
+  //window_height = height;
+  //glutPostRedisplay();
 }
 
 void shutdown() {
@@ -680,6 +716,7 @@ void shutdown() {
   SAFE_DELETE(hd);
   SAFE_DELETE(image_io);
   SAFE_DELETE_ARR(texture_data);
+  SAFE_DELETE(video_stream);
   exit(0);
 }
 
@@ -691,17 +728,17 @@ void shutdown() {
     // Prepare string for use with FindFile functions.  First, copy the
     // string to a buffer, then append '\*' to the directory name.
     TCHAR szDir[MAX_PATH];
-    StringCchCopy(szDir, MAX_PATH, directory.c_str());
-    std::stringstream ss;
+    StringCchCopy(szDir, MAX_PATH, jtil::string_util::ToWideString(directory).c_str());
+    std::wstringstream ss;
     if (prefix == NULL) {
-      ss << "\\hands" << "_*.bin";
+      ss << L"\\hands" << L"_*.bin";
     } else {
-      ss << "\\" << prefix << "_*.bin";
+      ss << L"\\" << jtil::string_util::ToWideString(prefix) << L"_*.bin";
     }
     StringCchCat(szDir, MAX_PATH, ss.str().c_str());
 
     // Find the first file in the directory.
-    WIN32_FIND_DATA ffd;
+    WIN32_FIND_DATAW ffd;
     HANDLE hFind = FindFirstFile(szDir, &ffd);
     if (hFind == INVALID_HANDLE_VALUE) {
       cout << "GetFilesInDirectory error getting dir info. Check that ";
@@ -712,7 +749,7 @@ void shutdown() {
     do {
       if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
       } else {
-        std::string cur_filename = ffd.cFileName;
+        std::string cur_filename = jtil::string_util::ToNarrowString(ffd.cFileName);
         char* name = new char[cur_filename.length() + 1];
         strcpy(name, cur_filename.c_str());
         files.push_back(Triple<char*, int64_t, int64_t>(name, -1, -1));
@@ -749,7 +786,9 @@ int main(int argc, char *argv[]) {
   cout << "- - Go to the prev image" << endl;
   cout << "p - Play images and save labeling to file" << endl;
   cout << "[ - Go back to the start image" << endl;
-  cout << "z - Change depth coloring (0 - rainbow, 1 - grey)" << endl << endl;
+  cout << "z - Change depth coloring (0 - rainbow, 1 - grey)" << endl;
+  cout << "x - start / stop video stream (overwrites old file)" << endl;
+  cout << "c - Manually add 10 frames to video file" << endl << endl;
   cout << "mouse-left - Flood fill inverse label large (when rendering depth)" << endl;
   cout << "mouse-right - Flood fill inverse label small (when rendering depth)" << endl << endl;
   cout << "1/! - Increase/Decrease Red Hue Threshold" << endl;
@@ -815,7 +854,8 @@ int main(int argc, char *argv[]) {
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     main_window = glutCreateWindow("Mesh Deformation Test");
     glutDisplayFunc(display);
-    glutReshapeFunc(reshape);
+    // glutReshapeFunc(reshape);
+    glutReshapeFunc(NULL);
     glutMouseFunc(mouse);
     glutKeyboardFunc(keyboard);
     glutIdleFunc(idle);
