@@ -62,6 +62,7 @@
 #include "jtil/debug_util/debug_util.h"
 #include "jtil/data_str/hash_funcs.h"
 #include "jtil/video/video_stream.h"
+#include "jtil/renderer/colors/colors.h"
 #include "jtil/math/math_base.h"  // for NextPrime
 #include "jtorch/jtorch.h"
 
@@ -127,6 +128,7 @@ string im_dirs[num_im_dirs] = {
 //                              // takes effect when not loading processed images)
 //#define MEASURE_PERFORMANCE_ON_STARTUP  // Use RDF + Convnet to figure out UV 
                                           // positions and compares against truth
+#define VISUALIZE_HEAT_MAPS // Requires extra processing...
 
 //#define SAVE_DEPTH_IMAGES  // Save the regular depth files --> Only when SAVE_FILES defined
 #define SAVE_HPF_IMAGES  // Save the hpf files --> Only when SAVE_FILES defined
@@ -136,11 +138,17 @@ string im_dirs[num_im_dirs] = {
 #else
   #define DESIRED_PLAYBACK_FPS 30.0f  // fps
 #endif
-#define NUM_WORKER_THREADS 6
+#define NUM_WORKER_THREADS 6 
 
+#define HM_SIZE 18*2  // Width and height of each heat map
+#define HMW 4  // Number of heat maps horizontally
+#define HMH 1  // Number of heat maps vertically
+#define HMSTD 1.0f 
 // *************************************************************
 // *************** END OF CHANGEABLE PARAMETERS ****************
 // *************************************************************
+#define HM_TEX_WIDTH ((HM_SIZE * HMW) + (HMW + 1))  // to accomodate borders
+#define HM_TEX_HEIGHT ((HM_SIZE * HMH) + (HMH + 1))  // to accomodate borders
 
 #define FRAME_TIME (1.0f / DESIRED_PLAYBACK_FPS)
 // Some image defines, you shouldn't have to change these
@@ -148,7 +156,8 @@ string im_dirs[num_im_dirs] = {
   #error "Apple is not yet supported!"
 #else
   #ifdef BACKUP_HDD
-    #define DATA_ROOT string("D:/hand_data/")
+    //#define DATA_ROOT string("D:/hand_data/")  // Work computer
+    #define DATA_ROOT string("E:/hand_data/")  // Home computer
   #else
     #define DATA_ROOT string("./../data/")
   #endif
@@ -199,9 +208,12 @@ GeometryColoredPoints* geometry_points= NULL;
 bool render_depth = true;
 int playback_step = 1;
 Texture* tex = NULL;
+Texture* tex_hm = NULL;
 uint8_t tex_data_hpf[HN_IM_SIZE * HN_IM_SIZE * 3];
 uint8_t tex_data_depth[HN_IM_SIZE * HN_IM_SIZE * 3];
 uint8_t tex_data[HN_IM_SIZE * HN_IM_SIZE * 3 * 2];
+uint8_t hm_tex_data[HM_TEX_WIDTH * HM_TEX_HEIGHT * 4];  // RGBA (allows odd widths)
+float hm_data[HM_SIZE * HM_SIZE];
 OpenNIFuncs openni_funcs;
 Float4x4 camera_view;
 const uint32_t num_coeff_fit = HAND_NUM_COEFF;
@@ -239,6 +251,7 @@ void quit() {
     delete r_hand;
   }
   delete tex;
+  delete tex_hm;
   delete hand_renderer;
   delete model[0];
   delete wnd;
@@ -609,8 +622,81 @@ void renderFrame() {
     }
   }
 
+#ifdef VISUALIZE_HEAT_MAPS
+  for (uint32_t cur_hm = F0_TIP_U/FEATURE_SIZE, v = 0; v < HMH; v++) {
+    for (uint32_t u = 0; u < HMW; u++, cur_hm+=NUM_FEATS_PER_FINGER) {
+      if (cur_hm < num_convnet_feats) {
+        // TODO: Calculate the heat map
+        hand_image_generator_->createHeatMap(hm_data, HM_SIZE, 
+          &coeff_convnet[cur_hm * FEATURE_SIZE], HMSTD);
+      } else {
+        for (uint32_t i = 0; i < HM_SIZE * HM_SIZE; i++) {
+          hm_data[i] = 0;
+        }
+      }
+      // Now copy the heatmap into the correct position
+      uint32_t vstart =  v * (HM_SIZE + 1) + 1;
+      uint32_t vend = vstart + HM_SIZE - 1;  // inclusive
+      uint32_t ustart =  u * (HM_SIZE + 1) + 1;
+      uint32_t uend = ustart + HM_SIZE - 1;  // inclusive
+
+    const Float3* color = 
+      &jtil::renderer::colors[cur_hm % jtil::renderer::n_colors];
+    const uint8_t r = (uint8_t)(color->m[0] * 255.0f);
+    const uint8_t g = (uint8_t)(color->m[1] * 255.0f);
+    const uint8_t b = (uint8_t)(color->m[2] * 255.0f);
+
+      for (uint32_t vdst = vstart, vsrc = 0; vdst <= vend; vdst++, vsrc++) {
+        for (uint32_t udst = ustart, usrc = 0; udst <= uend; udst++, usrc++) {
+          uint32_t idst = vdst * HM_TEX_WIDTH + udst;
+          uint32_t isrc = vsrc * HM_SIZE + usrc;
+          hm_tex_data[idst * 4] = (uint8_t)(hm_data[isrc] * r);
+          hm_tex_data[idst * 4 + 1] = (uint8_t)(hm_data[isrc] * g);
+          hm_tex_data[idst * 4 + 2] = (uint8_t)(hm_data[isrc] * b);
+          hm_tex_data[idst * 4 + 3] = 255;
+        }
+      }
+    }
+  }
+  // Now add in the borders:
+  for (uint32_t v = 0; v < HMH + 1; v++) {
+    uint32_t vdst = v * (HM_SIZE + 1);
+    for (uint32_t udst = 0; udst < HM_TEX_WIDTH; udst++) {
+      uint32_t idst = vdst * HM_TEX_WIDTH + udst;
+      hm_tex_data[idst * 4] = 25;
+      hm_tex_data[idst * 4 + 1] = 25;
+      hm_tex_data[idst * 4 + 2] = 100;
+      hm_tex_data[idst * 4 + 3] = 255;
+    }
+  }
+  for (uint32_t u = 0; u < HMW + 1; u++) {
+    uint32_t udst = u * (HM_SIZE + 1);
+    for (uint32_t vdst = 0; vdst < HM_TEX_HEIGHT; vdst++) {
+      uint32_t idst = vdst * HM_TEX_WIDTH + udst;
+      hm_tex_data[idst * 4] = 25;
+      hm_tex_data[idst * 4 + 1] = 25; 
+      hm_tex_data[idst * 4 + 2] = 100;
+      hm_tex_data[idst * 4 + 3] = 255;
+    }
+  }
+  tex_hm->reloadData((unsigned char*)hm_tex_data);
+#endif
+
   tex->reloadData((unsigned char*)tex_data);
+
+#ifdef VISUALIZE_HEAT_MAPS
+  // Draw to one half of the screen
+  glViewport(0, 0, settings.width, settings.width / 2);
+#endif
+
   render->renderFullscreenQuad(tex);
+
+#ifdef VISUALIZE_HEAT_MAPS
+  //Draw to the other half of the screen
+  glViewport(0, settings.width / 2, settings.width, settings.height - settings.width / 2);
+  render->renderFullscreenQuad(tex_hm, false);
+#endif
+
   wnd->swapBackBuffer();
 }
 
@@ -725,11 +811,15 @@ int main(int argc, char *argv[]) {
 
     // Fill the settings structure
     settings.width = 640 * 2;
+#ifdef VISUALIZE_HEAT_MAPS
+    settings.height = 480 * 2;
+#else
     settings.height = 640;
+#endif
     settings.fullscreen = false;
     settings.title = string("Hand Fit Project");
-    settings.gl_major_version = 3;
-    settings.gl_minor_version = 2;
+    settings.gl_major_version = 4;
+    settings.gl_minor_version = 0;
     settings.num_depth_bits = 24;
     settings.num_stencil_bits = 0;
     settings.num_rgba_bits = 8;
@@ -852,12 +942,14 @@ int main(int argc, char *argv[]) {
 #endif
 
     loadCurrentImage();
-    tex = new Texture(GL_RGB8, 2 * HN_IM_SIZE, HN_IM_SIZE, GL_RGB, 
+    tex = new Texture(GL_RGB8, HN_IM_SIZE * 2, HN_IM_SIZE, GL_RGB, 
       GL_UNSIGNED_BYTE, (unsigned char*)tex_data, 
       TEXTURE_WRAP_MODE::TEXTURE_CLAMP, false,
       TEXTURE_FILTER_MODE::TEXTURE_NEAREST);
-
-
+    tex_hm = new Texture(GL_RGBA8, HM_TEX_WIDTH, HM_TEX_HEIGHT, GL_RGBA, 
+      GL_UNSIGNED_BYTE, (unsigned char*)hm_tex_data, 
+      TEXTURE_WRAP_MODE::TEXTURE_CLAMP, false,
+      TEXTURE_FILTER_MODE::TEXTURE_NEAREST);
 
     render->renderFrame(0);
 

@@ -95,7 +95,7 @@ namespace renderer {
     // Specify a framebuffer destination
     void renderFullscreenQuad(Texture* tex, GLint frame_buffer_dst);
     // Just render to the current framebuffer and viewport:
-    void renderFullscreenQuad(Texture* tex);
+    void renderFullscreenQuad(Texture* tex, const bool clear = true);
     void renderPointCloud(GeometryPoints* points, jtil::math::Float4x4* mat_world,
       const jtil::math::Float3* color, const float point_size_constant);
     void renderColoredPointCloud(GeometryColoredPoints* points,
