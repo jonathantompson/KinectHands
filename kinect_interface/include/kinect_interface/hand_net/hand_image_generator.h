@@ -66,6 +66,9 @@ namespace hand_net {
     void annotateFeatsToHandImage(uint8_t* im, 
       const float* coeff_convnet) const;  // 96 x 96
 
+    void createHeatMap(float* hm, const uint32_t size, 
+      const float* coeff_convnet, const float std);
+
     void calcNormalImage(float* normals_xyz, const float* xyz, 
       const uint8_t* labels);
 

@@ -839,9 +839,11 @@ namespace renderer {
     quad_->draw();
   }
 
-  void Renderer::renderFullscreenQuad(Texture* tex) {
-    GLState::glsClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    GLState::glsClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  void Renderer::renderFullscreenQuad(Texture* tex, const bool clear) {
+    if (clear) {
+      GLState::glsClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+      GLState::glsClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
     
     sp_fullscreen_quad_->useProgram();
     

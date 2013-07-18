@@ -322,7 +322,22 @@ namespace hand_net {
     jtil::math::Int4 hand_pos_wh(0, 0, HN_IM_SIZE, HN_IM_SIZE);
     for (uint32_t i = 0; i < HAND_NUM_COEFF_CONVNET; i += FEATURE_SIZE) {
         renderCrossToImageArr(&coeff_convnet[i], im, HN_IM_SIZE, 
-          HN_IM_SIZE, 1, i, hand_pos_wh);
+          HN_IM_SIZE, 1, i/FEATURE_SIZE, hand_pos_wh);
+    }
+  }
+
+  void HandImageGenerator::createHeatMap(float* hm, const uint32_t size, 
+    const float* uv, const float std) {
+    const float var = std * std;
+    float ufeat = uv[0] * size;
+    float vfeat = size - uv[1] * size - 1;
+    for (uint32_t v = 0; v < size; v++) {
+      for (uint32_t u = 0; u < size; u++) {
+        float du = (float)u - ufeat;
+        float dv = (float)v - vfeat;
+        float f_u_v = expf(-((du * du) / (2 * var) + (dv * dv) / (2 * var)));
+        hm[v * size + u] = f_u_v;
+      }
     }
   }
 
@@ -336,7 +351,7 @@ namespace hand_net {
     v = h - v - 1;
 
     const Float3* color = 
-      &jtil::renderer::colors[(color_ind/2) % jtil::renderer::n_colors];
+      &jtil::renderer::colors[(color_ind) % jtil::renderer::n_colors];
     const uint8_t r = (uint8_t)(color->m[0] * 255.0f);
     const uint8_t g = (uint8_t)(color->m[1] * 255.0f);
     const uint8_t b = (uint8_t)(color->m[2] * 255.0f);
