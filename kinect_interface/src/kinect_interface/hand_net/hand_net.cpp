@@ -15,7 +15,7 @@
 #include "kinect_interface/hand_net/hand_model_coeff.h"  // for HandCoeff
 #include "kinect_interface/hand_net/hand_model.h"  // for HandModel
 #include "kinect_interface/open_ni_funcs.h"
-#include "kinect_interface/hand_detector/decision_tree_structs.h"  // for GDT_MAX_DIST
+#include "kinect_interface/hand_detector/decision_tree_structs.h"  // GDT_MAX_DIST
 #include "jtil/image_util/image_util.h"
 #include "jtil/data_str/vector.h"
 #include "jtil/exceptions/wruntime_error.h"
@@ -56,6 +56,7 @@ namespace hand_net {
     lm_fit_x_vals_ = NULL;
     hm_temp_ = NULL;
     gauss_coeff_ = NULL;
+    gauss_coeff_hm_ = NULL;
     heat_map_size_ = 0;
     num_output_features_ = 0;
     rest_pose_ = NULL;
@@ -78,6 +79,7 @@ namespace hand_net {
     SAFE_DELETE(image_generator_);
     SAFE_DELETE_ARR(heat_map_convnet_);
     SAFE_DELETE_ARR(gauss_coeff_);
+    SAFE_DELETE_ARR(gauss_coeff_hm_);
     SAFE_DELETE_ARR(hm_temp_);
     SAFE_DELETE_ARR(lm_fit_x_vals_);
     SAFE_DELETE(rest_pose_);
@@ -112,7 +114,6 @@ namespace hand_net {
         "Convnet structure may be corrupt!");
    } 
     Parallel* banks = (Parallel*)network->get(0);
-    data_type_ = HPF_DEPTH_DATA;
 
     num_conv_banks_ = (int32_t)banks->numBanks();
     image_generator_ = new HandImageGenerator(num_conv_banks_);
@@ -134,6 +135,7 @@ namespace hand_net {
 
     hm_temp_ = new float[heat_map_size_ * heat_map_size_];
     gauss_coeff_ = new float[NUM_COEFFS_PER_GAUSSIAN * num_output_features_];
+    gauss_coeff_hm_ = new float[NUM_COEFFS_PER_GAUSSIAN * num_output_features_];
     lm_fit_x_vals_ = new float[heat_map_size_ * heat_map_size_ * X_DIM_LM_FIT];
     for (uint32_t v = 0, i = 0; v < heat_map_size_; v++) {
       for (uint32_t u = 0; u < heat_map_size_; u++, i++) {
@@ -171,7 +173,7 @@ namespace hand_net {
   }
 
   void HandNet::calcHandImage(const int16_t* depth, const uint8_t* label) {
-    image_generator_->calcHandImage(depth, label, data_type_ == HPF_DEPTH_DATA);
+    image_generator_->calcHandImage(depth, label);
   }
 
   void HandNet::loadHandModels() {
@@ -194,21 +196,10 @@ namespace hand_net {
       std::cout << " from file!" << std::endl;
     }
 
-    calcHandImage(depth, label);
+    calcHandImage(depth, label);  // Creates HPF hand image
 
     // Copy over the hand images in the input data structures
-    TorchData* im;
-    switch (data_type_) {
-    case DEPTH_DATA:
-      im = image_generator_->hand_image();
-      break;
-    case HPF_DEPTH_DATA:
-      im = image_generator_->hpf_hand_image();
-      break;
-    default:
-      throw std::wruntime_error("HandNet::calcHandCoeffConvnet() - ERROR: "
-        "data_type value is not supported!");
-    }
+    TorchData* im = image_generator_->hpf_hand_image();
 
     // Now propogate through the network
     conv_network_->forwardProp(*im);
@@ -220,18 +211,22 @@ namespace hand_net {
     const Int4* pos_wh = &image_generator_->hand_pos_wh();
     for (uint32_t i = 0; i < num_output_features_; i++) {
       uint32_t istart = i * NUM_COEFFS_PER_GAUSSIAN;
-      calcGaussDistCoeff(&gauss_coeff_[istart], 
+      calcGaussDistCoeff(&gauss_coeff_hm_[istart], 
         &heat_map_convnet_[i * heat_map_size_ * heat_map_size_]);
       // Transform the gaussian into the kinect image space (just a viewport
       // transform!):
       gauss_coeff_[istart + GaussMeanU] = 
-        gauss_coeff_[istart + GaussMeanU] * (float)(*pos_wh)[2] + (float)(*pos_wh)[0];
+        gauss_coeff_hm_[istart + GaussMeanU] * (float)(*pos_wh)[2] + (float)(*pos_wh)[0];
       gauss_coeff_[istart + GaussMeanV] = 
-        gauss_coeff_[istart + GaussMeanV] * (float)(*pos_wh)[3] + (float)(*pos_wh)[1];
-      gauss_coeff_[istart + GaussVarU] *= (float)(*pos_wh)[2];
-      gauss_coeff_[istart + GaussVarV] *= (float)(*pos_wh)[3];
+        gauss_coeff_hm_[istart + GaussMeanV] * (float)(*pos_wh)[3] + (float)(*pos_wh)[1];
+      gauss_coeff_[istart + GaussVarU] = 
+        gauss_coeff_hm_[istart + GaussVarU] * (float)(*pos_wh)[2];
+      gauss_coeff_[istart + GaussVarV] = 
+        gauss_coeff_hm_[istart + GaussVarV] * (float)(*pos_wh)[3];
     }
   }
+
+
 
   void HandNet::renormalizeBFGSCoeffs(double* coeff) {
     // Set all angles 0 --> 2pi

@@ -123,11 +123,6 @@ namespace hand_net {
   } BFGSHandCoeff;
 
   typedef enum {
-    DEPTH_DATA = 0,
-    HPF_DEPTH_DATA = 1,
-  } HandNetDataType;
-
-  typedef enum {
     GaussAmp = 0,
     GaussMeanU = 1,
     GaussMeanV = 2,
@@ -177,13 +172,13 @@ namespace hand_net {
     const float* hand_image() const;
     const int32_t size_images() const;
     const jtil::math::Float3& uvd_com() const;
-    const float* gauss_coeff() const { return gauss_coeff_; }
+    const float* gauss_coeff() const { return gauss_coeff_; }  // 640x480 space
+    const float* gauss_coeff_hm() const { return gauss_coeff_hm_; }  // 0 to 1 hm space
     const HandModelCoeff* rhand_cur_pose() const { return rhand_cur_pose_; }
 
   private:
     HandImageGenerator* image_generator_;
     OpenNIFuncs open_ni_funcs_;
-    HandNetDataType data_type_;
     int32_t num_conv_banks_;  // Set after Torch model is read from file
     jtorch::TorchStage* conv_network_;
     float* heat_map_convnet_;  // output data
@@ -194,7 +189,8 @@ namespace hand_net {
     HandModelCoeff* rest_pose_;
     HandModelCoeff* rhand_cur_pose_;
     HandModelCoeff* rhand_prev_pose_;
-    float* gauss_coeff_;  // For each feature
+    float* gauss_coeff_;  // For each feature in 640x480 space
+    float* gauss_coeff_hm_;  // Gaussian coeff in heat map space (0 to 1)
     float uvd_pos_[num_convnet_feats * 3];  // For each feature
     float xyz_pos_[num_convnet_feats * 3];  // For each feature
     jtil::math::LMFit<float>* heat_map_lm_;

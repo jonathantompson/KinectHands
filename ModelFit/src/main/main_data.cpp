@@ -94,6 +94,7 @@ using hand_net::HandCoeffConvnet;
 // *************************************************************
 #define BACKUP_HDD
 // Training Set
+/*
 const uint32_t num_im_dirs = 12;
 string im_dirs[num_im_dirs] = {
   string("hand_depth_data_2013_05_01_1/"),
@@ -109,14 +110,13 @@ string im_dirs[num_im_dirs] = {
   string("hand_depth_data_2013_06_15_4/"),
   string("hand_depth_data_2013_06_15_5/")
 };
+*/
 
 // Test Set
-/*
 const uint32_t num_im_dirs = 1;
 string im_dirs[num_im_dirs] = {
   string("hand_depth_data_2013_05_08_1/")
 };
-*/
 
 #define DST_IM_DIR_BASE string("hand_depth_data_processed_for_CN/") 
 //#define DST_IM_DIR_BASE string("hand_depth_data_processed_for_CN_testset/") 
@@ -126,8 +126,8 @@ string im_dirs[num_im_dirs] = {
 //#define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
 //                              // HandForests, but save synthetic data (only 
 //                              // takes effect when not loading processed images)
-//#define MEASURE_PERFORMANCE_ON_STARTUP  // Use RDF + Convnet to figure out UV 
-                                          // positions and compares against truth
+#define MEASURE_PERFORMANCE_ON_STARTUP  // Use RDF + Convnet to figure out UV 
+                                        // positions and compares against truth
 #define VISUALIZE_HEAT_MAPS // Requires extra processing...
 
 //#define SAVE_DEPTH_IMAGES  // Save the regular depth files --> Only when SAVE_FILES defined
@@ -363,11 +363,6 @@ void loadCurrentImage(bool calc_hand_image = true) {
   if (calc_hand_image) {
     // Create the downsampled hand image, background is at 1 and hand is
     // from 0 --> 1.  Also calculates the convnet input.
-#ifdef SAVE_HPF_IMAGES
-    const bool create_hpf_images = true;
-#else
-    const bool create_hpf_images = false;
-#endif
 
     model[0]->setRendererAttachement(false);
     HandGeometryMesh::setCurrentStaticHandProperties(r_hand->coeff());
@@ -383,8 +378,7 @@ void loadCurrentImage(bool calc_hand_image = true) {
       create_hpf_images, cur_synthetic_depth_data);
     GLState::glsViewport(0, 0, wnd->width(), wnd->height());
 #else
-    hand_image_generator_->calcHandImage(cur_depth_data, label,
-      create_hpf_images);
+    hand_image_generator_->calcHandImage(cur_depth_data, label);
 #endif
 
     hand_renderer->camera(0)->updateProjection();
@@ -593,11 +587,13 @@ void renderFrame() {
   hand_image_generator_->annotateFeatsToHandImage(tex_data_hpf, coeff_convnet);
 
   im = hand_image_generator_->hand_image_cpu();
+  const float gain = 3.0f;
+  const float off = -gain * 0.5f + 0.5f;  // So that it is centered around 0.5 again
   for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
     for (uint32_t u = 0; u < HN_IM_SIZE; u++) {
-      uint32_t val = (uint32_t)(im[v * HN_IM_SIZE + u] * 255.0f);
+      int32_t val = (int32_t)((im[v * HN_IM_SIZE + u] * gain + off) * 255.0f);
       // Clamp the value from 0 to 255 (otherwise we'll get wrap around)
-      uint8_t val8 = (uint8_t)std::min<uint32_t>(std::max<uint32_t>(val,0),255);
+      uint8_t val8 = (uint8_t)std::min<int32_t>(std::max<int32_t>(val,0),255);
       uint32_t idst = (HN_IM_SIZE-v-1) * HN_IM_SIZE + u;
       // Texture needs to be flipped vertically and 0 --> 255
       tex_data_depth[idst * 3] = val8;
@@ -658,14 +654,23 @@ void renderFrame() {
       }
     }
   }
+
+  //const uint8_t border_red = 25;
+  //const uint8_t border_green = 25;
+  //const uint8_t border_blue = 100;
+
+  const uint8_t border_red = 255;
+  const uint8_t border_green = 255;
+  const uint8_t border_blue = 255;
+
   // Now add in the borders:
   for (uint32_t v = 0; v < HMH + 1; v++) {
     uint32_t vdst = v * (HM_SIZE + 1);
     for (uint32_t udst = 0; udst < HM_TEX_WIDTH; udst++) {
       uint32_t idst = vdst * HM_TEX_WIDTH + udst;
-      hm_tex_data[idst * 4] = 25;
-      hm_tex_data[idst * 4 + 1] = 25;
-      hm_tex_data[idst * 4 + 2] = 100;
+      hm_tex_data[idst * 4] = border_red;
+      hm_tex_data[idst * 4 + 1] = border_green;
+      hm_tex_data[idst * 4 + 2] = border_blue;
       hm_tex_data[idst * 4 + 3] = 255;
     }
   }
@@ -673,9 +678,9 @@ void renderFrame() {
     uint32_t udst = u * (HM_SIZE + 1);
     for (uint32_t vdst = 0; vdst < HM_TEX_HEIGHT; vdst++) {
       uint32_t idst = vdst * HM_TEX_WIDTH + udst;
-      hm_tex_data[idst * 4] = 25;
-      hm_tex_data[idst * 4 + 1] = 25; 
-      hm_tex_data[idst * 4 + 2] = 100;
+      hm_tex_data[idst * 4] = border_red;
+      hm_tex_data[idst * 4 + 1] = border_green; 
+      hm_tex_data[idst * 4 + 2] = border_blue;
       hm_tex_data[idst * 4 + 3] = 255;
     }
   }
@@ -896,15 +901,20 @@ int main(int argc, char *argv[]) {
 
     float ave_heatmap_uv_dist_error[num_convnet_feats];
     float ave_heatmap_uv_dist_sq_error[num_convnet_feats];
+    float ave_heatmap_uv_dist_error_hm[num_convnet_feats];
+    float ave_heatmap_uv_dist_sq_error_hm[num_convnet_feats];
     for (uint32_t i = 0; i < num_convnet_feats; i++) {
       ave_heatmap_uv_dist_error[i] = 0;
       ave_heatmap_uv_dist_sq_error[i] = 0;
+      ave_heatmap_uv_dist_error_hm[i] = 0;
+      ave_heatmap_uv_dist_sq_error_hm[i] = 0;
     }
 
-    for (int32_t i = 0; i < (int32_t)im_files.size(); i++) {
-      if (i % 100 == 0 || i == im_files.size() - 1) {
+    int32_t num_samples = std::min<int32_t>((int32_t)im_files.size(), 10000);
+    for (int32_t i = 0; i < num_samples; i++) {
+      if (i % 100 == 0 || i == num_samples - 1) {
         std::cout << "measuring error on image " << i + 1 << " of " <<
-          im_files.size() << std::endl;
+          num_samples << std::endl;
       }
       cur_image = i;
       // Note loadCurrentImage will calculate the hand image AND 
@@ -912,9 +922,22 @@ int main(int argc, char *argv[]) {
       // redundancy here.
       loadCurrentImage();
       hn->calcConvnetHeatMap(cur_depth_data, label);
-      const float* gauss_coeff = hn->gauss_coeff();  // (mean_u, mean_v, std_u, std_v)
+      // gauss_coeff - (mean_u, mean_v, std_u, std_v), 640x480
+      const float* gauss_coeff = hn->gauss_coeff();  
+      // gauss_coeff - (mean_u, mean_v, std_u, std_v), 0to1x0to1 (in hm space
+      const float* gauss_coeff_hm = hn->gauss_coeff_hm();
       const Int4* pos_wh = &hn->image_generator()->hand_pos_wh();
       for (uint32_t i = 0; i < num_convnet_feats; i++) {
+        // Calculate error in HM space 0 to 1
+        float u_hm = gauss_coeff_hm[i * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU];
+        float v_hm = gauss_coeff_hm[i * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV];
+        float u_hm_target = coeff_convnet[i * FEATURE_SIZE];
+        float v_hm_target = coeff_convnet[i * FEATURE_SIZE + 1];
+        float dist_hm = sqrtf(powf(u_hm-u_hm_target, 2) + powf(v_hm-v_hm_target,2));
+        ave_heatmap_uv_dist_error_hm[i] += dist_hm;
+        ave_heatmap_uv_dist_sq_error_hm[i] += dist_hm * dist_hm;
+
+        // Calculate error in 640x480 space
         float u = gauss_coeff[i * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU];
         float v = gauss_coeff[i * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV];
         float u_target = coeff_convnet[i * FEATURE_SIZE] * 
@@ -928,11 +951,22 @@ int main(int argc, char *argv[]) {
     }
 
     for (uint32_t i = 0; i < num_convnet_feats; i++) {
-      ave_heatmap_uv_dist_error[i] /= (float)im_files.size();
+      // Calculate error in hm space
+      ave_heatmap_uv_dist_error_hm[i] /= (float)num_samples;
+      std::cout << "Ave heatmap UV error for feature " << i << " is " << 
+        ave_heatmap_uv_dist_error_hm[i] << std::endl;
+      float std = sqrtf((ave_heatmap_uv_dist_sq_error_hm[i] / (float)num_samples) - 
+        ave_heatmap_uv_dist_error_hm[i]*ave_heatmap_uv_dist_error_hm[i]);
+      std::cout << "Ave heatmap UV error std for feature " << i << " is " << 
+        std << std::endl;
+    }
+
+    for (uint32_t i = 0; i < num_convnet_feats; i++) {
+      // Calculate error in 640x480 space
+      ave_heatmap_uv_dist_error[i] /= (float)num_samples;
       std::cout << "Ave UV error for feature " << i << " is " << 
         ave_heatmap_uv_dist_error[i] << std::endl;
-      float std = sqrtf((ave_heatmap_uv_dist_sq_error[i] / 
-        (float)im_files.size()) - 
+      float std = sqrtf((ave_heatmap_uv_dist_sq_error[i] / (float)num_samples) - 
         ave_heatmap_uv_dist_error[i]*ave_heatmap_uv_dist_error[i]);
       std::cout << "Ave UV error std for feature " << i << " is " << 
         std << std::endl;

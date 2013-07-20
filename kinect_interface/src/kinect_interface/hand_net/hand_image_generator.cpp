@@ -143,12 +143,9 @@ namespace hand_net {
   // Create the downsampled hand image, background is at 1 and hand is
   // in front of it.
   void HandImageGenerator::calcHandImage(const int16_t* depth_in, 
-    const uint8_t* label_in, const bool create_hpf_image, 
-    const float* synthetic_depth) {
+    const uint8_t* label_in, const float* synthetic_depth) {
     calcCroppedHand(depth_in, label_in, synthetic_depth);
-    if (create_hpf_image) {
-      calcHPFHandBanks();
-    }
+    calcHPFHandBanks();
   }
 
   void HandImageGenerator::calcCroppedHand(const int16_t* depth_in, 
