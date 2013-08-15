@@ -79,3 +79,5 @@ calibration_info*
 Modified_OpenNI_src
 
 libOpenNI2.dylib
+KinectHands_release
+KinectHands_debug
