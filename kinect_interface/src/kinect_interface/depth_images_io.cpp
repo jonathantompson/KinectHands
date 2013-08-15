@@ -531,24 +531,29 @@ namespace kinect_interface {
     memcpy(rgb, rgb_file, src_dim * sizeof(rgb[0]) * 3);
   }
 
-    uint32_t DepthImagesIO::GetFilesInDirectories(
-      Vector<Triple<char*, int64_t, int64_t>>& files_names, 
-      Vector<uint32_t>& files_directory_indices, const std::string* directories,
-      const std::string directory_root, const uint32_t num_dirs, 
-      const uint32_t kinect_num, const char* prefix) {
-      for (uint32_t i = 0; i < num_dirs; i++) {
-        Vector<Triple<char*, int64_t, int64_t>> files;
-        GetFilesInDirectory(files, directory_root + directories[i], kinect_num, 
-          prefix);
+  uint32_t DepthImagesIO::GetFilesInDirectories(
+    Vector<Triple<char*, int64_t, int64_t>>& files_names,
+    Vector<uint32_t>& files_directory_indices, const std::string* directories,
+    const std::string directory_root, const uint32_t num_dirs,
+    const uint32_t kinect_num, const char* prefix) {
+    for (uint32_t i = 0; i < num_dirs; i++) {
+      Vector<Triple<char*, int64_t, int64_t>> files;
+      GetFilesInDirectory(files, directory_root + directories[i], kinect_num,
+        prefix);
 
-        for (uint32_t j = 0; j < files.size(); j++) {
-          files_names.pushBack(files[j]);  // Transfer ownership of char*
-          files_directory_indices.pushBack(i);
-        }
+      for (uint32_t j = 0; j < files.size(); j++) {
+        files_names.pushBack(files[j]);  // Transfer ownership of char*
+        files_directory_indices.pushBack(i);
       }
-      return files_names.size();
     }
+    return files_names.size();
+  }
 
+  bool FileComparisonFunc(const Triple<char*, int64_t, int64_t>& a,
+    const Triple<char*, int64_t, int64_t>& b) {
+    return b.second > a.second;
+  }
+  
   uint32_t DepthImagesIO::GetFilesInDirectory(
     Vector<Triple<char*, int64_t, int64_t>>& files_in_directory, 
     const string& directory, const uint32_t kinect_num, const char* prefix, 
@@ -666,9 +671,13 @@ namespace kinect_interface {
     // Now sort the files by their unique id
     // Third argument is an inline lambda expression (comparison function)
     std::cout << "sorting image filenames by timestamp..." << std::endl;
+    /*
+    // NICE: But only works on windows
     std::sort(files.begin(), files.end(), [](Triple<char*, int64_t, int64_t>& a,
       Triple<char*, int64_t, int64_t>& b) { return b.second > a.second; });
-
+    */
+    std::sort(files.begin(), files.end(), &FileComparisonFunc);
+     
     // Now copy them into the output array
     files_in_directory.capacity((uint32_t)files.size());
     for (uint32_t i = 0; i < files.size(); i++) {

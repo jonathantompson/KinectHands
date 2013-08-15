@@ -111,23 +111,17 @@ namespace hand_net {
   // modulu - similar to matlab's mod()
   // result is always possitive. not similar to fmod()
   // Mod(-3,4)= 1   fmod(-3,4)= -3
-#if defined(__APPLE__) || defined(_WIN32)
+#if defined(_WIN32)
   float inline __fastcall Mod(float x, float y) {
+#else
+  float inline Mod(float x, float y) {
+#endif
     if (0 == y) {
       return x;
     }
     
     return x - y * floor(x / y);
   }
-#else
-  float inline Mod(float x, float y) {
-    if (0 == y) {
-      return x;
-    }
-
-    return x - y * floor(x / y);
-  }
-#endif
 
   // wrap [rad] angle to [0...2PI)
   inline void WrapTwo2PI(float& angle) {

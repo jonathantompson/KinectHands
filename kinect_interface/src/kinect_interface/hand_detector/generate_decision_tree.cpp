@@ -8,13 +8,14 @@
   #ifndef _CRT_RAND_S
   #define _CRT_RAND_S
   #endif
-  #include <stdlib.h>  // rand_s
 #endif
+#include <stdlib.h>  // rand_s on windows and memset on apple
 #include <ctime>
 #include <cmath>
 #include <stdexcept>
 #if defined(WIN32) || defined(_WIN32) || defined(__APPLE__)
   #include <string>
+  #include <string.h>
 #else
   #include <cstring>
 #endif
@@ -261,6 +262,12 @@ namespace hand_detector {
     uint32_t hist_right[NUM_LABELS];
     uint32_t hist_left_best[NUM_LABELS];
     uint32_t hist_right_best[NUM_LABELS];
+    // To get rid of may be uninitialized gcc warning
+    for (uint32_t i = 0; i < NUM_LABELS; i++) {
+      hist_left_best[i] = MAX_UINT32;
+      hist_right_best[i] = MAX_UINT32;
+    }
+    
     float prob_left[NUM_LABELS];
     float prob_right[NUM_LABELS];
     uint32_t cur_height = 1;

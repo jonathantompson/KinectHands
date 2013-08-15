@@ -18,7 +18,7 @@ set(root_VERBOSE_MAKEFILE false)
 # jtil and jcl libraries (this is OK, it just wastes disk space).
 add_subdirectory(../PRenderer2/jtil "${CMAKE_CURRENT_BINARY_DIR}/jtil")
 add_subdirectory(../PRenderer2/jcl "${CMAKE_CURRENT_BINARY_DIR}/jcl")
-#add_subdirectory(kinect_interface)
 add_subdirectory(jtorch)
 add_subdirectory(jtorch_test)
+add_subdirectory(kinect_interface)
 #add_subdirectory(KinectHands)

@@ -12,7 +12,8 @@
 #if defined(WIN32) || defined(_WIN32)
   #define force_inline __forceinline 
 #else
-  #define force_inline inline 
+//  #define force_inline inline
+  #define force_inline
 #endif
 
 #include "jtil/math/math_types.h"

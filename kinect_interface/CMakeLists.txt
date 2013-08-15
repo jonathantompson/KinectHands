@@ -39,6 +39,9 @@ set(LIB_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../lib/MAC_OS_X)
 set(INCLUDE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../include/MAC_OS_X)
 
 set(JTIL_INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../PRenderer2/jtil/include/)
+set(JCL_INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../PRenderer2/jcl/include/)
+set(JTORCH_INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../jtorch/include/)
+set(OPENNI_INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include/MAC_OS_X/ni)
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 # COMPILER FLAGS AND PREDEFINES
@@ -106,10 +109,16 @@ message( STATUS ${KINECT_INTERFACE_HEADER} )
 
 message( "INCLUDE DIRECTORIES:" )
 message( STATUS "jtil: " ${JTIL_INC_DIR} )
+message( STATUS "jcl: " ${JCL_INC_DIR} )
+message( STATUS "jtorch: " ${JTORCH_INC_DIR} )
+message( STATUS "openni: " ${OPENNI_INC_DIR} )
 
 include_directories(
     ${ROOT_HEADER_DIR} 
     ${JTIL_INC_DIR}
+    ${JCL_INC_DIR}
+    ${JTORCH_INC_DIR}
+    ${OPENNI_INC_DIR}
 )
 
 message( "EXTRA_LIBS to be linked in: " ${EXTRA_LIBS} )
@@ -118,3 +127,5 @@ add_library(${PROJECT_NAME} STATIC ${KINECT_INTERFACE_CXX_SOURCE} ${KINECT_INTER
 
 target_link_libraries(${PROJECT_NAME} ${EXTRA_LIBS})
 target_link_libraries(${PROJECT_NAME} jtil)
+target_link_libraries(${PROJECT_NAME} jcl)
+target_link_libraries(${PROJECT_NAME} jtorch)

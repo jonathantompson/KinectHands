@@ -577,6 +577,10 @@ namespace hand_detector {
     }
 
     float min_pt_uvd[3];
+    // get rid of annoying uninitialized gcc compiler error
+    for (uint32_t i = 0; i < 3; i++) {
+      min_pt_uvd[i] = 0;
+    }
     uint32_t num_iterations = 0;
     while (!searchUVForMinHandPoint(pt_off_uvd, min_pt_uvd, radius, xyz)) {
       radius *= 2;  // If we're unsuccessful then repeat with double the radius
