@@ -5,6 +5,9 @@
 #if defined(WIN32) || defined(_WIN32) 
   #include <direct.h>
 #endif
+#if defined(__APPLE__)
+  #include <sys/stat.h>
+#endif
 #include "app/frame_data.h"
 #include "jtil/ui/ui.h"
 #include "kinect_interface/kinect_interface.h"
@@ -184,8 +187,7 @@ namespace app {
       std::string full_filename = "./data/hand_depth_data/" + ss.str();
 #endif
 #ifdef __APPLE__
-      std::string full_path = file_io::GetHomePath() +
-        std::string("Desktop/data/hand_depth_data/");
+      std::string full_path = std::string("./data/hand_depth_data/");
       struct stat st;
       if (stat(full_path.c_str(), &st) != 0) {
         if (mkdir(full_path.c_str(), S_IRWXU|S_IRWXG) != 0) {
@@ -196,7 +198,7 @@ namespace app {
           printf("%s created\n", full_path.c_str());
         }
       }
-      std::string full_filename = full_path + filename;
+      std::string full_filename = full_path + ss.str();
 #endif
       // Save the file
       std::ofstream file(full_filename.c_str(), std::ios::out | std::ios::binary);

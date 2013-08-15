@@ -708,7 +708,7 @@ namespace app {
     }
     // Wait for all threads to finish
     std::unique_lock<std::mutex> ul(thread_update_lock_);  // Get lock
-    while (threads_finished_ != cbs->size()) {
+    while (threads_finished_ != static_cast<int32_t>(cbs->size())) {
       not_finished_.wait(ul);
     }
     ul.unlock();  // Release lock
