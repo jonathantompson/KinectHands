@@ -139,16 +139,16 @@ int main(int argc, char *argv[]) {
     // Test SpatialConvolutionMap --> THIS STAGE IS STILL ON THE CPU!!
     stages.add(new SpatialConvolutionMap(num_feats_in, num_feats_out, fan_in,
       filt_height, filt_width));
-    for (int32_t i = 0; i < num_feats_out; i++) {
+    for (int32_t i = 0; i < static_cast<int32_t>(num_feats_out); i++) {
       ((SpatialConvolutionMap*)stages.get(2))->biases[i] = (float)(i+1) / 
         (float)num_feats_out - 0.5f;
     }
     const float sigma_x_sq = 1.0f;
     const float sigma_y_sq = 1.0f;
-    for (int32_t i = 0; i < num_feats_out * fan_in; i++) {
+    for (int32_t i = 0; i < static_cast<int32_t>(num_feats_out * fan_in); i++) {
       float scale = ((float)(i + 1) / (float)(num_feats_out * fan_in));
-      for (int32_t v = 0; v < filt_height; v++) {
-        for (int32_t u = 0; u < filt_width; u++) {
+      for (int32_t v = 0; v < static_cast<int32_t>(filt_height); v++) {
+        for (int32_t u = 0; u < static_cast<int32_t>(filt_width); u++) {
           float x = (float)u - (float)(filt_width-1) / 2.0f;
           float y = (float)v - (float)(filt_height-1) / 2.0f;
           ((SpatialConvolutionMap*)stages.get(2))->weights[i][v * filt_width + u] = 
@@ -157,8 +157,8 @@ int main(int argc, char *argv[]) {
       }
     }
     int32_t cur_filt = 0;
-    for (int32_t f_out = 0; f_out < num_feats_out; f_out++) {
-      for (int32_t f_in = 0; f_in < fan_in; f_in++) {
+    for (int32_t f_out = 0; f_out < static_cast<int32_t>(num_feats_out); f_out++) {
+      for (int32_t f_in = 0; f_in < static_cast<int32_t>(fan_in); f_in++) {
         ((SpatialConvolutionMap*)stages.get(2))->conn_table[f_out][f_in * 2 + 1] = cur_filt;
         int32_t cur_f_in = (f_out + f_in) % num_feats_in;
         ((SpatialConvolutionMap*)stages.get(2))->conn_table[f_out][f_in * 2] = cur_f_in;
@@ -172,16 +172,16 @@ int main(int argc, char *argv[]) {
     // ***********************************************
     // Test SpatialConvolution
     SpatialConvolution conv(num_feats_in, num_feats_out, filt_height, filt_width);
-    for (int32_t i = 0; i < num_feats_out; i++) {
+    for (int32_t i = 0; i < static_cast<int32_t>(num_feats_out); i++) {
       cbiases[i] = (float)(i+1) / (float)num_feats_out - 0.5f;
     }
     const uint32_t filt_dim = filt_width * filt_height;
-    for (int32_t fout = 0; fout < num_feats_out; fout++) {
-      for (int32_t fin = 0; fin < num_feats_in; fin++) {
+    for (int32_t fout = 0; fout < static_cast<int32_t>(num_feats_out); fout++) {
+      for (int32_t fin = 0; fin < static_cast<int32_t>(num_feats_in); fin++) {
         int32_t i = fout * num_feats_out + fin;
         float scale = ((float)(i + 1) / (float)(num_feats_out * num_feats_in));
-        for (int32_t v = 0; v < filt_height; v++) {
-          for (int32_t u = 0; u < filt_width; u++) {
+        for (int32_t v = 0; v < static_cast<int32_t>(filt_height); v++) {
+          for (int32_t u = 0; u < static_cast<int32_t>(filt_width); u++) {
             float x = (float)u - (float)(filt_width-1) / 2.0f;
             float y = (float)v - (float)(filt_height-1) / 2.0f;
             cweights[fout * filt_dim * num_feats_in + fin * filt_dim + v * filt_width + u] =

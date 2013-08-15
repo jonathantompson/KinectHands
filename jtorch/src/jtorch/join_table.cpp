@@ -55,7 +55,7 @@ namespace jtorch {
       size += in(i)->dataSize();
     }
      
-    if (output != NULL && size != output->dataSize()) {
+    if (output != NULL && size != static_cast<int>(output->dataSize())) {
       SAFE_DELETE(output);
     }
 

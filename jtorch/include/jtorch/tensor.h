@@ -15,6 +15,7 @@
 #include <fstream>
 #include "jcl/jcl.h"  // For jcl::JCLBuffer
 #include "jtil/math/math_types.h"
+#include "jtil/exceptions/wruntime_error.h"
 #include "jtorch/torch_data.h"
 #include "jtorch/jtorch.h"
 
@@ -113,7 +114,11 @@ namespace jtorch {
     getData(d);
     const int32_t dim = dim_[0] * dim_[1];
     for (int32_t i = 0; i < dim_[2]; i++) {
+#if defined(WIN32) || defined(_WIN32)
       std::cout.setf(0, std::ios::showpos);
+#else
+      std::cout.setf(std::ios::showpos);
+#endif
       std::cout << "  3dtensor[" << i << ", *, *] =";
       std::cout << std::endl;
       T* data = &d[i * dim_[1]*dim_[0]];
@@ -155,7 +160,11 @@ namespace jtorch {
     T* d = new T[dataSize()];
     getData(d);
     for (int32_t f = interval2[0]; f <= interval2[1]; f++) {
+#if defined(WIN32) || defined(_WIN32)
       std::cout.setf(0, std::ios::showpos);
+#else
+      std::cout.setf(std::ios::showpos);
+#endif
       std::cout << "  3dtensor[" << f << ", *, *] =";
       std::cout << std::endl;
       T* data = &d[f * dim_[1]*dim_[0]];
@@ -181,7 +190,7 @@ namespace jtorch {
 
   template <typename T>
   Tensor<T>* Tensor<T>::gaussian1D(const int32_t kernel_size) {
-    Tensor<T>* ret = new Tensor<T>(Int3(kernel_size, 1, 1));
+    Tensor<T>* ret = new Tensor<T>(jtil::math::Int3(kernel_size, 1, 1));
     const float sigma = 0.25f;
     const float amplitude = 1.0f;
     const float size = (float)kernel_size;
@@ -198,7 +207,7 @@ namespace jtorch {
 
   template <typename T>
   Tensor<T>* Tensor<T>::ones1D(const int32_t kernel_size) {
-    Tensor<T>* ret = new Tensor<T>(Int3(kernel_size, 1, 1));
+    Tensor<T>* ret = new Tensor<T>(jtil::math::Int3(kernel_size, 1, 1));
     T* data = new T[kernel_size];
     for (int32_t i = 0; i < kernel_size; i++) {
       data[i] = (T)1;

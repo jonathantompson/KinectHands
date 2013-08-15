@@ -1,6 +1,5 @@
 project(jtorch)
-#set(CMAKE_VERBOSE_MAKEFILE root_VERBOSE_MAKEFILE)
-set(CMAKE_VERBOSE_MAKEFILE true)
+set(CMAKE_VERBOSE_MAKEFILE root_VERBOSE_MAKEFILE)
 cmake_minimum_required(VERSION 2.8.10)
 
 message("*************************************************")

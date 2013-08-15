@@ -47,7 +47,7 @@ namespace jtorch {
         "FloatTensor expected!");
     }
     Tensor<float>& in = (Tensor<float>&)input;
-    if (in.dataSize() != n_inputs_) {
+    if (static_cast<int32_t>(in.dataSize()) != n_inputs_) {
       throw std::wruntime_error("Linear::init() - ERROR: input size mismatch!");
     }
   }
