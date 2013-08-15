@@ -77,3 +77,5 @@ PS1080.ini
 OpenNI2
 calibration_info*
 Modified_OpenNI_src
+
+libOpenNI2.dylib

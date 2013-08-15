@@ -123,9 +123,9 @@ include_directories(
 
 message( "EXTRA_LIBS to be linked in: " ${EXTRA_LIBS} )
 
-add_library(${PROJECT_NAME} STATIC ${KINECT_INTERFACE_CXX_SOURCE} ${KINECT_INTERFACE_CC_SOURCE} ${KINECT_INTERFACE_HEADER})
+add_library(${TARGET_NAME} STATIC ${KINECT_INTERFACE_CXX_SOURCE} ${KINECT_INTERFACE_CC_SOURCE} ${KINECT_INTERFACE_HEADER})
 
-target_link_libraries(${PROJECT_NAME} ${EXTRA_LIBS})
-target_link_libraries(${PROJECT_NAME} jtil)
-target_link_libraries(${PROJECT_NAME} jcl)
-target_link_libraries(${PROJECT_NAME} jtorch)
+target_link_libraries(${TARGET_NAME} ${EXTRA_LIBS})
+target_link_libraries(${TARGET_NAME} jtil)
+target_link_libraries(${TARGET_NAME} jcl)
+target_link_libraries(${TARGET_NAME} jtorch)

@@ -287,7 +287,7 @@ namespace app {
       double dt = frame_time_ - frame_time_prev_;
       FrameData::time_sec = frame_time_;
 
-      int kinect_output, cur_kinect, label_type_enum;
+      int kinect_output = 0, cur_kinect = 0, label_type_enum = 0;
       GET_SETTING("cur_kinect", int, cur_kinect);
       GET_SETTING("kinect_output", int, kinect_output);
       GET_SETTING("label_type_enum", int, label_type_enum);
@@ -309,8 +309,8 @@ namespace app {
               kdata_[cur_kinect]->normals_xyz, kdata_[cur_kinect]->xyz, 
               kdata_[cur_kinect]->labels);
         } 
-        int hand_size_enum;
-        bool detect_pose, detect_heat_map;
+        int hand_size_enum = 0;
+        bool detect_pose = false, detect_heat_map = false;
         GET_SETTING("detect_pose", bool, detect_pose);
         GET_SETTING("detect_heat_map", bool, detect_heat_map);
         GET_SETTING("hand_size", int, hand_size_enum);
@@ -868,7 +868,7 @@ namespace app {
 
   void App::screenshotCB() {
     bool sync_ir_stream;
-    int cur_kinect;
+    int cur_kinect = 0;
     GET_SETTING("sync_ir_stream", bool, sync_ir_stream);
     GET_SETTING("cur_kinect", int, cur_kinect);
     g_app_->kinect_[cur_kinect]->lockData();
@@ -893,8 +893,8 @@ namespace app {
   }
 
   void App::greyscaleScreenshotCB() {
-    int cur_kinect;
-    bool sync_ir_stream;
+    int cur_kinect = true;
+    bool sync_ir_stream = false;
     GET_SETTING("sync_ir_stream", bool, sync_ir_stream);
     GET_SETTING("cur_kinect", int, cur_kinect);
     g_app_->kinect_[cur_kinect]->lockData();
@@ -958,10 +958,10 @@ namespace app {
   }
 
   void App::syncKinectData(const uint32_t index){
-    int cur_kinect, kinect_output;
+    int cur_kinect = 0, kinect_output = 0;
     GET_SETTING("cur_kinect", int, cur_kinect);
     GET_SETTING("kinect_output", int, kinect_output);
-    if (index == cur_kinect) {
+    if (index == static_cast<uint32_t>(cur_kinect)) {
       new_data_ |= kdata_[index]->syncWithKinect(kinect_[index], 
         kinect_output == OUTPUT_HAND_DETECTOR_DEPTH, render_labels_);
     } else {

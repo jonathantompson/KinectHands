@@ -116,8 +116,8 @@ include_directories(
 
 message( "EXTRA_LIBS to be linked in: " ${EXTRA_LIBS} )
 
-add_library(${PROJECT_NAME} STATIC ${JTORCH_CXX_SOURCE} ${JTORCH_CC_SOURCE} ${JTORCH_HEADER})
+add_library(${TARGET_NAME} STATIC ${JTORCH_CXX_SOURCE} ${JTORCH_CC_SOURCE} ${JTORCH_HEADER})
 
-target_link_libraries(${PROJECT_NAME} ${EXTRA_LIBS})
-target_link_libraries(${PROJECT_NAME} jtil)
-target_link_libraries(${PROJECT_NAME} jcl)
+target_link_libraries(${TARGET_NAME} ${EXTRA_LIBS})
+target_link_libraries(${TARGET_NAME} jtil)
+target_link_libraries(${TARGET_NAME} jcl)

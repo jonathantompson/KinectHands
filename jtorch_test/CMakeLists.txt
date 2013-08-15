@@ -119,10 +119,10 @@ include_directories(
 
 message( "EXTRA_LIBS to be linked in: " ${EXTRA_LIBS} )
 
-add_executable(${PROJECT_NAME} ${JTORCH_TEST_CXX_SOURCE} ${JTORCH_TEST_CC_SOURCE} ${JTORCH_TEST_HEADER})
+add_executable(${TARGET_NAME} ${JTORCH_TEST_CXX_SOURCE} ${JTORCH_TEST_CC_SOURCE} ${JTORCH_TEST_HEADER})
 
-target_link_libraries(${PROJECT_NAME} ${EXTRA_LIBS})
-target_link_libraries(${PROJECT_NAME} jtil)
-target_link_libraries(${PROJECT_NAME} jcl)
-target_link_libraries(${PROJECT_NAME} jtorch)
+target_link_libraries(${TARGET_NAME} ${EXTRA_LIBS})
+target_link_libraries(${TARGET_NAME} jtil)
+target_link_libraries(${TARGET_NAME} jcl)
+target_link_libraries(${TARGET_NAME} jtorch)
 
