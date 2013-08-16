@@ -7,13 +7,13 @@ message("*************************************************")
 message("********** KINECT_INTERFACE CMAKELISTS **********")
 message("*************************************************")
 
-if(CMAKE_BUILD_TYPE MATCHES DEBUG)
+if(BUILD MATCHES debug)
   message("cmake compilation is in debug mode, target will be kinect_interface_d") 
   set(TARGET_NAME kinect_interface_d)
-else(CMAKE_BUILD_TYPE MATCHES DEBUG)
+else()
   message("cmake compilation is in release mode, target will be kinect_interface")
   set(TARGET_NAME kinect_interface)
-endif(CMAKE_BUILD_TYPE MATCHES DEBUG)
+endif()
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 # CMAKE MODULES PATH
@@ -71,7 +71,7 @@ add_definitions(-DGLFW_INCLUDE_GLCOREARB)
 add_definitions(-DASSIMP_BUILD_BOOST_WORKAROUND)
 
 # Use: "cmake -DCMAKE_BUILD_TYPE=Debug" for debug
-if(CMAKE_BUILD_TYPE MATCHES DEBUG)
+if(BUILD MATCHES debug)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -g -Wextra -Wno-ignored-qualifiers -Wno-unused-parameter -std=c++11")
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -g -Wextra -Wno-ignored-qualifiers -Wno-unused-parameter")
     message(STATUS "adding debug flags")
@@ -82,7 +82,7 @@ else()
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_RELEASE} -fopenmp -g -Wextra -Wno-ignored-qualifiers -Wno-unused-parameter -std=c++11 -O3 -msse -msse2")
     SET(CMAKE_CC_FLAGS "${CMAKE_CC_FLAGS_RELEASE} -fopenmp -g -Wextra -Wno-ignored-qualifiers -Wno-unused-parameter -O3 -msse -msse2")
     message(STATUS "adding release flags")
-endif(CMAKE_BUILD_TYPE MATCHES DEBUG)
+endif()
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 # KINECT_INTERFACE SOURCE AND HEADERS
@@ -98,14 +98,14 @@ file(GLOB_RECURSE KINECT_INTERFACE_CXX_SOURCE ${ROOT_SOURCE_DIR}/*.cpp)
 file(GLOB_RECURSE KINECT_INTERFACE_CC_SOURCE ${ROOT_SOURCE_DIR}/*.c)
 file(GLOB_RECURSE KINECT_INTERFACE_HEADER ${ROOT_HEADER_DIR}/*.h)
 
-message( "SOURCE C++ FILES:" )
-message( STATUS ${KINECT_INTERFACE_CXX_SOURCE} )
-
-message( "SOURCE C FILES:" )
-message( STATUS ${KINECT_INTERFACE_CC_SOURCE} )
-
-message( "HEADER FILES:" )
-message( STATUS ${KINECT_INTERFACE_HEADER} )
+if(root_PRINT_SOURCE_FILES MATCHES true)
+    message( "SOURCE C++ FILES:" )
+    message( STATUS ${KINECT_INTERFACE_CXX_SOURCE} )
+    message( "SOURCE C FILES:" )
+    message( STATUS ${KINECT_INTERFACE_CC_SOURCE} )
+    message( "HEADER FILES:" )
+    message( STATUS ${KINECT_INTERFACE_HEADER} )
+endif()
 
 message( "INCLUDE DIRECTORIES:" )
 message( STATUS "jtil: " ${JTIL_INC_DIR} )
@@ -126,6 +126,14 @@ message( "EXTRA_LIBS to be linked in: " ${EXTRA_LIBS} )
 add_library(${TARGET_NAME} STATIC ${KINECT_INTERFACE_CXX_SOURCE} ${KINECT_INTERFACE_CC_SOURCE} ${KINECT_INTERFACE_HEADER})
 
 target_link_libraries(${TARGET_NAME} ${EXTRA_LIBS})
-target_link_libraries(${TARGET_NAME} jtil)
-target_link_libraries(${TARGET_NAME} jcl)
-target_link_libraries(${TARGET_NAME} jtorch)
+
+if(BUILD MATCHES debug)
+    target_link_libraries(${TARGET_NAME} jtil_d)
+    target_link_libraries(${TARGET_NAME} jcl_d)
+    target_link_libraries(${TARGET_NAME} jtorch_d)
+else()
+    target_link_libraries(${TARGET_NAME} jtil)
+    target_link_libraries(${TARGET_NAME} jcl)
+    target_link_libraries(${TARGET_NAME} jtorch)
+endif()
+

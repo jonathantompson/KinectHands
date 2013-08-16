@@ -68,7 +68,9 @@ namespace jtorch {
 #else
     // http://www.bealto.com/gpu-gemv_v2.html
     // Try and find a good local workgroup size allocation (that is legal)
-    uint32_t p = 16;
+    Int3 max_item_size;
+    cl_context->getMaxWorkitemSizes(deviceid, max_item_size);
+    uint32_t p = std::min<int64_t>(16, max_item_size[1]);
     Int2 global_size(n_outputs_, p);
     Int2 local_size(std::min<int>(n_outputs_ / p + 1, 
       cl_context->getMaxWorkgroupSize(deviceid) / p), p);  // Maximum

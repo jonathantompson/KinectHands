@@ -1,5 +1,6 @@
 project(root)
-set(CMAKE_VERBOSE_MAKEFILE on)
+set(root_VERBOSE_MAKEFILE false)  # Prints out compiler invocation for each src file
+set(root_PRINT_SOURCE_FILES false)  # Prints out the list of files cmake finds
 cmake_minimum_required(VERSION 2.8.10)
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
@@ -11,7 +12,18 @@ cmake_minimum_required(VERSION 2.8.10)
 # SUBPROJECTS
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
-set(root_VERBOSE_MAKEFILE false)
+if(DEFINED CMAKE_BUILD_TYPE AND (CMAKE_BUILD_TYPE MATCHES DEBUG OR CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES debug))
+  set(BUILD debug)
+else()
+  set(BUILD release)
+endif()
+message( STATUS "Top level build type: " ${BUILD} )
+if(BUILD MATCHES release)
+    message( STATUS "For debug build use cmake flag -DCMAKE_BUILD_TYPE=DEBUG" )
+endif()
+message( STATUS "Verbose Makefile: " ${root_VERBOSE_MAKEFILE} )
+
+set(CMAKE_VERBOSE_MAKEFILE root_VERBOSE_MAKEFILE)
 
 # subdirectories that are NOT in the current directory tree, you must specify
 # a build directory.  The build directories here will build a local copy of the

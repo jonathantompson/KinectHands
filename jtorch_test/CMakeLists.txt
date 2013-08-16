@@ -6,13 +6,13 @@ message("*************************************************")
 message("************* JTORCH_TEST CMAKELISTS ************")
 message("*************************************************")
 
-if(CMAKE_BUILD_TYPE MATCHES DEBUG)
-  message("cmake compilation is in debug mode, target will be jtorch_test") 
-  set(TARGET_NAME jtorch_test)
-else(CMAKE_BUILD_TYPE MATCHES DEBUG)
+if(BUILD MATCHES debug)
+  message("cmake compilation is in debug mode, target will be jtorch_test_d") 
+  set(TARGET_NAME jtorch_test_d)
+else()
   message("cmake compilation is in release mode, target will be jtorch_test")
   set(TARGET_NAME jtorch_test)
-endif(CMAKE_BUILD_TYPE MATCHES DEBUG)
+endif()
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 # CMAKE MODULES PATH
@@ -69,7 +69,7 @@ add_definitions(-DGLFW_INCLUDE_GLCOREARB)
 add_definitions(-DASSIMP_BUILD_BOOST_WORKAROUND)
 
 # Use: "cmake -DCMAKE_BUILD_TYPE=Debug" for debug
-if(CMAKE_BUILD_TYPE MATCHES DEBUG)
+if(BUILD MATCHES debug)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -g -Wextra -Wno-ignored-qualifiers -Wno-unused-parameter -std=c++11")
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -g -Wextra -Wno-ignored-qualifiers -Wno-unused-parameter")
     message(STATUS "adding debug flags")
@@ -80,7 +80,7 @@ else()
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_RELEASE} -fopenmp -g -Wextra -Wno-ignored-qualifiers -Wno-unused-parameter -std=c++11 -O3 -msse -msse2")
     SET(CMAKE_CC_FLAGS "${CMAKE_CC_FLAGS_RELEASE} -fopenmp -g -Wextra -Wno-ignored-qualifiers -Wno-unused-parameter -O3 -msse -msse2")
     message(STATUS "adding release flags")
-endif(CMAKE_BUILD_TYPE MATCHES DEBUG)
+endif()
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 # JTORCH_TEST SOURCE AND HEADERS
@@ -96,14 +96,14 @@ file(GLOB_RECURSE JTORCH_TEST_CXX_SOURCE ${ROOT_SOURCE_DIR}/*.cpp)
 file(GLOB_RECURSE JTORCH_TEST_CC_SOURCE ${ROOT_SOURCE_DIR}/*.c)
 file(GLOB_RECURSE JTORCH_TEST_HEADER ${ROOT_HEADER_DIR}/*.h)
 
-message( "C++ SOURCE FILES:" )
-message( STATUS ${JTORCH_TEST_CXX_SOURCE} )
-
-message( "C SOURCE FILES:" )
-message( STATUS ${JTORCH_TEST_CC_SOURCE} )
-
-message( "HEADER FILES:" )
-message( STATUS ${JTORCH_TEST_HEADER} )
+if(root_PRINT_SOURCE_FILES MATCHES true)
+    message( "C++ SOURCE FILES:" )
+    message( STATUS ${JTORCH_TEST_CXX_SOURCE} )
+    message( "C SOURCE FILES:" )
+    message( STATUS ${JTORCH_TEST_CC_SOURCE} )
+    message( "HEADER FILES:" )
+    message( STATUS ${JTORCH_TEST_HEADER} )
+endif()
 
 message( "INCLUDE DIRECTORIES:" )
 message( STATUS "jtil: " ${JTIL_INC_DIR} )
@@ -122,7 +122,15 @@ message( "EXTRA_LIBS to be linked in: " ${EXTRA_LIBS} )
 add_executable(${TARGET_NAME} ${JTORCH_TEST_CXX_SOURCE} ${JTORCH_TEST_CC_SOURCE} ${JTORCH_TEST_HEADER})
 
 target_link_libraries(${TARGET_NAME} ${EXTRA_LIBS})
-target_link_libraries(${TARGET_NAME} jtil)
-target_link_libraries(${TARGET_NAME} jcl)
-target_link_libraries(${TARGET_NAME} jtorch)
+
+if(BUILD MATCHES debug)
+    target_link_libraries(${TARGET_NAME} jtil_d)
+    target_link_libraries(${TARGET_NAME} jcl_d)
+    target_link_libraries(${TARGET_NAME} jtorch_d)
+else()
+    target_link_libraries(${TARGET_NAME} jtil)
+    target_link_libraries(${TARGET_NAME} jcl)
+    target_link_libraries(${TARGET_NAME} jtorch)
+endif()
+
 

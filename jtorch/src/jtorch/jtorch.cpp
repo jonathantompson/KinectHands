@@ -17,7 +17,12 @@ namespace jtorch {
     if (use_cpu) {
       cl_context = new jcl::JCL(jcl::CLDeviceCPU, jcl::CLVendorAny);
     } else {
-      cl_context = new jcl::JCL(jcl::CLDeviceGPU, jcl::CLVendorAny);
+      if (jcl::JCL::queryDeviceExists(jcl::CLDeviceGPU, jcl::CLVendorAny)) {
+        cl_context = new jcl::JCL(jcl::CLDeviceGPU, jcl::CLVendorAny);
+      } else {
+        // Fall back to using the CPU (if a valid GPU context doesn't exist)
+        cl_context = new jcl::JCL(jcl::CLDeviceCPU, jcl::CLVendorAny);
+      }
     }
     jtorch_path = path_to_jtorch;
     if (jtorch_path.at(jtorch_path.size()-1) != '\\' && 
