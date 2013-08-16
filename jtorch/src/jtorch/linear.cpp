@@ -66,20 +66,26 @@ namespace jtorch {
     cl_context->setArg(4, n_inputs_);
     cl_context->runKernel1D(jtorch::deviceid, output->dataSize(), false);
 #else
+    std::string kernel = jtorch::jtorch_path + "kernels/linear.cl";
+    cl_context->useKernel(kernel.c_str(), "MatVecMultThreads");
+
+    int32_t max_worksize =
+      cl_context->queryMaxWorkgroupSizeForCurKernel(jtorch::deviceid);
     // http://www.bealto.com/gpu-gemv_v2.html
     // Try and find a good local workgroup size allocation (that is legal)
+    // TODO: This is a mess.  Clean it up.
     Int3 max_item_size;
-    cl_context->getMaxWorkitemSizes(deviceid, max_item_size);
-    uint32_t p = std::min<int64_t>(16, max_item_size[1]);
+    cl_context->getMaxWorkitemSizes(jtorch::deviceid, max_item_size);
+    uint32_t p = std::min<int32_t>(16, std::min<int32_t>(max_item_size[1],
+      max_worksize));
     Int2 global_size(n_outputs_, p);
     Int2 local_size(std::min<int>(n_outputs_ / p + 1, 
-      cl_context->getMaxWorkgroupSize(deviceid) / p), p);  // Maximum
-    while (n_outputs_ % local_size[0] != 0 && local_size[0] > 1) {
+      cl_context->getMaxWorkgroupSize(jtorch::deviceid) / p), p);  // Maximum
+    while ((n_outputs_ % local_size[0] != 0 ||
+      local_size[0] * local_size[1] > max_worksize) && local_size[0] > 1) {
       local_size[0]--;
     }
 
-    std::string kernel = jtorch::jtorch_path + "kernels/linear.cl";
-    cl_context->useKernel(kernel.c_str(), "MatVecMultThreads");
     cl_context->setArg(0, weights_->data());
     cl_context->setArg(1, in.data());
     cl_context->setArg(2, ((Tensor<float>*)output)->data());

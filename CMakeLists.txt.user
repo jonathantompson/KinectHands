@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 2.7.2, 2013-08-16T11:40:49. -->
+<!-- Written by QtCreator 2.7.2, 2013-08-16T17:48:15. -->
 <qtcreator>
  <data>
   <variable>ProjectExplorer.Project.ActiveTarget</variable>
@@ -244,7 +244,9 @@
     <value type="QString" key="CMakeProjectManager.CMakeRunConfiguation.Title">jtorch_test_d</value>
     <value type="QString" key="CMakeProjectManager.CMakeRunConfiguration.Arguments"></value>
     <value type="bool" key="CMakeProjectManager.CMakeRunConfiguration.UseTerminal">false</value>
-    <valuelist type="QVariantList" key="CMakeProjectManager.CMakeRunConfiguration.UserEnvironmentChanges"/>
+    <valuelist type="QVariantList" key="CMakeProjectManager.CMakeRunConfiguration.UserEnvironmentChanges">
+     <value type="QString">CL_LOG_ERRORS=stdout</value>
+    </valuelist>
     <value type="QString" key="CMakeProjectManager.CMakeRunConfiguration.UserWorkingDirectory">/Users/jonathantompson/Documents/KinectHands/jtorch_test</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">jtorch_test_d</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
