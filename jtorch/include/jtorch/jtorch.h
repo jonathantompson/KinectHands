@@ -12,8 +12,6 @@
 
 #pragma once
 
-// #define JTORCH_USE_GPU // Comment out to use the CPU
-
 #include "jtil/math/math_types.h"
 #include <string>
 

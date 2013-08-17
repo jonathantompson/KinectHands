@@ -12,7 +12,7 @@
 #include "jtil/threading/callback.h"
 #include "jtorch/torch_stage.h"
 
-// #define SIMPLE_LINEAR  // Might actually be faster!
+// #define SIMPLE_LINEAR  // Might actually be faster using the CPU!
 
 namespace jtil { namespace data_str { template <typename T> class VectorManaged; } }
 
