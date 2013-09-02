@@ -140,7 +140,7 @@ namespace app {
 
 
   void App::init() {
-    jtorch::InitJTorch("./jtorch");  // Initialize OpenCL
+    jtorch::InitJTorch("../jtorch");  // Initialize jtorch
     hand_net_ = new HandNet();
     hand_net_->loadFromFile("./data/handmodel.net.convnet");
     hm_size_ = hand_net_->heat_map_size();

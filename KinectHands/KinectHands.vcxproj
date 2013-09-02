@@ -72,14 +72,14 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_AMD64_;WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)../jtorch/include;$(ProjectDir)..\..\PRenderer2\jtil\include;$(ProjectDir)..\kinect_interface\include;$(ProjectDir)headers</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\jtorch\include;$(ProjectDir)..\..\jtil\include;$(ProjectDir)..\kinect_interface\include;$(ProjectDir)headers</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\;$(ProjectDir)..\lib\WIN7;$(ProjectDir)..\jtorch\build\$(Platform)\$(Configuration)\;$(ProjectDir)..\kinect_interface\build\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\jtil\build\$(Platform)\$(Configuration)\;$(ProjectDir)..\..\jtorch\build\$(Platform)\$(Configuration)\;$(ProjectDir)..\lib\WIN7;$(ProjectDir)..\kinect_interface\build\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
       <AdditionalDependencies>jtorch_d.lib;kinect_interface_d.lib;jtil_d.lib;libzmq_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
@@ -101,7 +101,7 @@ COPY /Y $(SolutionDir)lib\WIN7\OpenNI2\Drivers\* $(SolutionDir)OpenNI2\Drivers
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_AMD64_;WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\jtorch\include;$(ProjectDir)..\..\PRenderer2\jtil\include;$(ProjectDir)..\kinect_interface\include;$(ProjectDir)headers</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\jtorch\include;$(ProjectDir)..\..\jtil\include;$(ProjectDir)..\kinect_interface\include;$(ProjectDir)headers</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <OpenMPSupport>true</OpenMPSupport>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -111,7 +111,7 @@ COPY /Y $(SolutionDir)lib\WIN7\OpenNI2\Drivers\* $(SolutionDir)OpenNI2\Drivers
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\..\PRenderer2\jtil\build\$(Platform)\$(Configuration)\;$(ProjectDir)..\lib\WIN7;$(ProjectDir)..\jtorch\build\$(Platform)\$(Configuration)\;$(ProjectDir)..\kinect_interface\build\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\jtil\build\$(Platform)\$(Configuration)\;$(ProjectDir)..\..\jtorch\build\$(Platform)\$(Configuration)\;$(ProjectDir)..\lib\WIN7;$(ProjectDir)..\kinect_interface\build\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
       <AdditionalDependencies>jtorch.lib;kinect_interface.lib;jtil.lib;libzmq.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
