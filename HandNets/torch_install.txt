@@ -149,7 +149,9 @@ If you still get:
 in the cmake output then the above didn't work and you need to find the libgfortran.so for your
 system and include a path to that in the CMAKE_LIBRARY_PATH variable.
 
-cmake ..
+ccmake ..
+
+TURN ON ROCKS OPTION!  It is not on by default and torch-pkg is no longer supported."
 
 It wont find the intel library MKL library, but it should find everything else.
 
@@ -176,6 +178,14 @@ sudo make install
 
 **************************************************
 Make Torch packages:
+
+sudo torch-rocks install image
+sudo torch-rocks install optim
+sudo torch-rocks install debugger
+sudo torch-rocks install parallel
+sudo torch-rocks install sys
+sudo torch-rocks install mattorch
+
 
 sudo torch-pkg install image optim debugger parallel sys
 
