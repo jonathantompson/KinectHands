@@ -1,4 +1,3 @@
-
 print '==> defining training procedure'
 function train(data)
 
@@ -76,7 +75,7 @@ function train(data)
       gradParameters:zero()
 
       -- f is the average of all criterions
-      local f = torch.FloatTensor(cur_batch_size)
+      -- local f = torch.FloatTensor(cur_batch_size)
 
       -- evaluate function for complete mini batch
       -- estimate f
@@ -91,7 +90,7 @@ function train(data)
       total_t_criterion_forward = total_t_criterion_forward + 
         t_criterion_forward
 
-      f = f + err
+      f = err
       ave_err = ave_err + err
       nsamples = nsamples + 1
 
