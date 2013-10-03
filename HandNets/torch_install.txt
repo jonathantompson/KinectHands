@@ -35,6 +35,10 @@ make NO_AFFINITY=1 USE_OPENMP=1
 sudo make install
 cd ../
 
+--> On server, use locate gfortran and find the lib and add it to your .bashrc, ie the line:
+export CMAKE_LIBRARY_PATH=/usr/lib/gcc/x86_64-redhat-linux/4.4.4/:$CMAKE_LIBRARY_PATH
+
+
 **************************************************
 Install cuda:
 
@@ -148,6 +152,11 @@ If you still get:
 --   Library gfortran: BLAS_gfortran_LIBRARY-NOTFOUND
 in the cmake output then the above didn't work and you need to find the libgfortran.so for your
 system and include a path to that in the CMAKE_LIBRARY_PATH variable.
+
+(on the server:
+export CMAKE_LIBRARY_PATH=/usr/lib64/:$CMAKE_LIBRARY_PATH
+export CMAKE_LIBRARY_PATH=/usr/lib/gcc/x86_64-redhat-linux/4.4.4/:$CMAKE_LIBRARY_PATH)
+
 
 ccmake ..
 
