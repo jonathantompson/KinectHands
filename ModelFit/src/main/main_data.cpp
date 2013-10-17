@@ -126,8 +126,8 @@ string im_dirs[num_im_dirs] = {
 //#define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
 //                              // HandForests, but save synthetic data (only 
 //                              // takes effect when not loading processed images)
-#define MEASURE_PERFORMANCE_ON_STARTUP  // Use RDF + Convnet to figure out UV 
-                                        // positions and compares against truth
+// #define MEASURE_PERFORMANCE_ON_STARTUP  // Use RDF + Convnet to figure out UV   ******* FOR PAPER *******
+                                           // positions and compares against truth
 #define VISUALIZE_HEAT_MAPS // Requires extra processing...
 
 //#define SAVE_DEPTH_IMAGES  // Save the regular depth files --> Only when SAVE_FILES defined
@@ -156,8 +156,8 @@ string im_dirs[num_im_dirs] = {
   #error "Apple is not yet supported!"
 #else
   #ifdef BACKUP_HDD
-    //#define DATA_ROOT string("D:/hand_data/")  // Work computer
-    #define DATA_ROOT string("E:/hand_data/")  // Home computer
+    #define DATA_ROOT string("D:/hand_data/")  // Work computer
+    //#define DATA_ROOT string("E:/hand_data/")  // Home computer
   #else
     #define DATA_ROOT string("./../data/")
   #endif
@@ -380,6 +380,21 @@ void loadCurrentImage(bool calc_hand_image = true) {
 #else
     hand_image_generator_->calcHandImage(cur_depth_data, label);
 #endif
+
+    //// TEMP CODE:
+    //printf("TEMP CODE FOR KEN\n");
+    //jtil::file_io::SaveArrayToFile<int16_t>(cur_depth_data, src_dim,
+    //  full_filename + ".ken");  
+    //printf("saved %s.ken\n", full_filename.c_str());
+    //const float* hand_im = hand_image_generator_->hpf_hand_image_cpu();
+    //jtil::file_io::SaveArrayToFile<float>(hand_im, HN_IM_SIZE * HN_IM_SIZE,
+    //  full_filename + ".hpf_hand.ken");  
+    //printf("saved %s.hpf_hand.ken\n", full_filename.c_str());
+    //hand_im = hand_image_generator_->hand_image_cpu();
+    //jtil::file_io::SaveArrayToFile<float>(hand_im, HN_IM_SIZE * HN_IM_SIZE,
+    //  full_filename + ".hand.ken");  
+    //printf("saved %s.hand.ken\n", full_filename.c_str());
+    //// END TEMP CODE
 
     hand_renderer->camera(0)->updateProjection();
     // Correctly modify the coeff values to those that are learnable by the
@@ -812,7 +827,7 @@ int main(int argc, char *argv[]) {
     Window::initWindowSystem();
     Texture::initTextureSystem();
 
-    jtorch::InitJTorch("../jtorch");
+    jtorch::InitJTorch("../../jtorch");
 
     // Fill the settings structure
     settings.width = 640 * 2;
