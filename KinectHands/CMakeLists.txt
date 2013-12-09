@@ -30,7 +30,7 @@ elseif(MSVC)
 endif(APPLE)
 
 set(LIB_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../lib/MAC_OS_X)
-set(JTIL_LIB_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../../PRenderer2/lib/MAC_OS_X)
+set(JTIL_LIB_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/MAC_OS_X)
 
 set(JTIL_LIB_DIR ${root_BINARY_DIR}/jtil/)
 set(GLFW_LIB_DIR ${JTIL_LIB_ROOT}/GLFW)
@@ -55,10 +55,10 @@ find_library(OPENNI_LIB_OBJ NAMES OpenNI2 HINTS ${OPENNI_LIB_DIR})
 
 set(INCLUDE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../include/MAC_OS_X)
 
-set(JTIL_INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../PRenderer2/jtil/include/)
-set(JCL_INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../PRenderer2/jcl/include/)
+set(JTIL_INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../jtil/include/)
+set(JCL_INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../jcl/include/)
 set(KINECT_INTERFACE_INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../kinect_interface/include/)
-set(JTORCH_INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../jtorch/include/)
+set(JTORCH_INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../jtorch/include/)
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 # COMPILER FLAGS AND PREDEFINES
