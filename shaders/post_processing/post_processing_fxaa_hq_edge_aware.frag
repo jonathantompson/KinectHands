@@ -35,12 +35,12 @@ vec4 FxaaPixelShader(
 	posM.x = pos.x;
 	posM.y = pos.y;
 	vec4 rgbyM;
-	rgbyM.xyz = texture2D(tex_rgb, f_texture).xyz;
-	rgbyM.w = texture2D(tex_luma, f_texture).x;
-	float lumaS = texture2D(tex_luma, f_texture + (vec2(+0.0, +1.0) * f_texel_size)).x;
-	float lumaE = texture2D(tex_luma, f_texture + (vec2(+1.0, +0.0) * f_texel_size)).x;
-	float lumaN = texture2D(tex_luma, f_texture + (vec2(+0.0, -1.0) * f_texel_size)).x;
-	float lumaW = texture2D(tex_luma, f_texture + (vec2(-1.0, +0.0) * f_texel_size)).x;
+  rgbyM.xyz = texture(tex_rgb, f_texture).xyz;
+  rgbyM.w = texture(tex_luma, f_texture).x;
+  float lumaS = texture(tex_luma, f_texture + (vec2(+0.0, +1.0) * f_texel_size)).x;
+  float lumaE = texture(tex_luma, f_texture + (vec2(+1.0, +0.0) * f_texel_size)).x;
+  float lumaN = texture(tex_luma, f_texture + (vec2(+0.0, -1.0) * f_texel_size)).x;
+  float lumaW = texture(tex_luma, f_texture + (vec2(-1.0, +0.0) * f_texel_size)).x;
 	float maxSM = max(lumaS, rgbyM.w);
 	float minSM = min(lumaS, rgbyM.w);
 	float maxESM = max(lumaE, maxSM);
@@ -109,10 +109,10 @@ vec4 FxaaPixelShader(
 	if(earlyExit)
 		return rgbyM;
 
-	float lumaNW = texture2D(tex_luma, f_texture + (vec2(-1.0, -1.0) * f_texel_size)).x;
-	float lumaSE = texture2D(tex_luma, f_texture + (vec2(+1.0, +1.0) * f_texel_size)).x;
-	float lumaNE = texture2D(tex_luma, f_texture + (vec2(+1.0, -1.0) * f_texel_size)).x;
-	float lumaSW = texture2D(tex_luma, f_texture + (vec2(-1.0, +1.0) * f_texel_size)).x;
+  float lumaNW = texture(tex_luma, f_texture + (vec2(-1.0, -1.0) * f_texel_size)).x;
+  float lumaSE = texture(tex_luma, f_texture + (vec2(+1.0, +1.0) * f_texel_size)).x;
+  float lumaNE = texture(tex_luma, f_texture + (vec2(+1.0, -1.0) * f_texel_size)).x;
+  float lumaSW = texture(tex_luma, f_texture + (vec2(-1.0, +1.0) * f_texel_size)).x;
 	float lumaNS = lumaN + lumaS;
 	float lumaWE = lumaW + lumaE;
 	float subpixRcpRange = 1.0/range;
@@ -162,9 +162,9 @@ vec4 FxaaPixelShader(
 	posP.x = posB.x + offNP.x * 1.0;
 	posP.y = posB.y + offNP.y * 1.0;
 	float subpixD = ((-2.0)*subpixC) + 3.0;
-	float lumaEndN = texture2D(tex_luma, posN).x;
+  float lumaEndN = texture(tex_luma, posN).x;
 	float subpixE = subpixC * subpixC;
-	float lumaEndP = texture2D(tex_luma, posP).x;
+  float lumaEndP = texture(tex_luma, posP).x;
 	if(!pairN) lumaNN = lumaSS;
 	float gradientScaled = gradient * 1.0/4.0;
 	float lumaMM = rgbyM.w - lumaNN * 0.5;
@@ -180,8 +180,8 @@ vec4 FxaaPixelShader(
 	if(!doneP) posP.x += offNP.x * 1.5;
 	if(!doneP) posP.y += offNP.y * 1.5;
 	if(doneNP) {
-		if(!doneN) lumaEndN = texture2D(tex_luma, posN.xy).x;
-		if(!doneP) lumaEndP = texture2D(tex_luma, posP.xy).x;
+    if(!doneN) lumaEndN = texture(tex_luma, posN.xy).x;
+    if(!doneP) lumaEndP = texture(tex_luma, posP.xy).x;
 		if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;
 		if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;
 		doneN = abs(lumaEndN) >= gradientScaled;
@@ -192,8 +192,8 @@ vec4 FxaaPixelShader(
 		if(!doneP) posP.x += offNP.x * 2.0;
 		if(!doneP) posP.y += offNP.y * 2.0;
 		if(doneNP) {
-			if(!doneN) lumaEndN = texture2D(tex_luma, posN.xy).x;
-			if(!doneP) lumaEndP = texture2D(tex_luma, posP.xy).x;
+      if(!doneN) lumaEndN = texture(tex_luma, posN.xy).x;
+      if(!doneP) lumaEndP = texture(tex_luma, posP.xy).x;
 			if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;
 			if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;
 			doneN = abs(lumaEndN) >= gradientScaled;
@@ -204,8 +204,8 @@ vec4 FxaaPixelShader(
 			if(!doneP) posP.x += offNP.x * 2.0;
 			if(!doneP) posP.y += offNP.y * 2.0;
 			if(doneNP) {
-				if(!doneN) lumaEndN = texture2D(tex_luma, posN.xy).x;
-				if(!doneP) lumaEndP = texture2D(tex_luma, posP.xy).x;
+        if(!doneN) lumaEndN = texture(tex_luma, posN.xy).x;
+        if(!doneP) lumaEndP = texture(tex_luma, posP.xy).x;
 				if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;
 				if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;
 				doneN = abs(lumaEndN) >= gradientScaled;
@@ -216,8 +216,8 @@ vec4 FxaaPixelShader(
 				if(!doneP) posP.x += offNP.x * 4.0;
 				if(!doneP) posP.y += offNP.y * 4.0;
 				if(doneNP) {
-					if(!doneN) lumaEndN = texture2D(tex_luma, posN.xy).x;
-					if(!doneP) lumaEndP = texture2D(tex_luma, posP.xy).x;
+          if(!doneN) lumaEndN = texture(tex_luma, posN.xy).x;
+          if(!doneP) lumaEndP = texture(tex_luma, posP.xy).x;
 					if(!doneN) lumaEndN = lumaEndN - lumaNN * 0.5;
 					if(!doneP) lumaEndP = lumaEndP - lumaNN * 0.5;
 					doneN = abs(lumaEndN) >= gradientScaled;
@@ -255,7 +255,7 @@ vec4 FxaaPixelShader(
 	if(!horzSpan) posM.x += pixelOffsetSubpix * lengthSign;
 	if( horzSpan) posM.y += pixelOffsetSubpix * lengthSign;
 
-	return vec4(texture2D(tex_rgb, posM).xyz, 1.0);
+  return vec4(texture(tex_rgb, posM).xyz, 1.0);
 }
 
 void main() {

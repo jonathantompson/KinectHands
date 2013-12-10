@@ -18,6 +18,6 @@ uniform float f_vsm_split_alpha;
 out vec4 color;
 
 void main(){
-  int split = texture2D(f_vsm_splits, f_texture).x;
+  int split = texture(f_vsm_splits, f_texture).x;
   color = vec4(split_colors[split], f_vsm_split_alpha);
 }

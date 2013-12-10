@@ -1,5 +1,4 @@
 #version 150
-#extension GL_EXT_texture_array : enable
 #include "./shaders/lighting/lighting_include.frag"
 
 uniform sampler2D f_depth_normal_view_stencil;
@@ -25,7 +24,7 @@ float PerPixelShadow(in vec3 pos,
   vec2 light_tex_coord = (pos_light.xy / pos_light.w) * vec2(0.5, 0.5) + 
     vec2(0.5, 0.5);
   
-  vec2 moments = texture2D(f_vsm, light_tex_coord).xy;
+  vec2 moments = texture(f_vsm, light_tex_coord).xy;
   
   float dist_to_light_scaled = linstep(-f_light_near_far.x, 
     -f_light_near_far.y, dist_to_light);

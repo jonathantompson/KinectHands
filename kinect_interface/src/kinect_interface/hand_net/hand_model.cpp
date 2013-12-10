@@ -18,7 +18,7 @@
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 
 #if defined(__APPLE__)
-  #define HAND_MODEL_PATH string("./../../../../../../../../../models/lib_hand/")
+  #define HAND_MODEL_PATH string("./models/lib_hand/")
 #else
   #define HAND_MODEL_PATH string("./models/lib_hand/")
 #endif

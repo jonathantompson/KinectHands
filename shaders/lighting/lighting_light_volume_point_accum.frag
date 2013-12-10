@@ -1,5 +1,4 @@
 #version 150
-precision lowp float;
 #include "./shaders/lighting/lighting_include.frag"
 
 uniform sampler2D f_depth_normal_view_stencil;

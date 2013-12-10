@@ -9,7 +9,7 @@
 //, *********** SETTINGS ***********
 //, APPLICATION SPECIFIC
 track_openni_skeleton,            bool,      0
-kinect_output,                    int,       10
+kinect_output,                    int,       2
 detect_hands,                     bool,      1
 detect_pose,                      bool,      1
 detect_heat_map,                  bool,      1
@@ -28,16 +28,16 @@ color_convnet_depth_feature,      int,       12
 color_convnet_depth_threshold,    int,       15
 show_gaussian_labels,             bool,      0
 in_air_drawing_enabled,           bool,      0
-pose_smoothing_factor_enum,       int,       6
+pose_smoothing_factor_enum,       int,       3
 pose_smoothing_on,                bool,      1
 hand_size,                        int,       2
 
 //, RENDERER
-screen_resolution,                int,       125830560
+screen_resolution,                int,       83887040
 fullscreen,                       bool,      0
 double_buffering,                 bool,      0  
 clear_color,                      Float3,    0.529, 0.808, 0.980
-open_gl_major_version,            int,       4
+open_gl_major_version,            int,       3
 open_gl_minor_version,            int,       2
 open_gl_core_profile,             bool,      1
 window_depth_buffer_bits,         int,       32
@@ -85,7 +85,7 @@ render_aabboxes,                  bool,      0
 texture_filtering_on,             bool,      0
 aa_type_enum,                     int,       1
 fxaa_depth_threshold,             float,     1.0
-fxaa_angle_threshold,             float,     10.0
+fxaa_angle_threshold,             float,     10
 fxaa_hq_subpix_quality,           float,     1.0
 motion_blur_on,                   bool,      1
 motion_blur_max_samples,          int,       13
@@ -106,18 +106,18 @@ tess_factor,                      int,       16
 tess_on,                          bool,      0
 tess_default_disp_factor,         float,     0.5
 visualize_normals,                bool,      0
-visualize_normals_length,         float,     10.0
+visualize_normals_length,         float,     10
 
 //, CAMERA
 //, Note camera near and far view planes are just Min and Max.  
 //, Frustum will be fitted to world objects and light volumes at runtime.
 fov_deg,                          float,     44
-view_plane_near,                  float,     -10.0
+view_plane_near,                  float,     -10
 view_plane_far,                   float,     -5000.0
 starting_eye_rot,                 FloatQuat, 0.0, 0.0, 0.0, -1.0
 starting_eye_pos,                 Float3,    0.0, 0.0, 0.0
-camera_speed,                     float,     10.0
-camera_speed_fast,                float,     100.0
+camera_speed,                     float,     10
+camera_speed_fast,                float,     100
 camera_speed_rotation,            float,     0.0025
 
 //, PHYSICS

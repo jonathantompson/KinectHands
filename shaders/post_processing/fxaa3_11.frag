@@ -682,14 +682,14 @@ NOTE the other tuning knobs are now in the shader function inputs!
 /*--------------------------------------------------------------------------*/
 #if (FXAA_HLSL_4 == 1)
     #define FxaaInt2 int2
-    struct FxaaTex { SamplerState smpl; Texture2D tex; };
+    struct FxaaTex { SamplerState smpl; Texture tex; };
     #define FxaaTexTop(t, p) t.tex.SampleLevel(t.smpl, p, 0.0)
     #define FxaaTexOff(t, p, o, r) t.tex.SampleLevel(t.smpl, p, 0.0, o)
 #endif
 /*--------------------------------------------------------------------------*/
 #if (FXAA_HLSL_5 == 1)
     #define FxaaInt2 int2
-    struct FxaaTex { SamplerState smpl; Texture2D tex; };
+    struct FxaaTex { SamplerState smpl; Texture tex; };
     #define FxaaTexTop(t, p) t.tex.SampleLevel(t.smpl, p, 0.0)
     #define FxaaTexOff(t, p, o, r) t.tex.SampleLevel(t.smpl, p, 0.0, o)
     #define FxaaTexAlpha4(t, p) t.tex.GatherAlpha(t.smpl, p)

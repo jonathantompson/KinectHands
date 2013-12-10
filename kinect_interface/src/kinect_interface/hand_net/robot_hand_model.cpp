@@ -19,7 +19,7 @@
 #define LOAD_ROBOT_HAND_MESH_JFILE  // Much faster and more compact format!
 
 #if defined(__APPLE__)
-  #define HAND_ROBOT_MODEL_PATH string("./../../../../../../../../../models/robot_hand/")
+  #define HAND_ROBOT_MODEL_PATH string("./models/robot_hand/")
 #else
   #define HAND_ROBOT_MODEL_PATH string("./models/robot_hand/")
 #endif

@@ -24,7 +24,7 @@ endif()
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 if(APPLE)
     message("Detected Apple")
-    SET(EXTRA_LIBS "-framework Cocoa -framework OpenGL -framework IOKit")
+    SET(EXTRA_LIBS "-framework Cocoa -framework OpenGL -framework IOKit -framework QuartzCore")
 elseif(MSVC)
     message( FATAL_ERROR, "Windows cmake is not supported.  Use visual studio." )
 endif(APPLE)
