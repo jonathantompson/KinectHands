@@ -337,14 +337,17 @@ namespace app {
           if (detect_pose) {
             int smoothing_factor;
             bool smoothing_on;
+            int max_num_pso_iterations;
             GET_SETTING("pose_smoothing_factor_enum", int, smoothing_factor);
             GET_SETTING("pose_smoothing_on", bool, smoothing_on);
+            GET_SETTING("max_num_pso_iterations", int, max_num_pso_iterations);
 #ifdef PROFILE
             double t0 = clk_->getTime();
 #endif
             hand_net_->calcConvnetPose(kdata_[cur_kinect]->depth, 
               kdata_[cur_kinect]->labels, 
-              smoothing_on ? pose_smoothing_factors[smoothing_factor] : 0);
+              smoothing_on ? pose_smoothing_factors[smoothing_factor] : 0,
+              max_num_pso_iterations);
 #ifdef PROFILE
             double t1 = clk_->getTime();
             hand_pose_time += (t1 - t0);
@@ -802,6 +805,13 @@ namespace app {
       ss.str("");
       ss << pose_smoothing_factors[i];
       ui->addSelectboxItem("pose_smoothing_factor_enum", 
+        ui::UIEnumVal(i, ss.str().c_str()));
+    }
+    ui->addSelectbox("max_num_pso_iterations", "PSO Iterations");
+    for (uint32_t i = 10; i < 100; i += 10) {
+      ss.str("");
+      ss << i;
+      ui->addSelectboxItem("max_num_pso_iterations", 
         ui::UIEnumVal(i, ss.str().c_str()));
     }
     ui->addCheckbox("show_gaussian_labels", "Show Gaussian Labels");

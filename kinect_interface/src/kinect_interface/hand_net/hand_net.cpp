@@ -252,7 +252,7 @@ namespace hand_net {
 #define USE_PSO
 
   void HandNet::calcConvnetPose(const int16_t* depth, const uint8_t* label,
-    const float smoothing_factor) {
+    const float smoothing_factor, const uint64_t max_pso_iterations) {
     // Try fitting in projected space from the rest pose:
     rhand_prev_pose_->copyCoeffFrom(rhand_cur_pose_);
     g_hand_net_ = this;
@@ -265,7 +265,7 @@ namespace hand_net {
     HandCoeffToBFGSHandCoeff<float>(pso_coeff_start_, rhand_cur_pose_->coeff());
     pso_->verbose = false;
     pso_->delta_coeff_termination = 1e-4f;
-    pso_->max_iterations = HN_PSO_NUM_ITERATIONS;
+    pso_->max_iterations = max_pso_iterations;
     pso_->minimize(pso_coeff_end_, pso_coeff_start_, pso_radius_, 
       HandModel::angle_coeffs(), objFuncParallel, HandNet::renormalizePSOCoeffs);
     BFGSHandCoeffToHandCoeff<float>(rhand_cur_pose_->coeff(), pso_coeff_end_);

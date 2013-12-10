@@ -36,7 +36,7 @@
 #define HN_PSO_RAD_EULER 0.20f
 #define HN_PSO_RAD_POSITION 2.0f * (float)M_PI * (5.0f / 100.0f)
 #define HN_PSO_SWARM_SIZE 32
-#define HN_PSO_NUM_ITERATIONS 50
+// #define HN_PSO_NUM_ITERATIONS 50 --> This now an input parameter 
 
 #if defined(__APPLE__)
   #define CONVNET_FILE string("./../../../../../../../../../data/" \
@@ -148,7 +148,7 @@ namespace hand_net {
     // Result is placed in coeff_convnet
     void calcConvnetHeatMap(const int16_t* depth, const uint8_t* label);
     void calcConvnetPose(const int16_t* depth, const uint8_t* label,
-      const float smoothing_factor);
+      const float smoothing_factor, const uint64_t max_pso_iterations);
     void resetTracking();
 
     // If you don't want the full convnet computation but you want the hand 
