@@ -273,13 +273,37 @@ namespace app {
     }
   }
 
+  struct Profiler {
+    Profiler() {
+      resetProfiling();
+    }
+    void resetProfiling() {
+      ttotal = 0;
+      frame_counter = 0;
+      tstart = clk.getTime();
+    }
+    void startProfileBlock() {
+      t0 = clk.getTime();
+    }
+    void endProfileBlock() {
+      t1 = clk.getTime();
+      frame_counter++;
+      ttotal += (t1 - t0);
+    }
+    void printPeriodicTime(const std::string& block_name) {
+      if (clk.getTime() - tstart >= 2) {
+        std::cout << block_name << " ave frame time " << 1000.0 * ttotal / (double)frame_counter;
+        std::cout << "ms" << std::endl;
+        resetProfiling();
+      }
+    }
+    double t0, t1, ttotal;
+    double tstart;
+    uint64_t frame_counter;
+    Clk clk;
+  };
+
 //#define PROFILE
-#ifdef PROFILE
-  double hand_pose_time = 0;
-  uint32_t hand_pose_nframes = 0;
-  double convnet_time = 0;
-  uint32_t convnet_nframes = 0;
-#endif
   void App::run() {
     while (app_running_) {
       frame_time_prev_ = frame_time_;
@@ -318,22 +342,15 @@ namespace app {
         hand_net_->setHandSize(hand_size);
         if (detect_heat_map) {
 #ifdef PROFILE
-          double t0 = clk_->getTime();
+          static Profiler conv_profiler;
+          conv_profiler.startProfileBlock();
 #endif
           hand_net_->calcConvnetHeatMap(kdata_[cur_kinect]->depth, 
             kdata_[cur_kinect]->labels);
 #ifdef PROFILE
-          double t1 = clk_->getTime();
-          convnet_time += (t1 - t0);
-          convnet_nframes++;
-          if ( convnet_nframes >= 60 ) {
-            std::cout << "Convnet time per frame = " << convnet_time / 
-              convnet_nframes << std::endl;
-            convnet_time = 0;
-            convnet_nframes = 0;
-          }
+          conv_profiler.endProfileBlock();
+          conv_profiler.printPeriodicTime("heat map generation");
 #endif
-
           if (detect_pose) {
             int smoothing_factor;
             bool smoothing_on;
@@ -342,24 +359,18 @@ namespace app {
             GET_SETTING("pose_smoothing_on", bool, smoothing_on);
             GET_SETTING("max_num_pso_iterations", int, max_num_pso_iterations);
 #ifdef PROFILE
-            double t0 = clk_->getTime();
+            static Profiler pso_profiler;
+            pso_profiler.startProfileBlock();
 #endif
             hand_net_->calcConvnetPose(kdata_[cur_kinect]->depth, 
               kdata_[cur_kinect]->labels, 
               smoothing_on ? pose_smoothing_factors[smoothing_factor] : 0,
               max_num_pso_iterations);
-#ifdef PROFILE
-            double t1 = clk_->getTime();
-            hand_pose_time += (t1 - t0);
-            hand_pose_nframes++;
-            if ( hand_pose_nframes >= 60 ) {
-              std::cout << "Hand Pose time per frame = " << hand_pose_time / 
-                hand_pose_nframes << std::endl;
-              hand_pose_time = 0;
-              hand_pose_nframes = 0;
-            }
-#endif
             robot_hand_model_->updateMatrices(hand_net_->rhand_cur_pose()->coeff());
+#ifdef PROFILE
+            pso_profiler.endProfileBlock();
+            pso_profiler.printPeriodicTime("pso pose detection");
+#endif
           }
         }
       }  // if (new_data_)
