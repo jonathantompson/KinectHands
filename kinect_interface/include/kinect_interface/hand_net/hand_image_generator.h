@@ -58,7 +58,11 @@ namespace hand_net {
     // calcHandImage - creates cropped image, then creates a bank of HPF imgs
     // if synthetic_depth != NULL, then the crop window will be chosen using
     // the real depth, but the synthetic depth will be stored
+    // hand_size_modifier is a hack to make the convnet hand look bigger than
+    // it actuall is.  It allows us to set a constant hand scale for different
+    // users.
     void calcHandImage(const int16_t* depth_in, const uint8_t* label_in,
+      const float hand_size_modifier = 1.0f,
       const float* synthetic_depth = NULL);
 
     void annotateFeatsToKinectImage(uint8_t* im,
@@ -102,7 +106,7 @@ namespace hand_net {
     const NormalApproximationMethod norm_method_;
 
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in, 
-      const float* synthetic_depth = NULL);
+      float hand_size_modifier, const float* synthetic_depth = NULL);
     void calcHPFHandBanks();
     void releaseData();  // Call destructor on all dynamic data
     void initHandImageData();

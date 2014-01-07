@@ -173,7 +173,7 @@ namespace hand_net {
   }
 
   void HandNet::calcHandImage(const int16_t* depth, const uint8_t* label) {
-    image_generator_->calcHandImage(depth, label);
+    image_generator_->calcHandImage(depth, label, hand_size_, NULL);
   }
 
   void HandNet::loadHandModels() {

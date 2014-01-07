@@ -143,13 +143,19 @@ namespace hand_net {
   // Create the downsampled hand image, background is at 1 and hand is
   // in front of it.
   void HandImageGenerator::calcHandImage(const int16_t* depth_in, 
-    const uint8_t* label_in, const float* synthetic_depth) {
-    calcCroppedHand(depth_in, label_in, synthetic_depth);
+    const uint8_t* label_in, const float hand_size_modifier, 
+    const float* synthetic_depth) {
+    if (hand_size_modifier > 1.0f) {
+      throw std::wruntime_error("HandImageGenerator::calcHandImage() - ERROR: "
+        "hand_size_modifier > 1.0f!");
+    }
+    calcCroppedHand(depth_in, label_in, hand_size_modifier, synthetic_depth);
     calcHPFHandBanks();
   }
 
   void HandImageGenerator::calcCroppedHand(const int16_t* depth_in, 
-    const uint8_t* label_in, const float* synthetic_depth) {
+    const uint8_t* label_in, float hand_size_modifier, 
+    const float* synthetic_depth) {
     // Find the COM in pixel space so we can crop the image around it
     // TO DO: Implement accumulate as described here and put this in OpenCL:
     // http://www.icg.tugraz.at/courses/lv710.092/ezg2uebung1
@@ -210,9 +216,15 @@ namespace hand_net {
       // Now in a texture of 384x384 we have a hand image.  This needs to be
       // scaled based on the average depth value
       // The further away the less it is downsampled
-      cur_downsample_scale_ = ((float)HN_NOM_DIST * 
+      cur_downsample_scale_ =  ((float)HN_NOM_DIST * 
         ((float)HN_SRC_IM_SIZE / (float)HN_IM_SIZE)) / uvd_com_[2];
       cur_downsample_scale_ = std::max<float>(cur_downsample_scale_, 1.0f);
+      if (cur_downsample_scale_ * hand_size_modifier < 1.0f) {
+        hand_size_modifier = 1.0f / cur_downsample_scale_;
+      }
+
+      cur_downsample_scale_ *= hand_size_modifier;
+      
       // Find the rectangle in the highres image that will get scaled to the
       // final downsampled image
       int32_t srcw = std::min<int32_t>(HN_SRC_IM_SIZE,
@@ -236,6 +248,7 @@ namespace hand_net {
       hand_pos_wh_[1] = v_start + srcy;
       hand_pos_wh_[2] = srcw;
       hand_pos_wh_[3] = srch;
+
     } else {
       hand_pos_wh_.set(0, 0, HN_SRC_IM_SIZE, HN_SRC_IM_SIZE);
       for (uint32_t i = 0; i < HN_IM_SIZE * HN_IM_SIZE; i++) {
