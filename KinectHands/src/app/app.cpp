@@ -610,7 +610,7 @@ namespace app {
         if (kinect_output != OUTPUT_CONVNET_SRC_DEPTH && 
           kinect_output != OUTPUT_CONVNET_HEAT_MAPS && 
           kinect_output != OUTPUT_CONVNET_DEPTH) {
-          FlipImage<uint8_t>(im_flipped_, im_, src_width, src_height, 3);
+          FlipImageVert<uint8_t>(im_flipped_, im_, src_width, src_height, 3);
         }
 
         switch (kinect_output) {
@@ -860,6 +860,8 @@ namespace app {
       ss << (val * 100) << "%";
       ui->addSelectboxItem("hand_size", ui::UIEnumVal(i, ss.str().c_str()));
     }
+
+    ui->addCheckbox("flip_convnet_input", "Flip Convnet Hack");
 
     ui->createTextWindow("kinect_fps_wnd", " ");
     jtil::math::Int2 pos(400, 0);

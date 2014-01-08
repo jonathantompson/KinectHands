@@ -153,7 +153,8 @@ namespace hand_net {
 
     // If you don't want the full convnet computation but you want the hand 
     // image -> Useful when we know the correct coeff but we want to debug
-    void calcHandImage(const int16_t* depth, const uint8_t* label);
+    void calcHandImage(const int16_t* depth, const uint8_t* label, 
+      const bool flip = false);
 
     // loadHandModels - Needs to be called whenever the renderer gets
     // destroyed and a new model needs to be loaded

@@ -27,6 +27,7 @@
 #include "jtil/math/pso_parallel.h"
 #include "jtil/clk/clk.h"
 #include "jtil/renderer/camera/camera.h"
+#include "jtil/settings/settings_manager.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
@@ -172,8 +173,10 @@ namespace hand_net {
 
   }
 
-  void HandNet::calcHandImage(const int16_t* depth, const uint8_t* label) {
-    image_generator_->calcHandImage(depth, label, hand_size_, NULL);
+  void HandNet::calcHandImage(const int16_t* depth, const uint8_t* label, 
+    const bool flip) {
+    image_generator_->calcHandImage(depth, label, hand_size_, NULL, 
+      flip);
   }
 
   void HandNet::loadHandModels() {
@@ -196,7 +199,9 @@ namespace hand_net {
       std::cout << " from file!" << std::endl;
     }
 
-    calcHandImage(depth, label);  // Creates HPF hand image
+    bool flip_convnet_input;
+    GET_SETTING("flip_convnet_input", bool, flip_convnet_input);
+    calcHandImage(depth, label, flip_convnet_input);  // Creates HPF hand image
 
     // Copy over the hand images in the input data structures
     TorchData* im = image_generator_->hpf_hand_image();
@@ -207,9 +212,20 @@ namespace hand_net {
     Tensor<float>* output_tensor = (Tensor<float>*)(conv_network_->output);
     output_tensor->getData(heat_map_convnet_);
 
+    if (flip_convnet_input) {
+      for (uint32_t i = 0; i < num_output_features_; i++) {
+        jtil::image_util::FlipImageVertInPlace<float>(
+          &heat_map_convnet_[i * heat_map_size_ * heat_map_size_], 
+          heat_map_size_, heat_map_size_, 1);
+        jtil::image_util::FlipImageHorzInPlace<float>(
+          &heat_map_convnet_[i * heat_map_size_ * heat_map_size_], 
+          heat_map_size_, heat_map_size_, 1);
+      }
+    }
+
     // For each of the heat maps, fit a gaussian to it
     const Int4* pos_wh = &image_generator_->hand_pos_wh();
-    for (uint32_t i = 0; i < num_output_features_; i++) {
+    for (uint32_t i = 0; i < num_output_features_; i++) { 
       uint32_t istart = i * NUM_COEFFS_PER_GAUSSIAN;
       calcGaussDistCoeff(&gauss_coeff_hm_[istart], 
         &heat_map_convnet_[i * heat_map_size_ * heat_map_size_]);

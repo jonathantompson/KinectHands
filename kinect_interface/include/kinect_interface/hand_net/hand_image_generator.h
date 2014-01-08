@@ -63,7 +63,7 @@ namespace hand_net {
     // users.
     void calcHandImage(const int16_t* depth_in, const uint8_t* label_in,
       const float hand_size_modifier = 1.0f,
-      const float* synthetic_depth = NULL);
+      const float* synthetic_depth = NULL, const bool flip = false);
 
     void annotateFeatsToKinectImage(uint8_t* im,
       const float* coeff_convnet) const;  // 640 x 480
@@ -106,7 +106,8 @@ namespace hand_net {
     const NormalApproximationMethod norm_method_;
 
     void calcCroppedHand(const int16_t* depth_in, const uint8_t* label_in, 
-      float hand_size_modifier, const float* synthetic_depth = NULL);
+      float hand_size_modifier, const float* synthetic_depth = NULL,
+      const bool flip = false);
     void calcHPFHandBanks();
     void releaseData();  // Call destructor on all dynamic data
     void initHandImageData();

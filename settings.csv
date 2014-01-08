@@ -9,7 +9,7 @@
 //, *********** SETTINGS ***********
 //, APPLICATION SPECIFIC
 track_openni_skeleton,            bool,      0
-kinect_output,                    int,       2
+kinect_output,                    int,       10
 detect_hands,                     bool,      1
 detect_pose,                      bool,      1
 detect_heat_map,                  bool,      1
@@ -26,12 +26,13 @@ flip_image,                       bool,      1
 color_convnet_depth,              bool,      1
 color_convnet_depth_feature,      int,       12
 color_convnet_depth_threshold,    int,       15
-show_gaussian_labels,             bool,      1
+show_gaussian_labels,             bool,      0
 in_air_drawing_enabled,           bool,      0
 pose_smoothing_factor_enum,       int,       3
 pose_smoothing_on,                bool,      1
 hand_size,                        int,       0
 max_num_pso_iterations,           int,       40
+flip_convnet_input,               bool,      0
 
 //, RENDERER
 screen_resolution,                int,       125830560

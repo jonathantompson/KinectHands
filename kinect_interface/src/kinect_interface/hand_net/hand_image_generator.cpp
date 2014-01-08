@@ -20,6 +20,7 @@
 #include "jtil/renderer/colors/colors.h"
 #include "jtil/exceptions/wruntime_error.h"
 #include "jtil/file_io/file_io.h"
+#include "jtil/settings/settings_manager.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
@@ -144,18 +145,20 @@ namespace hand_net {
   // in front of it.
   void HandImageGenerator::calcHandImage(const int16_t* depth_in, 
     const uint8_t* label_in, const float hand_size_modifier, 
-    const float* synthetic_depth) {
+    const float* synthetic_depth, const bool flip) {
     if (hand_size_modifier > 1.0f) {
       throw std::wruntime_error("HandImageGenerator::calcHandImage() - ERROR: "
         "hand_size_modifier > 1.0f!");
     }
-    calcCroppedHand(depth_in, label_in, hand_size_modifier, synthetic_depth);
+    calcCroppedHand(depth_in, label_in, hand_size_modifier, synthetic_depth,
+      flip);
+
     calcHPFHandBanks();
   }
 
   void HandImageGenerator::calcCroppedHand(const int16_t* depth_in, 
     const uint8_t* label_in, float hand_size_modifier, 
-    const float* synthetic_depth) {
+    const float* synthetic_depth, const bool flip) {
     // Find the COM in pixel space so we can crop the image around it
     // TO DO: Implement accumulate as described here and put this in OpenCL:
     // http://www.icg.tugraz.at/courses/lv710.092/ezg2uebung1
@@ -254,6 +257,14 @@ namespace hand_net {
       for (uint32_t i = 0; i < HN_IM_SIZE * HN_IM_SIZE; i++) {
         hand_image_cpu_[i] = 0;
       }
+    }
+
+    if (flip) {
+      std::cout << "true" << std::endl;
+      jtil::image_util::FlipImageVertInPlace<float>(hand_image_cpu_,
+        HN_IM_SIZE, HN_IM_SIZE, 1);
+      jtil::image_util::FlipImageHorzInPlace<float>(hand_image_cpu_,
+        HN_IM_SIZE, HN_IM_SIZE, 1);
     }
 
     // Now downsample as many times as there are banks
