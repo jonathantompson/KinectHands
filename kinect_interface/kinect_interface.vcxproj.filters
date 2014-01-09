@@ -13,117 +13,15 @@
     <Filter Include="Source Files\kinect_interface">
       <UniqueIdentifier>{1366ef51-55c2-44de-b2fa-06104a8607de}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\kinect_interface\hand_detector">
-      <UniqueIdentifier>{0005c7f2-1741-4f4b-9c5a-8930bbec83ce}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\kinect_interface\hand_detector">
-      <UniqueIdentifier>{ac1d3e7d-9d1a-44f0-b589-ae1fda450c32}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\kinect_interface\hand_net">
-      <UniqueIdentifier>{9f4afa0d-b086-46e4-8084-261518d22c6d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\kinect_interface\hand_net">
-      <UniqueIdentifier>{a04cf7c3-2c25-4e01-b1ca-6ef0ccb4fb81}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\kinect_interface\hand_detector\hand_detector.cpp">
-      <Filter>Source Files\kinect_interface\hand_detector</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_detector\forest_io.cpp">
-      <Filter>Source Files\kinect_interface\hand_detector</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_detector\common_tree_funcs.cpp">
-      <Filter>Source Files\kinect_interface\hand_detector</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\depth_images_io.cpp">
-      <Filter>Source Files\kinect_interface</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\hand_net.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\hand_image_generator.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_detector\generate_decision_tree.cpp">
-      <Filter>Source Files\kinect_interface\hand_detector</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_detector\evaluate_decision_forest.cpp">
-      <Filter>Source Files\kinect_interface\hand_detector</Filter>
-    </ClCompile>
     <ClCompile Include="src\kinect_interface\kinect_interface.cpp">
       <Filter>Source Files\kinect_interface</Filter>
     </ClCompile>
-    <ClCompile Include="src\kinect_interface\open_ni_funcs.cpp">
-      <Filter>Source Files\kinect_interface</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\hand_model_coeff.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\kinect_device_listener.cpp">
-      <Filter>Source Files\kinect_interface</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\hand_model.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kinect_interface\hand_net\robot_hand_model.cpp">
-      <Filter>Source Files\kinect_interface\hand_net</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\kinect_interface\hand_detector\hand_detector.h">
-      <Filter>Header Files\kinect_interface\hand_detector</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_detector\decision_tree_func.h">
-      <Filter>Header Files\kinect_interface\hand_detector</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_detector\forest_io.h">
-      <Filter>Header Files\kinect_interface\hand_detector</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_detector\common_tree_funcs.h">
-      <Filter>Header Files\kinect_interface\hand_detector</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_detector\decision_tree_structs.h">
-      <Filter>Header Files\kinect_interface\hand_detector</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\depth_images_io.h">
-      <Filter>Header Files\kinect_interface</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\depth_image_data.h">
-      <Filter>Header Files\kinect_interface</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\hand_net.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\hand_image_generator.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_detector\generate_decision_tree.h">
-      <Filter>Header Files\kinect_interface\hand_detector</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_detector\evaluate_decision_forest.h">
-      <Filter>Header Files\kinect_interface\hand_detector</Filter>
-    </ClInclude>
     <ClInclude Include="include\kinect_interface\kinect_interface.h">
       <Filter>Header Files\kinect_interface</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\open_ni_funcs.h">
-      <Filter>Header Files\kinect_interface</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\hand_model_coeff.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\calibration_data.h">
-      <Filter>Header Files\kinect_interface</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\kinect_device_listener.h">
-      <Filter>Header Files\kinect_interface</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\hand_model.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kinect_interface\hand_net\robot_hand_model.h">
-      <Filter>Header Files\kinect_interface\hand_net</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
