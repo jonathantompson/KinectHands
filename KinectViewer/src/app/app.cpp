@@ -61,6 +61,7 @@ namespace app {
     threads_finished_ = false;
     data_save_cbs_ = NULL;
     depth_frame_number_ = 0;
+    num_kinects_ = 0;
   }
 
   App::~App() {
@@ -110,24 +111,24 @@ namespace app {
     // Find and initialize all kinects up to MAX_NUM_KINECTS
     jtil::data_str::Vector<std::string> ids;
     KinectInterface::getDeviceIDs(ids);
-    uint32_t num_devices = ids.size();
-    if (num_devices == 0) {
+    num_kinects_ = ids.size();
+    if (num_kinects_ == 0) {
       throw std::wruntime_error("App::init() - ERROR: Found no OpenNI "
         "compatible devices!");
     }
-    for (uint32_t i = 0; i < num_devices && i < MAX_NUM_KINECTS; i++) {
+    for (uint32_t i = 0; i < num_kinects_ && i < MAX_NUM_KINECTS; i++) {
       kinect_[i] = new KinectInterface(ids[i]);
     }
     int cur_kinect;
     GET_SETTING("cur_kinect", int, cur_kinect);
-    if (cur_kinect >= (int)num_devices) {
-      cur_kinect = num_devices - 1;
+    if (cur_kinect >= (int)num_kinects_) {
+      cur_kinect = num_kinects_ - 1;
       SET_SETTING("cur_kinect", int, cur_kinect);
     }
 
     tp_ = new ThreadPool(NUM_APP_WORKER_THREADS);
-    data_save_cbs_ = new VectorManaged<Callback<void>*>(num_devices);
-    for (uint32_t i = 0; i < num_devices; i++) {
+    data_save_cbs_ = new VectorManaged<Callback<void>*>(num_kinects_);
+    for (uint32_t i = 0; i < num_kinects_; i++) {
       data_save_cbs_->pushBack(MakeCallableMany(&App::saveKinectData, this, i));
     }
 
@@ -218,6 +219,7 @@ namespace app {
 
       // Create the image data (in RGB)
       if (new_data) {
+        kinect_[cur_kinect]->lockData();
         switch (kinect_output) {
         case OUTPUT_RGB:
           // TODO: Set this properly
@@ -235,11 +237,13 @@ namespace app {
           break;
         case OUTPUT_DEPTH: 
           {
+            const uint16_t* depth = kinect_[cur_kinect]->depth();
             // TODO: Set this properly
             for (uint32_t i = 0; i < depth_dim; i++) {
-              depth_im_[i*3] = 255;
-              depth_im_[i*3+1] = 255;
-              depth_im_[i*3+2] = 255;
+              const uint8_t val = (depth[i] / 2) % 255;
+              depth_im_[i*3] = val;
+              depth_im_[i*3+1] = val;
+              depth_im_[i*3+2] = val;
             }
           }
           break;
@@ -277,18 +281,35 @@ namespace app {
           break;
         case OUTPUT_DEPTH_RAINBOW:
           {
-            // TODO: Set this properly
+            const uint16_t* depth = kinect_[cur_kinect]->depth();
             for (uint32_t i = 0; i < depth_dim; i++) {
-              depth_im_[i*3] = 255;
-              depth_im_[i*3+1] = 255;
-              depth_im_[i*3+2] = 255;
+              uint32_t nColIndex = (uint32_t)(depth[i] % 256);
+              depth_im_[i*3] = rainbowPalletR[nColIndex];
+              depth_im_[i*3+1] = rainbowPalletG[nColIndex];
+              depth_im_[i*3+2] = rainbowPalletB[nColIndex];
             }
           }
           break;
         }  // switch (kinect_output)
 
+        // Update the frame number and timestamp
+        depth_frame_number_ = kinect_[cur_kinect]->depth_frame_number();
+        depth_frame_time_ = kinect_[cur_kinect]->depth_frame_time();
+        kinect_[cur_kinect]->unlockData();
+        
+        // Update the kinect FPS string
+        std::stringstream ss;
+        for (uint32_t i = 0; i < num_kinects_; i++) {
+          ss << "K" << i << ": " << kinect_[i]->kinect_fps_str() << "fps, ";
+        }
+        Renderer::g_renderer()->ui()->setTextWindowString("kinect_fps_wnd",
+          ss.str().c_str());
+
         // Sync the data with the correct texture and set the correct
         // background texture
+        bool stretch_image;
+        GET_SETTING("stretch_image", bool, stretch_image);
+        Renderer::g_renderer()->setBackgroundTextureStrech(stretch_image);
         switch (kinect_output) {
         case OUTPUT_RGB:
         case OUTPUT_RGB_REGISTERED:
@@ -297,6 +318,8 @@ namespace app {
         case OUTPUT_DEPTH_ALL_VIEWS:
         case OUTPUT_DEPTH_RAINBOW:
         case OUTPUT_BLUE:
+          jtil::image_util::FlipImageVertInPlace<uint8_t>(depth_im_,
+            depth_w, depth_h, 3);
           depth_tex_->flagDirty();
           Renderer::g_renderer()->setBackgroundTexture(depth_tex_);
           break;
@@ -392,6 +415,8 @@ namespace app {
       ss << "device " << i;
       ui->addSelectboxItem("cur_kinect", ui::UIEnumVal(i, ss.str().c_str()));
     }
+
+    ui->addCheckbox("stretch_image", "Stretch Image");
 
     ui->createTextWindow("kinect_fps_wnd", " ");
     jtil::math::Int2 pos(400, 0);

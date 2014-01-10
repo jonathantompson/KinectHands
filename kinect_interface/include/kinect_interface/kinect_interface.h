@@ -49,12 +49,12 @@ namespace kinect_interface {
     const uint8_t* registered_rgb() const;  // NOT THREAD SAFE!  Use lockData()
     const float* xyz() const;  // NOT THREAD SAFE!  Use lockData()
     const uint16_t* depth() const;  // NOT THREAD SAFE!  Use lockData()
-    double depth_frame_time() { return depth_frame_time_; }
+    const int64_t depth_frame_time() const { return depth_frame_time_; }
+    const uint64_t depth_frame_number() const { return depth_frame_number_; }
+    const char* kinect_fps_str() const { return kinect_fps_str_; }
 
     inline void lockData() { data_lock_.lock(); };
     inline void unlockData() { data_lock_.unlock(); };
-
-    const uint64_t depth_frame_number() const { return depth_frame_number_; }
 
   private:
     // Kinect Device
@@ -62,7 +62,6 @@ namespace kinect_interface {
     IKinectSensor* kinect_sensor_;
     // TODO: We need m_pMultiSourceFrameReader
     IMultiSourceFrameReader* frame_reader_;
-
 
     static jtil::data_str::Vector<KinectInterface*> open_kinects_;
     static std::recursive_mutex sdk_static_lock_;
@@ -74,11 +73,11 @@ namespace kinect_interface {
     std::thread kinect_thread_;
     
     // Processed data
-    RGBQUAD* depth_;
+    uint16_t* depth_;
     uint64_t depth_frame_number_;
-    double depth_frame_time_;
+    int64_t depth_frame_time_;
     float max_depth_;
-    bool flip_image_;
+    char kinect_fps_str_[256];
     
     bool kinect_running_;
     

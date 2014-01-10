@@ -67,6 +67,7 @@ namespace app {
 
     // Kinect data
     kinect_interface::KinectInterface* kinect_[MAX_NUM_KINECTS];
+    uint32_t num_kinects_;
     uint8_t rainbowPalletR[256];
     uint8_t rainbowPalletG[256];
     uint8_t rainbowPalletB[256];
@@ -78,8 +79,9 @@ namespace app {
     double frame_time_prev_;
     static uint64_t screenshot_counter_;
     uint64_t depth_frame_number_;
+    int64_t depth_frame_time_;
 
-    jtil::renderer::Texture* depth_tex_;
+    jtil::renderer::Texture* depth_tex_;  // The texture is 
     uint8_t depth_im_[kinect_interface::depth_dim * 3];
 
     void run();

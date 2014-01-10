@@ -12,9 +12,10 @@ kinect_output,                    int,       2
 render_kinect_fps,                bool,      1
 continuous_snapshot,              bool,      0
 cur_kinect,                       int,       0
+stretch_image,                    bool,      0
 
 //, RENDERER
-screen_resolution,                int,       83887104
+screen_resolution,                int,       125830200
 fullscreen,                       bool,      0
 double_buffering,                 bool,      0  
 clear_color,                      Float3,    0.529, 0.808, 0.980
@@ -26,10 +27,10 @@ window_stencil_buffer_bits,       int,       0
 window_rgba_bits,                 int,       8
 render_ui_app,                    bool,      1
 render_ui_renderer,               bool,      0
-render_ui_fps,                    bool,      0
+render_ui_fps,                    bool,      1
 render_output_enum,               int,       0
 light_pass_stencil_opt,           bool,      0
-ssao_on,                          bool,      1
+ssao_on,                          bool,      0
 ssao_sample_radius,               float,     40.0
 ssao_bias,                        float,     0.4
 ssao_intensity,                   float,     3.5
@@ -39,7 +40,7 @@ ssao_number_sample_enum,          int,       0
 ssao_blur_on,                     bool,      0
 global_ambient,                   float,     0.28
 directional_lights,               bool,      0
-spot_lights,                      bool,      1
+spot_lights,                      bool,      0
 point_lights,                     bool,      0
 render_light_volumes,             bool,      0
 render_light_sources,             bool,      0
@@ -49,7 +50,7 @@ ui_render_crosshairs,             bool,      0
 ui_crosshairs_size,               float,     0.025
 ui_starting_height,               int,       600
 ui_starting_width,                int,       320
-vsm_on,                           bool,      1 
+vsm_on,                           bool,      0 
 vsm_resolution_enum,              int,       2
 vsm_default_softness,             float,     0.2
 vsm_cascade_split_log_factor,     float,     0.5
@@ -58,7 +59,7 @@ vsm_overlap,                      float,     0.050
 vsm_depth_epsilon,                float,     0.001	
 vsm_visualize_split,              bool,      0
 vsm_min_variance,                 float,     0.0001
-vsm_soft_shadows,                 bool,      1
+vsm_soft_shadows,                 bool,      0
 vsm_lbr_amount,                   float,     0.3
 force_texture_array_disable,      bool,      0
 render_wireframe,                 bool,      0
@@ -72,7 +73,7 @@ motion_blur_on,                   bool,      0
 motion_blur_max_samples,          int,       13
 motion_blur_depth_cutoff,         float,     5.0
 motion_blur_target_fps,           float,     60
-motion_blur_hq_boned,             bool,      1
+motion_blur_hq_boned,             bool,      0
 flashlight_on,                    bool,      0
 flashlight_dist,                  float,     40.0
 flashlight_outer_fov,             float,     20.0

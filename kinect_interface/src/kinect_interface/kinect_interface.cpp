@@ -61,7 +61,7 @@ namespace kinect_interface {
     device_initialized_ = false;
     kinect_sensor_ = NULL;
     frame_reader_ = NULL;
-    depth_ = new RGBQUAD[depth_w * depth_h];
+    depth_ = new uint16_t[depth_w * depth_h];
     depth_frame_number_ = 0;
 
     init(device_id);
@@ -187,13 +187,13 @@ namespace kinect_interface {
     // IColorFrame* color_frame;
     // IInfraredFrame* infrared_frame;
     IDepthFrame* depth_frame;
+    int64_t last_frame_time = 0;
+    int64_t frame_accum = 0;
+    int64_t frame_counter = 0;
 
     while (kinect_running_) {
       frame = NULL;
       HRESULT hr = frame_reader_->AcquireLatestFrame(&frame);
-
-      std::cout << "hr = " << hr << std::endl;
-      // TODO: Is the above blocking?????
 
       // Check if we're running again.
       if (!kinect_running_) {
@@ -203,26 +203,70 @@ namespace kinect_interface {
       if (SUCCEEDED(hr) && frame != NULL) {
         data_lock_.lock();
 
-        // Get the depth frame
+        // Get a reference to the depth frame
         IDepthFrameReference* frame_ref = NULL;
         CALL_SAFE(frame->get_DepthFrameReference(&frame_ref), 
           "could not get depth frame reference");
         CALL_SAFE(frame_ref->AcquireFrame(&depth_frame), 
           "could not aquire depth frame");
-        //CALL_SAFE(depth_frame->AccessUnderlyingBuffer( &depthBufferSize, 
-        //  &depthBuffer ), "could not access underlying depth frame buffer");
-        
-        depth_frame_number_++;
+        uint32_t depth_buffer_size;
+        uint16_t* internal_depth_buffer;
+        CALL_SAFE(depth_frame->AccessUnderlyingBuffer(&depth_buffer_size, 
+          &internal_depth_buffer ), 
+          "could not access underlying depth frame buffer");
 
-        if ( frame_ref != 0 ) {
+        // Now copy the internal data to our data structure
+        if (depth_buffer_size != depth_dim) {
+          throw std::wruntime_error("KinectInterface::kinectUpdateThread() - "
+            "ERROR: Depth buffer size does not match!");
+        }
+        memcpy(depth_, internal_depth_buffer, sizeof(depth_[0]) * depth_dim);
+        depth_frame_number_++;
+        depth_frame->get_RelativeTime(&depth_frame_time_);
+
+        // Update the fps string
+        frame_accum += (depth_frame_time_ - last_frame_time);
+        last_frame_time = depth_frame_time_;
+        frame_counter++;
+        if (frame_accum > 10000000) {
+          std::cout << "frame_accum = " << frame_accum << std::endl;
+          std::cout << "frame_counter = " << frame_counter << std::endl;
+          // Update every 1 second
+#if defined(WIN32) || defined(_WIN32)
+#pragma warning(push)
+#pragma warning(disable:4996)
+#endif
+          float fps = 1e7f * (float)frame_counter / (float)frame_accum;
+          snprintf(kinect_fps_str_, 255, "%.2f", fps);
+          frame_counter = 0;
+          frame_accum = 0;
+#if defined(WIN32) || defined(_WIN32)
+#pragma warning(pop)
+#endif
+        }
+
+
+        if (depth_frame != NULL) {
+          depth_frame->Release();
+          depth_frame = NULL;
+        }
+        if (frame_ref != NULL) {
           frame_ref->Release();
           frame_ref = NULL;
         }
-      
+        if (frame != NULL) {
+          frame->Release();
+          frame = NULL;
+        }
         data_lock_.unlock();
-      }
 
-      std::this_thread::yield();
+        // New data, yield to let someone else do work
+        std::this_thread::yield();
+      } else {
+        // No new data
+        // Sleep rather than yield (much less aggressive)
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      }
 
     }  // end while (kinect_running_)
     cout << "kinectUpdateThread shutting down..." << endl;
@@ -236,6 +280,10 @@ namespace kinect_interface {
     data_lock_.unlock();
     cout << "kinectUpdateThread shutdown requested..." << std::endl;
     kinect_thread_.join();
+  }
+
+  const uint16_t* KinectInterface::depth() const {
+    return depth_;
   }
 
 }  // namespace kinect
