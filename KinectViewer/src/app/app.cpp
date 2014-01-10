@@ -57,6 +57,7 @@ namespace app {
       kinect_[i] = NULL;
     }
     depth_tex_ = NULL;
+    rgb_tex_ = NULL;
     tp_ = NULL;
     threads_finished_ = false;
     data_save_cbs_ = NULL;
@@ -73,8 +74,11 @@ namespace app {
     }
     SAFE_DELETE(clk_);
     SAFE_DELETE(depth_tex_);
+    SAFE_DELETE(rgb_tex_);
     SAFE_DELETE(data_save_cbs_);
-    tp_->stop();
+    if (tp_) {
+      tp_->stop();
+    }
     SAFE_DELETE(tp_);
     Renderer::ShutdownRenderer();
     jtorch::ShutdownJTorch();
@@ -133,6 +137,9 @@ namespace app {
     }
 
     initRainbowPallet();
+
+    bool pause_stream = false;
+    SET_SETTING("pause_stream", bool, pause_stream);
   }
 
   void App::killApp() {
@@ -159,14 +166,12 @@ namespace app {
     Renderer::g_renderer()->getMousePosition(g_app_->mouse_pos_);
     Renderer::g_renderer()->registerCloseWndCB(App::closeWndCB);
 
-    // Set the camera to the kinect camera parameters
-    // TODO: Get the REAL FOV...
-    float fov_vert_deg = 80;
+    // Set the camera to the camera parameters
     float view_plane_near = -1;
     float view_plane_far = -5000;
-    SET_SETTING("fov_deg", float, fov_vert_deg);
     SET_SETTING("view_plane_near", float, view_plane_near);
     SET_SETTING("view_plane_far", float, view_plane_far);
+    SET_SETTING("fov_deg", float, depth_fov);
 
     g_app_->addStuff();
   }
@@ -209,8 +214,10 @@ namespace app {
       double dt = frame_time_ - frame_time_prev_;
 
       int kinect_output = 0, cur_kinect = 0, label_type_enum = 0;
+      bool pause_stream;
       GET_SETTING("cur_kinect", int, cur_kinect);
       GET_SETTING("kinect_output", int, kinect_output);
+      GET_SETTING("pause_stream", bool, pause_stream);
 
       bool new_data = false;
       if (kinect_[cur_kinect]->depth_frame_number() > depth_frame_number_) {
@@ -218,13 +225,15 @@ namespace app {
       }
 
       // Create the image data (in RGB)
-      if (new_data) {
+      if (new_data && !pause_stream) {
         kinect_[cur_kinect]->lockData();
         switch (kinect_output) {
         case OUTPUT_RGB:
-          // TODO: Set this properly
-        case OUTPUT_RGB_REGISTERED:
-          // TODO: Set this properly
+          {
+            const uint8_t* rgb = kinect_[cur_kinect]->rgb();
+            memcpy(rgb_im_, rgb, sizeof(rgb_im_[0]) * rgb_dim * 3);
+          }
+          break;
         case OUTPUT_BLUE:
           {
             // Set to 0.15f, 0.15f, 0.3f
@@ -290,6 +299,12 @@ namespace app {
             }
           }
           break;
+          case OUTPUT_DEPTH_COLORED:
+          {
+            memcpy(depth_im_, kinect_[cur_kinect]->depth_colored(), 
+              sizeof(depth_im_[0]) * depth_dim * 3);
+          }
+          break;
         }  // switch (kinect_output)
 
         // Update the frame number and timestamp
@@ -312,12 +327,16 @@ namespace app {
         Renderer::g_renderer()->setBackgroundTextureStrech(stretch_image);
         switch (kinect_output) {
         case OUTPUT_RGB:
-        case OUTPUT_RGB_REGISTERED:
-          // TODO: Set these properly
+          jtil::image_util::FlipImageVertInPlace<uint8_t>(rgb_im_,
+            rgb_w, rgb_h, 3);
+          rgb_tex_->flagDirty();
+          Renderer::g_renderer()->setBackgroundTexture(rgb_tex_);
+          break;
         case OUTPUT_DEPTH:
         case OUTPUT_DEPTH_ALL_VIEWS:
         case OUTPUT_DEPTH_RAINBOW:
         case OUTPUT_BLUE:
+        case OUTPUT_DEPTH_COLORED:
           jtil::image_util::FlipImageVertInPlace<uint8_t>(depth_im_,
             depth_w, depth_h, 3);
           depth_tex_->flagDirty();
@@ -352,7 +371,62 @@ namespace app {
   }
 
   void App::moveCamera(double dt) {
-
+    renderer::Camera* camera = Renderer::g_renderer()->camera();
+    
+    // Update the mouse position
+    mouse_pos_old_.set(mouse_pos_);
+    bool in_screen = Renderer::g_renderer()->getMousePosition(mouse_pos_);
+    bool left_mouse_button = Renderer::g_renderer()->getMouseButtonStateLeft();
+    
+    // Rotate the camera if user wants to
+    if (!math::Double2::equal(mouse_pos_, mouse_pos_old_) && 
+        in_screen && left_mouse_button) {
+      float dx = static_cast<float>(mouse_pos_[0] - mouse_pos_old_[0]);
+      float dy = static_cast<float>(mouse_pos_[1] - mouse_pos_old_[1]);
+      float camera_speed_rotation;
+      GET_SETTING("camera_speed_rotation", float, camera_speed_rotation);
+      camera->rotateCamera(dx * camera_speed_rotation,
+                           dy * camera_speed_rotation);
+    }
+    
+    // Move the camera if the user wants to
+    Float3 cur_dir(0.0f, 0.0f, 0.0f);
+    bool W = Renderer::g_renderer()->getKeyState(static_cast<int>('W'));
+    bool A = Renderer::g_renderer()->getKeyState(static_cast<int>('A'));
+    bool S = Renderer::g_renderer()->getKeyState(static_cast<int>('S'));
+    bool D = Renderer::g_renderer()->getKeyState(static_cast<int>('D'));
+    bool Q = Renderer::g_renderer()->getKeyState(static_cast<int>('Q'));
+    bool E = Renderer::g_renderer()->getKeyState(static_cast<int>('E'));
+    bool LShift = Renderer::g_renderer()->getKeyState(KEY_LSHIFT);
+    if (W) {
+      cur_dir[2] -= 1.0f;
+    } 
+    if (S) {
+      cur_dir[2] += 1.0f;
+    }
+    if (A) {
+      cur_dir[0] -= 1.0f;
+    }
+    if (D) {
+      cur_dir[0] += 1.0f;
+    }
+    if (Q) {
+      cur_dir[1] -= 1.0f;
+    }
+    if (E) {
+      cur_dir[1] += 1.0f;
+    }
+    if (!(cur_dir[0] == 0.0f && cur_dir[1] == 0.0f && cur_dir[2] == 0.0f)) {
+      cur_dir.normalize();
+      float camera_speed = 1.0f;
+      if (LShift) {
+        GET_SETTING("camera_speed_fast", float, camera_speed);
+      } else {
+        GET_SETTING("camera_speed", float, camera_speed);        
+      }
+      Float3::scale(cur_dir, camera_speed * static_cast<float>(dt));
+      camera->moveCamera(cur_dir);      
+    }
   }
 
   void App::executeThreadCallbacks(jtil::threading::ThreadPool* tp, 
@@ -381,6 +455,11 @@ namespace app {
       GL_UNSIGNED_BYTE, (unsigned char*)depth_im_, false,
       TextureWrapMode::TEXTURE_CLAMP, TextureFilterMode::TEXTURE_LINEAR, 
       false);
+    memset(rgb_im_, 0, sizeof(rgb_im_[0]) * rgb_dim * 3);
+    rgb_tex_ = new Texture(GL_RGB, rgb_w, rgb_h, GL_RGB, 
+      GL_UNSIGNED_BYTE, (unsigned char*)rgb_im_, false,
+      TextureWrapMode::TEXTURE_CLAMP, TextureFilterMode::TEXTURE_LINEAR, 
+      false);
     
     // Transfer ownership of the texture to the renderer
     Renderer::g_renderer()->setBackgroundTexture(depth_tex_);
@@ -392,14 +471,14 @@ namespace app {
     ui->addSelectbox("kinect_output", "Kinect Output");
     ui->addSelectboxItem("kinect_output", 
       ui::UIEnumVal(OUTPUT_RGB, "RGB / IR"));
-    ui->addSelectboxItem("kinect_output",
-      ui::UIEnumVal(OUTPUT_RGB_REGISTERED, "RGB Registered"));
     ui->addSelectboxItem("kinect_output", 
       ui::UIEnumVal(OUTPUT_DEPTH, "Depth"));
     ui->addSelectboxItem("kinect_output",
       ui::UIEnumVal(OUTPUT_DEPTH_ALL_VIEWS, "Depth (all views)"));
     ui->addSelectboxItem("kinect_output", 
       ui::UIEnumVal(OUTPUT_DEPTH_RAINBOW, "Depth Rainbow"));
+    ui->addSelectboxItem("kinect_output",
+      ui::UIEnumVal(OUTPUT_DEPTH_COLORED, "Depth Colored"));
     ui->addSelectboxItem("kinect_output",
       ui::UIEnumVal(OUTPUT_BLUE, "Blue Background"));
 
@@ -417,6 +496,7 @@ namespace app {
     }
 
     ui->addCheckbox("stretch_image", "Stretch Image");
+    ui->addCheckbox("pause_stream", "Pause Stream");
 
     ui->createTextWindow("kinect_fps_wnd", " ");
     jtil::math::Int2 pos(400, 0);
@@ -437,36 +517,43 @@ namespace app {
     light_spot_vsm->cvsm_count(1);
     Renderer::g_renderer()->addLight(light_spot_vsm);
     */
+
+    GeometryInstance* model; 
+    model = Renderer::g_renderer()->geometry_manager()->makeTorusKnot(lred, 7, 64, 512);
+    model->mat().leftMultTranslation(0.0f, 0.0f, -10.0f);
+    Renderer::g_renderer()->geometry_manager()->scene_root()->addChild(model);
+
+    geom_inst_pts_ = 
+      Renderer::g_renderer()->geometry_manager()->createDynamicGeometry(
+      "PointCloud");
+    Renderer::g_renderer()->scene_root()->addChild(geom_inst_pts_);
+    geom_pts_ = geom_inst_pts_->geom();
+    geom_pts_->primative_type() = VERT_POINTS;
+    geom_pts_->addVertexAttribute(VERTATTR_POS);
+    geom_pts_->addVertexAttribute(VERTATTR_COL);
+    geom_pts_->addPos(Float3(0,0,-1000));
+    geom_pts_->addCol(Float3(1,0,0));
+    geom_pts_->sync();
   }
 
   void App::screenshotCB() {
-    // TODO: Finish this
-    /*
-    bool sync_ir_stream;
     int cur_kinect = 0;
-    GET_SETTING("sync_ir_stream", bool, sync_ir_stream);
     GET_SETTING("cur_kinect", int, cur_kinect);
     g_app_->kinect_[cur_kinect]->lockData();
     const uint8_t* rgb_src;
-    if (!sync_ir_stream) {
-      rgb_src = g_app_->kinect_[cur_kinect]->rgb();
-    } else {
-      rgb_src = g_app_->kinect_[cur_kinect]->ir();
-    }
+    rgb_src = g_app_->kinect_[cur_kinect]->rgb();
     std::stringstream ss;
     ss << "rgb_screenshot" << g_app_->screenshot_counter_ << ".jpg";
-    jtil::renderer::Texture::saveRGBToFile(ss.str(), rgb_src, src_width, 
-      src_height, true);
+    jtil::renderer::Texture::saveRGBToFile(ss.str(), rgb_src, rgb_w, 
+      rgb_h, true);
     std::cout << "RGB saved to file " << ss.str() << std::endl;
     const uint16_t* depth =  g_app_->kinect_[cur_kinect]->depth();
     ss.str("");
-    ss << "depth_screenshot" << g_app_->screenshot_counter_ << ".jpg";
-    jtil::file_io::SaveArrayToFile<uint16_t>(depth, src_dim, ss.str());
+    ss << "depth_screenshot" << g_app_->screenshot_counter_ << ".bin";
+    jtil::file_io::SaveArrayToFile<uint16_t>(depth, depth_dim, ss.str());
     std::cout << "Depth saved to file " << ss.str() << std::endl;
     g_app_->screenshot_counter_++;
     g_app_->kinect_[cur_kinect]->unlockData();
-    */
-    std::cout << "Screenshot not yet added back." << std::endl;
   }
 
   int App::closeWndCB() {

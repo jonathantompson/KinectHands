@@ -22,16 +22,17 @@ class DebugBuf;
 
 namespace kinect_interface { class KinectInterface; }
 namespace jtil { namespace threading { class ThreadPool; } }
+namespace jtil { namespace renderer { class GeometryInstance; } }
 
 namespace app {
   struct FrameData;
 
   typedef enum {
     OUTPUT_RGB = 0,
-    OUTPUT_RGB_REGISTERED = 1,
-    OUTPUT_DEPTH = 2,
-    OUTPUT_DEPTH_ALL_VIEWS = 3,
-    OUTPUT_DEPTH_RAINBOW = 4,
+    OUTPUT_DEPTH = 1,
+    OUTPUT_DEPTH_ALL_VIEWS = 2,
+    OUTPUT_DEPTH_RAINBOW = 3,
+    OUTPUT_DEPTH_COLORED = 4,
     OUTPUT_BLUE = 5,
   } KinectOutput;
 
@@ -81,8 +82,12 @@ namespace app {
     uint64_t depth_frame_number_;
     int64_t depth_frame_time_;
 
-    jtil::renderer::Texture* depth_tex_;  // The texture is 
+    jtil::renderer::Texture* depth_tex_;
+    jtil::renderer::Texture* rgb_tex_;
     uint8_t depth_im_[kinect_interface::depth_dim * 3];
+    uint8_t rgb_im_[kinect_interface::rgb_dim * 3];
+    jtil::renderer::GeometryInstance* geom_inst_pts_;  // Not owned here!
+    jtil::renderer::Geometry* geom_pts_;
 
     void run();
     void init();
