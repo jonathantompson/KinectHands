@@ -21,7 +21,11 @@ struct IDepthFrameReader;
 struct IColorFrameReader;
 struct ICoordinateMapper;
 struct _ColorSpacePoint;
-struct _CameraSpacePoint;
+struct XYZPoint {  // This is our internal version of CameraSpacePoint
+  float x;
+  float y;
+  float z;
+};
 		
 namespace kinect_interface {
 
@@ -55,7 +59,7 @@ namespace kinect_interface {
     static void getDeviceIDs(jtil::data_str::Vector<std::string>& ids);
 
     const uint8_t* rgb() const;  // NOT THREAD SAFE!  Use lockData()
-    const float* xyz() const;  // NOT THREAD SAFE!  Use lockData()
+    const XYZPoint* xyz() const;  // NOT THREAD SAFE!  Use lockData()
     const uint16_t* depth() const;  // NOT THREAD SAFE!  Use lockData()
     const uint8_t* depth_colored() const;  // NOT THREAD SAFE!  Use lockData()
     const int64_t depth_frame_time() const { return depth_frame_time_; }
@@ -102,7 +106,7 @@ namespace kinect_interface {
     uint16_t* depth_;
     uint8_t* depth_colored_;  // Size of the depth image
     uint8_t* rgb_;  // enough space for 4 channels are allocated, but we only use 3
-    _CameraSpacePoint* xyz_;
+    XYZPoint* xyz_;
     _ColorSpacePoint* uv_depth_2_rgb_;
     uint64_t depth_frame_number_;
     int64_t depth_frame_time_;

@@ -214,10 +214,11 @@ namespace app {
       double dt = frame_time_ - frame_time_prev_;
 
       int kinect_output = 0, cur_kinect = 0, label_type_enum = 0;
-      bool pause_stream;
+      bool pause_stream, render_point_cloud;
       GET_SETTING("cur_kinect", int, cur_kinect);
       GET_SETTING("kinect_output", int, kinect_output);
       GET_SETTING("pause_stream", bool, pause_stream);
+      GET_SETTING("render_point_cloud", bool, render_point_cloud);
 
       bool new_data = false;
       if (kinect_[cur_kinect]->depth_frame_number() > depth_frame_number_) {
@@ -307,11 +308,28 @@ namespace app {
           break;
         }  // switch (kinect_output)
 
+        if (render_point_cloud) {
+          // Copy the data but don't resync the openGL geometry
+          const uint8_t* rgb = kinect_[cur_kinect]->depth_colored();
+          const XYZPoint* xyz = kinect_[cur_kinect]->xyz();
+          for (uint32_t i = 0; i < depth_dim; i++) {
+            geom_pts_->pos()[i].set((float)rgb[i*3] / 255.0f,
+              (float)rgb[i*3+1] / 255.0f, (float)rgb[i*3+2] / 255.0f);
+            geom_pts_->col()[i].set(xyz[i].x, xyz[i].y, xyz[i].z);
+          }
+        }
+
         // Update the frame number and timestamp
         depth_frame_number_ = kinect_[cur_kinect]->depth_frame_number();
         depth_frame_time_ = kinect_[cur_kinect]->depth_frame_time();
+
         kinect_[cur_kinect]->unlockData();
         
+        // resync the openGL geometry
+        if (render_point_cloud) {
+          // geom_pts_->resync();  // TODO: Figure out why this doesn't work.
+        }
+
         // Update the kinect FPS string
         std::stringstream ss;
         for (uint32_t i = 0; i < num_kinects_; i++) {
@@ -355,6 +373,8 @@ namespace app {
       GET_SETTING("render_kinect_fps", bool, render_kinect_fps);
       Renderer::g_renderer()->ui()->setTextWindowVisibility("kinect_fps_wnd",
         render_kinect_fps);
+
+      geom_inst_pts_->render() = render_point_cloud;
 
       Renderer::g_renderer()->renderFrame();
 
@@ -497,10 +517,15 @@ namespace app {
 
     ui->addCheckbox("stretch_image", "Stretch Image");
     ui->addCheckbox("pause_stream", "Pause Stream");
+    ui->addCheckbox("render_point_cloud", "Render Point Cloud");
 
     ui->createTextWindow("kinect_fps_wnd", " ");
     jtil::math::Int2 pos(400, 0);
     ui->setTextWindowPos("kinect_fps_wnd", pos);
+
+    LightDir* light_dir = new LightDir();
+    light_dir->dir_world().set(0, 0, -1);
+    Renderer::g_renderer()->addLight(light_dir);
 
     /*
     LightSpotCVSM* light_spot_vsm = new LightSpotCVSM(Renderer::g_renderer());
@@ -520,7 +545,8 @@ namespace app {
 
     GeometryInstance* model; 
     model = Renderer::g_renderer()->geometry_manager()->makeTorusKnot(lred, 7, 64, 512);
-    model->mat().leftMultTranslation(0.0f, 0.0f, -10.0f);
+    model->mat().leftMultScale(100, 100, 100);
+    model->mat().leftMultTranslation(0.0f, 0.0f, 1000.0f);
     Renderer::g_renderer()->geometry_manager()->scene_root()->addChild(model);
 
     geom_inst_pts_ = 
@@ -529,10 +555,17 @@ namespace app {
     Renderer::g_renderer()->scene_root()->addChild(geom_inst_pts_);
     geom_pts_ = geom_inst_pts_->geom();
     geom_pts_->primative_type() = VERT_POINTS;
+    geom_pts_->point_size() = 100.0;
     geom_pts_->addVertexAttribute(VERTATTR_POS);
     geom_pts_->addVertexAttribute(VERTATTR_COL);
-    geom_pts_->addPos(Float3(0,0,-1000));
-    geom_pts_->addCol(Float3(1,0,0));
+    geom_pts_->pos().capacity(depth_dim);
+    geom_pts_->pos().resize(depth_dim);
+    geom_pts_->col().capacity(depth_dim);
+    geom_pts_->col().resize(depth_dim);
+    for (uint32_t i = 0; i < depth_dim; i++) {
+      geom_pts_->pos()[i].set(0,0,-std::numeric_limits<float>::infinity());
+      geom_pts_->col()[i].set(0,0,0);
+    }
     geom_pts_->sync();
   }
 

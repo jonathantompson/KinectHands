@@ -74,7 +74,7 @@ namespace kinect_interface {
     rgb_ = new uint8_t[rgb_dim * 4];  // enough space for 4 channels are allocated, but we only use 3
     uv_depth_2_rgb_ = new ColorSpacePoint[depth_dim];
     depth_colored_ = new uint8_t[depth_dim * 3];
-    xyz_ = new _CameraSpacePoint[depth_dim];
+    xyz_ = new XYZPoint[depth_dim];
     depth_frame_number_ = 0;
     rgb_frame_number_ = 0;
     sync_rgb_ = true;
@@ -300,8 +300,6 @@ namespace kinect_interface {
         last_frame_time = depth_frame_time_;
         frame_counter++;
         if (frame_accum > 10000000) {
-          std::cout << "frame_accum = " << frame_accum << std::endl;
-          std::cout << "frame_counter = " << frame_counter << std::endl;
           // Update every 1 second
 #if defined(WIN32) || defined(_WIN32)
 #pragma warning(push)
@@ -418,8 +416,17 @@ namespace kinect_interface {
       if (new_depth && sync_xyz_) {
         data_lock_.lock();
 
+        // Parainoid check to make sure any padding of XYZPoint is the same as 
+        // CameraSpacePoint (otherwise we might go over the memory bounds).
+        CameraSpacePoint dummy_pt;
+        static_cast<void>(dummy_pt);
+        if (sizeof(dummy_pt) != sizeof(xyz_[0])) {
+          throw std::wruntime_error("KinectInterface::KinectInterface() - "
+            "ERROR: CameraSpacePoint and XYZPoint sizes don't match!");
+        }
+
         CALL_SAFE(coord_mapper_->MapDepthFrameToCameraSpace(depth_dim, 
-          (UINT16*)depth_, depth_dim, xyz_),
+          (UINT16*)depth_, depth_dim, (CameraSpacePoint*)xyz_),
           "could not map depth frame to xyz (camera) space");
 
         data_lock_.unlock();
@@ -451,6 +458,10 @@ namespace kinect_interface {
 
   const uint8_t* KinectInterface::depth_colored() const {
     return depth_colored_;
+  }
+
+  const XYZPoint* KinectInterface::xyz() const {
+    return xyz_;
   }
 
   void KinectInterface::waitForDepthFrame(const uint64_t timeout_ms) {
