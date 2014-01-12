@@ -18,7 +18,7 @@ void main(void) {
                f_clear_color,              // in vec3 diffuse, 
                0,                          // in float spec_intensity, 
                0,                          // in float spec_power, 
-			   0,                          // in float lighting_stencil     
-			   vec2(0,0));                 // in vec2 velocity                          
+			         0,                          // in float lighting_stencil     
+			         vec2(0,0));                 // in vec2 velocity                          
   f_out_0.x = -large_z;  // Force normalized depth to beyond the far plane
 }
