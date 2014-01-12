@@ -313,9 +313,9 @@ namespace app {
           const uint8_t* rgb = kinect_[cur_kinect]->depth_colored();
           const XYZPoint* xyz = kinect_[cur_kinect]->xyz();
           for (uint32_t i = 0; i < depth_dim; i++) {
-            geom_pts_->pos()[i].set((float)rgb[i*3] / 255.0f,
+            geom_pts_->col()[i].set((float)rgb[i*3] / 255.0f,
               (float)rgb[i*3+1] / 255.0f, (float)rgb[i*3+2] / 255.0f);
-            geom_pts_->col()[i].set(xyz[i].x, xyz[i].y, xyz[i].z);
+            geom_pts_->pos()[i].set(xyz[i].x, xyz[i].y, xyz[i].z);
           }
         }
 
@@ -327,7 +327,7 @@ namespace app {
         
         // resync the openGL geometry
         if (render_point_cloud) {
-          // geom_pts_->resync();  // TODO: Figure out why this doesn't work.
+          geom_pts_->resync();  // TODO: Figure out why this doesn't work.
         }
 
         // Update the kinect FPS string
@@ -543,19 +543,25 @@ namespace app {
     Renderer::g_renderer()->addLight(light_spot_vsm);
     */
 
+    /*
     GeometryInstance* model; 
     model = Renderer::g_renderer()->geometry_manager()->makeTorusKnot(lred, 7, 64, 512);
     model->mat().leftMultScale(100, 100, 100);
     model->mat().leftMultTranslation(0.0f, 0.0f, 1000.0f);
     Renderer::g_renderer()->geometry_manager()->scene_root()->addChild(model);
+    */
 
     geom_inst_pts_ = 
       Renderer::g_renderer()->geometry_manager()->createDynamicGeometry(
       "PointCloud");
     Renderer::g_renderer()->scene_root()->addChild(geom_inst_pts_);
+    geom_inst_pts_->mat().leftMultScale(1000.0f, 1000.0f, 1000.0f);
     geom_pts_ = geom_inst_pts_->geom();
     geom_pts_->primative_type() = VERT_POINTS;
-    geom_pts_->point_size() = 100.0;
+    float point_cloud_size;
+    GET_SETTING("point_cloud_size", float, point_cloud_size);
+    geom_inst_pts_->point_size() = point_cloud_size;
+    geom_inst_pts_->apply_lighting() = false;
     geom_pts_->addVertexAttribute(VERTATTR_POS);
     geom_pts_->addVertexAttribute(VERTATTR_COL);
     geom_pts_->pos().capacity(depth_dim);
