@@ -37,7 +37,7 @@ namespace hand_detector {
     const int32_t width, const int32_t height, const int32_t index) {
     float hist[NUM_LABELS];
 
-    if (image_data[index] == 0 || image_data[index] >= GDT_MAX_DIST) {
+    if (image_data[index] == 0 || image_data[index] >= max_depth) {
       label_data[index] = 0;
     } else {
       // For each tree, evaluate the pixel adding to the accumulated histogram
@@ -90,7 +90,7 @@ namespace hand_detector {
         }
       }
       label_data[index] = pixel_label;
-    }  // if (image_data[index] == 0 || image_data[index] >= GDT_MAX_DIST)
+    }  // if (image_data[index] == 0 || image_data[index] >= max_depth)
   }
 
 };  // namespace hand_detector

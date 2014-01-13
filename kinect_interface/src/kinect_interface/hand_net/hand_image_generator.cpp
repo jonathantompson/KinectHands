@@ -136,7 +136,7 @@ namespace hand_net {
   void HandImageGenerator::createLabelFromSyntheticDepth(const float* depth, 
     uint8_t* label) {
     for (uint32_t i = 0; i < depth_dim; i++) {
-      label[i] = (depth[i] > EPSILON && depth[i] < GDT_MAX_DIST) ? 1 : 0;
+      label[i] = (depth[i] > EPSILON && depth[i] < max_depth) ? 1 : 0;
     }
   }
 

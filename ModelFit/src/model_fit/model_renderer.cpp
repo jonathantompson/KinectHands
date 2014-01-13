@@ -25,7 +25,6 @@
 #include "renderer/shader/shader.h"
 #include "renderer/shader/shader_program.h"
 #include "renderer/camera/camera.h"
-#include "kinect_interface/open_ni_funcs.h"
 #include "jtil/windowing/window.h"
 #include "jtil/file_io/file_io.h"
 #include "jtil/data_str/vector.h"
@@ -41,7 +40,6 @@ using std::string;
 using std::runtime_error;
 using std::cout;
 using std::endl;
-using kinect_interface::OpenNIFuncs;
 using namespace renderer;
 
 namespace model_fit {

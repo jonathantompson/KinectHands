@@ -2,6 +2,33 @@
 //  kinect_interface.h
 //
 //  Jonathan Tompson
+//
+//  USAGE:
+//
+//  using namespace kinect_interface;
+//  jtil::data_str::Vector<KinectInterface*> kinects_;
+//  jtil::data_str::Vector<std::string> ids;
+//
+//  // Init the devices
+//  KinectInterface::getDeviceIDs(ids);
+//  for (uint32_t i = 0; i < ids.size(); i++) {
+//    kinects_.push_back(new KinectInterface(ids[i]));
+//  }
+//
+//  // Run the app
+//  while (running) {
+//    for (uint32_t i = 0; i < kinects_.size(); i++) {
+//      kinect_[i]->lockData();
+//      // <GET ALL THE DATA HERE>
+//      kinect_[i]->unlockData();
+//    }
+//  }
+//  
+//  // Shutdown the devices
+//  for (uint32_t i = 0; i < kinects_.size(); i++) {
+//    kinect_[i]->shutdownKinect(); 
+//    delete kinect_[i];
+//  }
 // 
 
 #pragma once
@@ -20,15 +47,17 @@ struct IKinectSensor;
 struct IDepthFrameReader;
 struct IColorFrameReader;
 struct ICoordinateMapper;
-struct XYZPoint {  // This is our internal version of CameraSpacePoint
+// To avoid exposing the structs of the windows SDK I escentially re-define
+// them here.  Note that at runtime we check the sizes of the two types to make
+// sure they're the same.
+struct XYZPoint {
   float x;
   float y;
   float z;
 };
-struct XYPoint {  // This is our internal version of DepthSpacePoint
+struct XYPoint {
   float x;
   float y;
-  float z;
 };
 		
 namespace kinect_interface {

@@ -27,6 +27,7 @@
 #include "kinect_interface/hand_detector/evaluate_decision_forest.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
 #include "kinect_interface/hand_detector/depth_image_data.h"
+#include "kinect_interface/kinect_interface.h"  // For max_depth
 #include "jtil/data_str/circular_buffer.h"
 
 using std::string;
@@ -82,7 +83,7 @@ namespace hand_detector {
       // Get the label distribution for this image
       for (int32_t pix = 0; pix < im_size; pix++) {
         int32_t cur_index = (i * im_size) + pix;
-        if (data.image_data[cur_index] != 0 && data.image_data[cur_index] < GDT_MAX_DIST) {
+        if (data.image_data[cur_index] != 0 && data.image_data[cur_index] < max_depth) {
           uint8_t cur_label = data.label_data[cur_index];
   #if defined(DEBUG) || defined(_DEBUG)
           if (cur_label >= NUM_LABELS) {
@@ -112,7 +113,7 @@ namespace hand_detector {
       // temporary occ list for it
       for (int32_t pix = 0; pix <im_size; pix++) {
         int32_t cur_index = (i * im_size) + pix;
-        if (data.image_data[cur_index] != 0 && data.image_data[cur_index] < GDT_MAX_DIST) {
+        if (data.image_data[cur_index] != 0 && data.image_data[cur_index] < max_depth) {
           uint8_t cur_label = data.label_data[cur_index];
           temp_space[(cur_label * im_size) + label_count_cur_im[cur_label]] = cur_index;
           label_count_cur_im[cur_label]++;

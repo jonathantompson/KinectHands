@@ -146,15 +146,15 @@ namespace hand_detector {
         src_width_, src_height_, 2);
       for (int32_t v = 0; v < (int32_t)src_height_; v++) {
         for (int32_t u = 0; u < (int32_t)src_width_; u++) {
-          cur_depth_min = GDT_MAX_DIST;
+          cur_depth_min = max_depth;
           cur_depth_max = 0;
           if (labels_filtered_[index] == 1 && depth_in[index] > 0 || 
-            depth_in[index] < GDT_MAX_DIST) {
+            depth_in[index] < max_depth) {
             for (int32_t v_off = v - disc_filt_rad; v_off <= v + disc_filt_rad; v_off++) {
               for (int32_t u_off = u - disc_filt_rad; u_off <= u + disc_filt_rad; u_off++) {   
                 int32_t ioff = v_off * src_width_ + u_off;
-                if (depth_in[ioff] <= 0 || depth_in[ioff] >= GDT_MAX_DIST) {
-                    cur_depth_max = GDT_MAX_DIST;
+                if (depth_in[ioff] <= 0 || depth_in[ioff] >= max_depth) {
+                    cur_depth_max = max_depth;
                     cur_depth_min = 0;
                 } else {
                   cur_depth_max = std::max<int16_t>(cur_depth_max, depth_in[ioff]);
@@ -234,19 +234,19 @@ namespace hand_detector {
     if (DT_DOWNSAMPLE > 1) {
       DownsampleImageWithoutNonZeroPixelsAndBackground<int16_t>(
         depth_downsampled_, depth_, src_width_, src_height_, DT_DOWNSAMPLE,
-        GDT_MAX_DIST);
+        max_depth);
       for (int32_t i = 0; i < down_height_*down_width_; i++) {
-        if (depth_downsampled_[i] > GDT_INNER_DIST) {
-          depth_downsampled_[i] = GDT_MAX_DIST+1;
+        if (depth_downsampled_[i] > max_depth) {
+          depth_downsampled_[i] = max_depth+1;
         }
       }
     } else {
       memcpy(depth_downsampled_, depth_, 
         down_width_ * down_height_ * sizeof(depth_downsampled_[0]));
       for (int32_t i = 0; i < down_width_ * down_height_; i++) {
-        if (depth_downsampled_[i] > GDT_INNER_DIST ||
+        if (depth_downsampled_[i] > max_depth ||
           depth_downsampled_[i] == 0) {
-            depth_downsampled_[i] = GDT_MAX_DIST + 1;
+            depth_downsampled_[i] = max_depth + 1;
         }
       }  
     }
@@ -268,7 +268,7 @@ namespace hand_detector {
     ShrinkFilter<uint8_t>(tmp, src, w, h, 
       stage1_shrink_filter_radius_);
     MedianLabelFilter<uint8_t, int16_t>(dst, tmp, depth, w, h, 
-      stage2_med_filter_radius_, NUM_LABELS, GDT_MAX_DIST);
+      stage2_med_filter_radius_, NUM_LABELS, max_depth);
     GrowFilter<uint8_t>(tmp, dst, w, h, stage3_grow_filter_radius_);
     // Now swap the buffers
     uint8_t* tmp_local = tmp;

@@ -159,8 +159,7 @@ namespace hand_net {
     // Initialize the camera
     FloatQuat eye_rot; eye_rot.identity();
     Float3 eye_pos(0, 0, 0);
-    float fov_vert_deg = 360.0f * OpenNIFuncs::fVFOV_primesense_109 / 
-      (2.0f * (float)M_PI);
+    float fov_vert_deg = kinect_interface::depth_fov;
     camera_ = new jtil::renderer::Camera(eye_rot, eye_pos, depth_w, 
       depth_h, fov_vert_deg, -10.0f, -3000.0f);
     camera_->updateProjection();

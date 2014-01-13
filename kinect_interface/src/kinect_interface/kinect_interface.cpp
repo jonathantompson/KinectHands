@@ -201,11 +201,11 @@ namespace kinect_interface {
     static_cast<void>(dummy_2pt_c);
     if (sizeof(dummy_2pt_d) != sizeof(uv_tmp_[0])) {
       throw std::wruntime_error("KinectInterface::KinectInterface() - "
-        "ERROR: CameraSpacePoint and XYZPoint sizes don't match!");
+        "ERROR: DepthSpacePoint and XYPoint sizes don't match!");
     }
     if (sizeof(dummy_2pt_c) != sizeof(uv_depth_2_rgb_[0])) {
       throw std::wruntime_error("KinectInterface::KinectInterface() - "
-        "ERROR: CameraSpacePoint and XYZPoint sizes don't match!");
+        "ERROR: CameraSpacePoint and XYPoint sizes don't match!");
     }
 
     device_initialized_ = true;
@@ -278,7 +278,7 @@ namespace kinect_interface {
     int64_t frame_counter = 0;
 
     while (kinect_running_) {
-      waitForDepthFrame();  // Blocking until ready
+      waitForDepthFrame(2000);  // Blocking until ready with 2s timeout
 
       // Check if we're running again (early out opportunity)
       if (!kinect_running_) {

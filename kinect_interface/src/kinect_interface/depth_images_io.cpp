@@ -209,7 +209,7 @@ namespace kinect_interface {
         // Downsample but ignore 0 or background pixel values when filtering
         DownsampleImageWithoutNonZeroPixelsAndBackground<int16_t>(
           image_dst, cur_image_data, depth_w, depth_h, DT_DOWNSAMPLE,
-          GDT_MAX_DIST);
+          max_depth);
         DownsampleBoolImageConservative<uint8_t>(label_dst, 
           cur_label_data, depth_w, depth_h, DT_DOWNSAMPLE, 0, 1);
 
@@ -317,8 +317,8 @@ namespace kinect_interface {
     }
 
     for (uint32_t i = 0; i < depth_dim; i++) {
-      if (depth_data[i] > GDT_MAX_DIST || depth_data[i] == 0) {
-        depth_data[i] = GDT_MAX_DIST + 1; // Push to background
+      if (depth_data[i] > max_depth || depth_data[i] == 0) {
+        depth_data[i] = max_depth + 1; // Push to background
       }
     }
   }
@@ -729,13 +729,13 @@ namespace kinect_interface {
     //for (uint32_t i = 0; i < depth_dim; i++) {
     //  if (depth_data[i] >= 1500) {
     //    red_pixels[i] = 0;
-    //    depth_data[i] = GDT_MAX_DIST + 1;
+    //    depth_data[i] = max_depth + 1;
     //  }
     //}
 
     // Get rid of zero or large depths
     for (uint32_t i = 0; i < depth_dim; i++) {
-      if (depth_data[i] == 0 || depth_data[i] >= GDT_MAX_DIST) {
+      if (depth_data[i] == 0 || depth_data[i] >= max_depth) {
         red_pixels[i] = 0;
       }
     }
@@ -783,7 +783,7 @@ namespace kinect_interface {
       uint32_t index = 0;
       for (int32_t v = 0; v < depth_h; v++) {
         for (int32_t u = 0; u < depth_w; u++) {
-          cur_depth_min = GDT_MAX_DIST;
+          cur_depth_min = max_depth;
           cur_depth_max = 0;
           if (red_pixels_tmp[index] == 1) {
             for (int32_t v_offset = v - red_discon_filter_rad; 
@@ -1024,7 +1024,7 @@ namespace kinect_interface {
                     int16_t delta_depth = (depth_data[index_offset] - cur_depth);
                     delta_depth = delta_depth < 0 ? -delta_depth : delta_depth;  // abs
                     if ((index_offset == index || delta_depth < BACKGROUND_DEPTH_THRESH_GROW) && 
-                      (depth_data[index_offset] != 0 && depth_data[index_offset] < GDT_MAX_DIST)) {
+                      (depth_data[index_offset] != 0 && depth_data[index_offset] < max_depth)) {
                         new_label_data[index_offset] = 1;
                     }
                   }
