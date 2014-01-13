@@ -1273,8 +1273,8 @@ namespace hand_net {
     uvd[0] = (homog_pos[0] / (homog_pos[3] + LOOSE_EPSILON));  // NDC X: -1 --> 1
     uvd[1] = (homog_pos[1] / (homog_pos[3] + LOOSE_EPSILON));  // NDC Y: -1 --> 1
     // http://www.songho.ca/opengl/gl_transform.html
-    uvd[0] = (float)src_width * 0.5f * (-uvd[0] + 1);  // Window X: 0 --> W
-    uvd[1] = (float)src_height * 0.5f * (uvd[1] + 1);  // Window Y: 0 --> H
+    uvd[0] = (float)depth_w * 0.5f * (-uvd[0] + 1);  // Window X: 0 --> W
+    uvd[1] = (float)depth_h * 0.5f * (uvd[1] + 1);  // Window Y: 0 --> H
     uvd[2] = xyz_pos[2];
   }
 
@@ -1298,8 +1298,8 @@ namespace hand_net {
     uvd[0] = (homog_pos[0] / (homog_pos[3] + (double)EPSILON));  // NDC X: -1 --> 1
     uvd[1] = (homog_pos[1] / (homog_pos[3] + (double)EPSILON));  // NDC Y: -1 --> 1
     // http://www.songho.ca/opengl/gl_transform.html
-    uvd[0] = (double)src_width * 0.5 * (-uvd[0] + 1);  // Window X: 0 --> W
-    uvd[1] = (double)src_height * 0.5 * (uvd[1] + 1);  // Window Y: 0 --> H
+    uvd[0] = (double)depth_w * 0.5 * (-uvd[0] + 1);  // Window X: 0 --> W
+    uvd[1] = (double)depth_h * 0.5 * (uvd[1] + 1);  // Window Y: 0 --> H
     uvd[2] = xyz_pos[2];
   }
 

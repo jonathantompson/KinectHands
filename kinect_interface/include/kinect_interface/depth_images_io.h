@@ -3,6 +3,11 @@
 //
 //  Created by Jonathan Tompson on 7/20/12.
 //
+//  This class is pretty badly written.  There's a lot of hacky, throw-together
+//  code in here.  It's more or less just a container for loading and saving
+//  the depth + rgb files to disk, as well as some processing of them for
+//  RDF training.
+//
 
 #pragma once
 
@@ -13,12 +18,7 @@
 #include "jtil/data_str/vector.h"
 #include "jtil/data_str/pair.h"
 #include "jtil/data_str/triple.h"
-#include "kinect_interface/depth_image_data.h"
-
-#define src_width 640
-#define src_height 480
-#define src_dim (src_width * src_height)
-// Note (width / downsample) && (height / downsample) must be integer values!
+#include "kinect_interface/hand_detector/depth_image_data.h"
 
 #define BACKGROUND_HSV_THRESH 10
 #define BACKGROUND_DEPTH_THRESH 20  // Maximum depth distance
@@ -26,6 +26,8 @@
 #define RED_DISCONT_FILT_DEPTH_THRESH BACKGROUND_DEPTH_THRESH
 #define HAND_PTS_GROW_RAD 2000  // Divided by depth!
 #define N_PTS_FILL 8
+
+namespace kinect_interface { namespace hand_detector { struct DepthImageData; } }
 
 namespace kinect_interface {
 
@@ -47,8 +49,9 @@ namespace kinect_interface {
 
     // This version is for the decision tree forest project
     void LoadDepthImagesFromDirectoryForDT(const std::string& directory, 
-      DepthImageData*& training_data, DepthImageData*& test_data,
-      const float frac_test_data, const uint32_t file_stride);
+      hand_detector::DepthImageData*& training_data, 
+      hand_detector::DepthImageData*& test_data, const float frac_test_data, 
+      const uint32_t file_stride);
 
     // Get a listing of all the files in the directory
     uint32_t GetFilesInDirectory(
@@ -64,7 +67,7 @@ namespace kinect_interface {
       const uint32_t num_dirs, const uint32_t kinect_num, 
       const char* prefix = NULL);
 
-    static void releaseImages(DepthImageData*& data);
+    static void releaseImages(hand_detector::DepthImageData*& data);
 
     // LoadRGBImage - Load only the RGB image
     void LoadRGBImage(const std::string& file, uint8_t* rgb);
@@ -92,10 +95,6 @@ namespace kinect_interface {
     // floodPixel - Manual editing of a label image (by flooding on the depth)
     void floodPixel(uint8_t* label_image, int16_t* depth_image, int u, int v, 
       int32_t radius, int16_t thresh);
-
-    // convertImageDepthToXYZ - Use OpenNI functions for UVD --> XYZ conversion
-    static void convertKinectImageDepthToXYZ(float*& xyz, DepthImageData*& images);
-    static void convertKinectSingleImageToXYZ(float* xyz, int16_t* depth);
 
     // testRedPixel - Single "red-test" of a hsv+rgb pixel (for debugging only)
     static void testRedPixel(uint32_t index, uint8_t* hsv, uint8_t* rgb);

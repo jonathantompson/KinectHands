@@ -10,8 +10,7 @@
 #pragma once
 
 #include "jtil/math/math_types.h"
-#include "kinect_interface/depth_images_io.h"  // for src_dim
-#include "kinect_interface/hand_net/hand_net.h"  // for src_dim
+#include "kinect_interface/hand_net/hand_net.h"
 #include "jtil/threading/callback.h"
 #include "jtil/data_str/vector.h"
 

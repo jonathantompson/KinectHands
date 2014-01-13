@@ -14,8 +14,6 @@
 #include "jtorch/tensor.h"
 #include "kinect_interface/hand_net/hand_model_coeff.h"  // for HandCoeff
 #include "kinect_interface/hand_net/hand_model.h"  // for HandModel
-#include "kinect_interface/open_ni_funcs.h"
-#include "kinect_interface/hand_detector/decision_tree_structs.h"  // GDT_MAX_DIST
 #include "jtil/image_util/image_util.h"
 #include "jtil/data_str/vector.h"
 #include "jtil/exceptions/wruntime_error.h"
@@ -163,8 +161,8 @@ namespace hand_net {
     Float3 eye_pos(0, 0, 0);
     float fov_vert_deg = 360.0f * OpenNIFuncs::fVFOV_primesense_109 / 
       (2.0f * (float)M_PI);
-    camera_ = new jtil::renderer::Camera(eye_rot, eye_pos, src_width, 
-      src_height, fov_vert_deg, -10.0f, -3000.0f);
+    camera_ = new jtil::renderer::Camera(eye_rot, eye_pos, depth_w, 
+      depth_h, fov_vert_deg, -10.0f, -3000.0f);
     camera_->updateProjection();
     camera_->updateView();  // THIS SHOULD BE FIRST, BUT IT BREAKS IF IT IS!
     for (uint32_t i = 0; i < 16; i++) {
@@ -354,12 +352,12 @@ namespace hand_net {
 
       //// Now search for some small window for the minimum point
       //uint32_t v_start = std::max<uint32_t>((uint32_t)floor(v) - RAD_UVD_SEARCH, 0);
-      //uint32_t v_end = std::min<uint32_t>((uint32_t)floor(v) + RAD_UVD_SEARCH, src_height-1);
+      //uint32_t v_end = std::min<uint32_t>((uint32_t)floor(v) + RAD_UVD_SEARCH, depth_h-1);
       //for (uint32_t v_search = v_start; v_search <= v_end; v_search++) {
       //  uint32_t u_start = std::max<uint32_t>((uint32_t)floor(u) - RAD_UVD_SEARCH, 0);
-      //  uint32_t u_end = std::min<uint32_t>((uint32_t)floor(u) + RAD_UVD_SEARCH, src_width-1);
+      //  uint32_t u_end = std::min<uint32_t>((uint32_t)floor(u) + RAD_UVD_SEARCH, depth_w-1);
       //  for (uint32_t u_search = u_start; u_search <= u_end; u_search++) {
-      //    uint32_t index = v_search * src_height + u_search;
+      //    uint32_t index = v_search * depth_h + u_search;
       //    if (depth[index] > 0 && label[index] == 1) {
       //      d = std::min<int16_t>(depth[index], d);
       //    }
@@ -367,9 +365,9 @@ namespace hand_net {
       //}
 
       // No search, just grab the point
-      uint32_t v_ind = std::min<uint32_t>((uint32_t)std::max<int32_t>((int32_t)floor(v), 0), src_height - 1);
-      uint32_t u_ind = std::min<uint32_t>((uint32_t)std::max<int32_t>((int32_t)floor(u), 0), src_width - 1);
-      uint32_t index = v_ind * src_height + u_ind;
+      uint32_t v_ind = std::min<uint32_t>((uint32_t)std::max<int32_t>((int32_t)floor(v), 0), depth_h - 1);
+      uint32_t u_ind = std::min<uint32_t>((uint32_t)std::max<int32_t>((int32_t)floor(u), 0), depth_w - 1);
+      uint32_t index = v_ind * depth_h + u_ind;
       if (label[index] == 1) {
         d = depth[index];
       } 

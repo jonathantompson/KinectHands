@@ -17,6 +17,7 @@
 #include "Kinect.h"
 #include <comdef.h>
 
+#define SAFE_FREE(x) do { if (x != NULL) { free(x); x = NULL; } } while (0);
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 
@@ -70,11 +71,11 @@ namespace kinect_interface {
     depth_frame_reader_ = NULL;
     rgb_frame_reader_ = NULL;
     coord_mapper_ = NULL;
-    depth_ = new uint16_t[depth_dim];
-    rgb_ = new uint8_t[rgb_dim * 4];  // enough space for 4 channels are allocated, but we only use 3
-    uv_depth_2_rgb_ = new ColorSpacePoint[depth_dim];
-    depth_colored_ = new uint8_t[depth_dim * 3];
-    xyz_ = new XYZPoint[depth_dim];
+
+    // NOTE: depth_ and depth_colored_ are actually one contiguous array:
+    // depth_colored_ just indexes into depth_
+    depth_colored_ = (uint8_t*)&depth_[depth_dim];
+
     depth_frame_number_ = 0;
     rgb_frame_number_ = 0;
     sync_rgb_ = true;
@@ -94,11 +95,7 @@ namespace kinect_interface {
   }
 
   KinectInterface::~KinectInterface() {
-    SAFE_DELETE_ARR(depth_);
-    SAFE_DELETE_ARR(uv_depth_2_rgb_);
-    SAFE_DELETE_ARR(rgb_);
-    SAFE_DELETE_ARR(depth_colored_);
-    SAFE_DELETE_ARR(xyz_);
+    // depth_colored_ is part of depth_ so it doesn't get deleted
     if (kinect_sensor_) {
       kinect_sensor_->Close();
       SafeRelease(coord_mapper_);
@@ -188,6 +185,28 @@ namespace kinect_interface {
     // Open the mapper between coordinate systems
     CALL_SAFE(kinect_sensor_->get_CoordinateMapper(&coord_mapper_),
       "could not get the coordinate mapper");
+
+    // Parainoid check to make sure any padding of XYZPoint is the same as 
+    // CameraSpacePoint (otherwise we might go over the memory bounds).
+    CameraSpacePoint dummy_3pt;
+    static_cast<void>(dummy_3pt);
+    if (sizeof(dummy_3pt) != sizeof(xyz_[0])) {
+      throw std::wruntime_error("KinectInterface::KinectInterface() - "
+        "ERROR: CameraSpacePoint and XYZPoint sizes don't match!");
+    }
+    // Do the same for DepthSpacePoints and ColorSpacePoints
+    DepthSpacePoint dummy_2pt_d;
+    ColorSpacePoint dummy_2pt_c;
+    static_cast<void>(dummy_2pt_d);
+    static_cast<void>(dummy_2pt_c);
+    if (sizeof(dummy_2pt_d) != sizeof(uv_tmp_[0])) {
+      throw std::wruntime_error("KinectInterface::KinectInterface() - "
+        "ERROR: CameraSpacePoint and XYZPoint sizes don't match!");
+    }
+    if (sizeof(dummy_2pt_c) != sizeof(uv_depth_2_rgb_[0])) {
+      throw std::wruntime_error("KinectInterface::KinectInterface() - "
+        "ERROR: CameraSpacePoint and XYZPoint sizes don't match!");
+    }
 
     device_initialized_ = true;
     open_kinects_.pushBack(this);
@@ -293,6 +312,7 @@ namespace kinect_interface {
         }
         memcpy(depth_, internal_depth_buffer, sizeof(depth_[0]) * depth_dim);
         depth_frame_number_++;
+        // Kinect time stamp is in units of 100ns (or 0.1us)
         depth_frame->get_RelativeTime(&depth_frame_time_);
 
         // Update the fps string
@@ -389,13 +409,13 @@ namespace kinect_interface {
         data_lock_.lock();
 
         CALL_SAFE(coord_mapper_->MapDepthFrameToColorSpace(depth_dim, 
-          (UINT16*)depth_, depth_dim, uv_depth_2_rgb_),
+          (UINT16*)depth_, depth_dim, (ColorSpacePoint*)uv_depth_2_rgb_),
           "could not map depth frame to rgb space");
         for (uint32_t i = 0; i < depth_dim; i++) {
-          ColorSpacePoint* uv = &uv_depth_2_rgb_[i];
+          XYPoint* uv = &uv_depth_2_rgb_[i];
           // make sure the depth pixel maps to a valid point in color space
-          int32_t rgb_u = (int32_t)(floor(uv->X + 0.5));
-          int32_t rgb_v = (int32_t)(floor(uv->Y + 0.5));
+          int32_t rgb_u = (int32_t)(floor(uv->x + 0.5));
+          int32_t rgb_v = (int32_t)(floor(uv->y + 0.5));
           if ((rgb_u >= 0) && (rgb_u < (int32_t)rgb_w) && 
             (rgb_v >= 0) && (rgb_v < (int32_t)rgb_h)) {
             uint32_t isrc = rgb_v * rgb_w + rgb_u;
@@ -416,18 +436,7 @@ namespace kinect_interface {
       if (new_depth && sync_xyz_) {
         data_lock_.lock();
 
-        // Parainoid check to make sure any padding of XYZPoint is the same as 
-        // CameraSpacePoint (otherwise we might go over the memory bounds).
-        CameraSpacePoint dummy_pt;
-        static_cast<void>(dummy_pt);
-        if (sizeof(dummy_pt) != sizeof(xyz_[0])) {
-          throw std::wruntime_error("KinectInterface::KinectInterface() - "
-            "ERROR: CameraSpacePoint and XYZPoint sizes don't match!");
-        }
-
-        CALL_SAFE(coord_mapper_->MapDepthFrameToCameraSpace(depth_dim, 
-          (UINT16*)depth_, depth_dim, (CameraSpacePoint*)xyz_),
-          "could not map depth frame to xyz (camera) space");
+        convertDepthFrameToXYZ(depth_dim, depth_, xyz_);
 
         data_lock_.unlock();
       }
@@ -467,14 +476,22 @@ namespace kinect_interface {
   void KinectInterface::waitForDepthFrame(const uint64_t timeout_ms) {
     HANDLE hEvent1 = CreateEvent(NULL,TRUE,FALSE, L"FrameReady");
     depth_frame_reader_->SubscribeFrameArrived((WAITABLE_HANDLE*)&hEvent1);
-    WaitForSingleObject(hEvent1, (DWORD)timeout_ms);
+    if (timeout_ms == -1) {
+      WaitForSingleObject(hEvent1, INFINITE);
+    } else {
+      WaitForSingleObject(hEvent1, (DWORD)timeout_ms);
+    }
     ResetEvent(hEvent1);
   }
 
   void KinectInterface::waitForRGBFrame(const uint64_t timeout_ms) {
     HANDLE hEvent1 = CreateEvent(NULL,TRUE,FALSE, L"FrameReady");
     rgb_frame_reader_->SubscribeFrameArrived((WAITABLE_HANDLE*)&hEvent1);
-    WaitForSingleObject(hEvent1, (DWORD)timeout_ms);
+    if (timeout_ms == -1) {
+      WaitForSingleObject(hEvent1, INFINITE);
+    } else {
+      WaitForSingleObject(hEvent1, (DWORD)timeout_ms);
+    }
     ResetEvent(hEvent1);
   }
 
@@ -493,6 +510,57 @@ namespace kinect_interface {
   void KinectInterface::setSyncXYZ(const bool sync_xyz) {
     sync_xyz_ = sync_xyz;
   }
+
+  void KinectInterface::convertDepthFrameToXYZ(const uint32_t n_pts,
+    const uint16_t* depth, XYZPoint* xyz) {
+    CALL_SAFE(coord_mapper_->MapDepthFrameToCameraSpace(n_pts, 
+      (UINT16*)depth, n_pts, (CameraSpacePoint*)xyz),
+      "could not map depth frame to xyz (camera) space");
+  }
+
+  void KinectInterface::convertXYZToDepthSpace(const uint32_t n_pts, 
+    const XYZPoint* xyz, XYPoint* uv_pos) {
+    CALL_SAFE(coord_mapper_->MapCameraPointsToDepthSpace(n_pts, 
+      (CameraSpacePoint*)xyz, n_pts, (DepthSpacePoint*)uv_pos),
+      "could not map xyz (camera) to depth space");
+  }
+
+ void KinectInterface::convertUVDToXYZ(const uint32_t n_pts, const float* uvd, 
+   float* xyz) {
+   // Copy the input data into Microsoft's structure
+   for (uint32_t i = 0; i < depth_dim; i++) {
+     uv_tmp_[i].x = uvd[i * 3];
+     uv_tmp_[i].y = uvd[i * 3 + 1];
+     depth_tmp_[i] = (uint16_t)uvd[i * 3 + 2];
+   }
+   CALL_SAFE(coord_mapper_->MapDepthPointsToCameraSpace(n_pts, 
+     (DepthSpacePoint*)uv_tmp_, n_pts, (UINT16*)depth_tmp_, n_pts,
+     (CameraSpacePoint*)xyz_tmp_),
+     "could not map xyz (camera) to depth space");
+   // Copy the output data out of Microsoft's structure
+   for (uint32_t i = 0; i < depth_dim; i++) {
+     xyz[i * 3] = xyz_tmp_[i].x;
+     xyz[i * 3 + 1] = xyz_tmp_[i].y;
+     xyz[i * 3 + 2] = xyz_tmp_[i].z;
+   }
+ }
+ void KinectInterface::convertXYZToUVD(const uint32_t n_pts, const float* xyz,
+   float* uvd) {
+   // Copy the input data into Microsoft's structure
+   for (uint32_t i = 0; i < depth_dim; i++) {
+     xyz_tmp_[i].x = xyz[i * 3];
+     xyz_tmp_[i].y = xyz[i * 3 + 1];
+     xyz_tmp_[i].z = xyz[i * 3 + 2];
+   }
+   convertXYZToDepthSpace(n_pts, xyz_tmp_, uv_tmp_);
+   // Copy the output data out of Microsoft's structure
+   for (uint32_t i = 0; i < depth_dim; i++) {
+     uvd[i*3] = uv_tmp_[i].x;
+     uvd[i*3 + 1] = uv_tmp_[i].y;
+     std::cout << "TODO: Check units!" << std::endl;
+     uvd[i*3 + 2] = xyz_tmp_[i].z;  // TODO: Check that this is the correct units
+   }
+ }
 
 }  // namespace kinect
 

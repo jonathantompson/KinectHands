@@ -26,7 +26,7 @@
 #include "kinect_interface/hand_detector/decision_tree_func.h"
 #include "kinect_interface/hand_detector/evaluate_decision_forest.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
-#include "kinect_interface/depth_image_data.h"
+#include "kinect_interface/hand_detector/depth_image_data.h"
 #include "jtil/data_str/circular_buffer.h"
 
 using std::string;

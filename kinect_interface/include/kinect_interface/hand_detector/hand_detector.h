@@ -39,6 +39,7 @@ namespace jtil { namespace threading { class ThreadPool; } }
 namespace jtil { namespace data_str { template <typename T> class VectorManaged; } }
 
 namespace kinect_interface {
+  class KinectInterface;
 namespace hand_detector {
 
   typedef enum {
@@ -50,7 +51,7 @@ namespace hand_detector {
 
   class HandDetector {
   public:
-    HandDetector(jtil::threading::ThreadPool* tp);
+    HandDetector(jtil::threading::ThreadPool* tp, KinectInterface* kinect);
     ~HandDetector();
     void init(const uint32_t im_width, const uint32_t im_height,
       const std::string filename = FOREST_DATA_FILENAME);
@@ -79,7 +80,6 @@ namespace hand_detector {
     void num_trees_to_evaluate(const int32_t val);
     void max_height_to_evaluate(const int32_t val);
 
-
     jtil::data_str::Vector<jtil::math::Float3>& hands_uvd() { return hands_uvd_; }
 
   private:
@@ -107,6 +107,9 @@ namespace hand_detector {
     uint32_t queue_head_;
     uint32_t queue_tail_;
     uint8_t* pixel_on_queue_;
+
+    KinectInterface* kinect_;  // Reference to the kinect for transformations
+                               // NOT OWNED HERE
 
     // Multithreading
     jtil::threading::ThreadPool* tp_;  // Not owned here

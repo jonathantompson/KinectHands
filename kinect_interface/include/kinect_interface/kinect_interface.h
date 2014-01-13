@@ -20,8 +20,12 @@ struct IKinectSensor;
 struct IDepthFrameReader;
 struct IColorFrameReader;
 struct ICoordinateMapper;
-struct _ColorSpacePoint;
 struct XYZPoint {  // This is our internal version of CameraSpacePoint
+  float x;
+  float y;
+  float z;
+};
+struct XYPoint {  // This is our internal version of DepthSpacePoint
   float x;
   float y;
   float z;
@@ -45,6 +49,14 @@ namespace kinect_interface {
   const uint32_t rgb_h = 1080;
   const uint32_t rgb_dim = rgb_w * rgb_h;
   const float rgb_fov = 84.1f;  // (horizontal)
+
+  // The array size is (uint16_t * depth_dim + 3 * uint8_t * depth_dim)
+  const uint32_t depth_arr_size_bytes = (depth_dim * 2) + (3 * depth_dim * 2);
+
+  // Beyond this depth we treat everything as background.  It is a very rough
+  // cutoff but it has a big impact on decision forest evaluation time and some
+  // other image processing sections.
+  const uint16_t max_depth = 2000;
 
   class KinectInterface{
   public:
@@ -76,6 +88,17 @@ namespace kinect_interface {
     inline void lockData() { data_lock_.lock(); };
     inline void unlockData() { data_lock_.unlock(); };
 
+    // Note, this requires an instance of the kinect actually running :-(
+    // Hopefully this can be broken out like I did for OpenNI
+    void convertDepthFrameToXYZ(const uint32_t n_pts, const uint16_t* depth, 
+      XYZPoint* xyz);
+    void convertXYZToDepthSpace(const uint32_t n_pts, const XYZPoint* xyz,
+      XYPoint* uv_pos);  // Note: z, in XYZPoint will be the depth
+    void convertUVDToXYZ(const uint32_t n_pts, const float* uvd, 
+      float* xyz);  // Requires O(n) copy internally
+    void convertXYZToUVD(const uint32_t n_pts, const float* xyz,
+      float* uvd);  // Requires O(n) copy internally
+
   private:
     bool sync_depth_;  // default true
     bool sync_rgb_;  // default true
@@ -103,16 +126,24 @@ namespace kinect_interface {
     std::thread kinect_thread_;
     
     // Processed data
-    uint16_t* depth_;
+    // NOTE: depth_ and depth_colored_ are actually one contiguous array:
+    // depth_colored_ just indexes into depth_
+    uint16_t depth_[depth_arr_size_bytes/2];
     uint8_t* depth_colored_;  // Size of the depth image
-    uint8_t* rgb_;  // enough space for 4 channels are allocated, but we only use 3
-    XYZPoint* xyz_;
-    _ColorSpacePoint* uv_depth_2_rgb_;
+    uint8_t rgb_[rgb_dim * 4];  // enough space for 4 channels are allocated, but we only use 3
+    XYZPoint xyz_[depth_dim];
+    XYPoint uv_depth_2_rgb_[depth_dim];
     uint64_t depth_frame_number_;
     int64_t depth_frame_time_;
     uint64_t rgb_frame_number_;
     int64_t rgb_frame_time_;
     char kinect_fps_str_[256];
+
+    // Some temporary data, this can likely be cleaned up (shared with
+    // other arrays), but is kept separate for now to avoid conflicts.
+    XYPoint uv_tmp_[depth_dim];
+    uint16_t depth_tmp_[depth_dim];
+    XYZPoint xyz_tmp_[depth_dim];
     
     bool kinect_running_;
     
@@ -120,8 +151,8 @@ namespace kinect_interface {
     void kinectUpdateThread();
     void init(const std::string& device_id);
     IKinectSensor* getDeviceByID(const std::string& id);
-    void waitForDepthFrame(const uint64_t timeout_ms = INFINITE);
-    void waitForRGBFrame(const uint64_t timeout_ms = INFINITE);
+    void waitForDepthFrame(const uint64_t timeout_ms = -1);  // -1 = inf
+    void waitForRGBFrame(const uint64_t timeout_ms = -1);  // -1 = inf
   };
   
 #ifndef EPSILON

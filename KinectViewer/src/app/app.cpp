@@ -63,6 +63,9 @@ namespace app {
     data_save_cbs_ = NULL;
     depth_frame_number_ = 0;
     num_kinects_ = 0;
+    for (uint32_t i = 0; i < MAX_NUM_KINECTS; i++) {
+      kinect_last_saved_depth_time_[i] = 0;
+    }
   }
 
   App::~App() {
@@ -527,30 +530,6 @@ namespace app {
     light_dir->dir_world().set(0, 0, -1);
     Renderer::g_renderer()->addLight(light_dir);
 
-    /*
-    LightSpotCVSM* light_spot_vsm = new LightSpotCVSM(Renderer::g_renderer());
-    light_spot_vsm->pos_world().set(-200, 0, 200);
-    Float3 target(0, 0, 1000);
-    Float3 dir;
-    Float3::sub(dir, target, light_spot_vsm->pos_world());
-    dir.normalize();
-    light_spot_vsm->dir_world().set(dir);
-    light_spot_vsm->near_far().set(1.0f, 2000.0f);
-    light_spot_vsm->outer_fov_deg() = 40.0f;
-    light_spot_vsm->diffuse_intensity() = 1.0f;
-    light_spot_vsm->inner_fov_deg() = 35.0f;
-    light_spot_vsm->cvsm_count(1);
-    Renderer::g_renderer()->addLight(light_spot_vsm);
-    */
-
-    /*
-    GeometryInstance* model; 
-    model = Renderer::g_renderer()->geometry_manager()->makeTorusKnot(lred, 7, 64, 512);
-    model->mat().leftMultScale(100, 100, 100);
-    model->mat().leftMultTranslation(0.0f, 0.0f, 1000.0f);
-    Renderer::g_renderer()->geometry_manager()->scene_root()->addChild(model);
-    */
-
     geom_inst_pts_ = 
       Renderer::g_renderer()->geometry_manager()->createDynamicGeometry(
       "PointCloud");
@@ -628,10 +607,61 @@ namespace app {
 
   }
 
-  void App::saveKinectData(const uint32_t index) {
-    // TODO: Fix this
-    // kdata_[index]->saveSensorData(continuous_cal_snapshot, index);
-    std::cout << "Save data not yet added back." << std::endl;
+  // Save's data for a single kinect.  This is run in parallel.
+  void App::saveKinectData(const uint32_t i) {
+
+    // Save the depth and colored depth together
+    if (kinect_[i]->depth_frame_time() > kinect_last_saved_depth_time_[i]) {
+      // Make a local copy of the data so we do as little work with the lock
+      // taken as possible.
+      kinect_[i]->lockData();
+      uint8_t* depth_rgb = 
+        (uint8_t*)&tmp_data1_[i * kinect_interface::depth_arr_size_bytes * 2];
+      uint8_t* depth_rgb_compressed = 
+        (uint8_t*)&tmp_data1_[i * kinect_interface::depth_arr_size_bytes * 2];
+      memcpy(depth_rgb, kinect_[i]->depth(), depth_arr_size_bytes);
+      kinect_[i]->unlockData();
+
+      std::stringstream ss;
+      // Kinect time stamp is in units of 100ns (or 0.1us)
+      int64_t time_ns = kinect_[i]->depth_frame_time() * 100;
+      int64_t app_time_ns = (int64_t)(frame_time_ * 1.0e9);
+      ss << "hands" << i << "_" << time_ns << "_" << app_time_ns << ".bin";
+
+      // Compress the array
+      static const int compression_level = 1;  // 1 fast, 2 better compression
+      int compressed_length = fastlz_compress_level(compression_level,
+        (void*)depth_rgb, depth_arr_size_bytes, (void*)depth_rgb_compressed);
+
+      // Now save the array to file
+#ifdef _WIN32
+      _mkdir("./data/hand_depth_data/");  // Silently fails if dir exists
+      std::string full_filename = "./data/hand_depth_data/" + ss.str();
+#endif
+#ifdef __APPLE__
+      std::string full_path = std::string("./data/hand_depth_data/");
+      struct stat st;
+      if (stat(full_path.c_str(), &st) != 0) {
+        if (mkdir(full_path.c_str(), S_IRWXU|S_IRWXG) != 0) {
+          printf("Error creating directory %s: %s\n", full_path.c_str(),
+            strerror(errno));
+          return false;
+        } else {
+          printf("%s created\n", full_path.c_str());
+        }
+      }
+      std::string full_filename = full_path + ss.str();
+#endif
+      // Save the file
+      std::ofstream file(full_filename.c_str(), std::ios::out | std::ios::binary);
+      if (!file.is_open()) {
+        throw std::runtime_error(std::string("error opening file:") + ss.str());
+      }
+      // file.write((const char*)depth_rgb_data_, compressed_length);
+      file.write((const char*)depth_rgb_compressed, compressed_length);
+      file.close();
+      kinect_last_saved_depth_time_[i] = kinect_[i]->depth_frame_time();
+    }
 
     // Signal that we're done
     std::unique_lock<std::mutex> ul(thread_update_lock_);

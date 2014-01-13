@@ -38,10 +38,6 @@
 #include "model_fit/model_renderer.h"
 #include "model_fit/model_fit.h"
 #include "kinect_interface/hand_net/hand_model_coeff.h"
-#include "kinect_interface/depth_images_io.h"
-#include "kinect_interface/open_ni_funcs.h"
-#include "kinect_interface/hand_detector/decision_tree_structs.h"
-#include "kinect_interface/hand_detector/hand_detector.h"
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector.h"
 #include "jtil/clk/clk.h"
@@ -61,12 +57,12 @@
 
 // CALIBRATION MODE ONLY SETTINGS:
 //#define CALIBRATION_RUN
+//#define PERFORM_ICP_FIT  // Note: For this to work, MAX_KINECTS must be > 1
 #define FILTER_SIZE 60  
 #define CALIBRATION_MAX_FILES 100
 #define ICP_PC_MODEL_DIST_THRESH 15  // mm
 #define ICP_USE_POINTS_NEAR_MODEL false
 
-#define PERFORM_ICP_FIT
 #define USE_ICP_NORMALS
 #define ICP_NUM_ITERATIONS 100
 #define ICP_METHOD ICPMethod::BFGS_ICP
@@ -75,35 +71,10 @@
 #define ICP_MAX_DISTANCE_SQ 1600.0f  // 4cm ^ 2 = 40mm ^ 2
 #define MAX_ICP_PTS 100000 
 
-// KINECT DATA
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_1/")  // Fit
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_1/")  // Fit
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_2_2/")  // Fit
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_01_11_3/")  // Fit
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_4/")  // Fit
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_5/")  // Fit
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_6/")  // Fit
-//#define IM_DIR_BASE string("data/hand_depth_data_2013_03_04_7/")  // Fit (Tr-data)
+// #define BACKUP_HDD
+#define IM_DIR_BASE string("hand_depth_data/")
 
-// PRIMESENSE DATA
-#define BACKUP_HDD
-//#define IM_DIR_BASE string("hand_depth_data/")
-#define IM_DIR_BASE string("hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405)
-//#define IM_DIR_BASE string("hand_depth_data_2013_05_03_1/")  // Cal + Fit (6533)
-//#define IM_DIR_BASE string("hand_depth_data_2013_05_06_1/")  // Cal + Fit (8709)
-//#define IM_DIR_BASE string("hand_depth_data_2013_05_06_2/")  // Cal + Fit (8469)
-//#define IM_DIR_BASE string("hand_depth_data_2013_05_06_3/")  // Cal + Fit (5815) MURPHY
-//#define IM_DIR_BASE string("hand_depth_data_2013_05_08_1/")  // Cal + Fit (2440) (Tr-data)
-//#define IM_DIR_BASE string("hand_depth_data_2013_05_19_1/")  // Cal + Fit (5969)
-//#define IM_DIR_BASE string("hand_depth_data_2013_05_19_2/")  // Cal + Fit (6781)
-//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_1/")  // Cal + Fit (3049)
-//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_2/")  // Cal + Fit (7676)
-//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_3/")  // Cal + Fit (4935)
-//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_4/")  // Cal + Fit (9752)
-//#define IM_DIR_BASE string("hand_depth_data_2013_06_15_5/")  //Cal + Fit (5480)  Total: 81013
-
-//#define KINECT_DATA  // Otherwise Primesense 1.09 data
-#define MAX_KINECTS 3
+#define MAX_KINECTS 1
 #define NUM_WORKER_THREADS 6
 
 #if defined(__APPLE__)
@@ -139,7 +110,6 @@ using namespace renderer;
 using namespace jtil::windowing;
 using namespace kinect_interface;
 using namespace kinect_interface::hand_net;
-using namespace kinect_interface::hand_detector;
 
 jtil::clk::Clk* clk = NULL;
 double t1, t0;
@@ -177,7 +147,7 @@ int32_t last_icp_kinect = -1;
 bool render_correspondances = true;
 #if defined(CALIBRATION_RUN)
   CalibrateGeometryType cal_type = CalibrateGeometryType::ICOSAHEDRON; 
-  const float max_icp_dist = GDT_MAX_DIST;
+  const float max_icp_dist = min_depth;
   const uint32_t num_models = 1;
   float** coeffs[MAX_KINECTS] = {NULL, NULL};  // coeffs[kinect][frame][coeff]
   const uint32_t num_coeff = CalibrateCoeff::NUM_PARAMETERS;
@@ -208,22 +178,24 @@ float** prev_coeff = NULL;
 // Kinect Image data 
 DepthImagesIO* image_io = NULL;
 Vector<Triple<char*, int64_t, int64_t>> im_files[MAX_KINECTS];  // filename, kinect time, global time
-float cur_xyz_data[MAX_KINECTS][src_dim*3];
-float cur_norm_data[MAX_KINECTS][src_dim*3];
-float cur_uvd_data[MAX_KINECTS][src_dim*3];
-int16_t** cur_depth_data;  // Size: [MAX_KINECTS][src_dim*3]
-uint8_t** cur_label_data;  // Size: [MAX_KINECTS][src_dim]
-uint8_t cur_image_rgb[MAX_KINECTS][src_dim*3];
+float cur_xyz_data[MAX_KINECTS][depth_dim*3];
+float cur_norm_data[MAX_KINECTS][depth_dim*3];
+float cur_uvd_data[MAX_KINECTS][depth_dim*3];
+int16_t** cur_depth_data;  // Size: [MAX_KINECTS][depth_dim*3]
+uint8_t** cur_label_data;  // Size: [MAX_KINECTS][depth_dim]
+uint8_t cur_image_rgb[MAX_KINECTS][depth_dim*3];
 uint32_t cur_image = 0;
 GeometryColoredPoints* geometry_points[MAX_KINECTS];
-GeometryColoredLines* geometry_lines[MAX_KINECTS-1];  // For displaying ICP correspondances
-float temp_xyz[3 * src_dim];
-float temp_rgb[3 * src_dim];
+#if MAX_KINECTS > 1
+  GeometryColoredLines* geometry_lines[MAX_KINECTS-1];  // For displaying ICP correspondances
+#endif
+float temp_xyz[3 * depth_dim];
+float temp_rgb[3 * depth_dim];
 bool render_depth = true;
 int playback_step = 1;
 OpenNIFuncs openni_funcs;
 Texture* tex = NULL;
-uint8_t tex_data[src_dim * 3];
+uint8_t tex_data[depth_dim * 3];
 const bool color_point_clouds = false;
 const float point_cloud_scale = 4.0f;
 const uint32_t num_point_clouds_to_render = 1;
@@ -375,7 +347,7 @@ void loadCurrentImage(bool print_to_screen = true) {
     }
   }
   for (int32_t k = 0; k < MAX_KINECTS; k++) {
-    for (int32_t i = 0; i < src_dim; i++) {
+    for (int32_t i = 0; i < depth_dim; i++) {
       int32_t filt = 0;
       for (int32_t f = start_index[k]; f < start_index[k] + FILTER_SIZE && 
         f < (int32_t)im_files[k].size(); f++, filt++) {
@@ -383,20 +355,20 @@ void loadCurrentImage(bool print_to_screen = true) {
       }
       // Now calculate the std and mean of the non-zero entries
       for ( ; filt < FILTER_SIZE; filt++) {
-        cur_depth[filt] = GDT_MAX_DIST + 1;
+        cur_depth[filt] = min_depth + 1;
       }
       float sum = 0;
       float sum_sqs = 0;
       float cnt = 0;
       for (int32_t filt = 0; filt < FILTER_SIZE; filt++) {
-        if (cur_depth[filt] != 0 && cur_depth[filt] < GDT_MAX_DIST) {
+        if (cur_depth[filt] != 0 && cur_depth[filt] < min_depth) {
           sum += (float)cur_depth[filt];
           sum_sqs += (float)cur_depth[filt] * (float)cur_depth[filt];
           cnt++;
         }
       }
       if (cnt < LOOSE_EPSILON) {
-        cur_depth_data[k][i] = GDT_MAX_DIST + 1;
+        cur_depth_data[k][i] = min_depth + 1;
       } else {
         float mean = sum / cnt;
         float var = sum_sqs / cnt - (mean * mean);
@@ -416,8 +388,8 @@ void loadCurrentImage(bool print_to_screen = true) {
       }
     }
     memcpy(cur_image_rgb[k], rgb_database[k][start_index[k]], 
-      sizeof(cur_image_rgb[k][0]) * src_dim * 3);
-    memset(cur_label_data[k], 0, sizeof(cur_label_data[k][0]) * src_dim);
+      sizeof(cur_image_rgb[k][0]) * depth_dim * 3);
+    memset(cur_label_data[k], 0, sizeof(cur_label_data[k][0]) * depth_dim);
 
 #ifdef KINECT_DATA
       DepthImagesIO::convertSingleImageToXYZ(cur_xyz_data[k], cur_depth_data[k]);
@@ -425,18 +397,18 @@ void loadCurrentImage(bool print_to_screen = true) {
       openni_funcs.ConvertDepthImageToProjective((uint16_t*)cur_depth_data[k], 
         cur_uvd_data[k]);
       openni_funcs.convertDepthToWorldCoordinates(cur_uvd_data[k], cur_xyz_data[k], 
-        src_dim);
+        depth_dim);
 #endif
   }
 #else
   // Now load the other Kinect data
   for (uint32_t k = 0; k < MAX_KINECTS; k++) {
     if (im_files[k].size() == 0) {
-      for (uint32_t j = 0; j < src_dim; j++) {
-        cur_depth_data[k][j] = GDT_MAX_DIST;
+      for (uint32_t j = 0; j < depth_dim; j++) {
+        cur_depth_data[k][j] = min_depth;
       }
-      memset(cur_label_data[k], 0, sizeof(cur_label_data[k][0]) * src_dim); 
-      memset(cur_image_rgb[k], 0, sizeof(cur_image_rgb[k][0]) * src_dim * 3); 
+      memset(cur_label_data[k], 0, sizeof(cur_label_data[k][0]) * depth_dim); 
+      memset(cur_image_rgb[k], 0, sizeof(cur_image_rgb[k][0]) * depth_dim * 3); 
     } else {
       // find the correct file (with smallest timestamp difference) - O(60)
       uint32_t i_match = findClosestFrame(k);
@@ -449,14 +421,14 @@ void loadCurrentImage(bool print_to_screen = true) {
       }
       image_io->LoadCompressedImage(full_filename, 
         cur_depth_data[k], cur_label_data[k], cur_image_rgb[k]);
-      memset(cur_label_data[k], 0, src_dim * sizeof(cur_label_data[k][0]));
+      memset(cur_label_data[k], 0, depth_dim * sizeof(cur_label_data[k][0]));
 #ifdef KINECT_DATA
       DepthImagesIO::convertSingleImageToXYZ(cur_xyz_data[k], cur_depth_data[k]);
 #else
       openni_funcs.ConvertDepthImageToProjective((uint16_t*)cur_depth_data[k], 
         cur_uvd_data[k]);
       openni_funcs.convertDepthToWorldCoordinates(cur_uvd_data[k], cur_xyz_data[k], 
-        src_dim);
+        depth_dim);
 #endif
     }
   }
@@ -482,7 +454,7 @@ void InitXYZPointsForRendering() {
     }
 
 #pragma omp parallel for num_threads(4)
-    for (int32_t i = 0; i < src_dim; i++) {
+    for (int32_t i = 0; i < depth_dim; i++) {
       float* cur_col = cols->at(i)->m;
       vert->at(i)->set(&cur_xyz_data[k][i*3]);
       //if (cur_label_data[k][i] == 0 ) {
@@ -936,10 +908,10 @@ void KeyboardCB(int key, int scancode, int action, int mods) {
         }
         uint32_t k_dst = cur_icp_dst_kinect;  // This point cloud wont move
         uint32_t k_src = cur_kinect;  // 
-        CalcNormalImage(cur_norm_data[k_src], cur_xyz_data[k_src], src_width, 
-          src_height, 50, SimpleNormalApproximation);
-        CalcNormalImage(cur_norm_data[k_dst], cur_xyz_data[k_dst], src_width, 
-          src_height, 50, SimpleNormalApproximation);
+        CalcNormalImage(cur_norm_data[k_src], cur_xyz_data[k_src], depth_w, 
+          depth_h, 50, SimpleNormalApproximation);
+        CalcNormalImage(cur_norm_data[k_dst], cur_xyz_data[k_dst], depth_w, 
+          depth_h, 50, SimpleNormalApproximation);
 
         // Since k_dst wont move, we can save it's data to file.
         std::stringstream ss;
@@ -965,8 +937,8 @@ void KeyboardCB(int key, int scancode, int action, int mods) {
             ICP_PC_MODEL_DIST_THRESH);
 #endif
         } else {
-          for (uint32_t i = 0; i < src_dim; i++) {
-            if (cur_xyz_data[k_dst][i * 3 + 2] < GDT_MAX_DIST &&
+          for (uint32_t i = 0; i < depth_dim; i++) {
+            if (cur_xyz_data[k_dst][i * 3 + 2] < min_depth &&
               cur_xyz_data[k_dst][i * 3 + 2] > 0) {
               // We have to pre-transform PC1:
   
@@ -977,7 +949,7 @@ void KeyboardCB(int key, int scancode, int action, int mods) {
               npc1_src.pushBack(cur_norm_data[k_dst][i * 3 + 1]);
               npc1_src.pushBack(cur_norm_data[k_dst][i * 3 + 2]);
             }
-            if (cur_xyz_data[k_src][i * 3 + 2] < GDT_MAX_DIST &&
+            if (cur_xyz_data[k_src][i * 3 + 2] < min_depth &&
               cur_xyz_data[k_src][i * 3 + 2] > 0) {
               pc2_src.pushBack(cur_xyz_data[k_src][i * 3]);
               pc2_src.pushBack(cur_xyz_data[k_src][i * 3 + 1]);
@@ -1419,6 +1391,7 @@ void renderFrame(float dt) {
         }
       }
 #endif
+#if PERFORM_ICP_FIT
       if (render_correspondances) {
         for (uint32_t k = 0; k < MAX_KINECTS - 1; k++) {
           if (geometry_lines[k] != NULL) {
@@ -1426,6 +1399,7 @@ void renderFrame(float dt) {
           }
         }
       }
+#endif
     }
     break;
   case 2:
@@ -1453,29 +1427,6 @@ void renderFrame(float dt) {
       num_models, cur_kinect, false);
     fit->model_renderer()->visualizeDepthMap(wnd, cur_kinect);
 #endif
-    break;
-  case 3:
-    hand_detect->findHandLabels(cur_depth_data[cur_kinect], 
-      cur_xyz_data[cur_kinect], HDLabelMethod::HDFloodfill, 
-      cur_label_data[cur_kinect]);
-    for (uint32_t v = 0; v < src_height; v++) {
-      for (uint32_t u = 0; u < src_width; u++) {
-        uint32_t i = v * src_width + u;
-        uint32_t i_dst = (src_height - 1 - v) * src_width + u;
-        int16_t depth = cur_depth_data[cur_kinect][i];
-        uint8_t grey_val = (uint8_t)(depth >> 3);
-        tex_data[3 * i_dst] = grey_val;
-        tex_data[3 * i_dst + 1] = grey_val;
-        tex_data[3 * i_dst + 2] = grey_val;
-        if (cur_label_data[cur_kinect][i] != 0) {
-          tex_data[3 * i_dst] = 255;
-          tex_data[3 * i_dst + 1] = 0;
-          tex_data[3 * i_dst + 2] = 0;
-        }
-      }
-    }
-    tex->reloadData((unsigned char*)tex_data);
-    render->renderFullscreenQuad(tex);
     break;
   default:
     throw runtime_error("ERROR: render_output is an incorrect value");
@@ -1534,8 +1485,8 @@ int main(int argc, char *argv[]) {
     Texture::initTextureSystem();
     
     // Fill the settings structure
-    settings.width = src_width*2;
-    settings.height = src_height*2;
+    settings.width = depth_w*2;
+    settings.height = depth_h*2;
     //settings.width = 1280;
     //settings.height = 720;
     settings.fullscreen = false;
@@ -1562,7 +1513,7 @@ int main(int argc, char *argv[]) {
       -HAND_MODEL_CAMERA_VIEW_PLANE_NEAR, -HAND_MODEL_CAMERA_VIEW_PLANE_FAR, 
       fov_vert_deg);
 
-    tex = new Texture(GL_RGB8, src_width, src_height, GL_RGB, 
+    tex = new Texture(GL_RGB8, depth_w, depth_h, GL_RGB, 
       GL_UNSIGNED_BYTE, (unsigned char*)tex_data, 
       TEXTURE_WRAP_MODE::TEXTURE_CLAMP, false,
       TEXTURE_FILTER_MODE::TEXTURE_NEAREST);
@@ -1570,17 +1521,19 @@ int main(int argc, char *argv[]) {
     // Initialize the XYZ points geometry
     for (uint32_t k = 0; k < MAX_KINECTS; k++) {
       geometry_points[k] = new GeometryColoredPoints;
-      geometry_points[k]->vertices()->capacity(src_dim);
-      geometry_points[k]->vertices()->resize(src_dim);
-      geometry_points[k]->colors()->capacity(src_dim);
-      geometry_points[k]->colors()->resize(src_dim);
+      geometry_points[k]->vertices()->capacity(depth_dim);
+      geometry_points[k]->vertices()->resize(depth_dim);
+      geometry_points[k]->colors()->capacity(depth_dim);
+      geometry_points[k]->colors()->resize(depth_dim);
     }
+#if PERFORM_ICP_FIT
     for (uint32_t k = 0; k < MAX_KINECTS-1; k++) {
       geometry_lines[k] = NULL;
     }
+#endif
 
     hand_detect = new HandDetector(tp);
-    hand_detect->init(src_width, src_height, FOREST_ROOT +
+    hand_detect->init(depth_w, depth_h, FOREST_ROOT +
       FOREST_DATA_FILENAME);
  
     // Load the Kinect data for fitting from file and process it
@@ -1627,8 +1580,8 @@ int main(int argc, char *argv[]) {
     cur_depth_data = new int16_t*[MAX_KINECTS];
     cur_label_data = new uint8_t*[MAX_KINECTS];
     for (uint32_t k = 0; k < MAX_KINECTS; k++) {
-      cur_depth_data[k] = new int16_t[src_dim * 3];
-      cur_label_data[k] = new uint8_t[src_dim];
+      cur_depth_data[k] = new int16_t[depth_dim * 3];
+      cur_label_data[k] = new uint8_t[depth_dim];
     }
 
 #if defined(CALIBRATION_RUN)
@@ -1638,9 +1591,9 @@ int main(int argc, char *argv[]) {
       rgb_database[k] = new uint8_t*[im_files[k].size()];
       label_database[k] = new uint8_t*[im_files[k].size()];
       for (uint32_t f = 0; f < im_files[k].size(); f++) {
-        depth_database[k][f] = new int16_t[src_dim];
-        rgb_database[k][f] = new uint8_t[src_dim*3];
-        label_database[k][f] = new uint8_t[src_dim];
+        depth_database[k][f] = new int16_t[depth_dim];
+        rgb_database[k][f] = new uint8_t[depth_dim*3];
+        label_database[k][f] = new uint8_t[depth_dim];
         char* file = im_files[k][f].first;
         string full_filename = IM_DIR + string(file);
         image_io->LoadCompressedImage(full_filename, depth_database[k][f], 

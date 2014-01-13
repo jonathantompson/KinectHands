@@ -5,10 +5,9 @@
 #include <fstream>
 #include <cmath>
 #include <sstream>
+#include "kinect_interface/kinect_interface.h"
 #include "kinect_interface/hand_net/hand_image_generator.h"
-#include "kinect_interface/hand_net/hand_net.h"  // 
-#include "kinect_interface/open_ni_funcs.h"
-#include "kinect_interface/hand_detector/decision_tree_structs.h"  // for GDT_MAX_DIST
+#include "kinect_interface/hand_net/hand_net.h"
 #include "jtorch/spatial_contrastive_normalization.h"
 #include "jtorch/spatial_subtractive_normalization.h"
 #include "jtorch/spatial_divisive_normalization.h"
@@ -55,8 +54,8 @@ namespace hand_net {
     num_banks_ = num_banks;
     norm_module_ = NULL;
     hpf_hand_image_cpu_ = NULL;
-    hand_mesh_normals_.capacity(src_dim);
-    hand_mesh_vertices_.capacity(src_dim);
+    hand_mesh_normals_.capacity(depth_dim);
+    hand_mesh_vertices_.capacity(depth_dim);
     initHandImageData();
   }
 
@@ -136,7 +135,7 @@ namespace hand_net {
 
   void HandImageGenerator::createLabelFromSyntheticDepth(const float* depth, 
     uint8_t* label) {
-    for (uint32_t i = 0; i < src_dim; i++) {
+    for (uint32_t i = 0; i < depth_dim; i++) {
       label[i] = (depth[i] > EPSILON && depth[i] < GDT_MAX_DIST) ? 1 : 0;
     }
   }
@@ -164,9 +163,9 @@ namespace hand_net {
     // http://www.icg.tugraz.at/courses/lv710.092/ezg2uebung1
     uint32_t cnt = 0; 
     uvd_com_.zeros();
-    for (uint32_t v = 0; v < src_height; v++) {
-      for (uint32_t u = 0; u < src_width; u++) {
-        uint32_t src_index = v * src_width + u;
+    for (uint32_t v = 0; v < depth_h; v++) {
+      for (uint32_t u = 0; u < depth_w; u++) {
+        uint32_t src_index = v * depth_w + u;
         if (label_in[src_index] == 1) {
           uvd_com_[0] += (float)u;
           uvd_com_[1] += (float)v;
@@ -192,8 +191,8 @@ namespace hand_net {
       for (int32_t v = v_start; v < v_start + HN_SRC_IM_SIZE; v++) {
         for (int32_t u = u_start; u < u_start + HN_SRC_IM_SIZE; u++) {
           int32_t dst_index = (v-v_start)* HN_SRC_IM_SIZE + (u-u_start);
-          if (v >= 0 && v < src_height && u >= 0 && u < src_width) {
-            int32_t src_index = v * src_width + u;
+          if (v >= 0 && v < depth_h && u >= 0 && u < depth_w) {
+            int32_t src_index = v * depth_w + u;
             if (!use_synthetic) {
               if (label_in[src_index] == 1) {
                 cropped_hand_image_[dst_index] = 
@@ -333,8 +332,8 @@ namespace hand_net {
   void HandImageGenerator::annotateFeatsToKinectImage(uint8_t* im, 
     const float* coeff_convnet) const {
     for (uint32_t i = 0; i < HAND_NUM_COEFF_CONVNET; i += FEATURE_SIZE) {
-        renderCrossToImageArr(&coeff_convnet[i], im, src_width, 
-          src_height, 4, i, hand_pos_wh_);
+        renderCrossToImageArr(&coeff_convnet[i], im, depth_w, 
+          depth_h, 4, i, hand_pos_wh_);
     }
   }
 
@@ -401,8 +400,8 @@ namespace hand_net {
   }
 
   void HandImageGenerator::createHandMeshVertices(const float* xyz) {
-    hand_mesh_vertices_.resize(src_dim);
-    for (uint32_t i = 0; i < src_dim; i++) {
+    hand_mesh_vertices_.resize(depth_dim);
+    for (uint32_t i = 0; i < depth_dim; i++) {
       hand_mesh_vertices_[i].set(xyz[i*3], xyz[i*3 + 1], xyz[i*3 + 2]);
     }
   }
@@ -416,12 +415,12 @@ namespace hand_net {
     // Step through the UV map examining each quad of 4 neighbouring vertices.
     // If 3 or more of those vertices are part of the hand, then add the
     // corresponding face.
-    for (uint32_t v = 0; v < (src_height-1); v++) {
-      for (uint32_t u = 0; u < (src_width-1); u++) {
-        p0 = v*src_width + u;          // top left
-        p1 = v*src_width + (u+1);      // top right
-        p2 = (v+1)*src_width + u;      // bottom left
-        p3 = (v+1)*src_width + (u+1);  // bottom right
+    for (uint32_t v = 0; v < (depth_h-1); v++) {
+      for (uint32_t u = 0; u < (depth_w-1); u++) {
+        p0 = v*depth_w + u;          // top left
+        p1 = v*depth_w + (u+1);      // top right
+        p2 = (v+1)*depth_w + u;      // bottom left
+        p3 = (v+1)*depth_w + (u+1);  // bottom right
       
         // Early out for a large number of quads
         if (labels[p0] == 0 && labels[p1] == 0) {
@@ -469,7 +468,7 @@ namespace hand_net {
   }
 
   void HandImageGenerator::createHandMeshNormals() {
-    hand_mesh_normals_.resize(src_dim);
+    hand_mesh_normals_.resize(depth_dim);
     
     // Set all the normals as 0
     for (uint32_t i = 0; i < hand_mesh_normals_.size(); i++) {
@@ -595,7 +594,7 @@ namespace hand_net {
     createHandMeshVertices(xyz);
     createHandMeshIndices(labels);
     createHandMeshNormals();
-    for (uint32_t i = 0; i < src_dim; i++) {
+    for (uint32_t i = 0; i < depth_dim; i++) {
       normals_xyz[i*3] = hand_mesh_normals_[i][0];
       normals_xyz[i*3 + 1] = hand_mesh_normals_[i][1];
       normals_xyz[i*3 + 2] = hand_mesh_normals_[i][2];

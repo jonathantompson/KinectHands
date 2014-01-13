@@ -13,8 +13,8 @@
 #include <vector>
 #include <algorithm>
 #include <functional>
+#include "kinect_interface/kinect_interface.h"  // depth_dim, depth_w, depth_h
 #include "kinect_interface/depth_images_io.h"
-#include "kinect_interface/open_ni_funcs.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
 #include "jtil/math/math_types.h"
 #include "jtil/image_util/image_util.h"
@@ -35,41 +35,13 @@ using namespace jtil::image_util;
 #define SAFE_DELETE(x) do { if (x != NULL) { delete x; x = NULL; } } while (0); 
 #define SAFE_DELETE_ARR(x) do { if (x != NULL) { delete[] x; x = NULL; } } while (0); 
 
+using namespace kinect_interface::hand_detector;
+
 namespace kinect_interface {
 
   // uint32_t DepthImagesIO::graph_cut_affiliation_radius = 5;
   float DepthImagesIO::adjacency_gamma = 25.0f;
   float DepthImagesIO::adjacency_beta = 0.25f;
-
-  //// Values for ModelFit from 2013_03_04
-  //int32_t DepthImagesIO::red_hue_threshold = 15;
-  //int32_t DepthImagesIO::red_sat_threshold = 41; 
-  //int32_t DepthImagesIO::red_val_threshold = 73; 
-  //int32_t DepthImagesIO::red_hue_target = 1;
-  //int32_t DepthImagesIO::red_sat_target = 231;  // 225
-  //int32_t DepthImagesIO::red_val_target = 161;
-  //int32_t DepthImagesIO::red_red_min = 70;
-  //int32_t DepthImagesIO::red_blue_max = 100;
-  //int32_t DepthImagesIO::hsv_total_threshold = 660;
-  //int32_t DepthImagesIO::red_shrink_filter_rad = 1;
-  //int32_t DepthImagesIO::red_discon_filter_rad = 1;
-  //int32_t DepthImagesIO::red_med_filter_rad = 4;
-  //int32_t DepthImagesIO::hand_pts_grow_rad_iterations = 6;
-
-  //// Values for ModelFit from 2013_01_11
-  //int32_t DepthImagesIO::red_hue_threshold = 27;
-  //int32_t DepthImagesIO::red_sat_threshold = 48; 
-  //int32_t DepthImagesIO::red_val_threshold = 79;
-  //int32_t DepthImagesIO::red_hue_target = 250;
-  //int32_t DepthImagesIO::red_sat_target = 214;
-  //int32_t DepthImagesIO::red_val_target = 161;
-  //int32_t DepthImagesIO::red_red_min = 95;
-  //int32_t DepthImagesIO::red_blue_max = 100;
-  //int32_t DepthImagesIO::hsv_total_threshold = 660;
-  //int32_t DepthImagesIO::red_shrink_filter_rad = 1;
-  //int32_t DepthImagesIO::red_discon_filter_rad = 1;
-  //int32_t DepthImagesIO::red_med_filter_rad = 4;
-  //int32_t DepthImagesIO::hand_pts_grow_rad_iterations = 6;
 
   // Values for HandForests from 2013_01_11
   int32_t DepthImagesIO::red_hue_threshold = 15;
@@ -87,21 +59,6 @@ namespace kinect_interface {
   int32_t DepthImagesIO::red_med_filter_rad = 4;
   int32_t DepthImagesIO::hand_pts_grow_rad_iterations = 6;
 
-  //// Values for HandForests from 2012_07_27
-  //int32_t DepthImagesIO::red_hue_threshold = 15;
-  //int32_t DepthImagesIO::red_sat_threshold = 41; 
-  //int32_t DepthImagesIO::red_val_threshold = 73; 
-  //int32_t DepthImagesIO::red_hue_target = 1;
-  //int32_t DepthImagesIO::red_sat_target = 231;  // 225
-  //int32_t DepthImagesIO::red_val_target = 161;
-  //int32_t DepthImagesIO::red_red_min = 70;
-  //int32_t DepthImagesIO::red_blue_max = 100;
-  //int32_t DepthImagesIO::hsv_total_threshold = 660;
-  //int32_t DepthImagesIO::red_shrink_filter_rad = 3;
-  //int32_t DepthImagesIO::red_discon_filter_rad = 3;
-  //int32_t DepthImagesIO::red_med_filter_rad = 4;
-  //int32_t DepthImagesIO::hand_pts_grow_rad_iterations = 4;
-
   const int DepthImagesIO::floodFillKernel_[N_PTS_FILL][2] = 
   {{-1, -1}, {-1, 0}, {-1, +1}, {0, +1}, {+1, +1}, {+1, 0}, {+1, -1}, {0, -1}};
 
@@ -118,29 +75,29 @@ namespace kinect_interface {
     static_cast<void>(dummybool);
 #endif  
     // Allocate enough for the full processed data files as well...
-    processed_data_size = (src_dim * sizeof(dummy16) +   // Depth value
-      src_dim * 3 *sizeof(dummy8) +  // RGB value
-      src_dim * 3 *sizeof(dummy8) +  // HSV value
-      src_dim * sizeof(dummy8) +  // label data
-      src_dim * sizeof(dummy8));  // red pixels
-    data_size = (src_dim * sizeof(dummy16) +   // Depth value
-      src_dim * 3 *sizeof(dummy8));  // RGB Val
+    processed_data_size = (depth_dim * sizeof(dummy16) +   // Depth value
+      depth_dim * 3 *sizeof(dummy8) +  // RGB value
+      depth_dim * 3 *sizeof(dummy8) +  // HSV value
+      depth_dim * sizeof(dummy8) +  // label data
+      depth_dim * sizeof(dummy8));  // red pixels
+    data_size = (depth_dim * sizeof(dummy16) +   // Depth value
+      depth_dim * 3 *sizeof(dummy8));  // RGB Val
     // '2x' for conservative over allocation
     uncompressed_data = (uint16_t*)malloc(processed_data_size * 2);  
     compressed_data = (uint16_t*)malloc(processed_data_size * 2);
-    user_pixels = (uint8_t*)malloc(src_dim * sizeof(dummy8));
-    hsv = (uint8_t*)malloc(src_dim * sizeof(dummy8) * 3);
+    user_pixels = (uint8_t*)malloc(depth_dim * sizeof(dummy8));
+    hsv = (uint8_t*)malloc(depth_dim * sizeof(dummy8) * 3);
     rgb = NULL;  // Not actually allocated!
-    red_pixels = (uint8_t*)malloc(src_dim * sizeof(dummy8));
-    red_pixels_tmp = (uint8_t*)malloc(src_dim * sizeof(dummy8));
-    pixel_on_queue = (bool*)malloc(src_dim * sizeof(dummybool));
-    pixel_queue = (int*)malloc(src_dim * sizeof(dummyint));
-    label_data_tmp = (uint8_t*)malloc(src_dim * sizeof(dummy8));
-    label_data_int = (int*)malloc(src_dim * sizeof(dummyint));
-    label_data_int_integ = (int*)malloc(src_dim * sizeof(dummyint));
-    label_data_int_tmp = (int*)malloc(src_dim * sizeof(dummyint));
-    cur_image_data = new int16_t[src_dim];
-    cur_label_data = new uint8_t[src_dim];
+    red_pixels = (uint8_t*)malloc(depth_dim * sizeof(dummy8));
+    red_pixels_tmp = (uint8_t*)malloc(depth_dim * sizeof(dummy8));
+    pixel_on_queue = (bool*)malloc(depth_dim * sizeof(dummybool));
+    pixel_queue = (int*)malloc(depth_dim * sizeof(dummyint));
+    label_data_tmp = (uint8_t*)malloc(depth_dim * sizeof(dummy8));
+    label_data_int = (int*)malloc(depth_dim * sizeof(dummyint));
+    label_data_int_integ = (int*)malloc(depth_dim * sizeof(dummyint));
+    label_data_int_tmp = (int*)malloc(depth_dim * sizeof(dummyint));
+    cur_image_data = new int16_t[depth_dim];
+    cur_label_data = new uint8_t[depth_dim];
     // im_graph = NULL;
   }
 
@@ -194,18 +151,18 @@ namespace kinect_interface {
     }
 
     // Allocate enough space for the images:
-    uint32_t num_pix = src_dim;
+    uint32_t num_pix = depth_dim;
     uint32_t num_pix_downs = num_pix / (DT_DOWNSAMPLE*DT_DOWNSAMPLE);
 
-    if (src_width % DT_DOWNSAMPLE != 0 || src_height % DT_DOWNSAMPLE != 0) {
+    if (depth_w % DT_DOWNSAMPLE != 0 || depth_h % DT_DOWNSAMPLE != 0) {
       throw wruntime_error(string("LoadDepthImagesFromDirectory downsample") +
         string(" factor must be an integer multiple"));
     }
 
     train_data->image_data = new int16_t[num_pix_downs * train_data->num_images];
     train_data->label_data = new uint8_t[num_pix_downs * train_data->num_images];
-    train_data->im_width = src_width / DT_DOWNSAMPLE;
-    train_data->im_height = src_height / DT_DOWNSAMPLE;
+    train_data->im_width = depth_w / DT_DOWNSAMPLE;
+    train_data->im_height = depth_h / DT_DOWNSAMPLE;
     train_data->filenames = new char*[train_data->num_images];
     train_data->rgb_data = NULL;
 
@@ -219,8 +176,8 @@ namespace kinect_interface {
       test_data->filenames = NULL;
     }
     test_data->rgb_data = NULL;
-    test_data->im_width = src_width / DT_DOWNSAMPLE;
-    test_data->im_height = src_height / DT_DOWNSAMPLE;  
+    test_data->im_width = depth_w / DT_DOWNSAMPLE;
+    test_data->im_height = depth_h / DT_DOWNSAMPLE;  
 
     // Find the first file in the directory again so that we can iterate through
     uint32_t cur_test_image = 0;
@@ -251,10 +208,10 @@ namespace kinect_interface {
           cur_label_data);
         // Downsample but ignore 0 or background pixel values when filtering
         DownsampleImageWithoutNonZeroPixelsAndBackground<int16_t>(
-          image_dst, cur_image_data, src_width, src_height, DT_DOWNSAMPLE,
+          image_dst, cur_image_data, depth_w, depth_h, DT_DOWNSAMPLE,
           GDT_MAX_DIST);
         DownsampleBoolImageConservative<uint8_t>(label_dst, 
-          cur_label_data, src_width, src_height, DT_DOWNSAMPLE, 0, 1);
+          cur_label_data, depth_w, depth_h, DT_DOWNSAMPLE, 0, 1);
 
       } else {
         if (load_training_data && i % stride_test_data == 0) {
@@ -341,25 +298,25 @@ namespace kinect_interface {
     }
 
     // Extract the user pixels and copy over the depth
-    memset(user_pixels, 0, src_dim * sizeof(user_pixels[0]));
-    for (uint32_t i = 0; i < src_dim; i++) {
+    memset(user_pixels, 0, depth_dim * sizeof(user_pixels[0]));
+    for (uint32_t i = 0; i < depth_dim; i++) {
       if ((uncompressed_data[i] & 0x8000) != 0) {
         // Part of the user
         uncompressed_data[i] = uncompressed_data[i] & 0x7fff;
         user_pixels[i] = 1;
       }
     }
-    memcpy(depth_data, uncompressed_data, src_dim * sizeof(depth_data[0]));
+    memcpy(depth_data, uncompressed_data, depth_dim * sizeof(depth_data[0]));
 
     // Now we need to process the data to find the hand points
-    memcpy(label_data, user_pixels, src_dim * sizeof(label_data[0]));
+    memcpy(label_data, user_pixels, depth_dim * sizeof(label_data[0]));
 
-    rgb = reinterpret_cast<uint8_t*>(&uncompressed_data[src_dim]);
+    rgb = reinterpret_cast<uint8_t*>(&uncompressed_data[depth_dim]);
     if (rgb_data != NULL) {
-      memcpy(rgb_data, rgb, 3 * src_dim * sizeof(rgb_data[0]));
+      memcpy(rgb_data, rgb, 3 * depth_dim * sizeof(rgb_data[0]));
     }
 
-    for (uint32_t i = 0; i < src_dim; i++) {
+    for (uint32_t i = 0; i < depth_dim; i++) {
       if (depth_data[i] > GDT_MAX_DIST || depth_data[i] == 0) {
         depth_data[i] = GDT_MAX_DIST + 1; // Push to background
       }
@@ -374,22 +331,22 @@ namespace kinect_interface {
     LoadCompressedImage(file, depth_data, label_data, rgb_data);
 
     // Now we need to process the data to find the hand points
-    memset(label_data, 0, src_dim * sizeof(label_data[0]));
+    memset(label_data, 0, depth_dim * sizeof(label_data[0]));
 
-    convertRGBToHSV<uint8_t>(hsv, rgb, src_width, src_height);  
+    convertRGBToHSV<uint8_t>(hsv, rgb, depth_w, depth_h);  
     if (hsv_pixels_ret != NULL) {
-      memcpy(hsv_pixels_ret, hsv, 3 * src_dim * sizeof(hsv_pixels_ret[0]));
+      memcpy(hsv_pixels_ret, hsv, 3 * depth_dim * sizeof(hsv_pixels_ret[0]));
     }
 
     getRedPixels(rgb, hsv, red_pixels);
     // Run an aggressive median filter to remove outliers
-    GrowFilter<uint8_t>(red_pixels_tmp, red_pixels, src_width,
-      src_height, 1);
-    MedianBoolFilter<uint8_t>(red_pixels, red_pixels_tmp, src_width,
-      src_height, red_med_filter_rad, 1);
-    //memcpy(red_pixels, red_pixels_tmp, sizeof(red_pixels[0])*src_dim);
+    GrowFilter<uint8_t>(red_pixels_tmp, red_pixels, depth_w,
+      depth_h, 1);
+    MedianBoolFilter<uint8_t>(red_pixels, red_pixels_tmp, depth_w,
+      depth_h, red_med_filter_rad, 1);
+    //memcpy(red_pixels, red_pixels_tmp, sizeof(red_pixels[0])*depth_dim);
     if (red_pixels_ret != NULL) {
-      memcpy(red_pixels_ret, red_pixels, src_dim * sizeof(red_pixels_ret[0]));
+      memcpy(red_pixels_ret, red_pixels, depth_dim * sizeof(red_pixels_ret[0]));
     }
     cleanUpRedPixelsUsingDepth(depth_data, red_pixels);
 
@@ -406,9 +363,9 @@ namespace kinect_interface {
 
     // Get the image data ready for compressing
     int16_t* depth_dst = (int16_t*)uncompressed_data;
-    memcpy(depth_dst, depth_data, src_dim * sizeof(depth_dst[0]));
+    memcpy(depth_dst, depth_data, depth_dim * sizeof(depth_dst[0]));
 
-    for (uint32_t i = 0; i < src_dim; i++) {
+    for (uint32_t i = 0; i < depth_dim; i++) {
       if (label_data[i] == 1) {
         depth_dst[i] = depth_dst[i] | 0x8000;
       }
@@ -418,7 +375,7 @@ namespace kinect_interface {
     static const int compression_level = 1;  // 1 fast, 2 better compression
     int compressed_length = fastlz_compress_level(compression_level, 
       reinterpret_cast<void*>(uncompressed_data), 
-      src_dim * sizeof(depth_dst[0]),
+      depth_dim * sizeof(depth_dst[0]),
       reinterpret_cast<void*>(compressed_data));
 
     // Seperate out the directory string and the filename
@@ -477,24 +434,24 @@ namespace kinect_interface {
 
     int size_decompress = fastlz_decompress(reinterpret_cast<void*>(compressed_data),
       size_bytes, (void*)(uncompressed_data), processed_data_size * 2);
-    if (size_decompress != (src_dim * sizeof(depth_data[0]))) {
+    if (size_decompress != (depth_dim * sizeof(depth_data[0]))) {
       throw wruntime_error(string("ERROR: uncompressed data") +
         string(" size is not what we expected!"));
     }
 
     // Copy the data into user space
     int16_t* depth_file = (int16_t*)uncompressed_data;
-    memcpy(depth_data, depth_file, src_dim * sizeof(depth_data[0]));
+    memcpy(depth_data, depth_file, depth_dim * sizeof(depth_data[0]));
 
-    memset(label_data, 0, src_dim * sizeof(label_data[0]));
-    //for (uint32_t i = 0; i < src_dim; i++) {
+    memset(label_data, 0, depth_dim * sizeof(label_data[0]));
+    //for (uint32_t i = 0; i < depth_dim; i++) {
     //  if (depth_data[i] < 0) {
     //    label_data[i] = 1;
     //    depth_data[i] *= -1;
     //  } 
     //}
 
-    for (uint32_t i = 0; i < src_dim; i++) {
+    for (uint32_t i = 0; i < depth_dim; i++) {
       if (depth_data[i] & 0x8000) {
         label_data[i] = 1;
         depth_data[i] = depth_data[i];
@@ -527,8 +484,8 @@ namespace kinect_interface {
         string(" size is not what we expected!"));
     }
 
-    uint8_t* rgb_file = reinterpret_cast<uint8_t*>(&uncompressed_data[src_dim]);
-    memcpy(rgb, rgb_file, src_dim * sizeof(rgb[0]) * 3);
+    uint8_t* rgb_file = reinterpret_cast<uint8_t*>(&uncompressed_data[depth_dim]);
+    memcpy(rgb, rgb_file, depth_dim * sizeof(rgb[0]) * 3);
   }
 
   uint32_t DepthImagesIO::GetFilesInDirectories(
@@ -734,11 +691,11 @@ namespace kinect_interface {
     int32_t cur_delta[3];
     int32_t hue_offset = (red_hue_target + 128) % 255;
 
-    memset(red_pixels, 0, src_dim * sizeof(red_pixels[0]));
+    memset(red_pixels, 0, depth_dim * sizeof(red_pixels[0]));
     uint32_t index = 0;
     // uint32_t index_offset;
-    for (uint32_t v = 0; v < src_height; v++) {
-      for (uint32_t u = 0; u < src_width; u++) {
+    for (uint32_t v = 0; v < depth_h; v++) {
+      for (uint32_t u = 0; u < depth_w; u++) {
         cur_delta[0] = (static_cast<int32_t>(hsv[index*3]) + hue_offset) % 255;
         cur_delta[1] = static_cast<int32_t>(hsv[index*3+1]);
         cur_delta[2] = static_cast<int32_t>(hsv[index*3+2]);
@@ -769,7 +726,7 @@ namespace kinect_interface {
     uint8_t* red_pixels) {
 
     //std::cout << "cleanUpRedPixelsUsingDepth() HACK ON" << std::endl;
-    //for (uint32_t i = 0; i < src_dim; i++) {
+    //for (uint32_t i = 0; i < depth_dim; i++) {
     //  if (depth_data[i] >= 1500) {
     //    red_pixels[i] = 0;
     //    depth_data[i] = GDT_MAX_DIST + 1;
@@ -777,7 +734,7 @@ namespace kinect_interface {
     //}
 
     // Get rid of zero or large depths
-    for (uint32_t i = 0; i < src_dim; i++) {
+    for (uint32_t i = 0; i < depth_dim; i++) {
       if (depth_data[i] == 0 || depth_data[i] >= GDT_MAX_DIST) {
         red_pixels[i] = 0;
       }
@@ -785,17 +742,17 @@ namespace kinect_interface {
 
     // Now perform a shrink operation of a N pixel radius in-case depth and RGB
     // pixels don't overlap
-    memcpy(red_pixels_tmp, red_pixels, src_dim * sizeof(red_pixels_tmp[0]));
+    memcpy(red_pixels_tmp, red_pixels, depth_dim * sizeof(red_pixels_tmp[0]));
     if (red_shrink_filter_rad > 0) {
       // Shrink horizontally
       int32_t index = 0;
-      for (int32_t v = 0; v < src_height; v++) {
-        for (int32_t u = 0; u < src_width; u++) {
+      for (int32_t v = 0; v < depth_h; v++) {
+        for (int32_t u = 0; u < depth_w; u++) {
           if (red_pixels_tmp[index] == 0) {
             for (int32_t u_offset = u - red_shrink_filter_rad; 
               u_offset <= u + red_shrink_filter_rad; u_offset++) {
-                if (u_offset < src_width && u_offset >= 0) {
-                  red_pixels[v * src_width + u_offset] = 0;
+                if (u_offset < depth_w && u_offset >= 0) {
+                  red_pixels[v * depth_w + u_offset] = 0;
                 }
             }
           }
@@ -804,13 +761,13 @@ namespace kinect_interface {
       }
       // Shrink vertically
       index = 0;
-      for (int32_t v = 0; v < src_height; v++) {
-        for (int32_t u = 0; u < src_width; u++) {
+      for (int32_t v = 0; v < depth_h; v++) {
+        for (int32_t u = 0; u < depth_w; u++) {
           if (red_pixels[index] == 0) {
             for (int32_t v_offset = v - red_shrink_filter_rad; 
               v_offset <= v + red_shrink_filter_rad; v_offset++) {
-                if (v_offset < src_height && v_offset >= 0) {
-                  red_pixels_tmp[v_offset * src_width + u] = 0;
+                if (v_offset < depth_h && v_offset >= 0) {
+                  red_pixels_tmp[v_offset * depth_w + u] = 0;
                 }
             }
           }
@@ -824,8 +781,8 @@ namespace kinect_interface {
       int16_t cur_depth_min;
       int16_t cur_depth_max;
       uint32_t index = 0;
-      for (int32_t v = 0; v < src_height; v++) {
-        for (int32_t u = 0; u < src_width; u++) {
+      for (int32_t v = 0; v < depth_h; v++) {
+        for (int32_t u = 0; u < depth_w; u++) {
           cur_depth_min = GDT_MAX_DIST;
           cur_depth_max = 0;
           if (red_pixels_tmp[index] == 1) {
@@ -833,7 +790,7 @@ namespace kinect_interface {
               v_offset <= v + red_discon_filter_rad; v_offset++) {
                 for (int32_t u_offset = u - red_discon_filter_rad; 
                   u_offset <= u + red_discon_filter_rad; u_offset++) {   
-                    int32_t index_offset = v_offset * src_width + u_offset;
+                    int32_t index_offset = v_offset * depth_w + u_offset;
                     if (depth_data[index_offset] > cur_depth_max) {
                       cur_depth_max = depth_data[index_offset];
                     }
@@ -851,7 +808,7 @@ namespace kinect_interface {
       }
     }
 
-    memcpy(red_pixels, red_pixels_tmp, src_dim * sizeof(red_pixels[0]));
+    memcpy(red_pixels, red_pixels_tmp, depth_dim * sizeof(red_pixels[0]));
 
     //// Get rid of any blobs below a threshold number of pixels
     //uint32_t blob_pixel;
@@ -865,7 +822,7 @@ namespace kinect_interface {
   };
 
   void DepthImagesIO::resetBlobDetection() {
-    memset(pixel_on_queue, false, src_dim * sizeof(pixel_on_queue[0]));
+    memset(pixel_on_queue, false, depth_dim * sizeof(pixel_on_queue[0]));
     queue_head = 0;
     queue_tail = 0;  // When queue_head_ == queue_tail_ the queue is empty
     blob_i = 0;
@@ -875,7 +832,7 @@ namespace kinect_interface {
     int16_t* depth_data, uint8_t* labels) {
     blob_size = 0;
     int neighbourPtIndexUV[2];
-    while (blob_i < src_dim) {
+    while (blob_i < depth_dim) {
       if (!pixel_on_queue[blob_i] && labels[blob_i] > 0) {
          // We haven't yet searched from this pixel.  Put it on the queue and 
         // flood fill from it.
@@ -886,8 +843,8 @@ namespace kinect_interface {
         while (queue_head != queue_tail) {
           // Take the current pixel off the queue
           int curPtIndex = pixel_queue[queue_head];
-          int curPtU = curPtIndex % src_width;
-          int curPtV = curPtIndex / src_width; 
+          int curPtU = curPtIndex % depth_w;
+          int curPtV = curPtIndex / depth_w; 
           queue_head++;
 
           // Incrument the blob size
@@ -913,9 +870,9 @@ namespace kinect_interface {
 
   void DepthImagesIO::processBlobNeighbour(int16_t* depth_data, 
     int* nieghbourPtUV, int curPtIndex, uint8_t* labels) {
-    if (nieghbourPtUV[0] >= 0 && nieghbourPtUV[0] < src_width && 
-      nieghbourPtUV[1] >= 0 && nieghbourPtUV[1] < src_height) {
-      int nieghbourPtIndex = nieghbourPtUV[1]*src_width + nieghbourPtUV[0];
+    if (nieghbourPtUV[0] >= 0 && nieghbourPtUV[0] < depth_w && 
+      nieghbourPtUV[1] >= 0 && nieghbourPtUV[1] < depth_h) {
+      int nieghbourPtIndex = nieghbourPtUV[1]*depth_w + nieghbourPtUV[0];
       if (!pixel_on_queue[nieghbourPtIndex]) {  // don't add it if we have
         if (depth_data[nieghbourPtIndex] > 0 && labels[nieghbourPtIndex]) {
           // See if the pixel is close to the current point (otherwise it's the 
@@ -936,7 +893,7 @@ namespace kinect_interface {
 
   void DepthImagesIO::zeroBlob(const uint32_t blob_index, int16_t* depth_data, 
     uint8_t* labels) {
-    memset(pixel_on_queue, false, src_dim * sizeof(pixel_on_queue[0]));
+    memset(pixel_on_queue, false, depth_dim * sizeof(pixel_on_queue[0]));
     queue_head = 0;
     queue_tail = 0;  // When queue_head_ == queue_tail_ the queue is empty
     pixel_on_queue[blob_index] = true;
@@ -947,8 +904,8 @@ namespace kinect_interface {
     while (queue_head != queue_tail) {
       // Take the current pixel off the queue
       int curPtIndex = pixel_queue[queue_head];
-      int curPtU = curPtIndex % src_width;
-      int curPtV = curPtIndex / src_width; 
+      int curPtU = curPtIndex % depth_w;
+      int curPtV = curPtIndex / depth_w; 
       queue_head++;
 
       // Zero the pixel label
@@ -971,12 +928,12 @@ namespace kinect_interface {
   // the same color.
   void DepthImagesIO::findHandPoints(uint8_t* label_data, uint8_t* red_pixels, 
     int16_t* depth_data) {
-    memset(label_data, 0, src_dim * sizeof(label_data[0]));
-    memset(pixel_on_queue, false, src_dim * sizeof(pixel_on_queue[0]));
+    memset(label_data, 0, depth_dim * sizeof(label_data[0]));
+    memset(pixel_on_queue, false, depth_dim * sizeof(pixel_on_queue[0]));
     queue_head = 0;
     queue_tail = 0;  // When queue_head_ == queue_tail_ the queue is empty
     int neighbourPtIndexUV[2];
-    for (uint32_t i = 0; i < src_dim; i++) {
+    for (uint32_t i = 0; i < depth_dim; i++) {
       if (!pixel_on_queue[i] && (red_pixels[i] != 0) && (depth_data[i] > 0)) {
         // We haven't yet searched from this pixel.  Put it on the queue and 
         // flood fill from it.
@@ -986,8 +943,8 @@ namespace kinect_interface {
         while (queue_head != queue_tail) {
           // Take the current pixel off the queue
           int curPtIndex = pixel_queue[queue_head];
-          int curPtU = curPtIndex % src_width;
-          int curPtV = curPtIndex / src_width; 
+          int curPtU = curPtIndex % depth_w;
+          int curPtV = curPtIndex / depth_w; 
           queue_head++;
 
           // Add the point to the set
@@ -1005,9 +962,9 @@ namespace kinect_interface {
 
   void DepthImagesIO::processGloveNeighbour(int16_t* depth_data, 
     int* nieghbourPtUV, int curPtIndex) {
-      if (nieghbourPtUV[0] >= 0 && nieghbourPtUV[0] < src_width && 
-        nieghbourPtUV[1] >= 0 && nieghbourPtUV[1] < src_height) {
-          int nieghbourPtIndex = nieghbourPtUV[1]*src_width + nieghbourPtUV[0];
+      if (nieghbourPtUV[0] >= 0 && nieghbourPtUV[0] < depth_w && 
+        nieghbourPtUV[1] >= 0 && nieghbourPtUV[1] < depth_h) {
+          int nieghbourPtIndex = nieghbourPtUV[1]*depth_w + nieghbourPtUV[0];
           if (!pixel_on_queue[nieghbourPtIndex]) {  // don't add it if we have
             if (depth_data[nieghbourPtIndex] > 0) {
               // See if the pixel is close to the current point (otherwise it's the 
@@ -1049,9 +1006,9 @@ namespace kinect_interface {
         new_label_data = label_data;
         label_data = temp;
       }
-      for (int32_t v = 0; v < src_height; v++) {
-        for (int32_t u = 0; u < src_width; u++) {
-          int32_t index = v * src_width + u;
+      for (int32_t v = 0; v < depth_h; v++) {
+        for (int32_t u = 0; u < depth_w; u++) {
+          int32_t index = v * depth_w + u;
           if (label_data[index] == 1) {
             int16_t cur_depth = depth_data[index];
             int16_t cur_rad = static_cast<int16_t>(round(radius / static_cast<float>(cur_depth)));
@@ -1060,10 +1017,10 @@ namespace kinect_interface {
             }
             // Grow the current label if the depth is close
             for (int32_t v_offset = v - cur_rad; v_offset <= v + cur_rad; v_offset++) {
-              if (v_offset >= 0 && v_offset < src_height) {
+              if (v_offset >= 0 && v_offset < depth_h) {
                 for (int32_t u_offset = u - cur_rad; u_offset <= u + cur_rad; u_offset++) {
-                  if (u_offset >= 0 && u_offset < src_width) {
-                    int32_t index_offset = v_offset * src_width + u_offset;
+                  if (u_offset >= 0 && u_offset < depth_w) {
+                    int32_t index_offset = v_offset * depth_w + u_offset;
                     int16_t delta_depth = (depth_data[index_offset] - cur_depth);
                     delta_depth = delta_depth < 0 ? -delta_depth : delta_depth;  // abs
                     if ((index_offset == index || delta_depth < BACKGROUND_DEPTH_THRESH_GROW) && 
@@ -1079,18 +1036,18 @@ namespace kinect_interface {
       }
     }
     if ((cur_iteration % 2) == 0) {
-      memcpy(new_label_data, label_data, src_dim*sizeof(new_label_data[0]));
+      memcpy(new_label_data, label_data, depth_dim*sizeof(new_label_data[0]));
     }
   }
   
   void DepthImagesIO::floodPixel(uint8_t* label_image, int16_t* depth_image, 
     int u, int v, int32_t radius, int16_t threshold) {
     flood_threshold = threshold;
-    memset(pixel_on_queue, false, src_dim * sizeof(pixel_on_queue[0]));
+    memset(pixel_on_queue, false, depth_dim * sizeof(pixel_on_queue[0]));
     queue_head = 0;
     queue_tail = 0;  // When queue_head_ == queue_tail_ the queue is empty
     int neighbourPtIndexUV[2];
-    uint32_t start_index = v * src_width + u;
+    uint32_t start_index = v * depth_w + u;
     // Start a flood fill from the input pixel
     uint8_t label_to_flood = label_image[start_index] == 1 ? 0 : 1;
     pixel_on_queue[start_index] = true;
@@ -1099,8 +1056,8 @@ namespace kinect_interface {
     while (queue_head != queue_tail) {
       // Take the current pixel off the queue
       int curPtIndex = pixel_queue[queue_head];
-      int curPtU = curPtIndex % src_width;
-      int curPtV = curPtIndex / src_width; 
+      int curPtU = curPtIndex % depth_w;
+      int curPtV = curPtIndex / depth_w; 
       queue_head++;
       int cur_rad_sq = (u - curPtU)*(u - curPtU) + (v - curPtV)*(v - curPtV);
       if (cur_rad_sq <= radius) {
@@ -1120,9 +1077,9 @@ namespace kinect_interface {
   void DepthImagesIO::processFloodPixelNeighbour(int16_t* depth_data, 
     uint8_t* label_data, int* nieghbourPtUV, int curPtIndex, 
     uint8_t label_to_flood) {
-    if (nieghbourPtUV[0] >= 0 && nieghbourPtUV[0] < src_width && 
-      nieghbourPtUV[1] >= 0 && nieghbourPtUV[1] < src_height) {
-        int nieghbourPtIndex = (nieghbourPtUV[1]*src_width) + 
+    if (nieghbourPtUV[0] >= 0 && nieghbourPtUV[0] < depth_w && 
+      nieghbourPtUV[1] >= 0 && nieghbourPtUV[1] < depth_h) {
+        int nieghbourPtIndex = (nieghbourPtUV[1]*depth_w) + 
           nieghbourPtUV[0];
         if (!pixel_on_queue[nieghbourPtIndex]) {  // don't add it if we have
           if (depth_data[nieghbourPtIndex] > 0 && 
@@ -1140,27 +1097,6 @@ namespace kinect_interface {
           }
         }
     }
-  }
-
-  void DepthImagesIO::convertKinectImageDepthToXYZ(float*& xyz, DepthImageData*& images) {
-    float* uvd_data = new float[src_dim * 3];
-
-    for (int32_t i = 0; i < images->num_images; i++) {
-      int16_t* image_src = &images->image_data[src_dim * i];
-      OpenNIFuncs::ConvertDepthImageToProjectiveKinect(
-        reinterpret_cast<uint16_t*>(image_src), uvd_data);
-
-      float* xyz_dest = &xyz[src_dim * i * 3];
-      OpenNIFuncs::xnConvertProjectiveToRealWorld(src_dim, uvd_data, xyz_dest);
-    }
-    delete[] uvd_data;
-  }
-
-  void DepthImagesIO::convertKinectSingleImageToXYZ(float* xyz, int16_t* depth) {
-    float* uvd_data = new float[src_dim * 3];
-    OpenNIFuncs::ConvertDepthImageToProjectiveKinect((uint16_t*)depth, uvd_data);
-    OpenNIFuncs::xnConvertProjectiveToRealWorld(src_dim, uvd_data, xyz);
-    delete[] uvd_data;
   }
 
   // ************* NO LONGER USING GRAPH CUT *************
@@ -1208,11 +1144,11 @@ namespace kinect_interface {
   //  int16_t* image_data, uint8_t* red_label_data) {
   //  // First, for each pixel count the number of 1 labels within some radius
   //  // But we need overflow, so we must do this with int precision
-  //  for (uint32_t i = 0; i < src_dim; i++) {
+  //  for (uint32_t i = 0; i < depth_dim; i++) {
   //    label_data_int[i] = static_cast<int>(red_label_data[i]);
   //  }
   //  IntegrateBooleanLabel<int>(label_data_int_integ, label_data_int_tmp,
-  //                             label_data_int, src_width, src_height, graph_cut_affiliation_radius, 1);
+  //                             label_data_int, depth_w, depth_h, graph_cut_affiliation_radius, 1);
   //  
   //  affiliation_diam = static_cast<float>(graph_cut_affiliation_radius * 2 + 1);
   //  affiliation_cnt = affiliation_diam * affiliation_diam;
@@ -1222,10 +1158,10 @@ namespace kinect_interface {
   //  if(im_graph != NULL) { 
   //    delete im_graph; 
   //  }
-  //  static const int num_nodes = src_dim;
-  //  static const int num_edges = (src_width - 1) * (src_height - 1) * 2 + // cross edges
-  //                               (src_height - 1) * src_width + // vertical edges
-  //                               (src_width - 1) * src_height; // horizontal edges
+  //  static const int num_nodes = depth_dim;
+  //  static const int num_edges = (depth_w - 1) * (depth_h - 1) * 2 + // cross edges
+  //                               (depth_h - 1) * depth_w + // vertical edges
+  //                               (depth_w - 1) * depth_h; // horizontal edges
   //  im_graph = new GraphFloat(num_nodes, num_edges, graphErrorFunc);
 
   //  // Add all pixels
@@ -1235,41 +1171,41 @@ namespace kinect_interface {
   //  uint32_t curInd, neighbourInd;
   //  float edgeWeight;
   //  // Add all the vertices
-  //  for (uint32_t curY = 0; curY < src_height; curY ++) {
-  //    for (uint32_t curX = 0; curX < src_width; curX ++) {
-  //      curInd = curY * src_width + curX;
+  //  for (uint32_t curY = 0; curY < depth_h; curY ++) {
+  //    for (uint32_t curX = 0; curX < depth_w; curX ++) {
+  //      curInd = curY * depth_w + curX;
   //      AddVertex(im_graph, curInd, label_data_int_integ);
   //    }
   //  }   
   //  // Add all the edges
-  //  for (uint32_t curY = 0; curY < src_height; curY ++) {
-  //    for (uint32_t curX = 0; curX < src_width; curX ++) {
-  //      curInd = curY * src_width + curX;
+  //  for (uint32_t curY = 0; curY < depth_h; curY ++) {
+  //    for (uint32_t curX = 0; curX < depth_w; curX ++) {
+  //      curInd = curY * depth_w + curX;
 
   //      // Add it's right edge
-  //      if(curX < (src_width-1)) {
-  //        neighbourInd = curY * src_width + curX + 1;
+  //      if(curX < (depth_w-1)) {
+  //        neighbourInd = curY * depth_w + curX + 1;
   //        edgeWeight = CalculateAdjacentEdgeWeight(curInd, neighbourInd, image_data);
   //        im_graph->add_edge(vert[curInd],vert[neighbourInd], edgeWeight, edgeWeight);
   //      } // end if (curX < (width-1))
 
   //      // Add it's down edge
-  //      if(curY < (src_height-1)) {
-  //        neighbourInd = (curY + 1) * src_width + curX;
+  //      if(curY < (depth_h-1)) {
+  //        neighbourInd = (curY + 1) * depth_w + curX;
   //        edgeWeight = CalculateAdjacentEdgeWeight(curInd, neighbourInd, image_data);
   //        im_graph->add_edge(vert[curInd],vert[neighbourInd], edgeWeight, edgeWeight);
   //      } // end if (curY < (height-1))
 
   //      // Add it's bottom-right edge
-  //      if(curX < (src_width-1) && curY < (src_height-1)) {
-  //        neighbourInd = (curY + 1) * src_width + curX + 1;
+  //      if(curX < (depth_w-1) && curY < (depth_h-1)) {
+  //        neighbourInd = (curY + 1) * depth_w + curX + 1;
   //        edgeWeight = CalculateAdjacentEdgeWeight(curInd, neighbourInd, image_data);
   //        im_graph->add_edge(vert[curInd],vert[neighbourInd], edgeWeight, edgeWeight);
   //      } // end if (curX < (width-1))
 
   //      // Add it's bottom-left edge
-  //      if(curX > 0 && curY < (src_height-1)) {
-  //        neighbourInd = (curY + 1) * src_width + curX -1;
+  //      if(curX > 0 && curY < (depth_h-1)) {
+  //        neighbourInd = (curY + 1) * depth_w + curX -1;
   //        edgeWeight = CalculateAdjacentEdgeWeight(curInd, neighbourInd, image_data);
   //        im_graph->add_edge(vert[curInd],vert[neighbourInd], edgeWeight, edgeWeight);
   //      } // end if (curY < (height-1))
@@ -1280,7 +1216,7 @@ namespace kinect_interface {
   //  float flow = im_graph->maxflow();
 
   //  // Now go through the graph and copy the assignments
-  //  for(int i = 0; i < src_dim; i ++ ) {
+  //  for(int i = 0; i < depth_dim; i ++ ) {
   //    if (im_graph->what_segment(vert[i]) == GraphFloat::SOURCE) {
   //      return_label_data[i] = 1;
   //    } else {

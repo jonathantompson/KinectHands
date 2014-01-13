@@ -5,7 +5,7 @@
 #include "kinect_interface/hand_detector/common_tree_funcs.h"
 #include "kinect_interface/hand_detector/decision_tree_func.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
-#include "kinect_interface/depth_image_data.h"
+#include "kinect_interface/kinect_interface.h"
 #include "jtil/image_util/image_util.h"
 
 using namespace jtil::image_util;
@@ -91,67 +91,6 @@ namespace hand_detector {
       }
       label_data[index] = pixel_label;
     }  // if (image_data[index] == 0 || image_data[index] >= GDT_MAX_DIST)
-  }
-
-  float evaluateDecisionForestError(const DepthImageData* data,
-    const DecisionTree* forest, const uint32_t num_trees,
-    const bool run_median_filter, const int32_t median_filter_rad, 
-    const int32_t tree_height) {
-    // Iterate through the images and aggregate the pixel error
-    uint8_t* label_data_evaluated = new uint8_t[data->im_width * data->im_height];
-    uint8_t* label_data_filtered = NULL;
-
-    uint32_t num_correct = 0;
-    uint32_t num_incorrect = 0;
-    uint32_t num_hand_pixels = 0;
-    uint32_t num_false_pos = 0;
-    uint32_t num_false_neg = 0;
-    for (int32_t i = 0; i < data->num_images; i++) {
-      uint8_t* cur_label_data = &data->label_data[data->im_width * data->im_height * i];
-      int16_t* cur_image_data = &data->image_data[data->im_width * data->im_height * i];
-      evaluateDecisionForest(label_data_evaluated, forest, tree_height, 
-        num_trees, cur_image_data, data->im_width, data->im_height);
-      if (run_median_filter) {
-        label_data_filtered = new uint8_t[data->im_width * data->im_height];
-        MedianLabelFilter<uint8_t, int16_t>(label_data_filtered, 
-          label_data_evaluated, cur_image_data,
-          data->im_width, data->im_height, median_filter_rad, NUM_LABELS, GDT_MAX_DIST);
-        // swap the buffers
-        uint8_t* temp;
-        temp = label_data_filtered;
-        label_data_filtered = label_data_evaluated;
-        label_data_evaluated = temp;
-      }
-      for (int32_t i = 0; i < data->im_width * data->im_height; i++) {
-        if (cur_label_data[i] != 0) {
-          num_hand_pixels++;
-        }
-        //if(cur_image_data[i] != 0 && cur_image_data[i] < GDT_MAX_DIST) {
-          if (cur_label_data[i] == label_data_evaluated[i]) {
-            num_correct++;
-          } else {
-            if (cur_label_data[i] == 0) {
-              num_false_pos++;
-            } else {
-              num_false_neg++;
-            }
-            num_incorrect++;
-          }
-        //}
-      }
-    }
-    std::cout << "    num_incorrect = " << num_incorrect << std::endl;
-    std::cout << "    num_correct = " << num_correct << std::endl;
-    std::cout << "    num_hand_pixels = " << num_hand_pixels << std::endl;
-    std::cout << "    num_false_pos = " << num_false_pos << std::endl;
-    std::cout << "    num_false_neg = " << num_false_neg << std::endl;
-
-    delete[] label_data_evaluated;
-    if (label_data_filtered) {
-      delete[] label_data_filtered;
-    }
-    return static_cast<float>(num_incorrect) / 
-           static_cast<float>(num_correct + num_incorrect);
   }
 
 };  // namespace hand_detector

@@ -11,9 +11,33 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\kinect_interface\depth_images_io.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_detector\common_tree_funcs.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_detector\evaluate_decision_forest.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_detector\forest_io.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_detector\generate_decision_tree.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_detector\hand_detector.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_net\hand_image_generator.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_net\hand_model.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_net\hand_model_coeff.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_net\hand_net.cpp" />
+    <ClCompile Include="src\kinect_interface\hand_net\robot_hand_model.cpp" />
     <ClCompile Include="src\kinect_interface\kinect_interface.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\kinect_interface\hand_detector\common_tree_funcs.h" />
+    <ClInclude Include="include\kinect_interface\hand_detector\decision_tree_func.h" />
+    <ClInclude Include="include\kinect_interface\hand_detector\decision_tree_structs.h" />
+    <ClInclude Include="include\kinect_interface\hand_detector\depth_image_data.h" />
+    <ClInclude Include="include\kinect_interface\hand_detector\evaluate_decision_forest.h" />
+    <ClInclude Include="include\kinect_interface\hand_detector\forest_io.h" />
+    <ClInclude Include="include\kinect_interface\hand_detector\generate_decision_tree.h" />
+    <ClInclude Include="include\kinect_interface\hand_detector\hand_detector.h" />
+    <ClInclude Include="include\kinect_interface\hand_net\hand_image_generator.h" />
+    <ClInclude Include="include\kinect_interface\hand_net\hand_model.h" />
+    <ClInclude Include="include\kinect_interface\hand_net\hand_model_coeff.h" />
+    <ClInclude Include="include\kinect_interface\hand_net\hand_net.h" />
+    <ClInclude Include="include\kinect_interface\hand_net\robot_hand_model.h" />
     <ClInclude Include="include\kinect_interface\kinect_interface.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

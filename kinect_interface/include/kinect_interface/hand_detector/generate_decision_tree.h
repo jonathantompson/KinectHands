@@ -10,13 +10,12 @@
 
 namespace kinect_interface {
 
-struct DepthImageData;
-
 namespace hand_detector {
   struct WLSet;
   struct DecisionTreeNode;
   struct DecisionTree;
   struct TrainingSettings;
+  struct DepthImageData;
 
   class GenerateDecisionTree {
   public:

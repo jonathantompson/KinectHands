@@ -1,11 +1,11 @@
 #include <string>
 #include <stdexcept>
 #include <iostream>
+#include "kinect_interface/kinect_interface.h"
 #include "kinect_interface/hand_detector/hand_detector.h"
 #include "kinect_interface/hand_detector/forest_io.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
 #include "kinect_interface/hand_detector/evaluate_decision_forest.h"
-#include "kinect_interface/open_ni_funcs.h"
 #include "jtil/image_util/image_util.h"
 #include "jtil/file_io/file_io.h"
 #include "jtil/threading/thread_pool.h"
@@ -20,7 +20,6 @@ using jtil::threading::Callback;
 using namespace jtil::math;
 using namespace jtil::threading;
 using namespace jtil::image_util;
-using kinect_interface::OpenNIFuncs;
 
 #define SAFE_FREE(x) do { if (x != NULL) { free(x); x = NULL; } } while (0); 
 #define SAFE_DELETE(x) do { if (x != NULL) { delete x; x = NULL; } } while (0); 
@@ -39,7 +38,7 @@ namespace hand_detector {
      {-o_r, -o_r}, {-o_r, 0}, {-o_r, +o_r}, {0, +o_r}, {+o_r, +o_r}, {+o_r, 0},
      {+o_r, -o_r}, {0, -o_r}};
 
-  HandDetector::HandDetector(ThreadPool* tp) {
+  HandDetector::HandDetector(ThreadPool* tp, KinectInterface* kinect) {
     stage2_med_filter_radius_ = HD_STARTING_MED_FILT_RAD;
     stage3_grow_filter_radius_ = HD_STARTING_GROW_FILT_RAD;
     stage1_shrink_filter_radius_ = HD_STARTING_SHRINK_FILT_RAD;
@@ -63,6 +62,7 @@ namespace hand_detector {
     num_trees_ = 0;
 
     tp_ = tp;
+    kinect_ = kinect;
     thread_cbs_ = NULL;
   }
 
@@ -554,8 +554,7 @@ namespace hand_detector {
   void HandDetector::findHandLabelsFloodFill(const float* pt_hand_uvd, 
     const float* xyz, uint8_t* label) {
     float pt_hand_xyz[3];
-    OpenNIFuncs::xnConvertProjectiveToRealWorld(1, pt_hand_uvd, 
-      pt_hand_xyz);
+    kinect_->convertUVDToXYZ(1, pt_hand_uvd, pt_hand_xyz);
     // Search in a small UV window for the minimum depth value around
     // the hand point.  This makes sure we can seed our connected components 
     // with a real hand point.
@@ -568,7 +567,7 @@ namespace hand_detector {
     pt_off_xyz[0] = pt_hand_xyz[0] - HD_SMALL_HAND_RADIUS;
     pt_off_xyz[1] = pt_hand_xyz[1];
     pt_off_xyz[2] = pt_hand_xyz[2];
-    OpenNIFuncs::xnConvertRealWorldToProjective(1, pt_off_xyz, pt_off_uvd);
+    kinect_->convertXYZToUVD(1, pt_off_xyz, pt_off_uvd);
     uv_vec.set(pt_off_uvd[0] - pt_hand_uvd[0], pt_off_uvd[1] - pt_hand_uvd[1], 
       0.0f); 
     int radius = static_cast<int>(uv_vec.length());

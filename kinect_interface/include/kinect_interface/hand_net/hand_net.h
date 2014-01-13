@@ -16,8 +16,6 @@
 
 #include "jtil/math/math_types.h"
 #include "kinect_interface/hand_net/hand_model_coeff.h"  // For HandCoeff
-#include "kinect_interface/depth_images_io.h"  // for src_dim
-#include "kinect_interface/open_ni_funcs.h"
 #include "jtil/threading/callback.h"
 
 #define HN_NUM_WORKER_THREADS 6
@@ -179,7 +177,6 @@ namespace hand_net {
 
   private:
     HandImageGenerator* image_generator_;
-    OpenNIFuncs open_ni_funcs_;
     int32_t num_conv_banks_;  // Set after Torch model is read from file
     jtorch::TorchStage* conv_network_;
     float* heat_map_convnet_;  // output data

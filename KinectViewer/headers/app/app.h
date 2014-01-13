@@ -68,6 +68,7 @@ namespace app {
 
     // Kinect data
     kinect_interface::KinectInterface* kinect_[MAX_NUM_KINECTS];
+    int64_t kinect_last_saved_depth_time_[MAX_NUM_KINECTS];
     uint32_t num_kinects_;
     uint8_t rainbowPalletR[256];
     uint8_t rainbowPalletG[256];
@@ -88,6 +89,12 @@ namespace app {
     uint8_t rgb_im_[kinect_interface::rgb_dim * 3];
     jtil::renderer::GeometryInstance* geom_inst_pts_;  // Not owned here!
     jtil::renderer::Geometry* geom_pts_;
+
+    // This temporary array is used to store the data to be saved.  We allocate
+    // a little extra space just in case the compression inflates the data
+    // (however this is very unlikely)
+    uint16_t* tmp_data1_[kinect_interface::depth_arr_size_bytes*MAX_NUM_KINECTS*2];
+    uint16_t* tmp_data2_[kinect_interface::depth_arr_size_bytes*MAX_NUM_KINECTS*2];
 
     void run();
     void init();
