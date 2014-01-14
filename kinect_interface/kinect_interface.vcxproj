@@ -25,6 +25,7 @@
     <ClCompile Include="src\kinect_interface\kinect_interface.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\kinect_interface\depth_images_io.h" />
     <ClInclude Include="include\kinect_interface\hand_detector\common_tree_funcs.h" />
     <ClInclude Include="include\kinect_interface\hand_detector\decision_tree_func.h" />
     <ClInclude Include="include\kinect_interface\hand_detector\decision_tree_structs.h" />

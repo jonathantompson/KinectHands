@@ -107,5 +107,8 @@
     <ClInclude Include="include\kinect_interface\hand_net\hand_net.h">
       <Filter>Header Files\kinect_interface\hand_net</Filter>
     </ClInclude>
+    <ClInclude Include="include\kinect_interface\depth_images_io.h">
+      <Filter>Header Files\kinect_interface</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

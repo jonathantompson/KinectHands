@@ -74,7 +74,7 @@ namespace kinect_interface {
 
     // Load a compressed depth+RGB image
     void LoadCompressedImage(const std::string& file, int16_t* depth_data, 
-      uint8_t* label_data, uint8_t* rgb_data = NULL);
+      uint8_t* rgb_data = NULL);
 
     // Same as above, but do some extra processing to extract the red hands
     // and generate label data.
@@ -145,7 +145,6 @@ namespace kinect_interface {
     // Some temporary space for processing each image
     uint16_t* compressed_data;
     uint16_t* uncompressed_data;
-    uint8_t* user_pixels;
     uint8_t* hsv;
     uint8_t* rgb;  // Doesn't need to be freed! --> Part of uncompressed data
     uint8_t* label_data_tmp;

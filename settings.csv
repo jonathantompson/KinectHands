@@ -16,13 +16,13 @@ stretch_image,                    bool,      0
 pause_stream,                     bool,      0
 render_point_cloud,               bool,      1
 point_cloud_size,                 float,     1000.0
-background_color,                 int,       1
+background_color,                 int,       0
 
 //, RENDERER
 screen_resolution,                int,       125830200
 fullscreen,                       bool,      0
 double_buffering,                 bool,      0  
-clear_color,                      Float3,    0.300, 0.300, 0.60
+clear_color,                      Float3,    0.150, 0.150, 0.30
 open_gl_major_version,            int,       4
 open_gl_minor_version,            int,       1
 open_gl_core_profile,             bool,      1
@@ -34,7 +34,7 @@ render_ui_renderer,               bool,      0
 render_ui_fps,                    bool,      1
 render_output_enum,               int,       0
 light_pass_stencil_opt,           bool,      0
-ssao_on,                          bool,      1
+ssao_on,                          bool,      0
 ssao_sample_radius,               float,     40.0
 ssao_bias,                        float,     0.4
 ssao_intensity,                   float,     3.5
@@ -50,7 +50,7 @@ render_light_volumes,             bool,      0
 render_light_sources,             bool,      0
 dof_on,                           bool,      0
 dof_bounds,                       Float4,    0.15, 0.25, 3.0, 5.0
-ui_render_crosshairs,             bool,      0
+ui_render_crosshairs,             bool,      1
 ui_crosshairs_size,               float,     0.025
 ui_starting_height,               int,       600
 ui_starting_width,                int,       320
@@ -78,6 +78,7 @@ motion_blur_max_samples,          int,       13
 motion_blur_depth_cutoff,         float,     5.0
 motion_blur_target_fps,           float,     60
 motion_blur_hq_boned,             bool,      0
+motion_blur_intensity,            float,     1
 flashlight_on,                    bool,      0
 flashlight_dist,                  float,     40.0
 flashlight_outer_fov,             float,     20.0

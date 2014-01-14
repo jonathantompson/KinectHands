@@ -94,7 +94,6 @@
   #error "HAND_FIT is not defined in the preprocessor definitions!"
 #endif
 
-//#define IM_DIR (KINECT_HANDS_ROOT + IM_DIR_BASE)
 #define IM_DIR (KINECT_HANDS_ROOT + IM_DIR_BASE)
 
 // #define LOAD_AND_SAVE_OLD_FORMAT_COEFFS
@@ -157,7 +156,6 @@ bool render_correspondances = true;
   bool render_all_views = 0;
   int16_t** depth_database[MAX_KINECTS] = {NULL, NULL};  // depth[kinect][frame][pix]
   uint8_t** rgb_database[MAX_KINECTS] = {NULL, NULL};
-  uint8_t** label_database[MAX_KINECTS] = {NULL, NULL};
   uint32_t num_model_fit_cameras = 1;
 #else
   HandModelCoeff** l_hand_coeffs = NULL;  // Left Hand coefficients
@@ -183,7 +181,6 @@ Vector<Triple<char*, int64_t, int64_t>> im_files[MAX_KINECTS];  // filename, kin
 float cur_xyz_data[MAX_KINECTS][depth_dim*3];
 float cur_norm_data[MAX_KINECTS][depth_dim*3];
 int16_t** cur_depth_data;  // Size: [MAX_KINECTS][depth_dim*3]
-uint8_t** cur_label_data;  // Size: [MAX_KINECTS][depth_dim]
 uint8_t cur_image_rgb[MAX_KINECTS][depth_dim*3];
 uint32_t cur_image = 0;
 GeometryColoredPoints* geometry_points[MAX_KINECTS];
@@ -246,12 +243,6 @@ void quit() {
     }
   }
   SAFE_DELETE_ARR(cur_depth_data);
-  if (cur_label_data) {
-    for (uint32_t i = 0; i < MAX_KINECTS; i++) {
-      SAFE_DELETE_ARR(cur_label_data[i]);
-    }
-  }
-  SAFE_DELETE_ARR(cur_label_data);
 #if defined(CALIBRATION_RUN)
   for (uint32_t i = 0; i < MAX_KINECTS; i++) {
     if (coeffs[i]) {
@@ -273,12 +264,6 @@ void quit() {
         SAFE_DELETE_ARR(rgb_database[k][f]);
       }
       SAFE_DELETE_ARR(rgb_database[k]);
-    }
-    if (label_database[k]) {
-      for (uint32_t f = 0; f < im_files[k].size(); f++) {
-        SAFE_DELETE_ARR(label_database[k][f]);
-      }
-      SAFE_DELETE_ARR(label_database[k]);
     }
   }
 
@@ -394,10 +379,14 @@ void loadCurrentImage(bool print_to_screen = true) {
     }
     memcpy(cur_image_rgb[k], rgb_database[k][start_index[k]], 
       sizeof(cur_image_rgb[k][0]) * depth_dim * 3);
-    memset(cur_label_data[k], 0, sizeof(cur_label_data[k][0]) * depth_dim);
 
     kinect->convertDepthFrameToXYZ(depth_dim, (uint16_t*)cur_depth_data[k], 
       cur_xyz_data[k]);
+    for (uint32_t j = 0; j < depth_dim; j++) {
+      cur_xyz_data[k][j*3] *= 1000;
+      cur_xyz_data[k][j*3+1] *= 1000;
+      cur_xyz_data[k][j*3+2] *= 1000;
+    }
   }
 #else
   // Now load the other Kinect data
@@ -406,7 +395,6 @@ void loadCurrentImage(bool print_to_screen = true) {
       for (uint32_t j = 0; j < depth_dim; j++) {
         cur_depth_data[k][j] = max_depth + 1;
       }
-      memset(cur_label_data[k], 0, sizeof(cur_label_data[k][0]) * depth_dim); 
       memset(cur_image_rgb[k], 0, sizeof(cur_image_rgb[k][0]) * depth_dim * 3); 
     } else {
       // find the correct file (with smallest timestamp difference) - O(60)
@@ -419,10 +407,14 @@ void loadCurrentImage(bool print_to_screen = true) {
           im_files[0].size() << "): " << full_filename << std::endl;
       }
       image_io->LoadCompressedImage(full_filename, 
-        cur_depth_data[k], cur_label_data[k], cur_image_rgb[k]);
-      memset(cur_label_data[k], 0, depth_dim * sizeof(cur_label_data[k][0]));
+        cur_depth_data[k], cur_image_rgb[k]);
       kinect->convertDepthFrameToXYZ(depth_dim, (uint16_t*)cur_depth_data[k], 
         cur_xyz_data[k]);
+      for (uint32_t j = 0; j < depth_dim; j++) {
+        cur_xyz_data[k][j*3] *= 1000.0f;
+        cur_xyz_data[k][j*3+1] *= 1000.0f;
+        cur_xyz_data[k][j*3+2] *= 1000.0f;
+      }
     }
   }
 #endif
@@ -450,15 +442,9 @@ void InitXYZPointsForRendering() {
     for (int32_t i = 0; i < depth_dim; i++) {
       float* cur_col = cols->at(i)->m;
       vert->at(i)->set(&cur_xyz_data[k][i*3]);
-      //if (cur_label_data[k][i] == 0 ) {
-        cur_col[0] = red_mult * static_cast<float>(cur_image_rgb[k][i*3]) / 255.0f;
-        cur_col[1] = static_cast<float>(cur_image_rgb[k][i*3+1]) / 255.0f;
-        cur_col[2] = green_mult * static_cast<float>(cur_image_rgb[k][i*3+2]) / 255.0f;
-      //} else {
-      //  cur_col[0] = std::max<float>(0.0f, (float)(cur_image_rgb[k][i*3]) / 255.0f - 0.1f);
-      //  cur_col[1] = std::min<float>((float)(cur_image_rgb[k][i*3+1]) / 255.0f + 0.4f, 255.0f);
-      //  cur_col[2] = std::max<float>(0.0f, (float)(cur_image_rgb[k][i*3+2]) / 255.0f - 0.1f);
-      //}
+      cur_col[0] = red_mult * static_cast<float>(cur_image_rgb[k][i*3]) / 255.0f;
+      cur_col[1] = static_cast<float>(cur_image_rgb[k][i*3+1]) / 255.0f;
+      cur_col[2] = green_mult * static_cast<float>(cur_image_rgb[k][i*3+2]) / 255.0f;
     }
     
     geometry_points[k]->syncVAO();
@@ -1250,8 +1236,7 @@ void fitFrame(bool seed_with_last_frame, bool query_only) {
   // Just fit each kinect independantly
   for (uint32_t k = 0; k < MAX_KINECTS; k++) {
     int16_t* depth = cur_depth_data[k];
-    uint8_t* labels = cur_label_data[k];
-    fit->fitModel(&depth, &labels, models, 
+    fit->fitModel(&depth, models, 
       &coeffs[k][cur_image], NULL, CalibrateGeometry::renormalizeCoeffs);
   }
 #else
@@ -1285,13 +1270,13 @@ void fitFrame(bool seed_with_last_frame, bool query_only) {
   }
   HandGeometryMesh::setCurrentStaticHandProperties(coeff[0]);
   if (query_only) {
-    fit->queryObjFunc(cur_depth_data, cur_label_data, models, coeff);
+    fit->queryObjFunc(cur_depth_data, models, coeff);
   } else {
     if (cur_image > 0) {
-      fit->fitModel(cur_depth_data, cur_label_data, models, coeff, 
+      fit->fitModel(cur_depth_data, models, coeff, 
         prev_coeff, HandModelCoeff::renormalizeCoeffs);
     } else {
-      fit->fitModel(cur_depth_data, cur_label_data, models, coeff, 
+      fit->fitModel(cur_depth_data, models, coeff, 
         NULL, HandModelCoeff::renormalizeCoeffs);
     }
   }
@@ -1572,10 +1557,8 @@ int main(int argc, char *argv[]) {
     }
 
     cur_depth_data = new int16_t*[MAX_KINECTS];
-    cur_label_data = new uint8_t*[MAX_KINECTS];
     for (uint32_t k = 0; k < MAX_KINECTS; k++) {
       cur_depth_data[k] = new int16_t[depth_dim * 3];
-      cur_label_data[k] = new uint8_t[depth_dim];
     }
 
 #if defined(CALIBRATION_RUN)
@@ -1583,15 +1566,13 @@ int main(int argc, char *argv[]) {
     for (uint32_t k = 0; k < MAX_KINECTS; k++) {
       depth_database[k] = new int16_t*[im_files[k].size()];
       rgb_database[k] = new uint8_t*[im_files[k].size()];
-      label_database[k] = new uint8_t*[im_files[k].size()];
       for (uint32_t f = 0; f < im_files[k].size(); f++) {
         depth_database[k][f] = new int16_t[depth_dim];
         rgb_database[k][f] = new uint8_t[depth_dim*3];
-        label_database[k][f] = new uint8_t[depth_dim];
         char* file = im_files[k][f].first;
         string full_filename = IM_DIR + string(file);
         image_io->LoadCompressedImage(full_filename, depth_database[k][f], 
-          label_database[k][f], rgb_database[k][f]);
+          rgb_database[k][f]);
       }
     }
 

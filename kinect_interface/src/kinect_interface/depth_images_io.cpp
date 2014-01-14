@@ -85,7 +85,6 @@ namespace kinect_interface {
     // '2x' for conservative over allocation
     uncompressed_data = (uint16_t*)malloc(processed_data_size * 2);  
     compressed_data = (uint16_t*)malloc(processed_data_size * 2);
-    user_pixels = (uint8_t*)malloc(depth_dim * sizeof(dummy8));
     hsv = (uint8_t*)malloc(depth_dim * sizeof(dummy8) * 3);
     rgb = NULL;  // Not actually allocated!
     red_pixels = (uint8_t*)malloc(depth_dim * sizeof(dummy8));
@@ -104,7 +103,6 @@ namespace kinect_interface {
   DepthImagesIO::~DepthImagesIO() {
     SAFE_FREE(compressed_data);
     SAFE_FREE(uncompressed_data);
-    SAFE_FREE(user_pixels);
     SAFE_FREE(hsv);
     SAFE_FREE(red_pixels);
     SAFE_FREE(red_pixels_tmp);
@@ -271,7 +269,7 @@ namespace kinect_interface {
   }
 
   void DepthImagesIO::LoadCompressedImage(const string& file, 
-    int16_t* depth_data, uint8_t* label_data, uint8_t* rgb_data) {
+    int16_t* depth_data, uint8_t* rgb_data) {
     std::ifstream in_file(file.c_str(), std::ios::in | std::ios::binary | 
       std::ios::ate);
     if (!in_file.is_open()) {
@@ -297,29 +295,11 @@ namespace kinect_interface {
       throw wruntime_error(ss.str());
     }
 
-    // Extract the user pixels and copy over the depth
-    memset(user_pixels, 0, depth_dim * sizeof(user_pixels[0]));
-    for (uint32_t i = 0; i < depth_dim; i++) {
-      if ((uncompressed_data[i] & 0x8000) != 0) {
-        // Part of the user
-        uncompressed_data[i] = uncompressed_data[i] & 0x7fff;
-        user_pixels[i] = 1;
-      }
-    }
     memcpy(depth_data, uncompressed_data, depth_dim * sizeof(depth_data[0]));
-
-    // Now we need to process the data to find the hand points
-    memcpy(label_data, user_pixels, depth_dim * sizeof(label_data[0]));
 
     rgb = reinterpret_cast<uint8_t*>(&uncompressed_data[depth_dim]);
     if (rgb_data != NULL) {
       memcpy(rgb_data, rgb, 3 * depth_dim * sizeof(rgb_data[0]));
-    }
-
-    for (uint32_t i = 0; i < depth_dim; i++) {
-      if (depth_data[i] > max_depth || depth_data[i] == 0) {
-        depth_data[i] = max_depth + 1; // Push to background
-      }
     }
   }
 
@@ -328,7 +308,7 @@ namespace kinect_interface {
     uint8_t* red_pixels_ret, uint8_t* hsv_pixels_ret) {
     // try loading a already processed one:
 
-    LoadCompressedImage(file, depth_data, label_data, rgb_data);
+    LoadCompressedImage(file, depth_data, rgb_data);
 
     // Now we need to process the data to find the hand points
     memset(label_data, 0, depth_dim * sizeof(label_data[0]));

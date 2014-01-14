@@ -47,6 +47,7 @@ struct IKinectSensor;
 struct IDepthFrameReader;
 struct IColorFrameReader;
 struct ICoordinateMapper;
+struct IBodyFrameReader;
 // To avoid exposing the structs of the windows SDK I escentially re-define
 // them here.  Note that at runtime we check the sizes of the two types to make
 // sure they're the same.
@@ -115,14 +116,16 @@ namespace kinect_interface {
     void setSyncDepth(const bool sync_depth);
     void setSyncDepthColored(const bool sync_depth_colored);
     void setSyncXYZ(const bool sync_xyz);
+    void setSyncBody(const bool sync_body);
 
     inline void lockData() { data_lock_.lock(); };
     inline void unlockData() { data_lock_.unlock(); };
 
     // Note, this requires an instance of the kinect actually running :-(
     // Hopefully this can be broken out like I did for OpenNI
+    // NOTE: xyz units are in meters! (while depth is in mm)
     void convertDepthFrameToXYZ(const uint32_t n_pts, const uint16_t* depth, 
-      XYZPoint* xyz);
+      XYZPoint* xyz);  
     void convertDepthFrameToXYZ(const uint32_t n_pts, const uint16_t* depth, 
       float* xyz);  // Requires O(n) copy internally
     void convertXYZToDepthSpace(const uint32_t n_pts, const XYZPoint* xyz,
@@ -137,6 +140,7 @@ namespace kinect_interface {
     bool sync_rgb_;  // default true
     bool sync_depth_colored_;  // default true
     bool sync_xyz_;  // default true
+    bool sync_body_;  // default true
 
     // Kinect Device
     std::string device_id_;
@@ -144,6 +148,7 @@ namespace kinect_interface {
     IDepthFrameReader* depth_frame_reader_;
     IColorFrameReader* rgb_frame_reader_;
     ICoordinateMapper* coord_mapper_;
+    IBodyFrameReader* body_frame_reader_;
     uint16_t max_depth_;
     uint16_t min_depth_;
     float cur_depth_vfov_;
@@ -172,6 +177,8 @@ namespace kinect_interface {
     int64_t depth_frame_time_;
     uint64_t rgb_frame_number_;
     int64_t rgb_frame_time_;
+    uint32_t body_frame_number_;
+    int64_t body_frame_time_;
     char kinect_fps_str_[256];
 
     // Some temporary data, this can likely be cleaned up (shared with

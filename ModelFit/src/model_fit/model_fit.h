@@ -53,14 +53,13 @@ namespace model_fit {
     ~ModelFit();
 
     // fitModel - Top function:
-    // Requirements: depth and label array for each num_cameras
+    // Requirements: depth array for each num_cameras
     //               models, coeffs and prev_coeffs for each num_models
-    void fitModel(int16_t** depth, uint8_t** label, PoseModel** models, 
-      float** coeffs, float** prev_coeffs, 
+    void fitModel(int16_t** depth, PoseModel** models, float** coeffs, 
+      float** prev_coeffs, 
       jtil::math::CoeffUpdateFuncPtr coeff_update_func);
 
-    float queryObjFunc(int16_t** depth, uint8_t** label, PoseModel** models, 
-      float** coeffs);
+    float queryObjFunc(int16_t** depth, PoseModel** models, float** coeffs);
 
     inline void resetFuncEvalCount() { func_eval_count_ = 0; }
     inline uint64_t func_eval_count() { return func_eval_count_; }
@@ -109,10 +108,10 @@ namespace model_fit {
     static float calcPenalty(const float* coeff);
     static float calcDistPenalty(const float* coeff0, const float* coeff1);
 
-    void prepareOptimization(int16_t** depth, uint8_t** label, 
-      PoseModel** models, float** coeffs, float** prev_coeffs,
+    void prepareOptimization(int16_t** depth, PoseModel** models, 
+      float** coeffs, float** prev_coeffs,
       jtil::data_str::Vector<bool>& old_attachement_vals);
-    void prepareKinectData(int16_t** depth, uint8_t** label);
+    void prepareKinectData(int16_t** depth);
 
     // Non-copyable, non-assignable.
     ModelFit(ModelFit&);

@@ -71,6 +71,7 @@ namespace kinect_interface {
     depth_frame_reader_ = NULL;
     rgb_frame_reader_ = NULL;
     coord_mapper_ = NULL;
+    body_frame_reader_ = NULL;
 
     // NOTE: depth_ and depth_colored_ are actually one contiguous array:
     // depth_colored_ just indexes into depth_
@@ -78,10 +79,12 @@ namespace kinect_interface {
 
     depth_frame_number_ = 0;
     rgb_frame_number_ = 0;
+    body_frame_number_ = 0;
     sync_rgb_ = true;
     sync_depth_ = true;
     sync_depth_colored_ = true;
     sync_xyz_ = true;
+    sync_body_ = true;
 
     init(device_id);
 
@@ -101,6 +104,7 @@ namespace kinect_interface {
       SafeRelease(coord_mapper_);
       SafeRelease(depth_frame_reader_);
       SafeRelease(rgb_frame_reader_);
+      SafeRelease(body_frame_reader_);
       SafeRelease(kinect_sensor_);
     }
   }
@@ -214,6 +218,16 @@ namespace kinect_interface {
       throw std::wruntime_error("KinectInterface::KinectInterface() - "
         "ERROR: CameraSpacePoint and XYPoint sizes don't match!");
     }
+
+    // Open the body frame reader
+    IBodyFrameSource* body_frame_source = NULL;
+    CALL_SAFE(kinect_sensor_->get_BodyFrameSource(&body_frame_source),
+      "ERROR: Could not get body frame source.");
+      
+    CALL_SAFE(body_frame_source->OpenReader(&body_frame_reader_), 
+      "ERROR: Could not open the body frame reader.");
+
+    SafeRelease(body_frame_source);
 
     device_initialized_ = true;
     open_kinects_.pushBack(this);
@@ -450,6 +464,51 @@ namespace kinect_interface {
         data_lock_.unlock();
       }
 
+      // ***** Aquire the body frame *****
+      IBodyFrame* body_frame = NULL;
+      hr = -1;
+      body_frame_reader_->AcquireLatestFrame(&body_frame);
+
+      if (SUCCEEDED(hr) && body_frame != NULL) {
+        data_lock_.lock();
+
+        // Get the body frame data
+        CALL_SAFE(hr = body_frame->get_RelativeTime(&body_frame_time_),
+          "Could not get body frame time");
+
+        IBody* bodies[BODY_COUNT] = {0};
+        CALL_SAFE(hr = body_frame->GetAndRefreshBodyData(_countof(bodies), 
+          bodies), "Could not get body data");
+
+        for (uint32_t i = 0; i < BODY_COUNT; i++) {
+          IBody* body = bodies[i];
+          BOOLEAN tracked = false;
+          if (body) {
+            CALL_SAFE(body->get_IsTracked(&tracked), "IsTracked query failed");
+          }
+          if (tracked) {
+            Joint joints[JointType_Count]; 
+            HandState leftHandState = HandState_Unknown;
+            HandState rightHandState = HandState_Unknown;
+
+            body->get_HandLeftState(&leftHandState);
+            body->get_HandRightState(&rightHandState);
+
+            CALL_SAFE(body->GetJoints(_countof(joints), joints), 
+              "Could not get the joints");
+          } else {
+            // Set the user to off or something
+          }
+        }
+
+        for (int i = 0; i < _countof(bodies); ++i) {
+          SafeRelease(bodies[i]);
+        }
+        
+        body_frame_number_++;
+        data_lock_.unlock();
+      }
+
       std::this_thread::yield();
 
     }  // end while (kinect_running_)
@@ -520,6 +579,10 @@ namespace kinect_interface {
     sync_xyz_ = sync_xyz;
   }
 
+  void KinectInterface::setSyncBody(const bool sync_body) {
+    sync_body_ = sync_body;
+  }
+
   void KinectInterface::convertDepthFrameToXYZ(const uint32_t n_pts,
     const uint16_t* depth, XYZPoint* xyz) {
     CALL_SAFE(coord_mapper_->MapDepthFrameToCameraSpace(n_pts, 
@@ -566,7 +629,6 @@ namespace kinect_interface {
    for (uint32_t i = 0; i < depth_dim; i++) {
      uvd[i*3] = uv_tmp_[i].x;
      uvd[i*3 + 1] = uv_tmp_[i].y;
-     std::cout << "TODO: Check units!" << std::endl;
      uvd[i*3 + 2] = xyz_tmp_[i].z;  // TODO: Check that this is the correct units
    }
  }

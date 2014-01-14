@@ -84,6 +84,7 @@ namespace app {
     jtil::math::Double2 mouse_pos_;
     jtil::math::Double2 mouse_pos_old_;
     double frame_time_;
+    double time_since_start_;
     double frame_time_prev_;
     static uint64_t screenshot_counter_;
     uint64_t depth_frame_number_;

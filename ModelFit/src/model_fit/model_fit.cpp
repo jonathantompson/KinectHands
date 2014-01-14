@@ -71,20 +71,11 @@ namespace model_fit {
     SAFE_DELETE(model_renderer_);
   }
 
-  void ModelFit::prepareKinectData(int16_t** depth, uint8_t** label) {
+  void ModelFit::prepareKinectData(int16_t** depth) {
     for (uint32_t i_camera = 0; i_camera < num_cameras_; i_camera++) {
       int16_t* cur_depth = depth[i_camera];
       memcpy(kinect_depth_masked_, cur_depth, sizeof(kinect_depth_masked_[0]) * 
         depth_dim);
-  #ifdef DEPTH_ONLY_RESIDUE_FUNC
-      // Do nothing
-  #else
-      for (uint32_t i = 0; i < depth_dim; i++) {
-        if (label[i_camera][i] == 0) {
-          kinect_depth_masked_[i] = 0;
-        }
-      }
-  #endif
       model_renderer_->uploadDepth(i_camera, kinect_depth_masked_);
     }
   }
@@ -100,11 +91,10 @@ namespace model_fit {
     view.set(*model_renderer_->camera(i_camera)->view());
   }
 
-  void ModelFit::fitModel(int16_t** depth, uint8_t** label, PoseModel** models, 
-    float** coeffs, float** prev_coeffs,
-    CoeffUpdateFuncPtr coeff_update_func) {
+  void ModelFit::fitModel(int16_t** depth, PoseModel** models, float** coeffs, 
+    float** prev_coeffs, CoeffUpdateFuncPtr coeff_update_func) {
     Vector<bool> old_attachement_vals(num_models_);
-    prepareOptimization(depth, label, models, coeffs, prev_coeffs,
+    prepareOptimization(depth, models, coeffs, prev_coeffs,
       old_attachement_vals);
 
     // This is a hack: There's something wrong with the first iteration using
@@ -135,9 +125,8 @@ namespace model_fit {
   }
 
 
-  void ModelFit::prepareOptimization(int16_t** depth, uint8_t** label, 
-    PoseModel** models, float** coeffs, float** prev_coeffs,
-    Vector<bool>& old_attachement_vals) {
+  void ModelFit::prepareOptimization(int16_t** depth, PoseModel** models, 
+    float** coeffs, float** prev_coeffs, Vector<bool>& old_attachement_vals) {
     models_ = models;
     
     // Detach the models from the global renderer so that there aren't issues
@@ -162,14 +151,13 @@ namespace model_fit {
     }
 
     cur_fit_ = this;
-    prepareKinectData(depth, label);
+    prepareKinectData(depth);
   }
 
-  float ModelFit::queryObjFunc(int16_t** depth, uint8_t** label, 
-    PoseModel** models, float** coeffs) {
+  float ModelFit::queryObjFunc(int16_t** depth, PoseModel** models, 
+    float** coeffs) {
     Vector<bool> old_attachement_vals(num_models_);
-    prepareOptimization(depth, label, models, coeffs, NULL,
-      old_attachement_vals);
+    prepareOptimization(depth, models, coeffs, NULL, old_attachement_vals);
 
     jtil::file_io::SaveArrayToFile<int16_t>(depth[0], 640*480, 
       "./kinect_texture.bin");

@@ -113,6 +113,7 @@ namespace app {
 
     clk_ = new Clk();
     frame_time_ = clk_->getTime();
+    time_since_start_ = 0.0;
     app_running_ = true;
 
     // Find and initialize all kinects up to MAX_NUM_KINECTS
@@ -215,6 +216,7 @@ namespace app {
       frame_time_prev_ = frame_time_;
       frame_time_ = clk_->getTime();
       double dt = frame_time_ - frame_time_prev_;
+      time_since_start_ += dt;
 
       int kinect_output = 0, cur_kinect = 0, label_type_enum = 0;
       int background_color = 0;
@@ -651,15 +653,20 @@ namespace app {
       uint8_t* depth_rgb = 
         (uint8_t*)&tmp_data1_[i * kinect_interface::depth_arr_size_bytes * 2];
       uint8_t* depth_rgb_compressed = 
-        (uint8_t*)&tmp_data1_[i * kinect_interface::depth_arr_size_bytes * 2];
+        (uint8_t*)&tmp_data2_[i * kinect_interface::depth_arr_size_bytes * 2];
       memcpy(depth_rgb, kinect_[i]->depth(), depth_arr_size_bytes);
       kinect_[i]->unlockData();
 
-      std::stringstream ss;
+      char filename[256];
       // Kinect time stamp is in units of 100ns (or 0.1us)
-      int64_t time_ns = kinect_[i]->depth_frame_time() * 100;
-      int64_t app_time_ns = (int64_t)(frame_time_ * 1.0e9);
-      ss << "hands" << i << "_" << time_ns << "_" << app_time_ns << ".bin";
+      int64_t kinect_time_us = kinect_[i]->depth_frame_time() / 10;
+      int64_t app_time_us = (int64_t)(time_since_start_ * 1.0e6);
+      if (kinect_time_us > 1e11 || app_time_us > 1e11) {
+        throw std::wruntime_error("App::saveKinectData() - App has been "
+          "running too long to save data.  Please restart.");
+      }
+      snprintf(filename, 255, "im_K%012I64d_A%012I64d.bin", kinect_time_us, 
+        app_time_us);
 
       // Compress the array
       static const int compression_level = 1;  // 1 fast, 2 better compression
@@ -669,7 +676,8 @@ namespace app {
       // Now save the array to file
 #ifdef _WIN32
       _mkdir("./data/hand_depth_data/");  // Silently fails if dir exists
-      std::string full_filename = "./data/hand_depth_data/" + ss.str();
+      std::string full_filename = "./data/hand_depth_data/" + 
+        std::string(filename);
 #endif
 #ifdef __APPLE__
       std::string full_path = std::string("./data/hand_depth_data/");
@@ -688,7 +696,7 @@ namespace app {
       // Save the file
       std::ofstream file(full_filename.c_str(), std::ios::out | std::ios::binary);
       if (!file.is_open()) {
-        throw std::runtime_error(std::string("error opening file:") + ss.str());
+        throw std::runtime_error(std::string("error opening file:") + filename);
       }
       // file.write((const char*)depth_rgb_data_, compressed_length);
       file.write((const char*)depth_rgb_compressed, compressed_length);
