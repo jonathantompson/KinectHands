@@ -148,14 +148,18 @@ namespace kinect_interface {
       "could not get depth min reliable distance");
     CALL_SAFE(depth_frame_source->get_DepthMaxReliableDistance(&max_depth_), 
       "could not get depth max reliable distance");
-    CALL_SAFE(depth_frame_description->get_HorizontalFieldOfView(&cur_depth_fov_),
+    CALL_SAFE(depth_frame_description->get_HorizontalFieldOfView(&cur_depth_hfov_),
       "could not get horizontal field of view");
+    CALL_SAFE(depth_frame_description->get_VerticalFieldOfView(&cur_depth_vfov_),
+      "could not get vertical field of view");
 
     SafeRelease(depth_frame_source);
 
-    if (w != depth_w || h != depth_h || fabsf(depth_fov - cur_depth_fov_) > EPSILON) {
+    if (w != depth_w || h != depth_h || 
+      fabsf(depth_hfov - cur_depth_hfov_) > EPSILON ||
+      fabsf(depth_vfov - cur_depth_vfov_) > EPSILON) {
       throw std::wruntime_error("KinectInterface::init() - ERROR: depth_w, "
-        " depth_h or depth_fov do not match the device!");
+        " depth_h, depth_hfov or depth_vfov do not match the device!");
     }
 
     // Open the rgb frame reader
@@ -172,14 +176,17 @@ namespace kinect_interface {
       "could not get depth width");
     CALL_SAFE(rgb_frame_description->get_Height(&h), 
       "could not get depth height");
-    CALL_SAFE(rgb_frame_description->get_HorizontalFieldOfView(&cur_rgb_fov_),
+    CALL_SAFE(rgb_frame_description->get_HorizontalFieldOfView(&cur_rgb_hfov_),
       "could not get horizontal field of view");
+    CALL_SAFE(rgb_frame_description->get_VerticalFieldOfView(&cur_rgb_vfov_),
+      "could not get vertical field of view");
 
     SafeRelease(depth_frame_source);
 
-    if (w != rgb_w || h != rgb_h || fabsf(rgb_fov - cur_rgb_fov_) > EPSILON) {
+    if (w != rgb_w || h != rgb_h || fabsf(rgb_hfov - cur_rgb_hfov_) > EPSILON 
+      || fabsf(rgb_vfov - cur_rgb_vfov_) > EPSILON) {
       throw std::wruntime_error("KinectInterface::init() - ERROR: rgb_w, "
-        " rgb_h or rgb_fov do not match the device!");
+        " rgb_h, rgb_hfov or rgb_vfov do not match the device!");
     }
 
     // Open the mapper between coordinate systems

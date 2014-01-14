@@ -18,7 +18,7 @@
 #include "renderer/geometry/geometry_colored_mesh.h"
 #include "renderer/geometry/geometry_colored_boned_mesh.h"
 #include "renderer/geometry/geometry_textured_boned_mesh.h"
-#include "kinect_interface/depth_images_io.h"  // src_dim
+#include "kinect_interface/kinect_interface.h"  // depth_dim
 #include "jtil/math/pso_parallel.h"
 #include "renderer/texture/texture.h"
 #include "renderer/texture/texture_renderable.h"
@@ -42,21 +42,24 @@ using std::cout;
 using std::endl;
 using namespace renderer;
 
+using namespace kinect_interface;
+
 namespace model_fit {
   
   ModelRenderer::ModelRenderer(const uint32_t num_cameras) {
     num_cameras_ = num_cameras;
     depth_tmp_ = new float*[num_cameras_];
     for (uint32_t i = 0; i < num_cameras_; i++) {
-      depth_tmp_[i] = new float[src_dim * NTILES_DEFAULT];
+      depth_tmp_[i] = new float[depth_dim * NTILES_DEFAULT];
     }
     FloatQuat eye_rot; eye_rot.identity();
     Float3 eye_pos(0, 0, 0);
+    // TODO: Should
     float fov_vert_deg = 360.0f * OpenNIFuncs::fVFOV_primesense_109 / 
       (2.0f * (float)M_PI);
     cameras_ = new Camera*[num_cameras_];
     for (uint32_t i = 0; i < num_cameras_; i++) {
-      cameras_[i] = new Camera(&eye_rot, &eye_pos, src_width, src_height, 
+      cameras_[i] = new Camera(&eye_rot, &eye_pos, depth_w, depth_h, 
         fov_vert_deg, -10.0f, -3000.0f);
       cameras_[i]->updateView();
       cameras_[i]->updateProjection();
@@ -66,12 +69,12 @@ namespace model_fit {
     
     // Renderable texture
     
-    depth_texture_ = new TextureRenderable(GL_R32F, src_width,
-      src_height, GL_RED, GL_FLOAT, 1, true);
-    cdepth_texture_ = new TextureRenderable(GL_RGBA32F, src_width,
-      src_height, GL_RGBA, GL_FLOAT, 1, true);
+    depth_texture_ = new TextureRenderable(GL_R32F, depth_w,
+      depth_h, GL_RED, GL_FLOAT, 1, true);
+    cdepth_texture_ = new TextureRenderable(GL_RGBA32F, depth_w,
+      depth_h, GL_RGBA, GL_FLOAT, 1, true);
     depth_texture_tiled_ = new TextureRenderable(GL_R32F, 
-      src_width * NTILES_X, src_height * NTILES_Y, GL_RED, 
+      depth_w * NTILES_X, depth_h * NTILES_Y, GL_RED, 
       GL_FLOAT, 1, true);
     
     // Shader to create the depth image
@@ -178,24 +181,24 @@ namespace model_fit {
 
     // Textures to downsample and integrate
     residue_texture_1_ = new TextureRenderable(RESIDUE_INT_FORMAT, 
-      src_width, src_height, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
+      depth_w, depth_h, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
     residue_texture_2_ = new TextureRenderable(RESIDUE_INT_FORMAT, 
-      src_width/2, src_height/2, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
+      depth_w/2, depth_h/2, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
     residue_texture_4_ = new TextureRenderable(RESIDUE_INT_FORMAT, 
-      src_width/4, src_height/4, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
+      depth_w/4, depth_h/4, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
     residue_texture_16_ = new TextureRenderable(RESIDUE_INT_FORMAT, 
-      src_width/16, src_height/16, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
+      depth_w/16, depth_h/16, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
     residue_texture_20_ = new TextureRenderable(RESIDUE_INT_FORMAT, 
-      src_width/20, src_height/20, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
+      depth_w/20, depth_h/20, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
     residue_texture_32_ = new TextureRenderable(RESIDUE_INT_FORMAT, 
-      src_width/32, src_height/32, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
+      depth_w/32, depth_h/32, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
     residue_texture_160_ = new TextureRenderable(RESIDUE_INT_FORMAT, 
-      src_width/160, src_height/160, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
+      depth_w/160, depth_h/160, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
 
     residue_texture_x2_ = new TextureRenderable(RESIDUE_INT_FORMAT, 
-      src_width*2, src_height*2, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
+      depth_w*2, depth_h*2, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
     residue_texture_x8_ = new TextureRenderable(RESIDUE_INT_FORMAT, 
-      src_width*8, src_height*8, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
+      depth_w*8, depth_h*8, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
 
     kinect_depth_textures_ = new Texture*[num_cameras_];
     kinect_depth_textures_tiled_ = new Texture*[num_cameras_];
@@ -288,8 +291,8 @@ namespace model_fit {
       // Set up the viewport
       uint32_t xpos = i % NTILES_X;
       uint32_t ypos = i / NTILES_X;
-      GLState::glsViewport(xpos * src_width, ypos * src_height, 
-        src_width, src_height);
+      GLState::glsViewport(xpos * depth_w, ypos * depth_h, 
+        depth_w, depth_h);
       drawDepthMapInternal(coeff[i], num_coeff_per_model, models, num_models,
         i_camera, false, true);
       // Before destorying the matrix heirachy, calculate the interpenetration
@@ -389,7 +392,7 @@ namespace model_fit {
     }
     float min_depth = std::numeric_limits<float>::infinity();
     float max_depth = -std::numeric_limits<float>::infinity();
-    for (uint32_t i = 0; i < src_width * src_height; i++) {
+    for (uint32_t i = 0; i < depth_w * depth_h; i++) {
       uint32_t index = color ? i * 4 : i;
       if (depth_tmp_[i_camera][index] > EPSILON) {
         if (depth_tmp_[i_camera][index] < min_depth) {
@@ -447,24 +450,24 @@ namespace model_fit {
 
   void ModelRenderer::uploadDepth(const uint32_t i_camera, 
     const int16_t* depth_vals) {
-    for (uint32_t i = 0; i < src_dim; i++) {
+    for (uint32_t i = 0; i < depth_dim; i++) {
       depth_tmp_[i_camera][i] = static_cast<float>(depth_vals[i]);
     }
 
     SAFE_DELETE(kinect_depth_textures_[i_camera]);
-    kinect_depth_textures_[i_camera] = new Texture(GL_R32F, src_width,
-      src_height, GL_RED, GL_FLOAT, 
+    kinect_depth_textures_[i_camera] = new Texture(GL_R32F, depth_w,
+      depth_h, GL_RED, GL_FLOAT, 
       reinterpret_cast<unsigned char*>(depth_tmp_[i_camera]), 
       renderer::TEXTURE_WRAP_MODE::TEXTURE_CLAMP, false);
 
     for (uint32_t tile_y = 0; tile_y < NTILES_Y; tile_y++) {
-      uint32_t y_offst = tile_y * src_height;
+      uint32_t y_offst = tile_y * depth_h;
       for (uint32_t tile_x = 0; tile_x < NTILES_X; tile_x++) {
-        uint32_t x_offst = tile_x * src_width;
-        for (uint32_t v = 0; v < src_height; v++) {
-          for (uint32_t u = 0; u < src_width; u++) {
-            uint32_t src_index = v * src_width + u;
-            uint32_t dst_index = (y_offst + v) * (src_width * NTILES_X)
+        uint32_t x_offst = tile_x * depth_w;
+        for (uint32_t v = 0; v < depth_h; v++) {
+          for (uint32_t u = 0; u < depth_w; u++) {
+            uint32_t src_index = v * depth_w + u;
+            uint32_t dst_index = (y_offst + v) * (depth_w * NTILES_X)
               + x_offst + u;
             depth_tmp_[i_camera][dst_index] = 
               static_cast<float>(depth_vals[src_index]);
@@ -475,7 +478,7 @@ namespace model_fit {
 
     SAFE_DELETE(kinect_depth_textures_tiled_[i_camera]);
     kinect_depth_textures_tiled_[i_camera] = new Texture(GL_R32F, 
-      src_width * NTILES_X, src_height * NTILES_Y, 
+      depth_w * NTILES_X, depth_h * NTILES_Y, 
       GL_RED, GL_FLOAT, reinterpret_cast<unsigned char*>(depth_tmp_[i_camera]), 
       renderer::TEXTURE_WRAP_MODE::TEXTURE_CLAMP, false);
   }
@@ -514,7 +517,7 @@ namespace model_fit {
     float o_s_union_r_s = UNION;  // union of kinect and depth pixels
     float o_s_intersect_r_s = 0.0f;  // intersection of kinect and depth pixels
     const int decimation = 4 * 4 * 2 * 5;
-    for (uint32_t i = 0; i < src_dim / (decimation*decimation); i++) {
+    for (uint32_t i = 0; i < depth_dim / (decimation*decimation); i++) {
       depth_integral += depth_tmp_[i_camera][i];
     }
 #else
@@ -522,7 +525,7 @@ namespace model_fit {
     float o_s_union_r_s = 0.0f;  // union of kinect and depth pixels
     float o_s_intersect_r_s = 0.0f;  // intersection of kinect and depth pixels
     const int decimation = 4 * 4 * 2 * 5;
-    for (uint32_t i = 0; i < src_dim / (decimation*decimation); i++) {
+    for (uint32_t i = 0; i < depth_dim / (decimation*decimation); i++) {
       depth_integral += depth_tmp_[i*3];
       o_s_union_r_s += depth_tmp_[i*3+1];
       o_s_intersect_r_s += depth_tmp_[i*3+2];
@@ -585,19 +588,19 @@ namespace model_fit {
     static float lambda = DATA_TERM_LAMBDA;
 
     for (uint32_t tile_v = 0; tile_v < NTILES_Y; tile_v++) {
-      uint32_t v_off = tile_v * (src_height / decimation);
+      uint32_t v_off = tile_v * (depth_h / decimation);
       for (uint32_t tile_u = 0; tile_u < NTILES_X; tile_u++) {
         if (tile_v*NTILES_X + tile_u < residues.size()) {
-          uint32_t u_off = tile_u * (src_width / decimation);
+          uint32_t u_off = tile_u * (depth_w / decimation);
 
 #ifdef DEPTH_ONLY_RESIDUE_FUNC
           float depth_integral = 0.0f;  // Integral(abs(d_kin - d_syn))
           float o_s_union_r_s = UNION;  // union of kinect and depth pixels
           float o_s_intersect_r_s = 0.0f;  // intersection of kinect and depth pixels
 
-          for (uint32_t v = 0; v < (src_height / decimation); v++) {
-            for (uint32_t u = 0; u < (src_width / decimation); u++) {
-              uint32_t i = (v_off + v) * ((NTILES_X * src_width) / decimation) + u_off + u;
+          for (uint32_t v = 0; v < (depth_h / decimation); v++) {
+            for (uint32_t u = 0; u < (depth_w / decimation); u++) {
+              uint32_t i = (v_off + v) * ((NTILES_X * depth_w) / decimation) + u_off + u;
               depth_integral += depth_tmp_[i_camera][i];
             }
           }
@@ -606,9 +609,9 @@ namespace model_fit {
           float o_s_union_r_s = 0.0f;  // union of kinect and depth pixels
           float o_s_intersect_r_s = 0.0f;  // intersection of kinect and depth pixels
 
-          for (uint32_t v = 0; v < (src_height / decimation); v++) {
-            for (uint32_t u = 0; u < (src_width / decimation); u++) {
-              uint32_t i = (v_off + v) * ((NTILES_X * src_width) / decimation) + u_off + u;
+          for (uint32_t v = 0; v < (depth_h / decimation); v++) {
+            for (uint32_t u = 0; u < (depth_w / decimation); u++) {
+              uint32_t i = (v_off + v) * ((NTILES_X * depth_w) / decimation) + u_off + u;
               depth_integral += depth_tmp_[i*3];
               o_s_union_r_s += depth_tmp_[i*3+1];
               o_s_intersect_r_s += depth_tmp_[i*3+2];

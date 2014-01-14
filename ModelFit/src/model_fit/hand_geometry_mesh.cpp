@@ -525,8 +525,8 @@ namespace model_fit {
     uv_pos[0] = (homog_pos[0] / homog_pos[3]);  // NDC X: -1 --> 1
     uv_pos[1] = (homog_pos[1] / homog_pos[3]);  // NDC Y: -1 --> 1
     // http://www.songho.ca/opengl/gl_transform.html
-    uv_pos[0] = (float)src_width * 0.5f * (uv_pos[0] + 1);  // Window X: 0 --> W
-    uv_pos[1] = (float)src_height * 0.5f * (-uv_pos[1] + 1);  // Window Y: 0 --> H
+    uv_pos[0] = (float)depth_w * 0.5f * (uv_pos[0] + 1);  // Window X: 0 --> W
+    uv_pos[1] = (float)depth_h * 0.5f * (-uv_pos[1] + 1);  // Window Y: 0 --> H
     // Now figure out the fractional position in the hand sub-image 
     uv_pos[0] = (uv_pos[0] - (float)hand_pos_wh[0]) / (float)hand_pos_wh[2];
     uv_pos[1] = (uv_pos[1] - (float)hand_pos_wh[1]) / (float)hand_pos_wh[3];

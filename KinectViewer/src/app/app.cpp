@@ -174,7 +174,7 @@ namespace app {
     float view_plane_far = -5000;
     SET_SETTING("view_plane_near", float, view_plane_near);
     SET_SETTING("view_plane_far", float, view_plane_far);
-    SET_SETTING("fov_deg", float, depth_fov);
+    SET_SETTING("fov_deg", float, depth_hfov);  // TODO: horiz or vert?
 
     g_app_->addStuff();
   }

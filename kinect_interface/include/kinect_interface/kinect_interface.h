@@ -72,12 +72,14 @@ namespace kinect_interface {
   const uint32_t depth_w = 512;
   const uint32_t depth_h = 424;
   const uint32_t depth_dim = depth_w * depth_h;
-  const float depth_fov = 70.6f;  // (horizontal)
+  const float depth_hfov = 70.6f;  // (horizontal)
+  const float depth_vfov = 60.0f;  // (vertical)
 
   const uint32_t rgb_w = 1920;
   const uint32_t rgb_h = 1080;
   const uint32_t rgb_dim = rgb_w * rgb_h;
-  const float rgb_fov = 84.1f;  // (horizontal)
+  const float rgb_hfov = 84.1f;  // (horizontal)
+  const float rgb_vfov = 53.8f;  // (vertical)
 
   // The array size is (uint16_t * depth_dim + 3 * uint8_t * depth_dim)
   const uint32_t depth_arr_size_bytes = (depth_dim * 2) + (3 * depth_dim * 2);
@@ -142,8 +144,10 @@ namespace kinect_interface {
     ICoordinateMapper* coord_mapper_;
     uint16_t max_depth_;
     uint16_t min_depth_;
-    float cur_depth_fov_;
-    float cur_rgb_fov_;
+    float cur_depth_vfov_;
+    float cur_depth_hfov_;
+    float cur_rgb_vfov_;
+    float cur_rgb_hfov_;
 
     static jtil::data_str::Vector<KinectInterface*> open_kinects_;
     static std::recursive_mutex sdk_static_lock_;
