@@ -64,7 +64,7 @@ namespace kinect_interface {
   Vector<KinectInterface*> KinectInterface::open_kinects_;
   std::recursive_mutex KinectInterface::sdk_static_lock_;
 
-  KinectInterface::KinectInterface(const std::string& device_id) {
+  KinectInterface::KinectInterface(const char* device_id) {
     sdk_static_lock_.lock();
     device_initialized_ = false;
     kinect_sensor_ = NULL;
@@ -251,7 +251,7 @@ namespace kinect_interface {
     return NULL;
   }
 
-  void KinectInterface::getDeviceIDs(Vector<std::string>& ids) {
+  void KinectInterface::getDeviceIDs(VectorManaged<const char*>& ids) {
     sdk_static_lock_.lock();
 
     IKinectSensorCollection* sensor_collection = NULL;
@@ -267,7 +267,9 @@ namespace kinect_interface {
             wchar_t wid[ 48 ];
             if (SUCCEEDED(sensor->get_UniqueKinectId(48, wid))) {
               std::string id = jtil::string_util::ToNarrowString(wid);
-              ids.pushBack(id);
+              char* id_cstr = new char[id.length() + 1];
+              strncpy(id_cstr, id.c_str(), id.length() + 1);
+              ids.pushBack(id_cstr);
             }
           }
         }
@@ -568,6 +570,17 @@ namespace kinect_interface {
      uvd[i*3 + 2] = xyz_tmp_[i].z;  // TODO: Check that this is the correct units
    }
  }
+
+  void KinectInterface::convertDepthFrameToXYZ(const uint32_t n_pts, 
+    const uint16_t* depth, float* xyz) {
+    convertDepthFrameToXYZ(n_pts, depth, xyz_tmp_);
+    // Copy the output data out of Microsoft's structure
+    for (uint32_t i = 0; i < depth_dim; i++) {
+      xyz[i * 3] = xyz_tmp_[i].x;
+      xyz[i * 3 + 1] = xyz_tmp_[i].y;
+      xyz[i * 3 + 2] = xyz_tmp_[i].z;
+    }
+  }
 
 }  // namespace kinect
 

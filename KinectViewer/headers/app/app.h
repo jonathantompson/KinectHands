@@ -36,6 +36,12 @@ namespace app {
     OUTPUT_BLUE = 5,
   } KinectOutput;
 
+  typedef enum {
+    BLUE_BACKGROUND = 0,
+    LBLUE_BACKGROUND = 1,
+    WHITE_BACKGROUND = 2,
+  } BackgroundColor;
+
   class App {
   public:
     App();

@@ -116,7 +116,7 @@ namespace app {
     app_running_ = true;
 
     // Find and initialize all kinects up to MAX_NUM_KINECTS
-    jtil::data_str::Vector<std::string> ids;
+    jtil::data_str::VectorManaged<const char*> ids;
     KinectInterface::getDeviceIDs(ids);
     num_kinects_ = ids.size();
     if (num_kinects_ == 0) {
@@ -174,7 +174,7 @@ namespace app {
     float view_plane_far = -5000;
     SET_SETTING("view_plane_near", float, view_plane_near);
     SET_SETTING("view_plane_far", float, view_plane_far);
-    SET_SETTING("fov_deg", float, depth_hfov);  // TODO: horiz or vert?
+    SET_SETTING("fov_deg", float, depth_vfov);
 
     g_app_->addStuff();
   }
@@ -217,16 +217,34 @@ namespace app {
       double dt = frame_time_ - frame_time_prev_;
 
       int kinect_output = 0, cur_kinect = 0, label_type_enum = 0;
+      int background_color = 0;
       bool pause_stream, render_point_cloud;
       GET_SETTING("cur_kinect", int, cur_kinect);
       GET_SETTING("kinect_output", int, kinect_output);
       GET_SETTING("pause_stream", bool, pause_stream);
       GET_SETTING("render_point_cloud", bool, render_point_cloud);
+      GET_SETTING("background_color", int, background_color);
 
       bool new_data = false;
       if (kinect_[cur_kinect]->depth_frame_number() > depth_frame_number_) {
         new_data = true;
       }
+
+      Float3 rgb_background;
+      switch (background_color) {
+      case BLUE_BACKGROUND:
+        rgb_background.set(0.15f, 0.15f, 0.3f);
+        break;
+      case LBLUE_BACKGROUND:
+        rgb_background.set(0.15f * 2.0f, 0.15f * 2.0f, 0.3f * 2.0f);
+        break;
+      case WHITE_BACKGROUND:
+        rgb_background.set(1.0f, 1.0f, 1.0f);
+        break;
+      default:
+        throw std::wruntime_error("App::run() - background_color enum invalid");
+      }
+      SET_SETTING("clear_color", Float3, rgb_background);
 
       // Create the image data (in RGB)
       if (new_data && !pause_stream) {
@@ -240,11 +258,14 @@ namespace app {
           break;
         case OUTPUT_BLUE:
           {
-            // Set to 0.15f, 0.15f, 0.3f
+            uint8_t rgb[3];
+            rgb[0] = (uint8_t)(rgb_background[0] * 255.0f);
+            rgb[1] = (uint8_t)(rgb_background[1] * 255.0f);
+            rgb[2] = (uint8_t)(rgb_background[2] * 255.0f);
             for (uint32_t i = 0; i < depth_dim; i++) {
-              depth_im_[i*3] = 38;
-              depth_im_[i*3+1] = 38;
-              depth_im_[i*3+2] = 77;
+              depth_im_[i*3] = rgb[0];
+              depth_im_[i*3+1] = rgb[1];
+              depth_im_[i*3+2] = rgb[2];
             }
           }
           break;
@@ -273,6 +294,9 @@ namespace app {
                 // Just point sample the kinects (no need to get fancy)
                 uint32_t v_dst = vtile * tile_res_y;
                 uint32_t v_src = 0;
+                // NOTE: We're only locking the first Kinect so we might get
+                // screen tearing or strange artifacts!
+                const uint16_t* depth = kinect_[k]->depth();
                 for (; v_dst < ((vtile + 1) * tile_res_y) && 
                   v_src < depth_h; v_dst++, v_src+=n_tiles_y) {
                   uint32_t u_dst = utile * tile_res_x;
@@ -281,8 +305,7 @@ namespace app {
                     u_src < depth_w; u_dst++, u_src+=n_tiles_x) {
                     uint32_t i_src = v_src * depth_w + u_src;
                     uint32_t i_dst = v_dst * depth_w + u_dst;
-                    // TODO: Set this properly
-                    const uint8_t val = 255;
+                    const uint8_t val = (depth[i_src] / 2) % 255;
                     depth_im_[i_dst*3] = val;
                     depth_im_[i_dst*3+1] = val;
                     depth_im_[i_dst*3+2] = val;
@@ -378,6 +401,8 @@ namespace app {
         render_kinect_fps);
 
       geom_inst_pts_->render() = render_point_cloud;
+
+      Renderer::g_renderer()->
 
       Renderer::g_renderer()->renderFrame();
 
@@ -503,7 +528,7 @@ namespace app {
     ui->addSelectboxItem("kinect_output",
       ui::UIEnumVal(OUTPUT_DEPTH_COLORED, "Depth Colored"));
     ui->addSelectboxItem("kinect_output",
-      ui::UIEnumVal(OUTPUT_BLUE, "Blue Background"));
+      ui::UIEnumVal(OUTPUT_BLUE, "Blank"));
 
     ui->addCheckbox("render_kinect_fps", "Render Kinect FPS");
     ui->addCheckbox("continuous_snapshot", "Save continuous video stream");
@@ -521,6 +546,14 @@ namespace app {
     ui->addCheckbox("stretch_image", "Stretch Image");
     ui->addCheckbox("pause_stream", "Pause Stream");
     ui->addCheckbox("render_point_cloud", "Render Point Cloud");
+
+    ui->addSelectbox("background_color", "Background");
+    ui->addSelectboxItem("background_color", 
+      ui::UIEnumVal(BLUE_BACKGROUND, "Blue"));
+    ui->addSelectboxItem("background_color", 
+      ui::UIEnumVal(LBLUE_BACKGROUND, "Light Blue"));
+    ui->addSelectboxItem("background_color", 
+      ui::UIEnumVal(WHITE_BACKGROUND, "White"));
 
     ui->createTextWindow("kinect_fps_wnd", " ");
     jtil::math::Int2 pos(400, 0);

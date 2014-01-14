@@ -16,13 +16,13 @@ stretch_image,                    bool,      0
 pause_stream,                     bool,      0
 render_point_cloud,               bool,      1
 point_cloud_size,                 float,     1000.0
+background_color,                 int,       1
 
 //, RENDERER
 screen_resolution,                int,       125830200
 fullscreen,                       bool,      0
 double_buffering,                 bool,      0  
-//, clear_color,                      Float3,    0.529, 0.808, 0.980
-clear_color,                      Float3,    0.150, 0.150, 0.30
+clear_color,                      Float3,    0.300, 0.300, 0.60
 open_gl_major_version,            int,       4
 open_gl_minor_version,            int,       1
 open_gl_core_profile,             bool,      1
@@ -97,7 +97,7 @@ visualize_normals_length,         float,     10
 //, CAMERA
 //, Note camera near and far view planes are just Min and Max.  
 //, Frustum will be fitted to world objects and light volumes at runtime.
-fov_deg,                          float,     71
+fov_deg,                          float,     60
 view_plane_near,                  float,     -1
 view_plane_far,                   float,     -5000.0
 starting_eye_rot,                 FloatQuat, 0.0, 0.0, 0.0, -1.0

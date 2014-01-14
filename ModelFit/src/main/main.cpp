@@ -182,7 +182,6 @@ DepthImagesIO* image_io = NULL;
 Vector<Triple<char*, int64_t, int64_t>> im_files[MAX_KINECTS];  // filename, kinect time, global time
 float cur_xyz_data[MAX_KINECTS][depth_dim*3];
 float cur_norm_data[MAX_KINECTS][depth_dim*3];
-float cur_uvd_data[MAX_KINECTS][depth_dim*3];
 int16_t** cur_depth_data;  // Size: [MAX_KINECTS][depth_dim*3]
 uint8_t** cur_label_data;  // Size: [MAX_KINECTS][depth_dim]
 uint8_t cur_image_rgb[MAX_KINECTS][depth_dim*3];
@@ -201,6 +200,10 @@ const bool color_point_clouds = false;
 const float point_cloud_scale = 4.0f;
 const uint32_t num_point_clouds_to_render = 1;
 
+// We need to keep a kinect open so that we can perform conversions :-(
+kinect_interface::KinectInterface* kinect = NULL;
+jtil::data_str::VectorManaged<const char*> kinect_ids;
+
 // ICP
 jtil::math::ICP icp;
 
@@ -218,6 +221,11 @@ jtil::math::Float4x4 mat_tmp;
 WindowSettings settings;
 
 void quit() {
+  if (kinect) {
+    kinect->shutdownKinect();
+  }
+  SAFE_DELETE(kinect);
+
   tp->stop();
   delete tp;
   for (uint32_t i = 0; i < num_models; i++) {
@@ -388,14 +396,8 @@ void loadCurrentImage(bool print_to_screen = true) {
       sizeof(cur_image_rgb[k][0]) * depth_dim * 3);
     memset(cur_label_data[k], 0, sizeof(cur_label_data[k][0]) * depth_dim);
 
-#ifdef KINECT_DATA
-      DepthImagesIO::convertSingleImageToXYZ(cur_xyz_data[k], cur_depth_data[k]);
-#else
-      openni_funcs.ConvertDepthImageToProjective((uint16_t*)cur_depth_data[k], 
-        cur_uvd_data[k]);
-      openni_funcs.convertDepthToWorldCoordinates(cur_uvd_data[k], cur_xyz_data[k], 
-        depth_dim);
-#endif
+    kinect->convertDepthFrameToXYZ(depth_dim, (uint16_t*)cur_depth_data[k], 
+      cur_xyz_data[k]);
   }
 #else
   // Now load the other Kinect data
@@ -419,14 +421,8 @@ void loadCurrentImage(bool print_to_screen = true) {
       image_io->LoadCompressedImage(full_filename, 
         cur_depth_data[k], cur_label_data[k], cur_image_rgb[k]);
       memset(cur_label_data[k], 0, depth_dim * sizeof(cur_label_data[k][0]));
-#ifdef KINECT_DATA
-      DepthImagesIO::convertSingleImageToXYZ(cur_xyz_data[k], cur_depth_data[k]);
-#else
-      openni_funcs.ConvertDepthImageToProjective((uint16_t*)cur_depth_data[k], 
-        cur_uvd_data[k]);
-      openni_funcs.convertDepthToWorldCoordinates(cur_uvd_data[k], cur_xyz_data[k], 
-        depth_dim);
-#endif
+      kinect->convertDepthFrameToXYZ(depth_dim, (uint16_t*)cur_depth_data[k], 
+        cur_xyz_data[k]);
     }
   }
 #endif
@@ -935,7 +931,7 @@ void KeyboardCB(int key, int scancode, int action, int mods) {
 #endif
         } else {
           for (uint32_t i = 0; i < depth_dim; i++) {
-            if (cur_xyz_data[k_dst][i * 3 + 2] < min_depth &&
+            if (cur_xyz_data[k_dst][i * 3 + 2] < max_depth &&
               cur_xyz_data[k_dst][i * 3 + 2] > 0) {
               // We have to pre-transform PC1:
   
@@ -946,7 +942,7 @@ void KeyboardCB(int key, int scancode, int action, int mods) {
               npc1_src.pushBack(cur_norm_data[k_dst][i * 3 + 1]);
               npc1_src.pushBack(cur_norm_data[k_dst][i * 3 + 2]);
             }
-            if (cur_xyz_data[k_src][i * 3 + 2] < min_depth &&
+            if (cur_xyz_data[k_src][i * 3 + 2] < max_depth &&
               cur_xyz_data[k_src][i * 3 + 2] > 0) {
               pc2_src.pushBack(cur_xyz_data[k_src][i * 3]);
               pc2_src.pushBack(cur_xyz_data[k_src][i * 3 + 1]);
@@ -1435,7 +1431,7 @@ int main(int argc, char *argv[]) {
   static_cast<void>(argc); static_cast<void>(argv);
 #if defined(_DEBUG) && defined(_WIN32)
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-  // _CrtSetBreakAlloc(2997);
+  //_CrtSetBreakAlloc(616);
 #endif
 
   cout << "Usage:" << endl;
@@ -1474,6 +1470,12 @@ int main(int argc, char *argv[]) {
   try {
     tp = new ThreadPool(NUM_WORKER_THREADS);
 
+    KinectInterface::getDeviceIDs(kinect_ids);
+    if (kinect_ids.size() < 1) {
+      throw std::wruntime_error("A Kinect must be attached.");
+    }
+    kinect = new KinectInterface(kinect_ids[0]);
+
     clk = new jtil::clk::Clk();
     t1 = clk->getTime();
     
@@ -1504,8 +1506,7 @@ int main(int argc, char *argv[]) {
     Float3 eye_pos(0, 0, 0);
     render = new Renderer();
     render->background_color.set(0.098f, 0.098f, 0.3922f, 1.0f);
-    float fov_vert_deg = 360.0f * OpenNIFuncs::fVFOV_primesense_109 / 
-      (2.0f * (float)M_PI);
+    float fov_vert_deg = depth_vfov;
     render->init(eye_rot, eye_pos, settings.width, settings.height,
       -HAND_MODEL_CAMERA_VIEW_PLANE_NEAR, -HAND_MODEL_CAMERA_VIEW_PLANE_FAR, 
       fov_vert_deg);

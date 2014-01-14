@@ -81,8 +81,8 @@ namespace kinect_interface {
   const float rgb_hfov = 84.1f;  // (horizontal)
   const float rgb_vfov = 53.8f;  // (vertical)
 
-  // The array size is (uint16_t * depth_dim + 3 * uint8_t * depth_dim)
-  const uint32_t depth_arr_size_bytes = (depth_dim * 2) + (3 * depth_dim * 2);
+  // The array size is (depth_dim * 2_bytes + 3 * depth_dim * 1_byte)
+  const uint32_t depth_arr_size_bytes = (depth_dim * 2) + (3 * depth_dim * 1);
 
   // Beyond this depth we treat everything as background.  It is a very rough
   // cutoff but it has a big impact on decision forest evaluation time and some
@@ -93,13 +93,13 @@ namespace kinect_interface {
   public:
     // KinectInterface() - Starts up the kinect thread.  Call getDeviceIDs to 
     // get the callable IDS
-    KinectInterface(const std::string& device_id);  
+    KinectInterface(const char* device_id);  
     // Destroy the interface. Note: must not be called until thread is joined
     ~KinectInterface();
     // shutdownKinect is blocking until the kinect thread has shut down
     void shutdownKinect();  
 
-    static void getDeviceIDs(jtil::data_str::Vector<std::string>& ids);
+    static void getDeviceIDs(jtil::data_str::VectorManaged<const char*>& ids);
 
     const uint8_t* rgb() const;  // NOT THREAD SAFE!  Use lockData()
     const XYZPoint* xyz() const;  // NOT THREAD SAFE!  Use lockData()
@@ -123,6 +123,8 @@ namespace kinect_interface {
     // Hopefully this can be broken out like I did for OpenNI
     void convertDepthFrameToXYZ(const uint32_t n_pts, const uint16_t* depth, 
       XYZPoint* xyz);
+    void convertDepthFrameToXYZ(const uint32_t n_pts, const uint16_t* depth, 
+      float* xyz);  // Requires O(n) copy internally
     void convertXYZToDepthSpace(const uint32_t n_pts, const XYZPoint* xyz,
       XYPoint* uv_pos);  // Note: z, in XYZPoint will be the depth
     void convertUVDToXYZ(const uint32_t n_pts, const float* uvd, 
