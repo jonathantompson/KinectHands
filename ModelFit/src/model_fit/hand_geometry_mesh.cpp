@@ -15,8 +15,9 @@
 #include "renderer/geometry/geometry_colored_mesh.h"
 #include "renderer/geometry/bone_info.h"
 #include "jtil/data_str/pair.h"
-#include "kinect_interface/hand_net/hand_net.h"  // for HandCoeffConvnet
-#include "kinect_interface/hand_net/hand_image_generator.h"  // for HN_HAND_SIZE
+#include "kinect_interface/hand_net/hand_net.h"  // HandCoeffConvnet
+#include "kinect_interface/hand_net/hand_image_generator.h"  // HN_HAND_SIZE
+#include "kinect_interface/kinect_interface.h"  // depth_dim
 
 #define SAFE_DELETE(target) \
   if (target != NULL) { \
@@ -35,6 +36,7 @@ using std::cout;
 using std::endl;
 using namespace renderer;
 using namespace kinect_interface::hand_net;
+using namespace kinect_interface;
 
 namespace model_fit {
   float HandGeometryMesh::pso_radius_c_[HAND_NUM_COEFF];

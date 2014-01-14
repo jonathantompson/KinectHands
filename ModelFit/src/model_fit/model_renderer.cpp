@@ -29,7 +29,7 @@
 #include "jtil/file_io/file_io.h"
 #include "jtil/data_str/vector.h"
 #include "renderer/gl_state.h"
-
+#include "kinect_interface/kinect_interface.h"  // depth_vfov
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
@@ -41,7 +41,6 @@ using std::runtime_error;
 using std::cout;
 using std::endl;
 using namespace renderer;
-
 using namespace kinect_interface;
 
 namespace model_fit {
@@ -55,8 +54,7 @@ namespace model_fit {
     FloatQuat eye_rot; eye_rot.identity();
     Float3 eye_pos(0, 0, 0);
     // TODO: Should
-    float fov_vert_deg = 360.0f * OpenNIFuncs::fVFOV_primesense_109 / 
-      (2.0f * (float)M_PI);
+    float fov_vert_deg = depth_vfov;
     cameras_ = new Camera*[num_cameras_];
     for (uint32_t i = 0; i < num_cameras_; i++) {
       cameras_[i] = new Camera(&eye_rot, &eye_pos, depth_w, depth_h, 

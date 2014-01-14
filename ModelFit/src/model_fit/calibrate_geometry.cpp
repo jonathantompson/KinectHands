@@ -13,8 +13,9 @@
 #include "renderer/geometry/geometry_colored_mesh.h"
 #include "renderer/geometry/bone_info.h"
 #include "jtil/data_str/pair.h"
-#include "kinect_interface/hand_net/hand_net.h"  // for HandCoeffConvnet
-#include "kinect_interface/hand_net/hand_image_generator.h"  // for HN_HAND_SIZE
+#include "kinect_interface/hand_net/hand_net.h"  // HandCoeffConvnet
+#include "kinect_interface/hand_net/hand_image_generator.h"  // HN_HAND_SIZE
+#include "kinect_interface/kinect_interface.h"  // depth_dim
 #include "jtil/math/bfgs.h"
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
@@ -32,6 +33,7 @@ using std::cout;
 using std::endl;
 using namespace renderer;
 using namespace kinect_interface::hand_net;
+using namespace kinect_interface;
 
 namespace model_fit {
   float CalibrateGeometry::pso_radius_c_[CAL_GEOM_NUM_COEFF];
@@ -549,7 +551,7 @@ namespace model_fit {
 
         Float3 pt, pt_tranformed, pt_box, delta;
         Float3 box_half_lengths(BOX_SIDEA/2.0f, BOX_SIDEB/2.0f, BOX_SIDEC/2.0f);
-        for (uint32_t i = 0; i < src_dim; i++) {
+        for (uint32_t i = 0; i < depth_dim; i++) {
           // Transform the point into the box's coordinate frame
           pt.set(xyz_src[i * 3], xyz_src[i * 3 + 1], xyz_src[i * 3 + 2]);
           Float3::affineTransformPos(pt_tranformed, model_mat_inv, pt);
@@ -595,7 +597,7 @@ namespace model_fit {
         norm_ret.resize(0);
 
         Float3 pt, pt_tranformed, pt_box, delta;
-        for (uint32_t i = 0; i < src_dim; i++) {
+        for (uint32_t i = 0; i < depth_dim; i++) {
           // Transform the point into the box's coordinate frame
           pt.set(xyz_src[i * 3], xyz_src[i * 3 + 1], xyz_src[i * 3 + 2]);
           Float3::affineTransformPos(pt_tranformed, model_mat_inv, pt);

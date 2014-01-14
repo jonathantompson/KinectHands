@@ -15,6 +15,7 @@
 #include "renderer/texture/texture_renderable.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
 #include "kinect_interface/depth_images_io.h"
+#include "kinect_interface/kinect_interface.h"  // depth_dim
 
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
@@ -28,6 +29,7 @@ using std::endl;
 using jtil::file_io::CSVHandleWrite;
 using jtil::data_str::VectorManaged;
 using renderer::GLState;
+using namespace kinect_interface;
 
 namespace model_fit {
   
@@ -55,7 +57,7 @@ namespace model_fit {
     pso_->max_iterations = PSO_MAX_ITERATIONS;
     pso_->delta_coeff_termination = PSO_DELTA_C_TERMINATION;
 
-    kinect_depth_masked_ = new int16_t[src_dim];
+    kinect_depth_masked_ = new int16_t[depth_dim];
 
     model_renderer_ = new ModelRenderer(num_cameras_);
   }
@@ -73,11 +75,11 @@ namespace model_fit {
     for (uint32_t i_camera = 0; i_camera < num_cameras_; i_camera++) {
       int16_t* cur_depth = depth[i_camera];
       memcpy(kinect_depth_masked_, cur_depth, sizeof(kinect_depth_masked_[0]) * 
-        src_dim);
+        depth_dim);
   #ifdef DEPTH_ONLY_RESIDUE_FUNC
       // Do nothing
   #else
-      for (uint32_t i = 0; i < src_dim; i++) {
+      for (uint32_t i = 0; i < depth_dim; i++) {
         if (label[i_camera][i] == 0) {
           kinect_depth_masked_[i] = 0;
         }

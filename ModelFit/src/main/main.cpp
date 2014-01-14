@@ -37,6 +37,8 @@
 #include "model_fit/hand_geometry_mesh.h"
 #include "model_fit/model_renderer.h"
 #include "model_fit/model_fit.h"
+#include "kinect_interface/kinect_interface.h"
+#include "kinect_interface/depth_images_io.h"
 #include "kinect_interface/hand_net/hand_model_coeff.h"
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector.h"
@@ -193,15 +195,11 @@ float temp_xyz[3 * depth_dim];
 float temp_rgb[3 * depth_dim];
 bool render_depth = true;
 int playback_step = 1;
-OpenNIFuncs openni_funcs;
 Texture* tex = NULL;
 uint8_t tex_data[depth_dim * 3];
 const bool color_point_clouds = false;
 const float point_cloud_scale = 4.0f;
 const uint32_t num_point_clouds_to_render = 1;
-
-// Decision forests
-HandDetector* hand_detect = NULL;
 
 // ICP
 jtil::math::ICP icp;
@@ -226,7 +224,6 @@ void quit() {
     models[i]->setRendererAttachement(true);  // Make sure Geometry manager deletes models
     SAFE_DELETE(models[i]);
   }
-  SAFE_DELETE(hand_detect);
   SAFE_DELETE(tex);
   SAFE_DELETE_ARR(models);
   SAFE_DELETE_ARR(coeff);
@@ -405,7 +402,7 @@ void loadCurrentImage(bool print_to_screen = true) {
   for (uint32_t k = 0; k < MAX_KINECTS; k++) {
     if (im_files[k].size() == 0) {
       for (uint32_t j = 0; j < depth_dim; j++) {
-        cur_depth_data[k][j] = min_depth;
+        cur_depth_data[k][j] = max_depth + 1;
       }
       memset(cur_label_data[k], 0, sizeof(cur_label_data[k][0]) * depth_dim); 
       memset(cur_image_rgb[k], 0, sizeof(cur_image_rgb[k][0]) * depth_dim * 3); 
@@ -1531,10 +1528,6 @@ int main(int argc, char *argv[]) {
       geometry_lines[k] = NULL;
     }
 #endif
-
-    hand_detect = new HandDetector(tp);
-    hand_detect->init(depth_w, depth_h, FOREST_ROOT +
-      FOREST_DATA_FILENAME);
  
     // Load the Kinect data for fitting from file and process it
     image_io = new DepthImagesIO();
