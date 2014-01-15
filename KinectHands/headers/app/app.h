@@ -10,11 +10,8 @@
 #include <thread>
 #include <string>
 #include <random>
-#include "app/frame_data.h"
 #include "jtil/jtil.h"
 #include "kinect_interface/kinect_interface.h"
-#include "kinect_interface/hand_net/hand_image_generator.h"  // for HN_IM_SIZE
-#include "kinect_interface/hand_net/hand_net.h"  // for HandCoeffConvnet
 
 #define MAX_NUM_KINECTS 4
 #define NUM_APP_WORKER_THREADS 4
@@ -23,40 +20,34 @@
 class DebugBuf;
 #endif
 
-namespace kinect_interface { class KinectInterface; }
-namespace kinect_interface { namespace hand_net { class HandNet; } }
-namespace kinect_interface { namespace hand_net { class HandModelCoeff; } }
-namespace kinect_interface { namespace hand_net { class RobotHandModel; } }
+namespace kinect_interface { namespace hand_detector { class HandDetector; } }
+namespace jtil { namespace threading { class ThreadPool; } }
+namespace jtil { namespace renderer { class GeometryInstance; } }
 
 namespace app {
   struct FrameData;
 
   typedef enum {
-    OUTPUT_RGB_IR = 0,
-    OUTPUT_RGB_REGISTERED = 1,
-    OUTPUT_DEPTH = 2,
-    OUTPUT_DEPTH_ALL_VIEWS = 3,
-    OUTPUT_DEPTH_RAINBOW = 4,
-    OUTPUT_HAND_DETECTOR_DEPTH = 5,
-    OUTPUT_CONVNET_DEPTH = 6,
-    OUTPUT_CONVNET_SRC_DEPTH = 7,
-    OUTPUT_CONVNET_HEAT_MAPS = 8,
-    OUTPUT_HAND_NORMALS = 9,
-    OUTPUT_BLUE = 10,
+    OUTPUT_RGB = 0,
+    OUTPUT_DEPTH = 1,
+    OUTPUT_DEPTH_ALL_VIEWS = 2,
+    OUTPUT_DEPTH_RAINBOW = 3,
+    OUTPUT_DEPTH_COLORED = 4,
+    OUTPUT_BLUE = 5,
   } KinectOutput;
 
   typedef enum {
-    OUTPUT_NO_LABELS = 0,
-    OUTPUT_UNFILTERED_LABELS = 1,
-    OUTPUT_FILTERED_LABELS = 2,
-    OUTPUT_FLOODFILL_LABELS = 3
-  } LabelType;
+    RDF_LABELS_NONE = 0,
+    RDF_LABELS_UNFILTERED = 1,
+    RDF_LABELS_FILTERED = 2,
+    RDF_LABELS_FINAL = 3,
+  } RDFLabels;
 
   typedef enum {
-    HAND_TYPE_NONE = 0,
-    HAND_TYPE_LIBHAND = 1,
-    HAND_TYPE_ROBOT = 2,
-  } HandModelType;
+    BLUE_BACKGROUND = 0,
+    LBLUE_BACKGROUND = 1,
+    WHITE_BACKGROUND = 2,
+  } BackgroundColor;
 
   class App {
   public:
@@ -79,8 +70,7 @@ namespace app {
     static void mouseButtonCB(int button, int action, int mods);
     static void mouseWheelCB(double xoffset, double yoffset);
     static void screenshotCB();
-    static void resetTrackingCB();
-    static void greyscaleScreenshotCB();
+    static void resetCameraCB();
 
   private:
     static App* g_app_;  // Global singleton
@@ -91,73 +81,66 @@ namespace app {
     bool app_running_;
 
     // Kinect data
-    jtil::data_str::VectorManaged<char*> kinect_uris_;
-    kinect_interface::KinectInterface* kinect_[MAX_NUM_KINECTS];
-    FrameData* kdata_[MAX_NUM_KINECTS];
-    bool new_data_;
+    kinect_interface::KinectInterface* kinects_[MAX_NUM_KINECTS];
+    int64_t kinect_last_saved_depth_time_[MAX_NUM_KINECTS];
+    uint32_t num_kinects_;
     uint8_t rainbowPalletR[256];
     uint8_t rainbowPalletG[256];
     uint8_t rainbowPalletB[256];
-
-    // Convolutional Neural Network
-    kinect_interface::hand_net::HandNet* hand_net_;
-    kinect_interface::hand_net::RobotHandModel* robot_hand_model_;
 
     jtil::clk::Clk* clk_;
     jtil::math::Double2 mouse_pos_;
     jtil::math::Double2 mouse_pos_old_;
     double frame_time_;
+    double time_since_start_;
     double frame_time_prev_;
-    static uint32_t screenshot_counter_;
+    static uint64_t screenshot_counter_;
+    uint64_t depth_frame_number_;
+    int64_t depth_frame_time_;
 
-    uint8_t render_labels_[src_dim];
+    // We copy the kinect data here (at the cost of another O(n) copy) to avoid
+    // holding the kinect's data lock too long.
+    uint16_t depth_[kinect_interface::depth_dim];
+    uint8_t depth_colored_[kinect_interface::depth_dim * 3];
+    uint8_t rgb_[kinect_interface::rgb_dim * 3];
+    float xyz_[kinect_interface::depth_dim * 3];
 
-    // Typically 640 x 480
-    jtil::renderer::Texture* background_tex_;
-    uint8_t im_[src_dim * 3];
-    uint16_t depth_tmp_[src_dim];
-    uint8_t im_flipped_[src_dim * 3];
+    jtil::renderer::Texture* depth_tex_;
+    jtil::renderer::Texture* rgb_tex_;
+    uint8_t depth_im_[kinect_interface::depth_dim * 3];
+    uint8_t rgb_im_[kinect_interface::rgb_dim * 3];
+    jtil::renderer::GeometryInstance* geom_inst_pts_;  // Not owned here!
+    jtil::renderer::Geometry* geom_pts_;  // Not owned here!
+    jtil::renderer::GeometryInstance* geom_inst_joints_;  // Not owned here!
+    jtil::renderer::Geometry* geom_joints_;  // Not owned here!
 
-    // Typically 96 x 96
-    jtil::renderer::Texture* convnet_background_tex_;  // smaller dimension
-    uint8_t convnet_im_flipped_[HN_IM_SIZE * HN_IM_SIZE * 3];
-
-    // Typically 384 x 384
-    jtil::renderer::Texture* convnet_src_background_tex_;  // smaller dimension
-    uint8_t convnet_src_im_flipped_[HN_SRC_IM_SIZE * HN_SRC_IM_SIZE * 3];
-
-    // Typically (24 * 3) x (24 * 3)
-    jtil::renderer::Texture* convnet_hm_background_tex_;  // smaller dimension
-    uint8_t* convnet_hm_im_flipped_;
-    uint32_t hm_size_;
-    uint32_t hm_nfeats_;
-    jtil::math::Int2 hm_feats_dim_;  // Number of tiles width and height
-
-    // In-air drawing
-    bool drawing_;
-    bool was_drawing_;
-    jtil::math::Int2 prev_pen_position_;
-    jtil::math::Int2 pen_position_;
-    uint8_t* drawing_canvas_;
+    // This temporary array is used to store the data to be saved.  We allocate
+    // a little extra space just in case the compression inflates the data
+    // (however this is very unlikely)
+    uint16_t* tmp_data1_[kinect_interface::depth_arr_size_bytes*MAX_NUM_KINECTS*2];
+    uint16_t* tmp_data2_[kinect_interface::depth_arr_size_bytes*MAX_NUM_KINECTS*2];
+    
+    // Randomized Decision Forest Hand Detector
+    kinect_interface::hand_detector::HandDetector* hd_;
+    uint8_t hand_labels_[kinect_interface::depth_dim];
 
     void run();
     void init();
     static void resetScreenCB();
     static int closeWndCB();
     void moveCamera(const double dt);
-    void moveStuff(const double dt);  // Temporary: just to play with renderer
+    void moveStuff(const double dt);
     void addStuff();
     void registerNewRenderer();
     void initRainbowPallet();
 
-    // Thread pool to get the KinectData from the kinects in parallel
+    // Multithreading
+    // Thread pool to get the KinectData from the kinects in parallel:
     jtil::threading::ThreadPool* tp_;
     int32_t threads_finished_;
     std::mutex thread_update_lock_;
     std::condition_variable not_finished_;
-    jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* kinect_update_cbs_; 
     jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* data_save_cbs_; 
-    void syncKinectData(const uint32_t index);
     void saveKinectData(const uint32_t index);
     void executeThreadCallbacks(jtil::threading::ThreadPool* tp, 
       jtil::data_str::VectorManaged<jtil::threading::Callback<void>*>* cbs);

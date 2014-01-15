@@ -13,7 +13,8 @@
 #include "jtil/data_str/vector.h"
 #include "jtil/threading/callback.h"
 
-#define FOREST_DATA_FILENAME std::string("./forest_data.bin")
+#define FOREST_DATA_FILENAME std::string("./data/forest_data.bin")
+#define XYZ_UNIT 1e3f   // The new kinect reports xyz in meters
 #define HD_MIN_PTS_PER_HAND_BLOB 25  // EDIT: 2/13 (prev 100)
 #define HD_STARTING_NUM_TREES_TO_EVALUATE 4
 #define HD_STARTING_MAX_TREE_HEIGHT_TO_EVALUATE 25
@@ -22,18 +23,18 @@
 #define HD_STARTING_GROW_FILT_RAD 2
 
 // Post processing variables
-#define HD_SMALL_HAND_RADIUS 20.0f
+#define HD_SMALL_HAND_RADIUS (20.0f / XYZ_UNIT)  // In XYZ Space
 #define HD_DISCONT_FILT_RAD 3
 #define HD_DISCONT_FILT_DEPTH_THRESH 25
-#define HD_SMALL_HAND_RADIUS_MIN_UV 10
+#define HD_SMALL_HAND_RADIUS_MIN_UV 10  // In UV Space
 #define HD_N_PTS_FILL_KERNEL (8*3)
-#define HD_HAND_RADIUS 175.0f
-#define HD_BACKGROUND_THRESH 175.0f  // For hand flood fill
+#define HD_HAND_RADIUS (175.0f / XYZ_UNIT)
+#define HD_BACKGROUND_THRESH (175.0f / XYZ_UNIT)  // For hand flood fill
 #define HD_BACKGROUND_THRESH_SQ (HD_BACKGROUND_THRESH * HD_BACKGROUND_THRESH)
-#define HD_FILL_COARSE_RADIUS 4000  // This value is divided by depth in mm!
-#define HD_FILL_OUSIDE_RADIUS 10000  // This value is divided by depth in mm!
-#define HD_FILL_FINE_RADIUS 1 
-#define HD_BACKGROUND_THRESH_GROW 100.0f  // For hand flood fill
+#define HD_FILL_COARSE_RADIUS (4000.0f / XYZ_UNIT)
+#define HD_FILL_OUSIDE_RADIUS (10000.0f / XYZ_UNIT)
+#define HD_FILL_FINE_RADIUS (1 / XYZ_UNIT) 
+#define HD_BACKGROUND_THRESH_GROW 100  // In depth space
 
 namespace jtil { namespace threading { class ThreadPool; } }
 namespace jtil { namespace data_str { template <typename T> class VectorManaged; } }
@@ -75,10 +76,11 @@ namespace hand_detector {
     const uint32_t max_height() const { return max_height_; }
 
     // Setters
-    int32_t& stage2_med_filter_radius() { return stage2_med_filter_radius_; }
-    int32_t& stage1_shrink_filter_radius() { return stage1_shrink_filter_radius_; }
+    inline int32_t& stage2_med_filter_radius() { return stage2_med_filter_radius_; }
+    inline int32_t& stage1_shrink_filter_radius() { return stage1_shrink_filter_radius_; }
     void num_trees_to_evaluate(const int32_t val);
     void max_height_to_evaluate(const int32_t val);
+    inline KinectInterface*& kinect() { return kinect_; }
 
     jtil::data_str::Vector<jtil::math::Float3>& hands_uvd() { return hands_uvd_; }
 
@@ -133,7 +135,7 @@ namespace hand_detector {
     void filterLabelsThreshold(uint8_t*& dst, uint8_t*& src, uint8_t*& tmp,
     int16_t* depth, const int32_t w, const int32_t h);  // Newer method
 
-    void evaluateForestMultithreaded();  // Sets up the pixel work queue and fire's off threads
+    void evaluateForestMultithreaded();  // Sets up the work queue and fire's off threads
     void evaluateForestPixelRange(const uint32_t istart, const uint32_t iend);
     void evaluateForestPixel(const uint32_t index);
 

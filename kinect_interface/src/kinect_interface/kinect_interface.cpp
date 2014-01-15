@@ -316,9 +316,9 @@ namespace kinect_interface {
         hr = depth_frame_reader_->AcquireLatestFrame(&depth_frame);
       }
 
-      if (SUCCEEDED(hr) && depth_frame != NULL) {
-        data_lock_.lock();
+      data_lock_.lock();
 
+      if (SUCCEEDED(hr) && depth_frame != NULL) {
         new_depth = true;
 
         // Copy over the underlying data
@@ -361,8 +361,6 @@ namespace kinect_interface {
           depth_frame->Release();
           depth_frame = NULL;
         }
-
-        data_lock_.unlock();
       }
 
       // ***** Aquire the RGB frame *****
@@ -372,10 +370,8 @@ namespace kinect_interface {
       if (sync_rgb_) {
         hr = rgb_frame_reader_->AcquireLatestFrame(&rgb_frame);
       }
-      
-      if (SUCCEEDED(hr) && rgb_frame != NULL) {
-        data_lock_.lock();
 
+      if (SUCCEEDED(hr) && rgb_frame != NULL) {
         new_rgb = true;
 
         // Copy over the underlying data
@@ -419,14 +415,10 @@ namespace kinect_interface {
         rgb_frame_number_++;
         rgb_frame->get_RelativeTime(&rgb_frame_time_);
         rgb_frame->Release();
-
-        data_lock_.unlock();
       }
 
       // ***** Aquire the colored depth frame *****
       if (new_depth && sync_depth_colored_) {
-        data_lock_.lock();
-
         CALL_SAFE(coord_mapper_->MapDepthFrameToColorSpace(depth_dim, 
           (UINT16*)depth_, depth_dim, (ColorSpacePoint*)uv_depth_2_rgb_),
           "could not map depth frame to rgb space");
@@ -447,17 +439,11 @@ namespace kinect_interface {
             depth_colored_[i * 3 + 2] = 0;
           }
         }
-
-        data_lock_.unlock();
       }
 
       // ***** Aquire the XYZ frame *****
       if (new_depth && sync_xyz_) {
-        data_lock_.lock();
-
         convertDepthFrameToXYZ(depth_dim, depth_, xyz_);
-
-        data_lock_.unlock();
       }
 
       // ***** Aquire the body frame *****
@@ -468,8 +454,6 @@ namespace kinect_interface {
       }
 
       if (SUCCEEDED(hr) && body_frame != NULL) {
-        data_lock_.lock();
-
         // Get the body frame data
         CALL_SAFE(hr = body_frame->get_RelativeTime(&body_frame_time_),
           "Could not get body frame time");
@@ -526,8 +510,9 @@ namespace kinect_interface {
         
         body_frame_number_++;
         body_frame->Release();
-        data_lock_.unlock();
       }
+
+      data_lock_.unlock();
 
       std::this_thread::yield();
 
@@ -628,7 +613,7 @@ namespace kinect_interface {
  void KinectInterface::convertUVDToXYZ(const uint32_t n_pts, const float* uvd, 
    float* xyz) {
    // Copy the input data into Microsoft's structure
-   for (uint32_t i = 0; i < depth_dim; i++) {
+   for (uint32_t i = 0; i < n_pts; i++) {
      uv_tmp_[i].x = uvd[i * 3];
      uv_tmp_[i].y = uvd[i * 3 + 1];
      depth_tmp_[i] = (uint16_t)uvd[i * 3 + 2];
@@ -638,7 +623,7 @@ namespace kinect_interface {
      (CameraSpacePoint*)xyz_tmp_),
      "could not map xyz (camera) to depth space");
    // Copy the output data out of Microsoft's structure
-   for (uint32_t i = 0; i < depth_dim; i++) {
+   for (uint32_t i = 0; i < n_pts; i++) {
      xyz[i * 3] = xyz_tmp_[i].x;
      xyz[i * 3 + 1] = xyz_tmp_[i].y;
      xyz[i * 3 + 2] = xyz_tmp_[i].z;
@@ -647,17 +632,17 @@ namespace kinect_interface {
  void KinectInterface::convertXYZToUVD(const uint32_t n_pts, const float* xyz,
    float* uvd) {
    // Copy the input data into Microsoft's structure
-   for (uint32_t i = 0; i < depth_dim; i++) {
+   for (uint32_t i = 0; i < n_pts; i++) {
      xyz_tmp_[i].x = xyz[i * 3];
      xyz_tmp_[i].y = xyz[i * 3 + 1];
      xyz_tmp_[i].z = xyz[i * 3 + 2];
    }
    convertXYZToDepthSpace(n_pts, xyz_tmp_, uv_tmp_);
    // Copy the output data out of Microsoft's structure
-   for (uint32_t i = 0; i < depth_dim; i++) {
+   for (uint32_t i = 0; i < n_pts; i++) {
      uvd[i*3] = uv_tmp_[i].x;
      uvd[i*3 + 1] = uv_tmp_[i].y;
-     uvd[i*3 + 2] = xyz_tmp_[i].z;  // TODO: Check that this is the correct units
+     uvd[i*3 + 2] = xyz_tmp_[i].z * 1000.0f;
    }
  }
 
@@ -665,7 +650,7 @@ namespace kinect_interface {
     const uint16_t* depth, float* xyz) {
     convertDepthFrameToXYZ(n_pts, depth, xyz_tmp_);
     // Copy the output data out of Microsoft's structure
-    for (uint32_t i = 0; i < depth_dim; i++) {
+    for (uint32_t i = 0; i < n_pts; i++) {
       xyz[i * 3] = xyz_tmp_[i].x;
       xyz[i * 3 + 1] = xyz_tmp_[i].y;
       xyz[i * 3 + 2] = xyz_tmp_[i].z;

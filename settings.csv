@@ -17,8 +17,12 @@ pause_stream,                     bool,      1
 render_point_cloud,               bool,      1
 point_cloud_size,                 float,     1000.0
 background_color,                 int,       0
-joint_size,                       float,     10000.0
-render_joints,                    bool,      1
+joint_size,                       float,     40000.0
+render_joints,                    bool,      0
+detect_hands,                     bool,      1
+render_hand_labels,               int,       0
+detect_pose,                      bool,      1
+detect_heat_map,                  bool,      1
 
 //, RENDERER
 screen_resolution,                int,       125830200
@@ -32,7 +36,7 @@ window_depth_buffer_bits,         int,       32
 window_stencil_buffer_bits,       int,       0
 window_rgba_bits,                 int,       8
 render_ui_app,                    bool,      1
-render_ui_renderer,               bool,      1
+render_ui_renderer,               bool,      0
 render_ui_fps,                    bool,      1
 render_output_enum,               int,       0
 light_pass_stencil_opt,           bool,      0

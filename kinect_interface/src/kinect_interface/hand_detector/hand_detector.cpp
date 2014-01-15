@@ -301,7 +301,7 @@ namespace hand_detector {
             if (delta_depth < 0) {
               delta_depth = -delta_depth; 
             }
-            if (delta_depth < (int16_t)HD_BACKGROUND_THRESH_GROW) {
+            if (delta_depth < HD_BACKGROUND_THRESH_GROW) {
               labels_src[offset] = 1;
             }
           }
@@ -322,7 +322,7 @@ namespace hand_detector {
             if (delta_depth < 0) {
               delta_depth = -delta_depth; 
             }
-            if (delta_depth < (int16_t)HD_BACKGROUND_THRESH_GROW) {
+            if (delta_depth < HD_BACKGROUND_THRESH_GROW) {
               labels_dst[offset] = 1;
             }
           }
@@ -594,8 +594,6 @@ namespace hand_detector {
     // queue of pixels
     int minPtIndex = static_cast<int>(round(min_pt_uvd[1])) * src_width_ + 
       static_cast<int>(round(min_pt_uvd[0]));
-    //float min_pt_xyz[3] = {xyz[minPtIndex*3], xyz[minPtIndex*3+1], 
-    //  xyz[minPtIndex*3+2]};
 
     memset(pixel_on_queue_, 0, src_width_ * src_height_ * 
       sizeof(pixel_on_queue_[0]));
@@ -678,7 +676,7 @@ namespace hand_detector {
     for (int u = uMin; u <= uMax;  u ++) {
       for (int v = vMin; v <= vMax;  v ++) {
         int i = v * src_width_ + u;
-        if (xyz[i*3+2] > 1) {
+        if (xyz[i*3+2] > (1.0f / XYZ_UNIT)) {
           if (xyz[i*3+2] < min_pt[2]) {
             min_pt[0] = (float)u;
             min_pt[1] = (float)v;
@@ -689,6 +687,7 @@ namespace hand_detector {
     }
     // Check if we were sucessful
     if (min_pt[2] < std::numeric_limits<float>::infinity()) {
+      min_pt[2] *= XYZ_UNIT;
       return true;
     } else {
       return false;
