@@ -109,6 +109,8 @@ namespace kinect_interface {
     const XYZPoint* xyz() const;  // NOT THREAD SAFE!  Use lockData()
     const uint16_t* depth() const;  // NOT THREAD SAFE!  Use lockData()
     const uint8_t* depth_colored() const;  // NOT THREAD SAFE!  Use lockData()
+    const jtil::math::Float3* user_joints(const uint32_t user) const;  // NOT THREAD SAFE! Use lockData()
+    const bool* user_tracked() const;  // NOT THREAD SAFE! Use lockData()
     const int64_t depth_frame_time() const { return depth_frame_time_; }
     const uint64_t depth_frame_number() const { return depth_frame_number_; }
     const int64_t rgb_frame_time() const { return rgb_frame_time_; }

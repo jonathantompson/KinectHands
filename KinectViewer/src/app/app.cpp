@@ -220,12 +220,13 @@ namespace app {
 
       int kinect_output = 0, cur_kinect = 0, label_type_enum = 0;
       int background_color = 0;
-      bool pause_stream, render_point_cloud;
+      bool pause_stream, render_point_cloud, render_joints;
       GET_SETTING("cur_kinect", int, cur_kinect);
       GET_SETTING("kinect_output", int, kinect_output);
       GET_SETTING("pause_stream", bool, pause_stream);
       GET_SETTING("render_point_cloud", bool, render_point_cloud);
       GET_SETTING("background_color", int, background_color);
+      GET_SETTING("render_joints", bool, render_joints);
 
       bool new_data = false;
       if (kinect_[cur_kinect]->depth_frame_number() > depth_frame_number_) {
@@ -347,6 +348,23 @@ namespace app {
           }
         }
 
+        if (render_joints) {
+          // Copy the data but don't resync the openGL geometry
+          const bool* user_tracked = kinect_[cur_kinect]->user_tracked();
+          for (uint32_t u = 0; u < num_users; u++) {
+            const Float3* user_joints = kinect_[cur_kinect]->user_joints(u);
+            for (uint32_t j = 0; j < num_user_joints; j++) {
+              uint32_t i = u * num_user_joints + j;
+              if (user_tracked[u]) {
+                geom_joints_->pos()[i].set(user_joints[j][0], 
+                  user_joints[j][1], user_joints[j][2]);
+              } else {
+                geom_joints_->pos()[i].set(0,0,-std::numeric_limits<float>::infinity());
+              }
+            }
+          }
+        }
+
         // Update the frame number and timestamp
         depth_frame_number_ = kinect_[cur_kinect]->depth_frame_number();
         depth_frame_time_ = kinect_[cur_kinect]->depth_frame_time();
@@ -355,7 +373,10 @@ namespace app {
         
         // resync the openGL geometry
         if (render_point_cloud) {
-          geom_pts_->resync();  // TODO: Figure out why this doesn't work.
+          geom_pts_->resync();
+        }
+        if (render_joints) {
+          geom_joints_->resync();
         }
 
         // Update the kinect FPS string
@@ -403,8 +424,7 @@ namespace app {
         render_kinect_fps);
 
       geom_inst_pts_->render() = render_point_cloud;
-
-      Renderer::g_renderer()->
+      geom_inst_joints_->render() = render_joints;
 
       Renderer::g_renderer()->renderFrame();
 
@@ -550,6 +570,7 @@ namespace app {
     ui->addCheckbox("stretch_image", "Stretch Image");
     ui->addCheckbox("pause_stream", "Pause Stream");
     ui->addCheckbox("render_point_cloud", "Render Point Cloud");
+    ui->addCheckbox("render_joints", "Render Joints");
 
     ui->addSelectbox("background_color", "Background");
     ui->addSelectboxItem("background_color", 
@@ -590,30 +611,31 @@ namespace app {
     }
     geom_pts_->sync();
 
-    geom_inst_lines_ = 
+    geom_inst_joints_ = 
       Renderer::g_renderer()->geometry_manager()->createDynamicGeometry(
-      "Skeletons");
-    Renderer::g_renderer()->scene_root()->addChild(geom_inst_lines_);
-    geom_inst_lines_->mat().leftMultScale(1000.0f, 1000.0f, 1000.0f);
-    geom_lines_ = geom_inst_lines_->geom();
-    geom_lines_->primative_type() = VERT_LINES;
-    float skeleton_line_width;
-    GET_SETTING("skeleton_line_width", float, skeleton_line_width);
-    geom_inst_lines_->point_line_size() = skeleton_line_width;
-    geom_inst_lines_->apply_lighting() = false;
-    geom_lines_->addVertexAttribute(VERTATTR_POS);
-    geom_lines_->addVertexAttribute(VERTATTR_COL);
-    geom_lines_->pos().capacity(10*2);
-    geom_lines_->pos().resize(10*2);
-    geom_lines_->col().capacity(10*2);
-    geom_lines_->col().resize(10*2);
-    for (uint32_t i = 0; i < 10; i++) {
-      geom_lines_->pos()[i*2].set(0,0,0);  // TODO: Make this INF
-      geom_lines_->col()[i*2].set(1,1,1);
-      geom_lines_->pos()[i*2+1].set(1,1,1);
-      geom_lines_->col()[i*2+1].set(0,0,0);
+      "joints");
+    Renderer::g_renderer()->scene_root()->addChild(geom_inst_joints_);
+    geom_inst_joints_->mat().leftMultScale(1000.0f, 1000.0f, 1000.0f);
+    geom_joints_ = geom_inst_joints_->geom();
+    geom_joints_->primative_type() = VERT_POINTS;
+    float joint_size;
+    GET_SETTING("joint_size", float, joint_size);
+    geom_inst_joints_->point_line_size() = joint_size;
+    geom_inst_joints_->apply_lighting() = false;
+    geom_joints_->addVertexAttribute(VERTATTR_POS);
+    geom_joints_->addVertexAttribute(VERTATTR_COL);
+    geom_joints_->pos().capacity(num_users * num_user_joints);
+    geom_joints_->pos().resize(num_users * num_user_joints);
+    geom_joints_->col().capacity(num_users * num_user_joints);
+    geom_joints_->col().resize(num_users * num_user_joints);
+    for (uint32_t u = 0; u < num_users; u++) {
+      for (uint32_t j = 0; j < num_user_joints; j++) {
+        uint32_t i = u * num_user_joints + j;
+        geom_joints_->pos()[i].set(0,0,-std::numeric_limits<float>::infinity());
+        geom_joints_->col()[i].set(colors[u % n_colors]);
+      }
     }
-    geom_lines_->sync();
+    geom_joints_->sync();
   }
 
   void App::screenshotCB() {

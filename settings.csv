@@ -17,7 +17,8 @@ pause_stream,                     bool,      1
 render_point_cloud,               bool,      1
 point_cloud_size,                 float,     1000.0
 background_color,                 int,       0
-skeleton_line_width,              float,     1
+joint_size,                       float,     10000.0
+render_joints,                    bool,      1
 
 //, RENDERER
 screen_resolution,                int,       125830200

@@ -97,8 +97,8 @@ namespace app {
     uint8_t rgb_im_[kinect_interface::rgb_dim * 3];
     jtil::renderer::GeometryInstance* geom_inst_pts_;  // Not owned here!
     jtil::renderer::Geometry* geom_pts_;  // Not owned here!
-    jtil::renderer::GeometryInstance* geom_inst_lines_;  // Not owned here!
-    jtil::renderer::Geometry* geom_lines_;  // Not owned here!
+    jtil::renderer::GeometryInstance* geom_inst_joints_;  // Not owned here!
+    jtil::renderer::Geometry* geom_joints_;  // Not owned here!
 
     // This temporary array is used to store the data to be saved.  We allocate
     // a little extra space just in case the compression inflates the data

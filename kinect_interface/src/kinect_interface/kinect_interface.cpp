@@ -418,11 +418,7 @@ namespace kinect_interface {
         
         rgb_frame_number_++;
         rgb_frame->get_RelativeTime(&rgb_frame_time_);
-
-        if (rgb_frame != NULL) {
-          rgb_frame->Release();
-          rgb_frame = NULL;
-        }
+        rgb_frame->Release();
 
         data_lock_.unlock();
       }
@@ -467,7 +463,9 @@ namespace kinect_interface {
       // ***** Aquire the body frame *****
       IBodyFrame* body_frame = NULL;
       hr = -1;
-      body_frame_reader_->AcquireLatestFrame(&body_frame);
+      if (sync_body_) {
+        hr = body_frame_reader_->AcquireLatestFrame(&body_frame);
+      }
 
       if (SUCCEEDED(hr) && body_frame != NULL) {
         data_lock_.lock();
@@ -527,6 +525,7 @@ namespace kinect_interface {
         }
         
         body_frame_number_++;
+        body_frame->Release();
         data_lock_.unlock();
       }
 
@@ -556,6 +555,14 @@ namespace kinect_interface {
 
   const uint8_t* KinectInterface::depth_colored() const {
     return depth_colored_;
+  }
+
+  const Float3* KinectInterface::user_joints(const uint32_t user) const {
+    return user_joints_[user];
+  }
+
+  const bool* KinectInterface::user_tracked() const {
+    return user_tracked_;
   }
 
   const XYZPoint* KinectInterface::xyz() const {
