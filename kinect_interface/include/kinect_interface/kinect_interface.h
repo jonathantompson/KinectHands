@@ -82,6 +82,9 @@ namespace kinect_interface {
   const float rgb_hfov = 84.1f;  // (horizontal)
   const float rgb_vfov = 53.8f;  // (vertical)
 
+  const uint32_t num_users = 6;
+  const uint32_t num_user_joints = 25;
+
   // The array size is (depth_dim * 2_bytes + 3 * depth_dim * 1_byte)
   const uint32_t depth_arr_size_bytes = (depth_dim * 2) + (3 * depth_dim * 1);
 
@@ -173,6 +176,8 @@ namespace kinect_interface {
     uint8_t rgb_[rgb_dim * 4];  // enough space for 4 channels are allocated, but we only use 3
     XYZPoint xyz_[depth_dim];
     XYPoint uv_depth_2_rgb_[depth_dim];
+    bool user_tracked_[num_users];
+    jtil::math::Float3 user_joints_[num_users][num_user_joints];
     uint64_t depth_frame_number_;
     int64_t depth_frame_time_;
     uint64_t rgb_frame_number_;

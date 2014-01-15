@@ -476,17 +476,25 @@ namespace kinect_interface {
         CALL_SAFE(hr = body_frame->get_RelativeTime(&body_frame_time_),
           "Could not get body frame time");
 
-        IBody* bodies[BODY_COUNT] = {0};
+#if defined(DEBUG) || defined(_DEBUG)
+            if (num_users != BODY_COUNT) {
+              throw std::wruntime_error("hard-coded user count constant is "
+                "incorrect");
+            }
+#endif
+
+        IBody* bodies[num_users] = {0};
         CALL_SAFE(hr = body_frame->GetAndRefreshBodyData(_countof(bodies), 
           bodies), "Could not get body data");
 
-        for (uint32_t i = 0; i < BODY_COUNT; i++) {
+        for (uint32_t i = 0; i < num_users; i++) {
           IBody* body = bodies[i];
           BOOLEAN tracked = false;
           if (body) {
             CALL_SAFE(body->get_IsTracked(&tracked), "IsTracked query failed");
           }
           if (tracked) {
+            user_tracked_[i] = true;
             Joint joints[JointType_Count]; 
             HandState leftHandState = HandState_Unknown;
             HandState rightHandState = HandState_Unknown;
@@ -496,8 +504,21 @@ namespace kinect_interface {
 
             CALL_SAFE(body->GetJoints(_countof(joints), joints), 
               "Could not get the joints");
+
+#if defined(DEBUG) || defined(_DEBUG)
+            if (num_user_joints != JointType_Count) {
+              throw std::wruntime_error("hard-coded joint count constant is "
+                "incorrect");
+            }
+#endif
+
+            for (int j = 0; j < _countof(joints); ++j) {
+              user_joints_[i][j][0] = joints[j].Position.X;
+              user_joints_[i][j][1] = joints[j].Position.Y;
+              user_joints_[i][j][2] = joints[j].Position.Z;
+            }
           } else {
-            // Set the user to off or something
+            user_tracked_[i] = false;
           }
         }
 

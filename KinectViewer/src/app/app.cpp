@@ -537,6 +537,8 @@ namespace app {
 
     ui->addButton("screenshot_button", "RGB Screenshot", 
       App::screenshotCB);
+    ui->addButton("reset_camera_button", "Reset Camera Position", 
+      App::resetCameraCB);
 
     ui->addSelectbox("cur_kinect", "Current Kinect");
     for (uint32_t i = 0; i < MAX_NUM_KINECTS; i++) {
@@ -574,7 +576,7 @@ namespace app {
     geom_pts_->primative_type() = VERT_POINTS;
     float point_cloud_size;
     GET_SETTING("point_cloud_size", float, point_cloud_size);
-    geom_inst_pts_->point_size() = point_cloud_size;
+    geom_inst_pts_->point_line_size() = point_cloud_size;
     geom_inst_pts_->apply_lighting() = false;
     geom_pts_->addVertexAttribute(VERTATTR_POS);
     geom_pts_->addVertexAttribute(VERTATTR_COL);
@@ -587,6 +589,31 @@ namespace app {
       geom_pts_->col()[i].set(0,0,0);
     }
     geom_pts_->sync();
+
+    geom_inst_lines_ = 
+      Renderer::g_renderer()->geometry_manager()->createDynamicGeometry(
+      "Skeletons");
+    Renderer::g_renderer()->scene_root()->addChild(geom_inst_lines_);
+    geom_inst_lines_->mat().leftMultScale(1000.0f, 1000.0f, 1000.0f);
+    geom_lines_ = geom_inst_lines_->geom();
+    geom_lines_->primative_type() = VERT_LINES;
+    float skeleton_line_width;
+    GET_SETTING("skeleton_line_width", float, skeleton_line_width);
+    geom_inst_lines_->point_line_size() = skeleton_line_width;
+    geom_inst_lines_->apply_lighting() = false;
+    geom_lines_->addVertexAttribute(VERTATTR_POS);
+    geom_lines_->addVertexAttribute(VERTATTR_COL);
+    geom_lines_->pos().capacity(10*2);
+    geom_lines_->pos().resize(10*2);
+    geom_lines_->col().capacity(10*2);
+    geom_lines_->col().resize(10*2);
+    for (uint32_t i = 0; i < 10; i++) {
+      geom_lines_->pos()[i*2].set(0,0,0);  // TODO: Make this INF
+      geom_lines_->col()[i*2].set(1,1,1);
+      geom_lines_->pos()[i*2+1].set(1,1,1);
+      geom_lines_->col()[i*2+1].set(0,0,0);
+    }
+    geom_lines_->sync();
   }
 
   void App::screenshotCB() {
@@ -607,6 +634,11 @@ namespace app {
     std::cout << "Depth saved to file " << ss.str() << std::endl;
     g_app_->screenshot_counter_++;
     g_app_->kinect_[cur_kinect]->unlockData();
+  }
+
+  void App::resetCameraCB() {
+    Renderer::g_renderer()->camera()->eye_pos_world().zeros();
+    Renderer::g_renderer()->camera()->eye_rot().identity();
   }
 
   int App::closeWndCB() {

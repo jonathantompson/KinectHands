@@ -63,6 +63,7 @@ namespace app {
     static void mouseButtonCB(int button, int action, int mods);
     static void mouseWheelCB(double xoffset, double yoffset);
     static void screenshotCB();
+    static void resetCameraCB();
 
   private:
     static App* g_app_;  // Global singleton
@@ -95,7 +96,9 @@ namespace app {
     uint8_t depth_im_[kinect_interface::depth_dim * 3];
     uint8_t rgb_im_[kinect_interface::rgb_dim * 3];
     jtil::renderer::GeometryInstance* geom_inst_pts_;  // Not owned here!
-    jtil::renderer::Geometry* geom_pts_;
+    jtil::renderer::Geometry* geom_pts_;  // Not owned here!
+    jtil::renderer::GeometryInstance* geom_inst_lines_;  // Not owned here!
+    jtil::renderer::Geometry* geom_lines_;  // Not owned here!
 
     // This temporary array is used to store the data to be saved.  We allocate
     // a little extra space just in case the compression inflates the data

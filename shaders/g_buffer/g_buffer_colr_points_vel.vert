@@ -5,7 +5,7 @@ in vec3 v_col;
 
 uniform mat4 pvw_mat;
 uniform mat4 vw_mat;
-uniform float v_point_size;
+uniform float v_point_line_size;
 uniform mat4 pvw_mat_prev_frame;
 
 out vec3 f_color;
@@ -19,7 +19,7 @@ void main(void) {
   gl_Position = pvw_mat * vec4(v_pos, 1.0);
 
   f_position_view = (vw_mat * vec4(v_pos, 1.0)).xyz;
-  gl_PointSize = v_point_size / -f_position_view.z;
+  gl_PointSize = v_point_line_size / -f_position_view.z;
   f_color = v_col;
   f_normal_view = vec3(0,0,1);  // Always point towards the camera
   f_gl_position = gl_Position;
