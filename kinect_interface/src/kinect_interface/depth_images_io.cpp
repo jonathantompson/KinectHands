@@ -268,8 +268,8 @@ namespace kinect_interface {
     return (num > 0.0f) ? floor(num + 0.5f) : ceil(num - 0.5f);
   }
 
-  void DepthImagesIO::LoadCompressedImage(const string& file, 
-    int16_t* depth_data, uint8_t* rgb_data) {
+  void DepthImagesIO::LoadKinectImage(const string& file, 
+    int16_t* depth_data, uint8_t* rgb_data, const bool compressed) {
     std::ifstream in_file(file.c_str(), std::ios::in | std::ios::binary | 
       std::ios::ate);
     if (!in_file.is_open()) {
@@ -277,29 +277,46 @@ namespace kinect_interface {
         std::string(": error opening file") + file);
     }
 
-    uint32_t size_bytes = static_cast<uint32_t>(in_file.tellg());
-    in_file.seekg (0, std::ios::beg);  // Go to the beginning of the file
-    in_file.read(reinterpret_cast<char*>(compressed_data), size_bytes);
-    in_file.close();
+    if (compressed) {
+      uint32_t size_bytes = static_cast<uint32_t>(in_file.tellg());
+      in_file.seekg (0, std::ios::beg);  // Go to the beginning of the file
+      in_file.read(reinterpret_cast<char*>(compressed_data), size_bytes);
+      in_file.close();
 
-    int size_decompress = fastlz_decompress(reinterpret_cast<void*>(compressed_data),
-      size_bytes,
-      reinterpret_cast<void*>(uncompressed_data),
-      data_size * 2);
-    if (size_decompress != data_size) {
-      std::stringstream ss;
-      ss << "LoadCompressedImage() - ERROR: uncompressed data size is not "
-        "what we expected!  File: ";
-      ss << file << ", size: " << size_decompress << ", expected: ";
-      ss << data_size;
-      throw wruntime_error(ss.str());
-    }
+      int size_decompress = fastlz_decompress(reinterpret_cast<void*>(compressed_data),
+        size_bytes,
+        reinterpret_cast<void*>(uncompressed_data),
+        data_size * 2);
+      if (size_decompress != data_size) {
+        std::stringstream ss;
+        ss << "LoadCompressedImage() - ERROR: uncompressed data size is not "
+          "what we expected!  File: ";
+        ss << file << ", size: " << size_decompress << ", expected: ";
+        ss << data_size;
+        throw wruntime_error(ss.str());
+      }
 
-    memcpy(depth_data, uncompressed_data, depth_dim * sizeof(depth_data[0]));
+      memcpy(depth_data, uncompressed_data, depth_dim * sizeof(depth_data[0]));
 
-    rgb = reinterpret_cast<uint8_t*>(&uncompressed_data[depth_dim]);
-    if (rgb_data != NULL) {
-      memcpy(rgb_data, rgb, 3 * depth_dim * sizeof(rgb_data[0]));
+      rgb = reinterpret_cast<uint8_t*>(&uncompressed_data[depth_dim]);
+      if (rgb_data != NULL) {
+        memcpy(rgb_data, rgb, 3 * depth_dim * sizeof(rgb_data[0]));
+      }
+    } else {
+      uint32_t uncompressed_size = depth_dim * sizeof(depth_data[0]) + 
+        3 * depth_dim * sizeof(rgb_data[0]);
+      uint32_t size_bytes = static_cast<uint32_t>(in_file.tellg());
+      if (size_bytes != uncompressed_size) {
+        throw std::wruntime_error("Size on disk is incorrect!");
+      }
+      in_file.seekg (0, std::ios::beg);  // Go to the beginning of the file
+      in_file.read(reinterpret_cast<char*>(depth_data), 
+        depth_dim * sizeof(depth_data[0]));
+      if (rgb_data) {
+        in_file.read(reinterpret_cast<char*>(rgb_data), 
+          3 * depth_dim * sizeof(rgb_data[0]));
+      }
+      in_file.close();
     }
   }
 
@@ -308,7 +325,7 @@ namespace kinect_interface {
     uint8_t* red_pixels_ret, uint8_t* hsv_pixels_ret) {
     // try loading a already processed one:
 
-    LoadCompressedImage(file, depth_data, rgb_data);
+    LoadKinectImage(file, depth_data, rgb_data, true);
 
     // Now we need to process the data to find the hand points
     memset(label_data, 0, depth_dim * sizeof(label_data[0]));
@@ -504,7 +521,7 @@ namespace kinect_interface {
       jtil::string_util::ToWideString(directory).c_str());
     std::wstringstream ss;
     if (prefix == NULL) {
-      ss << L"\\hands";
+      ss << L"\\im_K";
     } else {
       ss << L"\\" << jtil::string_util::ToWideString(prefix);
     }
@@ -519,7 +536,8 @@ namespace kinect_interface {
     HANDLE hFind = FindFirstFile(szDir, &ffd);
     if (hFind == INVALID_HANDLE_VALUE) {
       cout << "GetFilesInDirectory error getting dir info. Check that ";
-      cout << "directory is not empty!" << endl;
+      cout << "directory '" << jtil::string_util::ToNarrowString(ss.str().c_str());
+      cout << "' is not empty!" << endl;
       return 0;
     }
 

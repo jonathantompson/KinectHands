@@ -11,6 +11,7 @@
 kinect_output,                    int,       1
 render_kinect_fps,                bool,      1
 continuous_snapshot,              bool,      0
+compress_data,                    bool,      0
 cur_kinect,                       int,       0
 stretch_image,                    bool,      0
 pause_stream,                     bool,      0
@@ -19,10 +20,10 @@ point_cloud_size,                 float,     1000.0
 background_color,                 int,       0
 joint_size,                       float,     40000.0
 render_joints,                    bool,      0
-detect_hands,                     bool,      1
+detect_hands,                     bool,      0
 render_hand_labels,               int,       0
-detect_pose,                      bool,      1
-detect_heat_map,                  bool,      1
+detect_pose,                      bool,      0
+detect_heat_map,                  bool,      0
 
 //, RENDERER
 screen_resolution,                int,       125830200

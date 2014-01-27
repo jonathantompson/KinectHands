@@ -631,6 +631,7 @@ namespace app {
 
     ui->addCheckbox("render_kinect_fps", "Render Kinect FPS");
     ui->addCheckbox("continuous_snapshot", "Save continuous video stream");
+    ui->addCheckbox("compress_data", "Compress video stream");
 
     ui->addButton("screenshot_button", "RGB Screenshot", 
       App::screenshotCB);
@@ -791,6 +792,8 @@ namespace app {
 
   // Save's data for a single kinect.  This is run in parallel.
   void App::saveKinectData(const uint32_t i) {
+    bool compress_data;
+    GET_SETTING("compress_data", bool, compress_data);
 
     // Save the depth and colored depth together
     if (kinects_[i]->depth_frame_time() > kinect_last_saved_depth_time_[i]) {
@@ -802,53 +805,49 @@ namespace app {
       uint8_t* depth_rgb_compressed = 
         (uint8_t*)&tmp_data2_[i * kinect_interface::depth_arr_size_bytes * 2];
       memcpy(depth_rgb, kinects_[i]->depth(), depth_arr_size_bytes);
+      int64_t time_stamp = kinects_[i]->depth_frame_time();
       kinects_[i]->unlockData();
+
+      int64_t first_time_stamp = kinects_[i]->depth_first_frame_time();
 
       char filename[256];
       // Kinect time stamp is in units of 100ns (or 0.1us)
-      int64_t kinect_time_us = kinects_[i]->depth_frame_time() / 10;
+      int64_t kinect_time_us = (time_stamp - first_time_stamp) / 10;
+      // Just overflow the timestamps.  We have 1e14 us = 1157days record time.
+      kinect_time_us = kinect_time_us % (int64_t)(1e15);
       int64_t app_time_us = (int64_t)(time_since_start_ * 1.0e6);
-      if (kinect_time_us > 1e11 || app_time_us > 1e11) {
-        throw std::wruntime_error("App::saveKinectData() - App has been "
-          "running too long to save data.  Please restart.");
-      }
-      snprintf(filename, 255, "im_K%012I64d_A%012I64d.bin", kinect_time_us, 
-        app_time_us);
+      app_time_us = app_time_us % (int64_t)(1e15);
+      snprintf(filename, 255, "im_K%d_KT%014I64d_AT%014I64d.bin", i, 
+        kinect_time_us, app_time_us);
 
-      // Compress the array
-      static const int compression_level = 1;  // 1 fast, 2 better compression
-      int compressed_length = fastlz_compress_level(compression_level,
-        (void*)depth_rgb, depth_arr_size_bytes, (void*)depth_rgb_compressed);
+      uint8_t* data_out = NULL;
+      uint32_t data_out_size = 0;
+      if (compress_data) {
+        // Compress the array
+        static const int compression_level = 1;  // 1 fast, 2 better compression
+        int compressed_length = fastlz_compress_level(compression_level,
+          (void*)depth_rgb, depth_arr_size_bytes, (void*)depth_rgb_compressed);
+        data_out = depth_rgb_compressed;
+        data_out_size = compressed_length;
+      } else {
+        data_out = depth_rgb;
+        data_out_size = depth_arr_size_bytes;
+      }
 
       // Now save the array to file
-#ifdef _WIN32
       _mkdir("./data/hand_depth_data/");  // Silently fails if dir exists
       std::string full_filename = "./data/hand_depth_data/" + 
         std::string(filename);
-#endif
-#ifdef __APPLE__
-      std::string full_path = std::string("./data/hand_depth_data/");
-      struct stat st;
-      if (stat(full_path.c_str(), &st) != 0) {
-        if (mkdir(full_path.c_str(), S_IRWXU|S_IRWXG) != 0) {
-          printf("Error creating directory %s: %s\n", full_path.c_str(),
-            strerror(errno));
-          return false;
-        } else {
-          printf("%s created\n", full_path.c_str());
-        }
-      }
-      std::string full_filename = full_path + ss.str();
-#endif
+
       // Save the file
       std::ofstream file(full_filename.c_str(), std::ios::out | std::ios::binary);
       if (!file.is_open()) {
         throw std::runtime_error(std::string("error opening file:") + filename);
       }
       // file.write((const char*)depth_rgb_data_, compressed_length);
-      file.write((const char*)depth_rgb_compressed, compressed_length);
+      file.write((const char*)data_out, data_out_size);
       file.close();
-      kinect_last_saved_depth_time_[i] = kinects_[i]->depth_frame_time();
+      kinect_last_saved_depth_time_[i] = time_stamp;
     }
 
     // Signal that we're done

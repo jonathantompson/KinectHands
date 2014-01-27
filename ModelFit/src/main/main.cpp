@@ -89,6 +89,7 @@
   #endif
   #define FOREST_ROOT string("./../")
 #endif
+#define COMPRESSED_DATA false
 
 #ifndef HAND_FIT
   #error "HAND_FIT is not defined in the preprocessor definitions!"
@@ -211,6 +212,7 @@ uint8_t* screendat = NULL;
 
 // Multithreading
 ThreadPool* tp;
+bool shutting_down = false;
 
 using std::cout;
 using std::endl;
@@ -218,6 +220,7 @@ jtil::math::Float4x4 mat_tmp;
 WindowSettings settings;
 
 void quit() {
+  shutting_down = true;
   if (kinect) {
     kinect->shutdownKinect();
   }
@@ -406,8 +409,8 @@ void loadCurrentImage(bool print_to_screen = true) {
         std::cout << "loading image (frame " << cur_image << " of " << 
           im_files[0].size() << "): " << full_filename << std::endl;
       }
-      image_io->LoadCompressedImage(full_filename, 
-        cur_depth_data[k], cur_image_rgb[k]);
+      image_io->LoadKinectImage(full_filename, cur_depth_data[k], 
+        cur_image_rgb[k], COMPRESSED_DATA);
       kinect->convertDepthFrameToXYZ(depth_dim, (uint16_t*)cur_depth_data[k], 
         cur_xyz_data[k]);
       for (uint32_t j = 0; j < depth_dim; j++) {
@@ -534,8 +537,8 @@ void MousePosCB(double x, double y) {
     float theta_x = dx * mouse_speed_rotation;
     float theta_y = dy * mouse_speed_rotation;
     render->camera()->rotateCamera(theta_x, theta_y);
-    std::cout << "rot = " << std::endl;
-    render->camera()->eye_rot()->print();
+    //std::cout << "rot = " << std::endl;
+    //render->camera()->eye_rot()->print();
   }
   if (scale_coeff) {
     int dy = mouse_y - mouse_y_prev;
@@ -1303,8 +1306,8 @@ void renderFrame(float dt) {
       Float3::scale(delta_pos, camera_run_mulitiplier);
     }
     render->camera()->moveCamera(&delta_pos);
-    std::cout << "camera position: " << std::endl;
-    render->camera()->eye_pos()->print();
+    //std::cout << "camera position: " << std::endl;
+    //render->camera()->eye_pos()->print();
   }
 
 #ifdef CALIBRATION_RUN
@@ -1571,8 +1574,8 @@ int main(int argc, char *argv[]) {
         rgb_database[k][f] = new uint8_t[depth_dim*3];
         char* file = im_files[k][f].first;
         string full_filename = IM_DIR + string(file);
-        image_io->LoadCompressedImage(full_filename, depth_database[k][f], 
-          rgb_database[k][f]);
+        image_io->LoadKinectImage(full_filename, depth_database[k], 
+          rgb_database[k], COMPRESSED_DATA);
       }
     }
 
@@ -1684,7 +1687,8 @@ int main(int argc, char *argv[]) {
     InitXYZPointsForRendering();
     
     // Main render loop
-    while (true) {
+    while (!shutting_down) {
+
       t0 = t1;
       t1 = clk->getTime();
       float dt = static_cast<float>(t1-t0);
@@ -1723,15 +1727,7 @@ int main(int argc, char *argv[]) {
       if (perform_zoom) {
         zoom_time += dt;
 
-        //jtil::math::Float3 pos_hand(&r_hand_coeffs[cur_image]->getCoeff(HAND_POS_X));
-        //jtil::math::Float3 pos_end(pos_hand);  // At end of animation
-        //pos_end[1] -= 100;
-        //pos_end[2] -= 100;
-        //pos_end[0] -= 100;
-        //pos_end[2] *= -1;
-
         // This is for hand_depth_data_2013_05_01_1 TOG video
-        
         Float3 pos_end;
         pos_end.set(333.86f, -68.012f, -422.89f);
         Float3 cur_pos(pos_end);
@@ -1741,7 +1737,6 @@ int main(int argc, char *argv[]) {
         } else {
           val = 1.0f - 1.0f / (1.0f + expf(-(zoom_time * zoom_speed - 12)));
         }
-
         val = val * val;
 
         Float3::scale(cur_pos, val);
@@ -1769,9 +1764,9 @@ int main(int argc, char *argv[]) {
       
       // let someone else do some work
       std::this_thread::yield();
-    }
+    }  // end while (!shutting_down)
   } catch (std::runtime_error e) {
-    printf("%s\n", e.what());
+    printf("Runtime error! %s\n", e.what());
 #if defined(WIN32) || defined(_WIN32)
     system("PAUSE");
 #endif

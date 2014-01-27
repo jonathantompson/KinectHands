@@ -112,6 +112,7 @@ namespace kinect_interface {
     const jtil::math::Float3* user_joints(const uint32_t user) const;  // NOT THREAD SAFE! Use lockData()
     const bool* user_tracked() const;  // NOT THREAD SAFE! Use lockData()
     const int64_t depth_frame_time() const { return depth_frame_time_; }
+    const int64_t depth_first_frame_time() const { return depth_first_frame_time_; }
     const uint64_t depth_frame_number() const { return depth_frame_number_; }
     const int64_t rgb_frame_time() const { return rgb_frame_time_; }
     const uint64_t rgb_frame_number() const { return rgb_frame_number_; }
@@ -182,6 +183,7 @@ namespace kinect_interface {
     jtil::math::Float3 user_joints_[num_users][num_user_joints];
     uint64_t depth_frame_number_;
     int64_t depth_frame_time_;
+    int64_t depth_first_frame_time_;
     uint64_t rgb_frame_number_;
     int64_t rgb_frame_time_;
     uint32_t body_frame_number_;

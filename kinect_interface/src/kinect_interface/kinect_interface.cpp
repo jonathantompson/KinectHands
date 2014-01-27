@@ -77,6 +77,7 @@ namespace kinect_interface {
     // depth_colored_ just indexes into depth_
     depth_colored_ = (uint8_t*)&depth_[depth_dim];
 
+    depth_first_frame_time_ = -1;
     depth_frame_number_ = 0;
     rgb_frame_number_ = 0;
     body_frame_number_ = 0;
@@ -337,12 +338,15 @@ namespace kinect_interface {
         depth_frame_number_++;
         // Kinect time stamp is in units of 100ns (or 0.1us)
         depth_frame->get_RelativeTime(&depth_frame_time_);
+        if (depth_first_frame_time_ == -1) {
+          depth_first_frame_time_ = depth_frame_time_;
+        }
 
         // Update the fps string
         frame_accum += (depth_frame_time_ - last_frame_time);
         last_frame_time = depth_frame_time_;
         frame_counter++;
-        if (frame_accum > 10000000) {
+        if (frame_accum > 10000000) {  // 1 sec in units of 0.1us
           // Update every 1 second
 #if defined(WIN32) || defined(_WIN32)
 #pragma warning(push)

@@ -73,8 +73,8 @@ namespace kinect_interface {
     void LoadRGBImage(const std::string& file, uint8_t* rgb);
 
     // Load a compressed depth+RGB image
-    void LoadCompressedImage(const std::string& file, int16_t* depth_data, 
-      uint8_t* rgb_data = NULL);
+    void LoadKinectImage(const std::string& file, int16_t* depth_data, 
+      uint8_t* rgb_data = NULL, const bool compressed = false);
 
     // Same as above, but do some extra processing to extract the red hands
     // and generate label data.
