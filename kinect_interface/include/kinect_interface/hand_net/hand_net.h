@@ -171,7 +171,7 @@ namespace hand_net {
     const float* hand_image() const;
     const int32_t size_images() const;
     const jtil::math::Float3& uvd_com() const;
-    const float* gauss_coeff() const { return gauss_coeff_; }  // 640x480 space
+    const float* gauss_coeff() const { return gauss_coeff_; }  // depth space
     const float* gauss_coeff_hm() const { return gauss_coeff_hm_; }  // 0 to 1 hm space
     const HandModelCoeff* rhand_cur_pose() const { return rhand_cur_pose_; }
 
@@ -187,7 +187,7 @@ namespace hand_net {
     HandModelCoeff* rest_pose_;
     HandModelCoeff* rhand_cur_pose_;
     HandModelCoeff* rhand_prev_pose_;
-    float* gauss_coeff_;  // For each feature in 640x480 space
+    float* gauss_coeff_;  // For each feature in depth space
     float* gauss_coeff_hm_;  // Gaussian coeff in heat map space (0 to 1)
     float uvd_pos_[num_convnet_feats * 3];  // For each feature
     float xyz_pos_[num_convnet_feats * 3];  // For each feature

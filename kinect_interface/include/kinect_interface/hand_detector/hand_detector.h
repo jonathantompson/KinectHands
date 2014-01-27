@@ -104,7 +104,7 @@ namespace hand_detector {
     int32_t num_trees_to_evaluate_;
     int32_t max_height_to_evaluate_;
     uint32_t* pixel_queue_;
-    jtil::data_str::Vector<jtil::math::Float3> hands_uvd_;  // In 640 x 480 space
+    jtil::data_str::Vector<jtil::math::Float3> hands_uvd_;  // In depth space
     jtil::data_str::Vector<uint32_t> hands_n_pts_;
     uint32_t queue_head_;
     uint32_t queue_tail_;

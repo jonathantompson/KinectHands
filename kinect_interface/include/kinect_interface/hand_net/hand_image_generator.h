@@ -65,9 +65,9 @@ namespace hand_net {
       const float* synthetic_depth = NULL, const bool flip = false);
 
     void annotateFeatsToKinectImage(uint8_t* im,
-      const float* coeff_convnet) const;  // 640 x 480
+      const float* coeff_convnet) const;
     void annotateFeatsToHandImage(uint8_t* im, 
-      const float* coeff_convnet) const;  // 96 x 96
+      const float* coeff_convnet) const;
 
     void createHeatMap(float* hm, const uint32_t size, 
       const float* coeff_convnet, const float std);

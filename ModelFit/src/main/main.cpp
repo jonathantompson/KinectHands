@@ -1474,8 +1474,6 @@ int main(int argc, char *argv[]) {
     // Fill the settings structure
     settings.width = depth_w*2;
     settings.height = depth_h*2;
-    //settings.width = 1280;
-    //settings.height = 720;
     settings.fullscreen = false;
     settings.title = string("Hand Fit Project");
     settings.gl_major_version = 3;

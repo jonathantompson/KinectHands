@@ -159,7 +159,7 @@ namespace model_fit {
     Vector<bool> old_attachement_vals(num_models_);
     prepareOptimization(depth, models, coeffs, NULL, old_attachement_vals);
 
-    jtil::file_io::SaveArrayToFile<int16_t>(depth[0], 640*480, 
+    jtil::file_io::SaveArrayToFile<int16_t>(depth[0], depth_w * depth_h, 
       "./kinect_texture.bin");
 
     // This is a hack: There's something wrong with the first iteration using
@@ -313,7 +313,7 @@ namespace model_fit {
     return PREV_FRAME_DIST_PENALTY_SCALE * dist;
   }
 
-  float data_temp[640*480*3];
+  float data_temp[depth_w*depth_h*3];
   float ModelFit::objectiveFunc(const float* coeff) {
     float depth_term = 0.0f;
     float penalty_term = 0.0f;
@@ -333,10 +333,10 @@ namespace model_fit {
 
       if (cur_fit_->save_next_image_set_) {
         cur_fit_->model_renderer_->depth_texture()->getTexture0Data<float>(data_temp);
-        jtil::file_io::SaveArrayToFile<float>(data_temp, 640*480, 
+        jtil::file_io::SaveArrayToFile<float>(data_temp, depth_w * depth_h, 
           "./synth_texture.bin");
-        cur_fit_->model_renderer_->residue_texture_1()->getTexture0Data<float>(data_temp);
-        jtil::file_io::SaveArrayToFile<float>(data_temp, 640*480, 
+        cur_fit_->model_renderer_->residue_texture()->getTexture0Data<float>(data_temp);
+        jtil::file_io::SaveArrayToFile<float>(data_temp, depth_w * depth_h, 
           "./residue_texture.bin");
         cur_fit_->save_next_image_set_ = false;
 
@@ -347,7 +347,7 @@ namespace model_fit {
 
   void ModelFit::objectiveFuncTiled(Vector<float>& residues, 
     Vector<float*>& coeffs) {
-    if (coeffs.size() > NTILES_DEFAULT) {
+    if (coeffs.size() > NTILES) {
       throw runtime_error("objectiveFuncTiled() - coeffs.size() > NTILES");
     }
     if (residues.capacity() < coeffs.size()) {
@@ -383,7 +383,7 @@ namespace model_fit {
         calculateResidualTiled(&depth_term, NULL, coeffs, i_camera);
       }
     }
-    func_eval_count_ += NTILES_DEFAULT;
+    func_eval_count_ += NTILES;
 
     // Now calculate the final residue term
     residues.resize(0);

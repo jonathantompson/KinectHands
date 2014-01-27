@@ -17,8 +17,6 @@ using std::wstring;
 using std::string;
 using std::runtime_error;
 
-#define im_width 640
-#define im_height 480
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 // Note (width / downsample) && (height / downsample) must be integer values!

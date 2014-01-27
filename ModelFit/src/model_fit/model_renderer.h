@@ -3,8 +3,8 @@
 //
 //  Created by Jonathan Tompson on 10/02/12.
 //
-//  Renderers an array of pose_model model in OpenGL 3.2 using my simple 
-//  forward-renderer class to create a depth class.
+//  Renderers an array of PoseModel instances in OpenGL 3.2 using my simple 
+//  forward-renderer class to create a depth image.
 //
 //  Additionally, it will render tiles of these so that we can aggregate some
 //  of the residue overhead.
@@ -17,18 +17,11 @@
 #include "jtil/data_str/pair.h"
 #include "jtil/data_str/vector.h"
 
-#define DEPTH_ONLY_RESIDUE_FUNC  // Faster but less accurate
 #define EQUAL_CAMERA_IMPORTANCE  // Otherwise Residual = d / (i_cam + 1)
-#ifdef DEPTH_ONLY_RESIDUE_FUNC
-  #define RESIDUE_INT_FORMAT GL_R32F
-  #define RESIDUE_FORMAT GL_RED
-  #define RESIDUE_TYPE GL_FLOAT
-  #define UNION 1000000.0f  // A made up scaling factor
-#else
-  #define RESIDUE_INT_FORMAT GL_RGB32F
-  #define RESIDUE_FORMAT GL_RGB
-  #define RESIDUE_TYPE GL_FLOAT
-#endif
+#define RESIDUE_INT_FORMAT GL_R32F
+#define RESIDUE_FORMAT GL_RED
+#define RESIDUE_TYPE GL_FLOAT
+#define UNION 1000000.0f  // A made up scaling factor
 #define LINEAR_PENALTY  // otherwise quadratic
 
 namespace renderer { class Camera; }
@@ -83,24 +76,17 @@ namespace model_fit {
     inline float** depth_tmp() { return depth_tmp_; }
     inline renderer::Camera* camera(const uint32_t id) { return cameras_[id]; }
 
-    renderer::TextureRenderable* residue_texture_1() { return residue_texture_1_; }
+    renderer::TextureRenderable* residue_texture() { return residue_tex_[0]; }
 
   private:
     renderer::Renderer* g_renderer_;  // Not owned here
     uint32_t num_cameras_;
     renderer::Camera** cameras_;
     
-    renderer::TextureRenderable* depth_texture_;  // 640 x 480
-    renderer::TextureRenderable* depth_texture_tiled_;  // 5120 x 3840 (8x8)
-    renderer::TextureRenderable* residue_texture_1_;   // 640 x 480
-    renderer::TextureRenderable* residue_texture_2_;   // 320 x 240
-    renderer::TextureRenderable* residue_texture_4_;   // 160 x 120
-    renderer::TextureRenderable* residue_texture_16_;  // 40 x 30
-    renderer::TextureRenderable* residue_texture_20_;  // 32 x 24
-    renderer::TextureRenderable* residue_texture_32_;  // 20 x 15
-    renderer::TextureRenderable* residue_texture_160_;  // 4 x 3
-    renderer::TextureRenderable* residue_texture_x2_;   // 1280 x 960
-    renderer::TextureRenderable* residue_texture_x8_;   // 5120 x 3840
+    renderer::TextureRenderable* depth_texture_;  // depth_w x depth_h
+    renderer::TextureRenderable* depth_texture_tiled_;  // depth_w x depth_h (8x8)
+    jtil::data_str::Vector<renderer::TextureRenderable*> residue_tex_;   // ARRAY OF TEXTURES
+    jtil::data_str::Vector<renderer::TextureRenderable*> tiled_residue_tex_;   // ARRAY OF TEXTURES
     renderer::Texture** kinect_depth_textures_;
     renderer::Texture** kinect_depth_textures_tiled_;
     renderer::TextureRenderable* cdepth_texture_;  // depth and color

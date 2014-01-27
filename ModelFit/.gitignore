@@ -17,3 +17,5 @@ Build
 assimp.dll
 HandFit.exe
 FreeImage.dll
+kinect_texture.bin
+synth_texture.bin
