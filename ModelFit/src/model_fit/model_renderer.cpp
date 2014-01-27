@@ -493,6 +493,8 @@ namespace model_fit {
     residue_tex_[0]->begin();
     sp_residue_calc_->useProgram();
     
+    throw std::wruntime_error("TODO: ZERO THE TEXTURE!");
+
     GLState::glsViewport(0, 0, depth_w, depth_h);
 
     depth_texture_->bind(0, GL_TEXTURE0, h_residue_calc_synth_depth_);
