@@ -313,7 +313,6 @@ namespace model_fit {
     return PREV_FRAME_DIST_PENALTY_SCALE * dist;
   }
 
-  float data_temp[depth_w*depth_h*3];
   float ModelFit::objectiveFunc(const float* coeff) {
     float depth_term = 0.0f;
     float penalty_term = 0.0f;
@@ -332,14 +331,17 @@ namespace model_fit {
       }
 
       if (cur_fit_->save_next_image_set_) {
+        int32_t residue_dim = std::max<int32_t>(depth_w, depth_h);
+        int32_t data_temp_sz = residue_dim * residue_dim * 3;
+        float* data_temp = new float[data_temp_sz];
         cur_fit_->model_renderer_->depth_texture()->getTexture0Data<float>(data_temp);
         jtil::file_io::SaveArrayToFile<float>(data_temp, depth_w * depth_h, 
           "./synth_texture.bin");
         cur_fit_->model_renderer_->residue_texture()->getTexture0Data<float>(data_temp);
-        jtil::file_io::SaveArrayToFile<float>(data_temp, depth_w * depth_h, 
+        jtil::file_io::SaveArrayToFile<float>(data_temp, residue_dim * residue_dim, 
           "./residue_texture.bin");
         cur_fit_->save_next_image_set_ = false;
-
+        delete[] data_temp;
       }
     }
     return depth_term * penalty_term * interpenetration_term;
