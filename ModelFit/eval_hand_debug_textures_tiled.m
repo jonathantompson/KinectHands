@@ -13,6 +13,11 @@ kinect_data = loadImageFile('kinect_texture_tiled.bin', dim * tile_x, dim * tile
 rendered_depth = loadImageFile('synth_texture_tiled.bin', dim * tile_x, dim * tile_y, 1, 'float');
 % figure; imshow(rendered_depth); title('Rendered Depth');
 
+% Compare tiled Vs non-tiled versions
+rendered_depth2 = loadImageFile('synth_texture.bin', dim, dim, 1, 'float');
+figure; imshow(rendered_depth2); title('Synth Depth');
+figure; imshow(rendered_depth(1:dim,1:dim)); title('Synth Depth tiled (1st image)');
+
 cur_image = 1;
 max_depth_mat = ones(dim * tile_y, dim * tile_x, 'single') * max_depth;
 residue = min(abs(kinect_data - rendered_depth), max_depth_mat);

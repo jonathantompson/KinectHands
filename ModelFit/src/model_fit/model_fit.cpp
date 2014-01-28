@@ -192,7 +192,10 @@ namespace model_fit {
       float* cur_coeffs = new float[num_models_ * coeff_dim_per_model_];
       for (uint32_t i = 0; i < num_models_; i++) {
         for (uint32_t j = 0; j < coeff_dim_per_model_; j++) {
-          cur_coeffs[i * coeff_dim_per_model_ + j] = coeffs[i][j] + c_dist(eng);
+          cur_coeffs[i * coeff_dim_per_model_ + j] = coeffs[i][j];
+          if (t > 0) {
+            cur_coeffs[i * coeff_dim_per_model_ + j] += c_dist(eng);
+          }
         }
       }
       coeff_vals.pushBack(cur_coeffs);

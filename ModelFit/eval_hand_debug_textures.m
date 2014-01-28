@@ -5,10 +5,12 @@ dim = 512;
 max_depth = 30;
 
 kinect_data = loadImageFile('kinect_texture.bin', dim, dim, 1, 'float');
-figure; imshow(kinect_data); title('Kinect Depth');
 
 rendered_depth = loadImageFile('synth_texture.bin', dim, dim, 1, 'float');
-figure; imshow(rendered_depth); title('Rendered Depth');
+zmin = min(min(rendered_depth(find(rendered_depth~=0))));
+zmax = max(max(rendered_depth));
+figure; imshow((rendered_depth - zmin) / (zmax-zmin)); title('Rendered Depth');
+figure; imshow((kinect_data - zmin) / (zmax-zmin)); title('Kinect Depth');
 
 cur_image = 1;
 max_depth_mat = ones(dim, dim, 'single') * max_depth;
