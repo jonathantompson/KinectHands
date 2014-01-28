@@ -147,7 +147,7 @@ namespace app {
 
     initRainbowPallet();
 
-    hd_ = new HandDetector(tp_, kinects_[cur_kinect]);
+    hd_ = new HandDetector(tp_);
     hd_->init(depth_w, depth_h);
   }
 
@@ -399,7 +399,6 @@ namespace app {
         // Update the hand points
         bool hand_found = false;
         if (detect_hands) {
-          hd_->kinect() = kinects_[cur_kinect];
           hand_found = hd_->findHandLabels((int16_t*)depth_, xyz_, 
             HDLabelMethod::HDFloodfill, hand_labels_);
 

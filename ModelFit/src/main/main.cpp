@@ -37,7 +37,6 @@
 #include "model_fit/hand_geometry_mesh.h"
 #include "model_fit/model_renderer.h"
 #include "model_fit/model_fit.h"
-#include "kinect_interface/kinect_interface.h"
 #include "kinect_interface/depth_images_io.h"
 #include "kinect_interface/hand_net/hand_model_coeff.h"
 #include "jtil/math/math_types.h"
@@ -198,10 +197,6 @@ const bool color_point_clouds = false;
 const float point_cloud_scale = 4.0f;
 const uint32_t num_point_clouds_to_render = 1;
 
-// We need to keep a kinect open so that we can perform conversions :-(
-kinect_interface::KinectInterface* kinect = NULL;
-jtil::data_str::VectorManaged<const char*> kinect_ids;
-
 // ICP
 jtil::math::ICP icp;
 
@@ -221,10 +216,6 @@ WindowSettings settings;
 
 void quit() {
   shutting_down = true;
-  if (kinect) {
-    kinect->shutdownKinect();
-  }
-  SAFE_DELETE(kinect);
 
   tp->stop();
   delete tp;
@@ -411,8 +402,8 @@ void loadCurrentImage(bool print_to_screen = true) {
       }
       image_io->LoadKinectImage(full_filename, cur_depth_data[k], 
         cur_image_rgb[k], COMPRESSED_DATA);
-      kinect->convertDepthFrameToXYZ(depth_dim, (uint16_t*)cur_depth_data[k], 
-        cur_xyz_data[k]);
+      KinectInterface::convertDepthFrameToApproxXYZ(depth_dim, 
+        (uint16_t*)cur_depth_data[k], cur_xyz_data[k]);
       for (uint32_t j = 0; j < depth_dim; j++) {
         cur_xyz_data[k][j*3] *= 1000.0f;
         cur_xyz_data[k][j*3+1] *= 1000.0f;
@@ -1457,12 +1448,6 @@ int main(int argc, char *argv[]) {
   
   try {
     tp = new ThreadPool(NUM_WORKER_THREADS);
-
-    KinectInterface::getDeviceIDs(kinect_ids);
-    if (kinect_ids.size() < 1) {
-      throw std::wruntime_error("A Kinect must be attached.");
-    }
-    kinect = new KinectInterface(kinect_ids[0]);
 
     clk = new jtil::clk::Clk();
     t1 = clk->getTime();

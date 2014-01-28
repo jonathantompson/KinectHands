@@ -38,7 +38,7 @@ namespace hand_detector {
      {-o_r, -o_r}, {-o_r, 0}, {-o_r, +o_r}, {0, +o_r}, {+o_r, +o_r}, {+o_r, 0},
      {+o_r, -o_r}, {0, -o_r}};
 
-  HandDetector::HandDetector(ThreadPool* tp, KinectInterface* kinect) {
+  HandDetector::HandDetector(ThreadPool* tp) {
     stage2_med_filter_radius_ = HD_STARTING_MED_FILT_RAD;
     stage3_grow_filter_radius_ = HD_STARTING_GROW_FILT_RAD;
     stage1_shrink_filter_radius_ = HD_STARTING_SHRINK_FILT_RAD;
@@ -62,7 +62,6 @@ namespace hand_detector {
     num_trees_ = 0;
 
     tp_ = tp;
-    kinect_ = kinect;
     thread_cbs_ = NULL;
   }
 
@@ -554,7 +553,7 @@ namespace hand_detector {
   void HandDetector::findHandLabelsFloodFill(const float* pt_hand_uvd, 
     const float* xyz, uint8_t* label) {
     float pt_hand_xyz[3];
-    kinect_->convertUVDToXYZ(1, pt_hand_uvd, pt_hand_xyz);
+    KinectInterface::convertUVDToApproxXYZ(1, pt_hand_uvd, pt_hand_xyz);
     // Search in a small UV window for the minimum depth value around
     // the hand point.  This makes sure we can seed our connected components 
     // with a real hand point.
@@ -567,7 +566,7 @@ namespace hand_detector {
     pt_off_xyz[0] = pt_hand_xyz[0] - HD_SMALL_HAND_RADIUS;
     pt_off_xyz[1] = pt_hand_xyz[1];
     pt_off_xyz[2] = pt_hand_xyz[2];
-    kinect_->convertXYZToUVD(1, pt_off_xyz, pt_off_uvd);
+    KinectInterface::convertXYZToApproxUVD(1, pt_off_xyz, pt_off_uvd);
     uv_vec.set(pt_off_uvd[0] - pt_hand_uvd[0], pt_off_uvd[1] - pt_hand_uvd[1], 
       0.0f); 
     int radius = static_cast<int>(uv_vec.length());

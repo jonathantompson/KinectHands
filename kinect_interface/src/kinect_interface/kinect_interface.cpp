@@ -14,6 +14,7 @@
 #include "jtil/exceptions/wruntime_error.h"
 #include "kinect_interface/kinect_interface.h"
 #include "jtil/threading/thread_pool.h"
+#include "jtil/renderer/camera/camera.h"
 #include "Kinect.h"
 #include <comdef.h>
 
@@ -57,6 +58,8 @@ using jtil::clk::Clk;
 using namespace jtil::data_str;
 using namespace jtil::threading;
 using namespace jtil::file_io;
+using namespace jtil::math;
+using namespace jtil::renderer;
 
 namespace kinect_interface {
 
@@ -447,7 +450,7 @@ namespace kinect_interface {
 
       // ***** Aquire the XYZ frame *****
       if (new_depth && sync_xyz_) {
-        convertDepthFrameToXYZ(depth_dim, depth_, xyz_);
+        convertDepthFrameToApproxXYZ(depth_dim, depth_, xyz_);
       }
 
       // ***** Aquire the body frame *****
@@ -600,21 +603,21 @@ namespace kinect_interface {
     sync_body_ = sync_body;
   }
 
-  void KinectInterface::convertDepthFrameToXYZ(const uint32_t n_pts,
+  void KinectInterface::convertDepthFrameToCamera(const uint32_t n_pts,
     const uint16_t* depth, XYZPoint* xyz) {
     CALL_SAFE(coord_mapper_->MapDepthFrameToCameraSpace(n_pts, 
       (UINT16*)depth, n_pts, (CameraSpacePoint*)xyz),
       "could not map depth frame to xyz (camera) space");
   }
 
-  void KinectInterface::convertXYZToDepthSpace(const uint32_t n_pts, 
+  void KinectInterface::convertCameraToDepthSpace(const uint32_t n_pts, 
     const XYZPoint* xyz, XYPoint* uv_pos) {
     CALL_SAFE(coord_mapper_->MapCameraPointsToDepthSpace(n_pts, 
       (CameraSpacePoint*)xyz, n_pts, (DepthSpacePoint*)uv_pos),
       "could not map xyz (camera) to depth space");
   }
 
- void KinectInterface::convertUVDToXYZ(const uint32_t n_pts, const float* uvd, 
+ void KinectInterface::convertUVDToCamera(const uint32_t n_pts, const float* uvd, 
    float* xyz) {
    // Copy the input data into Microsoft's structure
    for (uint32_t i = 0; i < n_pts; i++) {
@@ -633,7 +636,7 @@ namespace kinect_interface {
      xyz[i * 3 + 2] = xyz_tmp_[i].z;
    }
  }
- void KinectInterface::convertXYZToUVD(const uint32_t n_pts, const float* xyz,
+ void KinectInterface::convertCameraToUVD(const uint32_t n_pts, const float* xyz,
    float* uvd) {
    // Copy the input data into Microsoft's structure
    for (uint32_t i = 0; i < n_pts; i++) {
@@ -641,7 +644,7 @@ namespace kinect_interface {
      xyz_tmp_[i].y = xyz[i * 3 + 1];
      xyz_tmp_[i].z = xyz[i * 3 + 2];
    }
-   convertXYZToDepthSpace(n_pts, xyz_tmp_, uv_tmp_);
+   convertCameraToDepthSpace(n_pts, xyz_tmp_, uv_tmp_);
    // Copy the output data out of Microsoft's structure
    for (uint32_t i = 0; i < n_pts; i++) {
      uvd[i*3] = uv_tmp_[i].x;
@@ -650,14 +653,110 @@ namespace kinect_interface {
    }
  }
 
-  void KinectInterface::convertDepthFrameToXYZ(const uint32_t n_pts, 
+  void KinectInterface::convertDepthFrameToCamera(const uint32_t n_pts, 
     const uint16_t* depth, float* xyz) {
-    convertDepthFrameToXYZ(n_pts, depth, xyz_tmp_);
+    convertDepthFrameToCamera(n_pts, depth, xyz_tmp_);
     // Copy the output data out of Microsoft's structure
     for (uint32_t i = 0; i < n_pts; i++) {
       xyz[i * 3] = xyz_tmp_[i].x;
       xyz[i * 3 + 1] = xyz_tmp_[i].y;
       xyz[i * 3 + 2] = xyz_tmp_[i].z;
+    }
+  }
+
+  // FROM: XnOpenNI.cpp (and slightly edited)
+  void KinectInterface::convertUVDToApproxXYZ(const uint32_t n_pts, 
+    const float* uvd, float* xyz) {
+    float depth_vfov_rad = 2.0f * (float)M_PI * (depth_vfov / 360.0f);
+    float depth_hfov_rad = 2.0f * (float)M_PI * (depth_hfov / 360.0f);
+    float fXToZ = tanf(depth_hfov_rad/2)*2;
+    float fYToZ = tanf(depth_vfov_rad/2)*2;
+    
+    for (uint32_t i = 0; i < n_pts; ++i) {
+      float fNormalizedX = (uvd[i*3] / depth_w - 0.5f);
+      xyz[i*3] = (float)(fNormalizedX * uvd[i*3+2] * fXToZ);
+      
+      float fNormalizedY = (0.5f - uvd[i*3+1] / depth_h);
+      xyz[i*3+1] = (float)(fNormalizedY * uvd[i*3+2] * fYToZ);
+      
+      xyz[i*3+2] = uvd[i*3+2];
+
+      // The new kinect has units in meters
+      xyz[i*3] *= (1.0f / 1000.0f);
+      xyz[i*3+1] *= (1.0f / 1000.0f);
+      xyz[i*3+2] *= (1.0f / 1000.0f);
+    }
+  }
+
+  // FROM: XnOpenNI.cpp (and slightly edited)
+  void KinectInterface::convertDepthFrameToApproxXYZ(const uint32_t n_pts, 
+    const uint16_t* depth, XYZPoint* xyz) {
+    float depth_vfov_rad = 2.0f * (float)M_PI * (depth_vfov / 360.0f);
+    float depth_hfov_rad = 2.0f * (float)M_PI * (depth_hfov / 360.0f);
+    float fXToZ = tanf(depth_hfov_rad / 2) * 2;
+    float fYToZ = tanf(depth_vfov_rad / 2) * 2;
+    
+    for (uint32_t i = 0; i < n_pts; i++) {
+      float uvd[3] = {(float)(i % depth_w), (float)(i / depth_w), (float)depth[i]};
+      float fNormalizedX = (uvd[0] / depth_w - 0.5f);
+      xyz[i].x = (float)(fNormalizedX * uvd[2] * fXToZ);
+      
+      float fNormalizedY = (0.5f - uvd[1] / depth_h);
+      xyz[i].y = (float)(fNormalizedY * uvd[2] * fYToZ);
+      
+      xyz[i].z = uvd[2];
+
+      // The new kinect has units in meters
+      xyz[i].x *= (1.0f / 1000.0f);
+      xyz[i].y *= (1.0f / 1000.0f);
+      xyz[i].z *= (1.0f / 1000.0f);
+    }
+  }
+
+  // FROM: XnOpenNI.cpp (and slightly edited)
+  void KinectInterface::convertDepthFrameToApproxXYZ(const uint32_t n_pts, 
+    const uint16_t* depth, float* xyz) {
+    float depth_vfov_rad = 2.0f * (float)M_PI * (depth_vfov / 360.0f);
+    float depth_hfov_rad = 2.0f * (float)M_PI * (depth_hfov / 360.0f);
+    float fXToZ = tanf(depth_hfov_rad / 2) * 2;
+    float fYToZ = tanf(depth_vfov_rad / 2) * 2;
+    
+    for (uint32_t i = 0; i < n_pts; i++) {
+      float uvd[3] = {(float)(i % depth_w), (float)(i / depth_w), (float)depth[i]};
+      float fNormalizedX = (uvd[0] / depth_w - 0.5f);
+      xyz[i*3] = (float)(fNormalizedX * uvd[2] * fXToZ);
+      
+      float fNormalizedY = (0.5f - uvd[1] / depth_h);
+      xyz[i*3+1] = (float)(fNormalizedY * uvd[2] * fYToZ);
+      
+      xyz[i*3+2] = uvd[2];
+
+      // The new kinect has units in meters
+      xyz[i*3] *= (1.0f / 1000.0f);
+      xyz[i*3+1] *= (1.0f / 1000.0f);
+      xyz[i*3+2] *= (1.0f / 1000.0f);
+    }
+  }
+
+  // FROM: XnOpenNI.cpp (and slightly edited)
+  void KinectInterface::convertXYZToApproxUVD(const uint32_t n_pts, 
+    const float* xyz, float* uvd) {
+    float depth_vfov_rad = 2.0f * (float)M_PI * (depth_vfov / 360.0f);
+    float depth_hfov_rad = 2.0f * (float)M_PI * (depth_hfov / 360.0f);
+    float fXToZ = tanf(depth_hfov_rad / 2) * 2;
+    float fYToZ = tanf(depth_vfov_rad / 2) * 2;
+    
+    float fCoeffX = (float)depth_w / fXToZ;
+    float fCoeffY = (float)depth_h / fYToZ;
+    
+    // we can assume resolution is even (so integer div is sufficient)
+    uint32_t nHalfXres = depth_w / 2;
+    uint32_t nHalfYres = depth_h / 2;
+    
+    for (uint32_t i = 0; i < n_pts; ++i) {
+      uvd[i*3] = (float)fCoeffX * (xyz[i*3]*1000.0f) / (xyz[i*3+2]*1000.0f) + nHalfXres;
+      uvd[i*3+1] = nHalfYres - (float)fCoeffY * (xyz[i*3+1]*1000.0f) / (xyz[i*3+2]*1000.0f);
+      uvd[i*3+2] = xyz[i*3+2]*1000.0f;
     }
   }
 

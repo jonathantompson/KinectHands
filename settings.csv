@@ -8,7 +8,7 @@
 
 //, *********** SETTINGS ***********
 //, APPLICATION SPECIFIC
-kinect_output,                    int,       1
+kinect_output,                    int,       5
 render_kinect_fps,                bool,      1
 continuous_snapshot,              bool,      0
 compress_data,                    bool,      0
@@ -16,7 +16,7 @@ cur_kinect,                       int,       0
 stretch_image,                    bool,      0
 pause_stream,                     bool,      0
 render_point_cloud,               bool,      1
-point_cloud_size,                 float,     1000.0
+point_cloud_size,                 float,     2000.0
 background_color,                 int,       1
 joint_size,                       float,     40000.0
 render_joints,                    bool,      0

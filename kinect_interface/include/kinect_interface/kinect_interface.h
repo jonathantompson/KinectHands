@@ -127,19 +127,31 @@ namespace kinect_interface {
     inline void lockData() { data_lock_.lock(); };
     inline void unlockData() { data_lock_.unlock(); };
 
-    // Note, this requires an instance of the kinect actually running :-(
-    // Hopefully this can be broken out like I did for OpenNI
-    // NOTE: xyz units are in meters! (while depth is in mm)
-    void convertDepthFrameToXYZ(const uint32_t n_pts, const uint16_t* depth, 
+    // These "Depth" to "Camera" space conversions use the CoordinateMapper
+    // class in the SDK.  It uses a lookup table to do the conversion.  Note
+    // that the conversion does not look like a simple 4x4 projection.
+    void convertDepthFrameToCamera(const uint32_t n_pts, const uint16_t* depth, 
       XYZPoint* xyz);  
-    void convertDepthFrameToXYZ(const uint32_t n_pts, const uint16_t* depth, 
+    void convertDepthFrameToCamera(const uint32_t n_pts, const uint16_t* depth, 
       float* xyz);  // Requires O(n) copy internally
-    void convertXYZToDepthSpace(const uint32_t n_pts, const XYZPoint* xyz,
+    void convertCameraToDepthSpace(const uint32_t n_pts, const XYZPoint* xyz,
       XYPoint* uv_pos);  // Note: z, in XYZPoint will be the depth
-    void convertUVDToXYZ(const uint32_t n_pts, const float* uvd, 
+    void convertUVDToCamera(const uint32_t n_pts, const float* uvd, 
       float* xyz);  // Requires O(n) copy internally
-    void convertXYZToUVD(const uint32_t n_pts, const float* xyz,
+    void convertCameraToUVD(const uint32_t n_pts, const float* xyz,
       float* uvd);  // Requires O(n) copy internally
+
+    // This method uses an approximate inverse projection to obtain XYZ
+    // coordinates from UVD coordinates.  It may not be as accurate as the
+    // version from the SDK.
+    static void convertUVDToApproxXYZ(const uint32_t n_pts, 
+      const float* uvd, float* xyz);
+    static void convertDepthFrameToApproxXYZ(const uint32_t n_pts, 
+      const uint16_t* depth, XYZPoint* xyz);  
+    static void convertDepthFrameToApproxXYZ(const uint32_t n_pts, 
+      const uint16_t* depth, float* xyz);  
+    static void convertXYZToApproxUVD(const uint32_t n_pts, 
+      const float* xyz, float* uvd);
 
   private:
     bool sync_depth_;  // default true

@@ -52,7 +52,7 @@ namespace hand_detector {
 
   class HandDetector {
   public:
-    HandDetector(jtil::threading::ThreadPool* tp, KinectInterface* kinect);
+    HandDetector(jtil::threading::ThreadPool* tp);
     ~HandDetector();
     void init(const uint32_t im_width, const uint32_t im_height,
       const std::string filename = FOREST_DATA_FILENAME);
@@ -80,7 +80,6 @@ namespace hand_detector {
     inline int32_t& stage1_shrink_filter_radius() { return stage1_shrink_filter_radius_; }
     void num_trees_to_evaluate(const int32_t val);
     void max_height_to_evaluate(const int32_t val);
-    inline KinectInterface*& kinect() { return kinect_; }
 
     jtil::data_str::Vector<jtil::math::Float3>& hands_uvd() { return hands_uvd_; }
 
@@ -109,9 +108,6 @@ namespace hand_detector {
     uint32_t queue_head_;
     uint32_t queue_tail_;
     uint8_t* pixel_on_queue_;
-
-    KinectInterface* kinect_;  // Reference to the kinect for transformations
-                               // NOT OWNED HERE
 
     // Multithreading
     jtil::threading::ThreadPool* tp_;  // Not owned here
