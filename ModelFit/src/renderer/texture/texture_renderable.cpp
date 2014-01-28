@@ -115,9 +115,11 @@ namespace renderer {
     return textures_[i];
   }
 
-  void TextureRenderable::begin() {
+  void TextureRenderable::begin(const bool full_viewport) {
     GLState::glsBindFramebuffer(GL_FRAMEBUFFER, fbo_);
-    GLState::glsViewport(0, 0, w_, h_);
+    if (full_viewport) {
+      GLState::glsViewport(0, 0, w_, h_);
+    }
   }
 
   void TextureRenderable::end() {

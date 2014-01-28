@@ -6,13 +6,16 @@
 #include "model_fit/model_renderer.h"
 #include "model_fit/pose_model.h"
 #include "jtil/data_str/vector_managed.h"
+#include "jtil/data_str/vector.h"
 #include "jtil/string_util/string_util.h"
 #include "jtil/math/pso_parallel.h"
+#include "jtil/math/common_optimization.h"
 #include "jtil/file_io/file_io.h"
 #include "jtil/file_io/csv_handle_write.h"
 #include "renderer/gl_state.h"
 #include "renderer/camera/camera.h"
 #include "renderer/texture/texture_renderable.h"
+#include "renderer/texture/texture.h"
 #include "kinect_interface/hand_detector/decision_tree_structs.h"
 #include "kinect_interface/depth_images_io.h"
 #include "kinect_interface/kinect_interface.h"  // depth_dim
@@ -30,6 +33,9 @@ using jtil::file_io::CSVHandleWrite;
 using jtil::data_str::VectorManaged;
 using renderer::GLState;
 using namespace kinect_interface;
+using renderer::Texture;
+using renderer::TextureRenderable;
+using namespace jtil::data_str;
 
 namespace model_fit {
   
@@ -100,7 +106,9 @@ namespace model_fit {
     // This is a hack: There's something wrong with the first iteration using
     // tiled rendering --> Doing one regular render pass helps.
     float start_func_val = objectiveFunc(coeff_optim_);
-    cout << "Starting objective function value = " << start_func_val << endl;
+    cout << "Starting objective function value = ";
+    printf("%.9e", start_func_val);
+    cout << endl;
     
     // PSO fitting
     for (uint32_t i = 0; i < PSO_REPEATS; i++) {
@@ -121,7 +129,9 @@ namespace model_fit {
     }
 
     float end_func_val = objectiveFunc(coeff_optim_);
-    cout << "Final objective function value = " << end_func_val << endl;
+    cout << "Final objective function value = ";
+    printf("%.9e", end_func_val);
+    cout << endl;
   }
 
 
@@ -154,25 +164,66 @@ namespace model_fit {
     prepareKinectData(depth);
   }
 
+  // queryObjFunc is mostly for debugging.  It saves a set of images so that
+  // we can test the result against matlab's.  It is NOT meant to be fast.
   float ModelFit::queryObjFunc(int16_t** depth, PoseModel** models, 
     float** coeffs) {
     Vector<bool> old_attachement_vals(num_models_);
     prepareOptimization(depth, models, coeffs, NULL, old_attachement_vals);
 
-    jtil::file_io::SaveArrayToFile<int16_t>(depth[0], depth_w * depth_h, 
-      "./kinect_texture.bin");
-
-    // This is a hack: There's something wrong with the first iteration using
-    // tiled rendering --> Doing one regular render pass helps.
     save_next_image_set_ = true;
-    float start_func_val = objectiveFunc(coeff_optim_);
-    cout << "objective function value = " << start_func_val << endl;
+    float func_val = objectiveFunc(coeff_optim_, false);
+    cout << "objective function value (no constraints) = ";
+    printf("%.9e", func_val);
+    cout << endl;
+    func_val = objectiveFunc(coeff_optim_, true);
+    cout << "objective function value (with constraints) = ";
+    printf("%.9e", func_val);
+    cout << endl;
+
+    save_next_image_set_ = true;
+    jtil::data_str::Vector<float*> coeff_vals;
+    jtil::data_str::Vector<float> residue_vals;
+    jtil::data_str::Vector<float> residue_vals_wconst;
+    // Create a set of coeffs by just preturbing the coeffs a little bit.
+    MERSINE_TWISTER_ENG eng;
+    UNIFORM_REAL_DISTRIBUTION c_dist(-0.5f, 0.5f);
+    for (uint32_t t = 0; t < NTILES; t++) {
+      float* cur_coeffs = new float[num_models_ * coeff_dim_per_model_];
+      for (uint32_t i = 0; i < num_models_; i++) {
+        for (uint32_t j = 0; j < coeff_dim_per_model_; j++) {
+          cur_coeffs[i * coeff_dim_per_model_ + j] = coeffs[i][j] + c_dist(eng);
+        }
+      }
+      coeff_vals.pushBack(cur_coeffs);
+      residue_vals.pushBack(std::numeric_limits<float>::infinity());
+      residue_vals_wconst.pushBack(std::numeric_limits<float>::infinity());
+    }
+    objectiveFuncTiled(residue_vals, coeff_vals, false);
+    objectiveFuncTiled(residue_vals_wconst, coeff_vals, true);
+    cout << "tiled objective function value (no constraints) = " << endl;
+    for (uint32_t v = 0; v < NTILES_DIM; v++) {
+      for (uint32_t u = 0; u < NTILES_DIM; u++) {
+        uint32_t t = v * NTILES_DIM + u;
+        SAFE_DELETE_ARR(coeff_vals[t]);
+        printf("  %.9e", residue_vals[t]);
+      }
+      std::cout << endl;
+    }
+    cout << "tiled objective function value (with constraints) = " << endl;
+    for (uint32_t v = 0; v < NTILES_DIM; v++) {
+      for (uint32_t u = 0; u < NTILES_DIM; u++) {
+        uint32_t t = v * NTILES_DIM + u;
+        printf("  %.9e", residue_vals_wconst[t]);
+      }
+      std::cout << endl;
+    }
 
     for (uint32_t i = 0; i < num_models_; i++) {
       models_[i]->setRendererAttachement(old_attachement_vals[i]);
     }
 
-    return start_func_val;
+    return func_val;
   }
 
   char* float2CStr(float val) {
@@ -313,7 +364,8 @@ namespace model_fit {
     return PREV_FRAME_DIST_PENALTY_SCALE * dist;
   }
 
-  float ModelFit::objectiveFunc(const float* coeff) {
+  float ModelFit::objectiveFunc(const float* coeff, 
+    const bool include_constraints) {
     float depth_term = 0.0f;
     float penalty_term = 0.0f;
     float interpenetration_term = 0.0f;
@@ -331,24 +383,47 @@ namespace model_fit {
       }
 
       if (cur_fit_->save_next_image_set_) {
-        int32_t residue_dim = std::max<int32_t>(depth_w, depth_h);
-        int32_t data_temp_sz = residue_dim * residue_dim * 3;
-        float* data_temp = new float[data_temp_sz];
-        cur_fit_->model_renderer_->depth_texture()->getTexture0Data<float>(data_temp);
-        jtil::file_io::SaveArrayToFile<float>(data_temp, depth_w * depth_h, 
+        int32_t dim = cur_fit_->model_renderer_->tex_size();
+        float* data_temp = new float[dim * dim];
+
+        // Get the synthetic depth texture
+        TextureRenderable* rtex = cur_fit_->model_renderer_->depth_texture();
+        rtex->getTexture0Data<float>(data_temp);
+        jtil::file_io::SaveArrayToFile<float>(data_temp, dim * dim, 
           "./synth_texture.bin");
-        cur_fit_->model_renderer_->residue_texture()->getTexture0Data<float>(data_temp);
-        jtil::file_io::SaveArrayToFile<float>(data_temp, residue_dim * residue_dim, 
+
+        // Get the residue texture
+        rtex = cur_fit_->model_renderer_->residue_texture();
+        rtex->getTexture0Data<float>(data_temp);
+        jtil::file_io::SaveArrayToFile<float>(data_temp, dim * dim, 
           "./residue_texture.bin");
+
+        // Get the kinect texture.  Don't copy it back down, just get the CPU
+        // version (which is a copy of what was sent to the GPU).
+        Texture* tex = cur_fit_->model_renderer_->kinect_depth_textures()[0];
+        tex->getTextureData<float>(data_temp);
+        jtil::file_io::SaveArrayToFile<float>(data_temp, dim * dim, 
+          "./kinect_texture.bin");
+
         cur_fit_->save_next_image_set_ = false;
         delete[] data_temp;
       }
     }
-    return depth_term * penalty_term * interpenetration_term;
+
+    if (include_constraints) {
+      return depth_term * penalty_term * interpenetration_term;
+    } else {
+      return depth_term;
+    }
   }
 
   void ModelFit::objectiveFuncTiled(Vector<float>& residues, 
     Vector<float*>& coeffs) {
+    objectiveFuncTiled(residues, coeffs, true);
+  }
+
+  void ModelFit::objectiveFuncTiled(Vector<float>& residues, 
+    Vector<float*>& coeffs, const bool include_constraints) {
     if (coeffs.size() > NTILES) {
       throw runtime_error("objectiveFuncTiled() - coeffs.size() > NTILES");
     }
@@ -384,14 +459,45 @@ namespace model_fit {
       } else {
         calculateResidualTiled(&depth_term, NULL, coeffs, i_camera);
       }
+
+      if (cur_fit_->save_next_image_set_) {
+        int32_t dim = cur_fit_->model_renderer_->tex_size();
+        float* data_temp = new float[dim * dim * NTILES];
+
+        // Get the synthetic depth texture
+        TextureRenderable* rtex = cur_fit_->model_renderer_->depth_texture_tiled();
+        rtex->getTexture0Data<float>(data_temp);
+        jtil::file_io::SaveArrayToFile<float>(data_temp, dim * dim * NTILES, 
+          "./synth_texture_tiled.bin");
+
+        // Get the residue texture
+        rtex = cur_fit_->model_renderer_->residue_texture_tiled();
+        rtex->getTexture0Data<float>(data_temp);
+        jtil::file_io::SaveArrayToFile<float>(data_temp, dim * dim * NTILES, 
+          "./residue_texture_tiled.bin");
+
+        // Get the kinect texture.  Don't copy it back down, just get the CPU
+        // version (which is a copy of what was sent to the GPU).
+        Texture* tex = cur_fit_->model_renderer_->kinect_depth_textures_tiled()[0];
+        tex->getTextureData<float>(data_temp);
+        jtil::file_io::SaveArrayToFile<float>(data_temp, dim * dim * NTILES, 
+          "./kinect_texture_tiled.bin");
+
+        cur_fit_->save_next_image_set_ = false;
+        delete[] data_temp;
+      }
     }
     func_eval_count_ += NTILES;
 
     // Now calculate the final residue term
     residues.resize(0);
     for (uint32_t i = 0; i < coeffs.size(); i++) {
-      residues.pushBack(depth_term[i] * penalty_term[i] * 
-        interpenetration_term[i]);
+      if (include_constraints) {
+        residues.pushBack(depth_term[i] * penalty_term[i] * 
+          interpenetration_term[i]);
+      } else {
+        residues.pushBack(depth_term[i]);
+      }
     }
   }
 

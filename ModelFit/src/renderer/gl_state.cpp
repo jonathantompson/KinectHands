@@ -510,6 +510,11 @@ namespace renderer {
     }
   }
 
+  void GLState::glsGetTexImage(const GLenum target, const GLint level,
+    const GLenum format, const GLenum type, GLvoid* img) {
+    glGetTexImage(target, level, format, type, img);
+  }
+
   void GLState::glsActiveTexture(const GLenum texture) {
     if (setGLenum(GL_ACTIVE_TEXTURE, &texture, GLTYPE_ENUM_SIZE, 
       GLTYPE_ENUM)) {

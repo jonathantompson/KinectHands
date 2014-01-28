@@ -22,7 +22,10 @@ namespace renderer {
       GLenum type, uint32_t num_textures, bool create_depth_texture);
     ~TextureRenderable();
 
-    void begin();  // begin rendering
+    // full_viewport = true --> Means that begin() will set the viewport to
+    // (0, 0, width, height).  Use false if you want to define a custom 
+    // viewport.
+    void begin(const bool full_viewport = true);  // begin rendering
     void end();  // end rendering
 
     // bind() - typical usage for single texture render target: 

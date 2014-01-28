@@ -28,6 +28,7 @@
 #include "jtil/windowing/window.h"
 #include "jtil/file_io/file_io.h"
 #include "jtil/data_str/vector.h"
+#include "jtil/math/math_base.h"
 #include "renderer/gl_state.h"
 #include "kinect_interface/kinect_interface.h"  // depth_vfov
 
@@ -46,14 +47,18 @@ using namespace kinect_interface;
 namespace model_fit {
   
   ModelRenderer::ModelRenderer(const uint32_t num_cameras) {
+    // Note: I allocate a square texture so that it makes integration during
+    // function evaluation on the GPU very fast.
+    tex_size_ = jtil::math::nextPO2(std::max<uint32_t>(depth_w, depth_h));
+    uint32_t tex_dim = tex_size_ * tex_size_;
+
     num_cameras_ = num_cameras;
     depth_tmp_ = new float*[num_cameras_];
     for (uint32_t i = 0; i < num_cameras_; i++) {
-      depth_tmp_[i] = new float[depth_dim * NTILES];
+      depth_tmp_[i] = new float[tex_dim * NTILES];
     }
     FloatQuat eye_rot; eye_rot.identity();
     Float3 eye_pos(0, 0, 0);
-    // TODO: Should
     float fov_vert_deg = depth_vfov;
     cameras_ = new Camera*[num_cameras_];
     for (uint32_t i = 0; i < num_cameras_; i++) {
@@ -66,12 +71,12 @@ namespace model_fit {
     g_renderer_ = Renderer::g_renderer();  // Not owned here.
     
     // Renderable texture
-    depth_texture_ = new TextureRenderable(GL_R32F, depth_w,
-      depth_h, GL_RED, GL_FLOAT, 1, true);
-    cdepth_texture_ = new TextureRenderable(GL_RGBA32F, depth_w,
-      depth_h, GL_RGBA, GL_FLOAT, 1, true);
+    depth_texture_ = new TextureRenderable(GL_R32F, tex_size_,
+      tex_size_, GL_RED, GL_FLOAT, 1, true);
+    cdepth_texture_ = new TextureRenderable(GL_RGBA32F, tex_size_,
+      tex_size_, GL_RGBA, GL_FLOAT, 1, true);
     depth_texture_tiled_ = new TextureRenderable(GL_R32F, 
-      depth_w * NTILES_DIM, depth_h * NTILES_DIM, GL_RED, 
+      tex_size_ * NTILES_DIM, tex_size_ * NTILES_DIM, GL_RED, 
       GL_FLOAT, 1, true);
     
     // Shader to create the depth image
@@ -172,38 +177,31 @@ namespace model_fit {
     h_residue_calc_max_depth_ = sp_residue_calc_->getUniformLocation("max_depth");
     //h_residue_calc_texel_dim_ = sp_residue_calc_->getUniformLocation("texel_dim");
 
-    // Textures to downsample and integrate
-    if (depth_w % 2 != 0 || depth_h % 2 != 0) {
-      throw std::wruntime_error("depth width and height must be a factor of 2");
-    }
-
     // Allocate enough textures so that we have the whole pyramid going down
-    // Note: I allocate a square texture so that it makes integration during
-    // function evaluation on the GPU very fast.
-    uint32_t tex_size = std::max<uint32_t>(depth_w, depth_h);
-    while (tex_size >= 1) {
+    uint32_t i = tex_size_;
+    while (i >= 1) {
       TextureRenderable* tex = new TextureRenderable(RESIDUE_INT_FORMAT, 
-        tex_size, tex_size, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
+        i, i, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
       residue_tex_.pushBack(tex);
-      if (tex_size / 4 <= 0) {
-        tex_size /= 2;
+      if (i / 4 <= 0) {
+        i /= 2;
       } else {
-        tex_size /= 4;
+        i /= 4;
       }
     }
 
     // Now we also need tiled residue textures.  There's lots of overlap here,
     // ie, we could just reuse some of the textures above.  But it's much
     // easier from an engineering perspective to just reuse the textures
-    tex_size = std::max<uint32_t>(depth_w, depth_h) * NTILES_DIM;
-    while (tex_size >= NTILES_DIM) {
+    i = tex_size_ * NTILES_DIM;
+    while (i >= NTILES_DIM) {
       TextureRenderable* tex = new TextureRenderable(RESIDUE_INT_FORMAT, 
-        tex_size, tex_size, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
+        i, i, RESIDUE_FORMAT, RESIDUE_TYPE, 1, false);
       tiled_residue_tex_.pushBack(tex);
-      if (tex_size / 4 < NTILES_DIM) {
-        tex_size /= 2;
+      if (i / 4 < NTILES_DIM) {
+        i /= 2;
       } else {
-        tex_size /= 4;
+        i /= 4;
       }
     }
 
@@ -275,7 +273,8 @@ namespace model_fit {
   void ModelRenderer::drawDepthMap(const float* coeff, 
     const uint32_t num_coeff_per_model, PoseModel** models, 
     const uint32_t num_models, const uint32_t i_camera, const bool color) {
-    // GLState::glsViewport(0, 0, depth_w, depth_h);
+    GLState::glsViewport(0, 0, depth_w, depth_h);
+    // NOTE: We will perform a buffer clear in drawDepthMapInternal
     drawDepthMapInternal(coeff, num_coeff_per_model, models, num_models, 
       i_camera, color, false);
   }
@@ -296,7 +295,7 @@ namespace model_fit {
       // Set up the viewport
       uint32_t xpos = i % NTILES_DIM;
       uint32_t ypos = i / NTILES_DIM;
-      GLState::glsViewport(xpos * depth_w, ypos * depth_h, 
+      GLState::glsViewport(xpos * tex_size_, ypos * tex_size_, 
         depth_w, depth_h);
       drawDepthMapInternal(coeff[i], num_coeff_per_model, models, num_models,
         i_camera, false, true);
@@ -329,9 +328,9 @@ namespace model_fit {
 
     if (!tiled) {
       if (color) {
-        cdepth_texture_->begin();
+        cdepth_texture_->begin(false);
       } else {
-        depth_texture_->begin();
+        depth_texture_->begin(false);
       }
       GLState::glsClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     }
@@ -455,24 +454,43 @@ namespace model_fit {
 
   void ModelRenderer::uploadDepth(const uint32_t i_camera, 
     const int16_t* depth_vals) {
-    for (uint32_t i = 0; i < depth_dim; i++) {
-      depth_tmp_[i_camera][i] = static_cast<float>(depth_vals[i]);
+    // First clear the depth
+    for (uint32_t i = 0; i < tex_size_ * tex_size_; i++) {
+      depth_tmp_[i_camera][i] = 0.0f;
+    }
+    // Now copy the depth into the viewport (0,0,w,h)
+    for (uint32_t v = 0; v < depth_h; v++) {
+      for (uint32_t u = 0; u < depth_w; u++) {
+        uint32_t i_src = v * depth_w + u;
+        uint32_t i_dst = v * tex_size_ + u;
+        depth_tmp_[i_camera][i_dst] = static_cast<float>(depth_vals[i_src]);
+      }
     }
 
+    // TODO: This might be slow...  We don't want to regenerate the texture
+    // but just update the information.  In profile this doesn't seem too slow,
+    // but the profile time might not reflect the true impact.
+    // I EVEN HAVE: reloadData --> TRY IT!
     SAFE_DELETE(kinect_depth_textures_[i_camera]);
-    kinect_depth_textures_[i_camera] = new Texture(GL_R32F, depth_w,
-      depth_h, GL_RED, GL_FLOAT, 
+    kinect_depth_textures_[i_camera] = new Texture(GL_R32F, tex_size_,
+      tex_size_, GL_RED, GL_FLOAT, 
       reinterpret_cast<unsigned char*>(depth_tmp_[i_camera]), 
       renderer::TEXTURE_WRAP_MODE::TEXTURE_CLAMP, false);
 
+    // Again clear the depth
+    for (uint32_t i = 0; i < tex_size_ * tex_size_ * NTILES; i++) {
+      depth_tmp_[i_camera][i] = 0.0f;
+    }
+
+    // Now copy the depth into the viewports (i*tex_size_, i*tex_size_, w, h)
     for (uint32_t tile_y = 0; tile_y < NTILES_DIM; tile_y++) {
-      uint32_t y_offst = tile_y * depth_h;
+      uint32_t y_offst = tile_y * tex_size_;
       for (uint32_t tile_x = 0; tile_x < NTILES_DIM; tile_x++) {
-        uint32_t x_offst = tile_x * depth_w;
+        uint32_t x_offst = tile_x * tex_size_;
         for (uint32_t v = 0; v < depth_h; v++) {
           for (uint32_t u = 0; u < depth_w; u++) {
             uint32_t src_index = v * depth_w + u;
-            uint32_t dst_index = (y_offst + v) * (depth_w * NTILES_DIM)
+            uint32_t dst_index = (y_offst + v) * (tex_size_ * NTILES_DIM)
               + x_offst + u;
             depth_tmp_[i_camera][dst_index] = 
               static_cast<float>(depth_vals[src_index]);
@@ -483,7 +501,7 @@ namespace model_fit {
 
     SAFE_DELETE(kinect_depth_textures_tiled_[i_camera]);
     kinect_depth_textures_tiled_[i_camera] = new Texture(GL_R32F, 
-      depth_w * NTILES_DIM, depth_h * NTILES_DIM, 
+      tex_size_ * NTILES_DIM, tex_size_ * NTILES_DIM, 
       GL_RED, GL_FLOAT, reinterpret_cast<unsigned char*>(depth_tmp_[i_camera]), 
       renderer::TEXTURE_WRAP_MODE::TEXTURE_CLAMP, false);
   }
@@ -492,10 +510,16 @@ namespace model_fit {
     // Render to the dst texture
     residue_tex_[0]->begin();
     sp_residue_calc_->useProgram();
-    
-    throw std::wruntime_error("TODO: ZERO THE TEXTURE!");
 
-    GLState::glsViewport(0, 0, depth_w, depth_h);
+#if defined(DEBUG) || defined(_DEBUG)
+    // Check that the texture sizes match
+    if (depth_texture_->w() != residue_tex_[0]->w() || 
+      depth_texture_->h() != residue_tex_[0]->h() || 
+      kinect_depth_textures_[i_camera]->w() != residue_tex_[0]->w() ||
+      kinect_depth_textures_[i_camera]->h() != residue_tex_[0]->h()) {
+      throw std::wruntime_error("Incorrect Texture Sizes!");
+    }
+#endif
 
     depth_texture_->bind(0, GL_TEXTURE0, h_residue_calc_synth_depth_);
     kinect_depth_textures_[i_camera]->bind(GL_TEXTURE1, h_residue_calc_kinect_depth_);
@@ -541,7 +565,15 @@ namespace model_fit {
     tiled_residue_tex_[0]->begin();
     sp_residue_calc_->useProgram();
 
-    throw std::wruntime_error("TODO: Fix this (square texture issue)");
+#if defined(DEBUG) || defined(_DEBUG)
+    // Check that the texture sizes match
+    if (depth_texture_tiled_->w() != tiled_residue_tex_[0]->w() || 
+      depth_texture_tiled_->h() != tiled_residue_tex_[0]->h() || 
+      kinect_depth_textures_tiled_[i_camera]->w() != tiled_residue_tex_[0]->w() ||
+      kinect_depth_textures_tiled_[i_camera]->h() != tiled_residue_tex_[0]->h()) {
+      throw std::wruntime_error("Incorrect Texture Sizes!");
+    }
+#endif
 
     // Residual shader uniforms:
     depth_texture_tiled_->bind(0, GL_TEXTURE0, h_residue_calc_synth_depth_);

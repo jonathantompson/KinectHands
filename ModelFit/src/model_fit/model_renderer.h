@@ -72,19 +72,31 @@ namespace model_fit {
     void extractDepthMap(float* depth_vals);
 
     inline renderer::TextureRenderable* depth_texture() { return depth_texture_; }
+    inline renderer::TextureRenderable* depth_texture_tiled() { return depth_texture_tiled_; }
     inline renderer::TextureRenderable* cdepth_texture() { return cdepth_texture_; }
     inline float** depth_tmp() { return depth_tmp_; }
     inline renderer::Camera* camera(const uint32_t id) { return cameras_[id]; }
 
     renderer::TextureRenderable* residue_texture() { return residue_tex_[0]; }
+    renderer::TextureRenderable* residue_texture_tiled() { return tiled_residue_tex_[0]; }
+    renderer::Texture** kinect_depth_textures() { return kinect_depth_textures_; }
+    renderer::Texture** kinect_depth_textures_tiled() { return kinect_depth_textures_tiled_; }
+    uint32_t tex_size() const { return tex_size_; }
+
 
   private:
     renderer::Renderer* g_renderer_;  // Not owned here
     uint32_t num_cameras_;
     renderer::Camera** cameras_;
     
-    renderer::TextureRenderable* depth_texture_;  // depth_w x depth_h
-    renderer::TextureRenderable* depth_texture_tiled_;  // depth_w x depth_h (8x8)
+    // tex_size_ is important.  The kinect kinect texture is forced to be
+    // square (to make downsampling on the GPU easier).  It is also rounded to
+    // the next power of 2 (kinect 2 is already a power of 2 in width).
+    // tex_size_ is the vertical and horizontal size of the texture.
+    uint32_t tex_size_;
+
+    renderer::TextureRenderable* depth_texture_;  // tex_size_ x tex_size_
+    renderer::TextureRenderable* depth_texture_tiled_;  // tex_size_ x tex_size_ * NTILES
     jtil::data_str::Vector<renderer::TextureRenderable*> residue_tex_;   // ARRAY OF TEXTURES
     jtil::data_str::Vector<renderer::TextureRenderable*> tiled_residue_tex_;   // ARRAY OF TEXTURES
     renderer::Texture** kinect_depth_textures_;

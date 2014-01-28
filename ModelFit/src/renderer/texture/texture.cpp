@@ -50,29 +50,6 @@ namespace renderer {
 
     generateTextureID();
 
-    //// OLD CODE USING GLFW --> ONLY SUPPORTS TIF FORMAT
-    //GLFWimage* new_img = new GLFWimage();
-    //int flags = GLFW_NO_RESCALE_BIT;
-    //if (origin_ul) {
-    //  flags = flags | GLFW_ORIGIN_UL_BIT;
-    //}
-    //std::string filename_narrow = string_util::ToNarrowString(filename_);
-    //int ret = glfwReadImage(filename_narrow.c_str(), new_img, flags);
-    //if (ret != GL_TRUE) {
-    //  std::wstringstream ss;
-    //  ss << L"Texture::Texture() - ERROR: Failed to load texture from file: ";
-    //  ss << filename_ << ".  GLFW error code: " << ret;
-    //  throw wruntime_error(ss.str());
-    //}
-
-    //format_internal_ = GL_RGBA;
-    //w_ = new_img->Width;
-    //h_ = new_img->Height;
-    //format_ = new_img->Format;
-    //type_ = GL_UNSIGNED_BYTE;
-    //bits_ = new_img->Data;
-    //img_ = reinterpret_cast<GLFWimage*>(new_img);
-
     // NEW CODE USING THE FREEIMAGE LIBRARY
     FREE_IMAGE_FORMAT fif = FIF_UNKNOWN;  //image format
 	  FIBITMAP* dib = NULL;  //pointer to the image, once loaded

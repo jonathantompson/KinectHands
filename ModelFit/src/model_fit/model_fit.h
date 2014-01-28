@@ -95,9 +95,13 @@ namespace model_fit {
     bool save_next_image_set_;
 
     // static functions for non-linear fitting
-    static float objectiveFunc(const float* coeff);
+    static float objectiveFunc(const float* coeff, 
+      const bool include_constraints = true);
     static void objectiveFuncTiled(jtil::data_str::Vector<float>& residues, 
-      jtil::data_str::Vector<float*>& coeffs);
+      jtil::data_str::Vector<float*>& coeffs, 
+      const bool include_constraints);
+    static void objectiveFuncTiled(jtil::data_str::Vector<float>& residues, 
+      jtil::data_str::Vector<float*>& coeffs);  // WITH_CONSTRAINTS = TRUE
     // If any of the pointers are NULL then the term isn't calculated.
     // All terms are accumulated to the current value.
     static void calculateResidual(const float* coeff, const uint32_t i_camera,

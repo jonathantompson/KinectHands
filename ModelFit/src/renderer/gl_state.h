@@ -111,6 +111,8 @@ namespace renderer {
     static void glsDrawElements(const GLenum mode, const GLsizei count,
       const GLenum type, const GLvoid* indices);
     static void glsBindTexture(const GLenum target, const GLuint texture);
+    static void glsGetTexImage(const GLenum target, const GLint level,
+      const GLenum format, const GLenum type, GLvoid* img);
     static void glsActiveTexture(const GLenum texture);
     static void glsDrawBuffers(const GLsizei n, const GLenum* bufs);
     static void glsDeleteBuffers(const GLsizei n, GLuint* buffers);

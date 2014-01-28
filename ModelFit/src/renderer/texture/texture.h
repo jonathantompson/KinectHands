@@ -9,6 +9,7 @@
 
 #include <mutex>
 #include <string>
+#include "renderer/texture/texture_utils.h"
 
 namespace renderer {
 
@@ -41,6 +42,7 @@ namespace renderer {
     inline std::string& filename() { return filename_; }
     inline int w() { return w_; }
     inline int h() { return h_; }
+    inline const unsigned char *bits() const { return bits_; }
 
     void reloadData(const unsigned char *bits);
 
@@ -50,6 +52,9 @@ namespace renderer {
     // Perform a deep copy and load the copy into OpenGL
     Texture* copy();
 
+    template <class T>
+    void getTextureData(T* data);
+
   private:
     std::string filename_;
     GLuint texture_;
@@ -58,7 +63,7 @@ namespace renderer {
     int h_;
     GLenum format_; 
     GLenum type_;
-    unsigned char *bits_;
+    unsigned char* bits_;
     TEXTURE_WRAP_MODE wrap_;
     TEXTURE_FILTER_MODE filter_;
     bool managed_;
@@ -75,5 +80,15 @@ namespace renderer {
     // Non-copyable, non-assignable.
     Texture(Texture& other);
     Texture& operator=(const Texture&);
+  };
+
+  template <class T>
+  void Texture::getTextureData(T* data) {
+    GLState::glsBindTexture(GL_TEXTURE_2D, texture_);  // Target, Id
+    uint32_t bytes_per_type = renderer::ElementSizeOfGLType(type_);
+    uint32_t elents_per_format = renderer::NumElementsOfGLFormat(format_);
+    uint32_t bytes_total = bytes_per_type * elents_per_format * w_ * h_;
+    GLState::glsGetTexImage(GL_TEXTURE_2D, 0, (GLenum)format_, (GLenum)type_,
+      data);
   };
 };  // namespace renderer
