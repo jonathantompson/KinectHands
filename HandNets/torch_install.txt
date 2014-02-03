@@ -132,8 +132,8 @@ make
 **************************************************
 Make Torch:
 
-git clone git://github.com/andresy/torch.git
-cd torch
+git clone git@github.com:torch/torch7-distro.git
+cd torch-distro
 
 export CC=gcc-4.7
 export CXX=g++-4.7
@@ -160,11 +160,11 @@ export CMAKE_LIBRARY_PATH=/usr/lib/gcc/x86_64-redhat-linux/4.4.4/:$CMAKE_LIBRARY
 
 ccmake ..
 
-TURN ON ROCKS OPTION!  It is not on by default and torch-pkg is no longer supported."
+TURN ON ROCKS OPTION!  It is not on by default and torch-pkg is no longer supported. (this may have changed).
 
 It wont find the intel library MKL library, but it should find everything else.
 
-make
+make -j5
 
 Now we need to fix the cuda tensor compile bugs, basically we need to add:
 #undef _GLIBCXX_ATOMIC_BUILTINS
