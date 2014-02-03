@@ -125,6 +125,7 @@ namespace app {
     jtil::data_str::VectorManaged<const char*> ids;
     KinectInterface::getDeviceIDs(ids);
     num_kinects_ = ids.size();
+    std::cout << "found " << num_kinects_ << " kinect devices." << std::endl;
     if (num_kinects_ == 0) {
       throw std::wruntime_error("App::init() - ERROR: Found no OpenNI "
         "compatible devices!");
@@ -236,6 +237,10 @@ namespace app {
       GET_SETTING("detect_hands", bool, detect_hands);
       GET_SETTING("detect_pose", bool, detect_pose);
       GET_SETTING("render_hand_labels", int, render_hand_labels);
+
+      if (cur_kinect >= num_kinects_) {
+        cur_kinect = num_kinects_ - 1;
+      }
 
       bool new_data = false;
       if (kinects_[cur_kinect]->depth_frame_number() > depth_frame_number_) {

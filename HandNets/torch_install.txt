@@ -191,12 +191,15 @@ Make Torch packages:
 sudo torch-rocks install image
 sudo torch-rocks install optim
 sudo torch-rocks install debugger
+sudo apt-get install libzmq-dev
 sudo torch-rocks install parallel
 sudo torch-rocks install sys
-sudo torch-rocks install mattorch
+sudo sh -c "export MATLAB_ROOT=/usr/local/MATLAB/R2013b/; torch-rocks install mattorch"
 
-
-sudo torch-pkg install image optim debugger parallel sys
+If you want thread support: install SDL2
+http://brettchalupa.com/installing-sdl2-on-ubuntu-for-game-development/
+sudo torch-rocks install https://raw.github.com/torch/sdl2-ffi/master/rocks/sdl2-scm-1.rockspec
+sudo torch-rocks install https://raw.github.com/torch/threads-ffi/master/rocks/threads-scm-1.rockspec
 
 You can query more avaliable packages by:
 torch-pkg list

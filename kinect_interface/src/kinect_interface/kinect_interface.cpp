@@ -450,7 +450,9 @@ namespace kinect_interface {
 
       // ***** Aquire the XYZ frame *****
       if (new_depth && sync_xyz_) {
-        convertDepthFrameToApproxXYZ(depth_dim, depth_, xyz_);
+        //convertDepthFrameToApproxXYZ(depth_dim, depth_, xyz_);
+        coord_mapper_->MapDepthFrameToCameraSpace(depth_dim, depth_, depth_dim,
+          (CameraSpacePoint*)xyz_);
       }
 
       // ***** Aquire the body frame *****
