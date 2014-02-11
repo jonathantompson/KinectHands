@@ -58,6 +58,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "jtorch", "..\jtorch\jtorch.
 		{B6B147F5-C7F9-4E94-A58C-1B4855967A48} = {B6B147F5-C7F9-4E94-A58C-1B4855967A48}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "jzmq", "..\jzmq\jzmq.vcxproj", "{38CF39B1-A062-4B3E-8E7C-7A89F46B8431}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -104,6 +106,10 @@ Global
 		{287F2B7F-A92D-4144-B56D-B0A87E5883EE}.Debug|x64.Build.0 = Debug|x64
 		{287F2B7F-A92D-4144-B56D-B0A87E5883EE}.Release|x64.ActiveCfg = Release|x64
 		{287F2B7F-A92D-4144-B56D-B0A87E5883EE}.Release|x64.Build.0 = Release|x64
+		{38CF39B1-A062-4B3E-8E7C-7A89F46B8431}.Debug|x64.ActiveCfg = Debug|x64
+		{38CF39B1-A062-4B3E-8E7C-7A89F46B8431}.Debug|x64.Build.0 = Debug|x64
+		{38CF39B1-A062-4B3E-8E7C-7A89F46B8431}.Release|x64.ActiveCfg = Release|x64
+		{38CF39B1-A062-4B3E-8E7C-7A89F46B8431}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

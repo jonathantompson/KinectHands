@@ -17,6 +17,8 @@
 #include "jtil/threading/thread.h"
 #include "jtorch/jtorch.h"
 #include "jtil/video/video_stream.h"
+#include "jzmq/publisher.h"
+#include "jzmq/subscriber.h"
 
 #ifndef NULL
 #define NULL 0
@@ -66,6 +68,7 @@ namespace app {
     data_save_cbs_ = NULL;
     depth_frame_number_ = 0;
     num_kinects_ = 0;
+    time_server_conn_ = NULL;
     hd_ = NULL;
     for (uint32_t i = 0; i < MAX_NUM_KINECTS; i++) {
       kinect_last_saved_depth_time_[i] = 0;
@@ -88,6 +91,10 @@ namespace app {
       tp_->stop();
     }
     SAFE_DELETE(tp_);
+    if (time_server_conn_) {
+      time_server_conn_->killConn();
+      SAFE_DELETE(time_server_conn_);
+    }
     Renderer::ShutdownRenderer();
     jtorch::ShutdownJTorch();
   }
@@ -119,6 +126,7 @@ namespace app {
     clk_ = new Clk();
     frame_time_ = clk_->getTime();
     time_since_start_ = 0.0;
+    remote_time_since_start_ = 0.0;
     app_running_ = true;
 
     // Find and initialize all kinects up to MAX_NUM_KINECTS
@@ -150,6 +158,26 @@ namespace app {
 
     hd_ = new HandDetector(tp_);
     hd_->init(depth_w, depth_h);
+
+    bool is_time_server;
+    int time_server_port;
+    GET_SETTING("is_time_server", bool, is_time_server);
+    GET_SETTING("time_server_port", int, time_server_port);
+    if (is_time_server) {
+      // We're going to broadcast the time of this app to all subscribers
+      std::stringstream conn_str;
+      conn_str << "tcp://*:" << time_server_port;
+      time_server_conn_ = new jzmq::Publisher(conn_str.str());
+    } else {
+      // We're a subscriber so we'll get the app time from the producer
+      Int4 ip;
+      GET_SETTING("time_server_ip", Int4, ip);
+      std::stringstream conn_str;
+      conn_str << "tcp://" << ip[0] << "." << ip[1] << "." << ip[2] << ".";
+      conn_str << ip[3] << ":" << time_server_port;
+      time_server_conn_ = new jzmq::Subscriber(conn_str.str());
+    }
+    time_server_conn_->initConn();
   }
 
   void App::killApp() {
@@ -224,6 +252,32 @@ namespace app {
       double dt = frame_time_ - frame_time_prev_;
       time_since_start_ += dt;
 
+      if (is_time_server_) {
+        // Broadcast the time
+        uint64_t timeout_ms = 0;  // Non-blocking
+        char data_packet[sizeof(time_since_start_) + 1];
+        memcpy(data_packet, &time_since_start_, sizeof(time_since_start_));
+        int bytes_sent = time_server_conn_->sendData(data_packet, 
+          sizeof(time_since_start_), timeout_ms);
+
+        // We decide what the remote time is
+        remote_time_since_start_ = time_since_start_;
+      } else {
+        // Receive the time from the time server
+        uint64_t timeout_ms = 0;  // Non-blocking
+        char data_packet[sizeof(remote_time_since_start_) + 1];
+        uint32_t bytes_received = 0;
+        // Get all the packets (so that we have the latest time on the queue)
+        do {
+          bytes_received = time_server_conn_->receiveData(data_packet, 
+            sizeof(remote_time_since_start_), timeout_ms);
+          if (bytes_received == sizeof(remote_time_since_start_)) {
+            memcpy(&remote_time_since_start_, data_packet, 
+              sizeof(remote_time_since_start_));
+          }
+        } while (bytes_received > 0);
+      }
+
       int kinect_output = 0, cur_kinect = 0, label_type_enum = 0;
       int background_color = 0, render_hand_labels = 0;
       bool pause_stream, render_point_cloud, render_joints, detect_hands;
@@ -238,7 +292,7 @@ namespace app {
       GET_SETTING("detect_pose", bool, detect_pose);
       GET_SETTING("render_hand_labels", int, render_hand_labels);
 
-      if (cur_kinect >= num_kinects_) {
+      if (cur_kinect >= (int)num_kinects_) {
         cur_kinect = num_kinects_ - 1;
       }
 
@@ -819,7 +873,7 @@ namespace app {
       int64_t kinect_time_us = (time_stamp - first_time_stamp) / 10;
       // Just overflow the timestamps.  We have 1e14 us = 1157days record time.
       kinect_time_us = kinect_time_us % (int64_t)(1e15);
-      int64_t app_time_us = (int64_t)(time_since_start_ * 1.0e6);
+      int64_t app_time_us = (int64_t)(remote_time_since_start_ * 1.0e6);
       app_time_us = app_time_us % (int64_t)(1e15);
       snprintf(filename, 255, "im_K%d_KT%014I64d_AT%014I64d.bin", i, 
         kinect_time_us, app_time_us);

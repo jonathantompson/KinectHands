@@ -23,6 +23,7 @@ class DebugBuf;
 namespace kinect_interface { namespace hand_detector { class HandDetector; } }
 namespace jtil { namespace threading { class ThreadPool; } }
 namespace jtil { namespace renderer { class GeometryInstance; } }
+namespace jzmq { class Connection; }
 
 namespace app {
   struct FrameData;
@@ -80,6 +81,9 @@ namespace app {
 #endif
     bool app_running_;
 
+    bool is_time_server_;
+    jzmq::Connection* time_server_conn_;  // Either a publisher or subscriber
+
     // Kinect data
     kinect_interface::KinectInterface* kinects_[MAX_NUM_KINECTS];
     int64_t kinect_last_saved_depth_time_[MAX_NUM_KINECTS];
@@ -93,6 +97,7 @@ namespace app {
     jtil::math::Double2 mouse_pos_old_;
     double frame_time_;
     double time_since_start_;
+    double remote_time_since_start_;
     double frame_time_prev_;
     static uint64_t screenshot_counter_;
     uint64_t depth_frame_number_;
