@@ -5,6 +5,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KinectHands", "KinectHands\
 	ProjectSection(ProjectDependencies) = postProject
 		{287F2B7F-A92D-4144-B56D-B0A87E5883EE} = {287F2B7F-A92D-4144-B56D-B0A87E5883EE}
 		{A6E0728B-50C6-4F44-88FA-AAF932B769DF} = {A6E0728B-50C6-4F44-88FA-AAF932B769DF}
+		{38CF39B1-A062-4B3E-8E7C-7A89F46B8431} = {38CF39B1-A062-4B3E-8E7C-7A89F46B8431}
 		{B6B147F5-C7F9-4E94-A58C-1B4855967A48} = {B6B147F5-C7F9-4E94-A58C-1B4855967A48}
 	EndProjectSection
 EndProject
@@ -59,6 +60,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "jtorch", "..\jtorch\jtorch.
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "jzmq", "..\jzmq\jzmq.vcxproj", "{38CF39B1-A062-4B3E-8E7C-7A89F46B8431}"
+	ProjectSection(ProjectDependencies) = postProject
+		{B6B147F5-C7F9-4E94-A58C-1B4855967A48} = {B6B147F5-C7F9-4E94-A58C-1B4855967A48}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

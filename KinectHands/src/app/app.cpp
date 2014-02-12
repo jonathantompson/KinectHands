@@ -169,6 +169,8 @@ namespace app {
       std::stringstream conn_str;
       conn_str << "tcp://*:" << time_server_port;
       time_server_conn_ = new jzmq::Publisher(conn_str.str());
+      time_server_conn_->initConn();
+      time_server_conn_->setSendHighWaterMark(2);  // Don't queue messages
     } else {
       // We're a subscriber so we'll get the app time from the producer
       Int4 ip;
@@ -177,8 +179,9 @@ namespace app {
       conn_str << "tcp://" << ip[0] << "." << ip[1] << "." << ip[2] << ".";
       conn_str << ip[3] << ":" << time_server_port;
       time_server_conn_ = new jzmq::Subscriber(conn_str.str());
+      time_server_conn_->initConn();
+      time_server_conn_->setReceiveHighWaterMark(2);  // Don't queue messages
     }
-    time_server_conn_->initConn();
   }
 
   void App::killApp() {
