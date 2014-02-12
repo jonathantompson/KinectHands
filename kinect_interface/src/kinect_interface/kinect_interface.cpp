@@ -762,6 +762,18 @@ namespace kinect_interface {
     }
   }
 
+  const XYPoint* KinectInterface::getDepthLookupTable() {
+    uint32_t cnt = 0;
+    PointF* table_pts = NULL;
+    CALL_SAFE(coord_mapper_->GetDepthFrameToCameraSpaceTable(&cnt, &table_pts),
+      "ERROR: Could get depth to camera space lookup table.");
+    if (cnt != depth_dim) {
+      throw std::wruntime_error("KinectInterface::getDepthLookupTable() - "
+        "ERROR: length to camera space table is incorrect");
+    }
+    return (XYPoint*)table_pts;
+  }
+
 }  // namespace kinect
 
 

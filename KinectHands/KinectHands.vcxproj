@@ -83,12 +83,8 @@
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>COPY /Y $(SolutionDir)lib\WIN7\OpenNI2.dll $(SolutionDir)OpenNI2.dll
-COPY /Y $(SolutionDir)lib\WIN7\OpenNI.ini $(SolutionDir)OpenNI.ini
-COPY /Y $(SolutionDir)lib\WIN7\PS1080.ini $(SolutionDir)PS1080.ini
-mkdir $(SolutionDir)OpenNI2\Drivers
-COPY /Y $(SolutionDir)lib\WIN7\OpenNI2\Drivers\* $(SolutionDir)OpenNI2\Drivers
-</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -115,12 +111,8 @@ COPY /Y $(SolutionDir)lib\WIN7\OpenNI2\Drivers\* $(SolutionDir)OpenNI2\Drivers
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>COPY /Y $(SolutionDir)lib\WIN7\OpenNI2.dll $(SolutionDir)OpenNI2.dll
-COPY /Y $(SolutionDir)lib\WIN7\OpenNI.ini $(SolutionDir)OpenNI.ini
-COPY /Y $(SolutionDir)lib\WIN7\PS1080.ini $(SolutionDir)PS1080.ini
-mkdir $(SolutionDir)OpenNI2\Drivers
-COPY /Y $(SolutionDir)lib\WIN7\OpenNI2\Drivers\* $(SolutionDir)OpenNI2\Drivers
-</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

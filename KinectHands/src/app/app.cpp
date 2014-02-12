@@ -703,8 +703,10 @@ namespace app {
     ui->addCheckbox("continuous_snapshot", "Save continuous video stream");
     ui->addCheckbox("compress_data", "Compress video stream");
 
-    ui->addButton("screenshot_button", "RGB Screenshot", 
+    ui->addButton("screenshot_button", "RGB/Depth/Lookup Screenshot", 
       App::screenshotCB);
+    int w = ui->getElementWidth("screenshot_button");
+    ui->setElementWidth("screenshot_button", w*3/2);
     ui->addButton("reset_camera_button", "Reset Camera Position", 
       App::resetCameraCB);
 
@@ -804,6 +806,7 @@ namespace app {
 
   void App::screenshotCB() {
     int cur_kinect = 0;
+    // SAVE THE RGB
     GET_SETTING("cur_kinect", int, cur_kinect);
     g_app_->kinects_[cur_kinect]->lockData();
     const uint8_t* rgb_src;
@@ -813,11 +816,16 @@ namespace app {
     jtil::renderer::Texture::saveRGBToFile(ss.str(), rgb_src, rgb_w, 
       rgb_h, true);
     std::cout << "RGB saved to file " << ss.str() << std::endl;
+    // SAVE THE DEPTH
     const uint16_t* depth =  g_app_->kinects_[cur_kinect]->depth();
     ss.str("");
     ss << "depth_screenshot" << g_app_->screenshot_counter_ << ".bin";
     jtil::file_io::SaveArrayToFile<uint16_t>(depth, depth_dim, ss.str());
     std::cout << "Depth saved to file " << ss.str() << std::endl;
+    // SAVE THE DEPTH LOOKUP TABLE
+    const XYPoint* table = g_app_->kinects_[cur_kinect]->getDepthLookupTable();
+    jtil::file_io::SaveArrayToFile<XYPoint>(table, depth_dim, 
+      "depth_lookup_table.bin");
     g_app_->screenshot_counter_++;
     g_app_->kinects_[cur_kinect]->unlockData();
   }

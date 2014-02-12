@@ -81,3 +81,7 @@ Modified_OpenNI_src
 libOpenNI2.dylib
 KinectHands_release
 KinectHands_debug
+
+depth_lookup_table.bin
+depth_screenshot*.bin
+rgb_screenshot*.jpg

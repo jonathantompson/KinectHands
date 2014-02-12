@@ -105,18 +105,21 @@ namespace kinect_interface {
 
     static void getDeviceIDs(jtil::data_str::VectorManaged<const char*>& ids);
 
-    const uint8_t* rgb() const;  // NOT THREAD SAFE!  Use lockData()
-    const XYZPoint* xyz() const;  // NOT THREAD SAFE!  Use lockData()
-    const uint16_t* depth() const;  // NOT THREAD SAFE!  Use lockData()
-    const uint8_t* depth_colored() const;  // NOT THREAD SAFE!  Use lockData()
-    const jtil::math::Float3* user_joints(const uint32_t user) const;  // NOT THREAD SAFE! Use lockData()
-    const bool* user_tracked() const;  // NOT THREAD SAFE! Use lockData()
+    // NOTE: NONE of the following functions are thread safe.  Use lockData()
+    // before getting any data from the kinect.
+    const uint8_t* rgb() const;
+    const XYZPoint* xyz() const;
+    const uint16_t* depth() const;
+    const uint8_t* depth_colored() const;
+    const jtil::math::Float3* user_joints(const uint32_t user) const;
+    const bool* user_tracked() const;
     const int64_t depth_frame_time() const { return depth_frame_time_; }
     const int64_t depth_first_frame_time() const { return depth_first_frame_time_; }
     const uint64_t depth_frame_number() const { return depth_frame_number_; }
     const int64_t rgb_frame_time() const { return rgb_frame_time_; }
     const uint64_t rgb_frame_number() const { return rgb_frame_number_; }
     const char* kinect_fps_str() const { return kinect_fps_str_; }
+    const XYPoint* getDepthLookupTable();
 
     void setSyncRGB(const bool sync_rgb);
     void setSyncDepth(const bool sync_depth);
