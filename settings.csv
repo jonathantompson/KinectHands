@@ -26,7 +26,7 @@ detect_pose,                      bool,      0
 detect_heat_map,                  bool,      0
 //, If is_time_server == 1 on start --> This instance is a time server
 //, If is_time_server == 0 on start --> Get app time from the time_server_ip
-is_time_server,                   bool,      1
+is_time_server,                   bool,      0
 time_server_ip,                   Int4,      128, 122, 140, 118
 time_server_port,                 int,       5558
 

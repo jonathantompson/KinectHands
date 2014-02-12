@@ -525,8 +525,8 @@ namespace app {
         int64_t t_min = (int64_t)remote_time_since_start_ / 60 % 60;
         double t_sec = remote_time_since_start_ - 
           (double)(t_days * 60 * 60 * 24 + t_hrs * 60 * 60 + t_min * 60);
-        ss << "Time: " << t_days << "D " << t_hrs << "H " << t_min << "N " <<
-          t_sec << "S";
+        ss << "Time " << t_days << ":" << t_hrs << ":" << t_min << ":" << 
+          t_sec;
         Renderer::g_renderer()->ui()->setTextWindowString("kinect_fps_wnd",
           ss.str().c_str());
 
