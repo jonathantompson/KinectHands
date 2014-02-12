@@ -164,6 +164,7 @@ namespace app {
     GET_SETTING("is_time_server", bool, is_time_server);
     GET_SETTING("time_server_port", int, time_server_port);
     if (is_time_server) {
+      is_time_server_ = true;
       // We're going to broadcast the time of this app to all subscribers
       std::stringstream conn_str;
       conn_str << "tcp://*:" << time_server_port;
@@ -254,7 +255,7 @@ namespace app {
 
       if (is_time_server_) {
         // Broadcast the time
-        uint64_t timeout_ms = 0;  // Non-blocking
+        int timeout_ms = 0;  // Non-blocking
         char data_packet[sizeof(time_since_start_) + 1];
         memcpy(data_packet, &time_since_start_, sizeof(time_since_start_));
         int bytes_sent = time_server_conn_->sendData(data_packet, 
@@ -264,9 +265,9 @@ namespace app {
         remote_time_since_start_ = time_since_start_;
       } else {
         // Receive the time from the time server
-        uint64_t timeout_ms = 0;  // Non-blocking
+        int timeout_ms = 0;  // Non-blocking
         char data_packet[sizeof(remote_time_since_start_) + 1];
-        uint32_t bytes_received = 0;
+        int bytes_received = 0;
         // Get all the packets (so that we have the latest time on the queue)
         do {
           bytes_received = time_server_conn_->receiveData(data_packet, 
@@ -519,6 +520,13 @@ namespace app {
         for (uint32_t i = 0; i < num_kinects_; i++) {
           ss << "K" << i << ": " << kinects_[i]->kinect_fps_str() << "fps, ";
         }
+        int64_t t_days = (int64_t)remote_time_since_start_ / (60 * 60 * 24);
+        int64_t t_hrs = (int64_t)remote_time_since_start_ / (60 * 60) % 24;
+        int64_t t_min = (int64_t)remote_time_since_start_ / 60 % 60;
+        double t_sec = remote_time_since_start_ - 
+          (double)(t_days * 60 * 60 * 24 + t_hrs * 60 * 60 + t_min * 60);
+        ss << "Time: " << t_days << "D " << t_hrs << "H " << t_min << "N " <<
+          t_sec << "S";
         Renderer::g_renderer()->ui()->setTextWindowString("kinect_fps_wnd",
           ss.str().c_str());
 
