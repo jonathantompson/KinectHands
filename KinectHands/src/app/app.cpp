@@ -827,8 +827,14 @@ namespace app {
     std::cout << "Depth saved to file " << ss.str() << std::endl;
     // SAVE THE DEPTH LOOKUP TABLE
     const XYPoint* table = g_app_->kinects_[cur_kinect]->getDepthLookupTable();
-    jtil::file_io::SaveArrayToFile<XYPoint>(table, depth_dim, 
+    float* table_f = new float[depth_dim*2];
+    for (uint32_t i = 0; i < depth_dim; i++) {
+      table_f[i*2] = table[i].x;
+      table_f[i*2+1] = table[i].y;
+    }
+    jtil::file_io::SaveArrayToFile<float>(table_f, depth_dim * 2, 
       "depth_lookup_table.bin");
+    delete[] table_f;
     g_app_->screenshot_counter_++;
     g_app_->kinects_[cur_kinect]->unlockData();
   }
