@@ -69,6 +69,7 @@ namespace app {
     depth_frame_number_ = 0;
     num_kinects_ = 0;
     time_server_conn_ = NULL;
+    depth_undistort_lookup_table = NULL;
     hd_ = NULL;
     for (uint32_t i = 0; i < MAX_NUM_KINECTS; i++) {
       kinect_last_saved_depth_time_[i] = 0;
@@ -87,6 +88,7 @@ namespace app {
     SAFE_DELETE(depth_tex_);
     SAFE_DELETE(rgb_tex_);
     SAFE_DELETE(data_save_cbs_);
+    SAFE_DELETE_ARR(depth_undistort_lookup_table);
     if (tp_) {
       tp_->stop();
     }
@@ -155,6 +157,7 @@ namespace app {
     }
 
     initRainbowPallet();
+    depth_undistort_lookup_table = KinectInterface::loadDepthUndistortLookupTable();
 
     hd_ = new HandDetector(tp_);
     hd_->init(depth_w, depth_h);
@@ -372,6 +375,18 @@ namespace app {
             }
           }
           break;
+        case OUTPUT_DEPTH_UNDISTORT:
+          {
+            KinectInterface::undistortDepthPointwise(
+              depth_undistort_lookup_table, depth_, depth_undistorted_);
+            for (uint32_t i = 0; i < depth_dim; i++) {
+              const uint8_t val = (depth_undistorted_[i] / 2) % 255;
+              depth_im_[i*3] = val;
+              depth_im_[i*3+1] = val;
+              depth_im_[i*3+2] = val;
+            }
+          }
+          break;
         case OUTPUT_DEPTH_ALL_VIEWS:
           {
             const uint32_t n_tiles_x = 
@@ -550,6 +565,7 @@ namespace app {
           Renderer::g_renderer()->setBackgroundTexture(rgb_tex_);
           break;
         case OUTPUT_DEPTH:
+        case OUTPUT_DEPTH_UNDISTORT:
         case OUTPUT_DEPTH_ALL_VIEWS:
         case OUTPUT_DEPTH_RAINBOW:
         case OUTPUT_BLUE:
@@ -693,6 +709,8 @@ namespace app {
       ui::UIEnumVal(OUTPUT_RGB, "RGB / IR"));
     ui->addSelectboxItem("kinect_output", 
       ui::UIEnumVal(OUTPUT_DEPTH, "Depth"));
+    ui->addSelectboxItem("kinect_output",
+      ui::UIEnumVal(OUTPUT_DEPTH_UNDISTORT, "Depth undistorted"));
     ui->addSelectboxItem("kinect_output",
       ui::UIEnumVal(OUTPUT_DEPTH_ALL_VIEWS, "Depth (all views)"));
     ui->addSelectboxItem("kinect_output", 

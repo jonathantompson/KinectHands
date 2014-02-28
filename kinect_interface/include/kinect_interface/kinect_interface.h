@@ -76,6 +76,12 @@ namespace kinect_interface {
   const float depth_hfov = 70.6f;  // (horizontal)
   const float depth_vfov = 60.0f;  // (vertical)
 
+  // Better values: Use the Matlab script fit_lookup_table.m (in NYUResearch)
+  const float depth_hfov_fit = 69.7867f;  // (horizontal)
+  const float depth_vfov_fit = 60.0184f;  // (vertical)
+  const float depth_principle_uv[2] = {248.5964f, 204.7525f};
+  const float depth_dist_k[3] = {0.089928f, -0.27283f, 0.099303f};
+
   const uint32_t rgb_w = 1920;
   const uint32_t rgb_h = 1080;
   const uint32_t rgb_dim = rgb_w * rgb_h;
@@ -155,6 +161,13 @@ namespace kinect_interface {
       const uint16_t* depth, float* xyz);  
     static void convertXYZToApproxUVD(const uint32_t n_pts, 
       const float* xyz, float* uvd);
+
+    // Methods to undistort depth images (undo radial distortion)
+    // Note: Ownership for memory for the lookup table is transfered to the 
+    // caller (and should be freed when appropriate)
+    static float* loadDepthUndistortLookupTable();
+    static void undistortDepthPointwise(const float* lookup_table, 
+      const uint16_t* depth, uint16_t* depth_out);
 
   private:
     bool sync_depth_;  // default true

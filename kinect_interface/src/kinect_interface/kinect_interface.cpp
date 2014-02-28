@@ -669,8 +669,8 @@ namespace kinect_interface {
   // FROM: XnOpenNI.cpp (and slightly edited)
   void KinectInterface::convertUVDToApproxXYZ(const uint32_t n_pts, 
     const float* uvd, float* xyz) {
-    float depth_vfov_rad = 2.0f * (float)M_PI * (depth_vfov / 360.0f);
-    float depth_hfov_rad = 2.0f * (float)M_PI * (depth_hfov / 360.0f);
+    float depth_vfov_rad = 2.0f * (float)M_PI * (depth_vfov_fit / 360.0f);
+    float depth_hfov_rad = 2.0f * (float)M_PI * (depth_hfov_fit / 360.0f);
     float fXToZ = tanf(depth_hfov_rad/2)*2;
     float fYToZ = tanf(depth_vfov_rad/2)*2;
     
@@ -693,8 +693,8 @@ namespace kinect_interface {
   // FROM: XnOpenNI.cpp (and slightly edited)
   void KinectInterface::convertDepthFrameToApproxXYZ(const uint32_t n_pts, 
     const uint16_t* depth, XYZPoint* xyz) {
-    float depth_vfov_rad = 2.0f * (float)M_PI * (depth_vfov / 360.0f);
-    float depth_hfov_rad = 2.0f * (float)M_PI * (depth_hfov / 360.0f);
+    float depth_vfov_rad = 2.0f * (float)M_PI * (depth_vfov_fit / 360.0f);
+    float depth_hfov_rad = 2.0f * (float)M_PI * (depth_hfov_fit / 360.0f);
     float fXToZ = tanf(depth_hfov_rad / 2) * 2;
     float fYToZ = tanf(depth_vfov_rad / 2) * 2;
     
@@ -718,8 +718,8 @@ namespace kinect_interface {
   // FROM: XnOpenNI.cpp (and slightly edited)
   void KinectInterface::convertDepthFrameToApproxXYZ(const uint32_t n_pts, 
     const uint16_t* depth, float* xyz) {
-    float depth_vfov_rad = 2.0f * (float)M_PI * (depth_vfov / 360.0f);
-    float depth_hfov_rad = 2.0f * (float)M_PI * (depth_hfov / 360.0f);
+    float depth_vfov_rad = 2.0f * (float)M_PI * (depth_vfov_fit / 360.0f);
+    float depth_hfov_rad = 2.0f * (float)M_PI * (depth_hfov_fit / 360.0f);
     float fXToZ = tanf(depth_hfov_rad / 2) * 2;
     float fYToZ = tanf(depth_vfov_rad / 2) * 2;
     
@@ -743,8 +743,8 @@ namespace kinect_interface {
   // FROM: XnOpenNI.cpp (and slightly edited)
   void KinectInterface::convertXYZToApproxUVD(const uint32_t n_pts, 
     const float* xyz, float* uvd) {
-    float depth_vfov_rad = 2.0f * (float)M_PI * (depth_vfov / 360.0f);
-    float depth_hfov_rad = 2.0f * (float)M_PI * (depth_hfov / 360.0f);
+    float depth_vfov_rad = 2.0f * (float)M_PI * (depth_vfov_fit / 360.0f);
+    float depth_hfov_rad = 2.0f * (float)M_PI * (depth_hfov_fit / 360.0f);
     float fXToZ = tanf(depth_hfov_rad / 2) * 2;
     float fYToZ = tanf(depth_vfov_rad / 2) * 2;
     
@@ -772,6 +772,28 @@ namespace kinect_interface {
         "ERROR: length to camera space table is incorrect");
     }
     return (XYPoint*)table_pts;
+  }
+
+  float* KinectInterface::loadDepthUndistortLookupTable() {
+    float* lookup = new float[depth_w * depth_h * 2];
+    jtil::file_io::LoadArrayFromFile<float>(lookup, depth_w * depth_h * 2,
+      "depth_undistort_lookup_table.bin");
+    return lookup;
+  }
+
+
+  void KinectInterface::undistortDepthPointwise(const float* lookup_table, 
+    const uint16_t* depth, uint16_t* depth_out) {
+    for (uint32_t i = 0; i < depth_dim; i++) {
+      uint32_t u = static_cast<uint32_t>(lookup_table[i * 2]);
+      uint32_t v = static_cast<uint32_t>(lookup_table[i * 2 + 1]);
+      if (u >= 0 && u < depth_w && v >= 0 && v < depth_h) {
+        uint32_t isrc = v * depth_w + u;
+        depth_out[i] = depth[isrc];
+      } else {
+        depth_out[i] = 0;
+      }
+    }
   }
 
 }  // namespace kinect

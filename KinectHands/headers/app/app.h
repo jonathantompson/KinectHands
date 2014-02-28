@@ -31,10 +31,11 @@ namespace app {
   typedef enum {
     OUTPUT_RGB = 0,
     OUTPUT_DEPTH = 1,
-    OUTPUT_DEPTH_ALL_VIEWS = 2,
-    OUTPUT_DEPTH_RAINBOW = 3,
-    OUTPUT_DEPTH_COLORED = 4,
-    OUTPUT_BLUE = 5,
+    OUTPUT_DEPTH_UNDISTORT = 2,
+    OUTPUT_DEPTH_ALL_VIEWS = 3,
+    OUTPUT_DEPTH_RAINBOW = 4,
+    OUTPUT_DEPTH_COLORED = 5,
+    OUTPUT_BLUE = 6,
   } KinectOutput;
 
   typedef enum {
@@ -106,9 +107,11 @@ namespace app {
     // We copy the kinect data here (at the cost of another O(n) copy) to avoid
     // holding the kinect's data lock too long.
     uint16_t depth_[kinect_interface::depth_dim];
+    uint16_t depth_undistorted_[kinect_interface::depth_dim];
     uint8_t depth_colored_[kinect_interface::depth_dim * 3];
     uint8_t rgb_[kinect_interface::rgb_dim * 3];
     float xyz_[kinect_interface::depth_dim * 3];
+    float* depth_undistort_lookup_table;
 
     jtil::renderer::Texture* depth_tex_;
     jtil::renderer::Texture* rgb_tex_;
@@ -122,8 +125,8 @@ namespace app {
     // This temporary array is used to store the data to be saved.  We allocate
     // a little extra space just in case the compression inflates the data
     // (however this is very unlikely)
-    uint16_t* tmp_data1_[kinect_interface::depth_arr_size_bytes*MAX_NUM_KINECTS*2];
-    uint16_t* tmp_data2_[kinect_interface::depth_arr_size_bytes*MAX_NUM_KINECTS*2];
+    uint16_t tmp_data1_[kinect_interface::depth_arr_size_bytes*MAX_NUM_KINECTS*2];
+    uint16_t tmp_data2_[kinect_interface::depth_arr_size_bytes*MAX_NUM_KINECTS*2];
     
     // Randomized Decision Forest Hand Detector
     kinect_interface::hand_detector::HandDetector* hd_;
