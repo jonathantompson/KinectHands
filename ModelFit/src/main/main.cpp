@@ -1036,6 +1036,7 @@ void KeyboardCB(int key, int scancode, int action, int mods) {
         float* weights = icp.getLastWeights();
         float red[3] = {1, 0, 0};
         float blue[3] = {0, 0, 1};
+#if MAX_KINECTS > 1
         SAFE_DELETE(geometry_lines[k_src-1]);
         geometry_lines[k_src-1] = new GeometryColoredLines();
         for (uint32_t i = 0; i < (pc2.size()/3); i++) {
@@ -1045,6 +1046,7 @@ void KeyboardCB(int key, int scancode, int action, int mods) {
           }
         }
         geometry_lines[k_src-1]->syncVAO();
+#endif
 #endif
 
         // Now save the results to file
@@ -1363,7 +1365,7 @@ void renderFrame(float dt) {
         }
       }
 #endif
-#if PERFORM_ICP_FIT
+#ifdef PERFORM_ICP_FIT
       if (render_correspondances) {
         for (uint32_t k = 0; k < MAX_KINECTS - 1; k++) {
           if (geometry_lines[k] != NULL) {

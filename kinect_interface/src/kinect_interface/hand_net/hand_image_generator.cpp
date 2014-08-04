@@ -108,7 +108,7 @@ namespace hand_net {
     im_sizeu = HN_IM_SIZE;
     im_sizev = HN_IM_SIZE;
     for (int32_t i = 0; i < num_banks_; i++) {
-      hand_image_->add(new Tensor<float>(Int2(im_sizeu, im_sizev)));
+      hand_image_->add(new Tensor<float>(jcl::math::Int2(im_sizeu, im_sizev)));
 #ifdef HN_USE_RECT_LPF_KERNEL
       Tensor<float>* kernel = Tensor<float>::ones1D(HN_RECT_KERNEL_SIZE);
 #else
