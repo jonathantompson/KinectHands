@@ -40,7 +40,7 @@ for i = 1:length(dirs)
   [~, index] = sort({im_files.name});
   im_files = im_files(index);  % sort by name just in case it isn't
   rgb{i} = zeros(length(im_files), 480, 640, 3, 'uint8');
-  depth{i} = zeros(length(im_files), 480, 640, 'int16');
+  depth{i} = zeros(length(im_files), 480, 640, 'uint16');
   for f = 1:length(im_files)
     textprogressbar(100 * f / length(im_files));
     % The depth and rgb images are stored in a compressed file format.
@@ -57,3 +57,14 @@ for i = 1:length(dirs)
 end
 
 % Visualize some examples
+iexamples = randi([1 length(depth{1})], 1, 5);
+for i = 1:length(iexamples)
+  figure;
+  cur_depth = squeeze(double(depth{1}(iexamples(i),:,:)));
+  max_depth = max(cur_depth(:));
+  cur_depth(find(cur_depth <= 0)) = max_depth;
+  cur_depth = cur_depth - min(cur_depth(:));
+  cur_depth = cur_depth / max(cur_depth(:));
+  imshow(cur_depth);
+end
+

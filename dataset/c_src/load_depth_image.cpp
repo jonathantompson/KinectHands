@@ -106,12 +106,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   
   // Load the data in from our compressed format
   uint8_t* rgb = new uint8_t[im_dim * 3];
-  int16_t* depth = new int16_t[im_dim];
-  LoadKinectImage(filename, depth, rgb);
+  uint16_t* depth = new uint16_t[im_dim];
+  LoadKinectImage(filename, (int16_t*)depth, rgb);
   
   // Now copy the depth and rgb to the output structure
   mwSize depth_dims[3] = {im_h, im_w};
-  plhs[0] = mxCreateNumericArray(2, depth_dims, mxINT16_CLASS, mxREAL);
+  plhs[0] = mxCreateNumericArray(2, depth_dims, mxUINT16_CLASS, mxREAL);
   mwSize rgb_dims[3] = {im_h, im_w, 3};
   plhs[1] = mxCreateNumericArray(3, rgb_dims, mxUINT8_CLASS, mxREAL);
   

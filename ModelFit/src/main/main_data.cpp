@@ -52,7 +52,7 @@
 #include "model_fit/model_renderer.h"
 #include "model_fit/model_fit.h"
 #include "kinect_interface/depth_images_io.h"
-#include "kinect_interface/open_ni_funcs.h"
+#include "kinect_interface/kinect_interface.h"
 #include "renderer/gl_state.h"
 #include "kinect_interface/hand_net/hand_net.h"  // for HandCoeffConvnet
 #include "kinect_interface/hand_net/hand_image_generator.h"
@@ -191,18 +191,18 @@ HandGeometryMesh* model[2];
 HandModelCoeff* l_hand = NULL;  // Not using this yet
 HandModelCoeff* r_hand = NULL;
 ModelRenderer* hand_renderer = NULL;
-uint8_t label[src_dim];
+uint8_t label[depth_dim];
 
 // Kinect Image data
 DepthImagesIO* image_io = NULL;
 Vector<Triple<char*, int64_t, int64_t>> im_files;  // filename, kinect time, global time
 Vector<uint32_t> file_dir_indices;  // directory each file came from
-float cur_xyz_data[src_dim*3];
-float cur_uvd_data[src_dim*3];
-int16_t cur_depth_data[src_dim*3];
-float cur_synthetic_depth_data[src_dim*4];
-uint8_t cur_label_data[src_dim];
-uint8_t cur_image_rgb[src_dim*3];
+float cur_xyz_data[depth_dim*3];
+float cur_uvd_data[depth_dim*3];
+int16_t cur_depth_data[depth_dim*3];
+float cur_synthetic_depth_data[depth_dim*4];
+uint8_t cur_label_data[depth_dim];
+uint8_t cur_image_rgb[depth_dim*3];
 int32_t cur_image = 0;
 GeometryColoredPoints* geometry_points= NULL;
 bool render_depth = true;
@@ -319,10 +319,10 @@ void loadCurrentImage(bool calc_hand_image = true) {
   im = hand_image_generator_->hpf_hand_image_cpu();
   LoadArrayFromFile<float>(const_cast<float*>(im), HN_IM_SIZE * HN_IM_SIZE, 
     full_hpf_im_filename);
-  memset(cur_depth_data, 0, src_dim * sizeof(cur_depth_data[0]));
-  memset(cur_label_data, 0, src_dim * sizeof(cur_label_data[0]));
-  memset(cur_image_rgb, 0, 3 * src_dim * sizeof(cur_image_rgb[0]));
-  memset(cur_xyz_data, 0, 3 * src_dim * sizeof(cur_xyz_data[0]));
+  memset(cur_depth_data, 0, depth_dim * sizeof(cur_depth_data[0]));
+  memset(cur_label_data, 0, depth_dim * sizeof(cur_label_data[0]));
+  memset(cur_image_rgb, 0, 3 * depth_dim * sizeof(cur_image_rgb[0]));
+  memset(cur_xyz_data, 0, 3 * depth_dim * sizeof(cur_xyz_data[0]));
 
   string src_file = im_files[cur_image].first;
   src_file = src_file.substr(10, src_file.length());
@@ -339,7 +339,7 @@ void loadCurrentImage(bool calc_hand_image = true) {
   openni_funcs.ConvertDepthImageToProjective((uint16_t*)cur_depth_data, 
     cur_uvd_data);
   openni_funcs.convertDepthToWorldCoordinates(cur_uvd_data, cur_xyz_data, 
-    src_dim);
+    depth_dim);
   found_hand = hand_detect->findHandLabels(cur_depth_data, 
     cur_xyz_data, HDLabelMethod::HDFloodfill, label);
 
@@ -383,7 +383,7 @@ void loadCurrentImage(bool calc_hand_image = true) {
 
     //// TEMP CODE:
     //printf("TEMP CODE FOR KEN\n");
-    //jtil::file_io::SaveArrayToFile<int16_t>(cur_depth_data, src_dim,
+    //jtil::file_io::SaveArrayToFile<int16_t>(cur_depth_data, depth_dim,
     //  full_filename + ".ken");  
     //printf("saved %s.ken\n", full_filename.c_str());
     //const float* hand_im = hand_image_generator_->hpf_hand_image_cpu();

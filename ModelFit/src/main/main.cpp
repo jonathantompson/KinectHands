@@ -72,7 +72,7 @@
 #define ICP_MAX_DISTANCE_SQ 1600.0f  // 4cm ^ 2 = 40mm ^ 2
 #define MAX_ICP_PTS 100000 
 
-// #define BACKUP_HDD
+#define BACKUP_HDD
 #define IM_DIR_BASE string("hand_depth_data/")
 
 #define MAX_KINECTS 1
@@ -82,7 +82,7 @@
   #error "Apple is not yet supported!"
 #else
 #ifdef BACKUP_HDD
-    #define KINECT_HANDS_ROOT string("D:/hand_data/")
+    #define KINECT_HANDS_ROOT string("F:/hand_data/")
   #else
     #define KINECT_HANDS_ROOT string("./../data/")
   #endif
