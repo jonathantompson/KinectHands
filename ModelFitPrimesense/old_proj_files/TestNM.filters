@@ -1,0 +1,207 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\src">
+      <UniqueIdentifier>{78741596-a4dc-4fb7-8e6c-3fdf38a0d986}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\src\main">
+      <UniqueIdentifier>{07b115b3-cd68-4389-a918-e591ca1fd010}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\src\hand_model">
+      <UniqueIdentifier>{b3376c1f-f7e9-4abf-8dfd-ef1122eb4592}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\src\threading">
+      <UniqueIdentifier>{26ede9dd-0efc-4789-adb3-a5cd6f3fe525}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\src\alignment">
+      <UniqueIdentifier>{04328138-dbf1-4823-8333-b0e018f88e2b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\src\camera">
+      <UniqueIdentifier>{0e1bdb40-77de-4af5-add5-4a8b801b53b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\src\clock">
+      <UniqueIdentifier>{e6591354-284d-4923-b42e-861c36ae5329}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\src\data_str">
+      <UniqueIdentifier>{47188219-ac38-4a09-a6d6-2b3f3ae6ed23}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\src\exceptions">
+      <UniqueIdentifier>{7d660052-7090-4ef4-8b8d-4dbbd5eedde7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\src\math">
+      <UniqueIdentifier>{5ba11d80-c39a-4f92-bbb0-cae8d95fa31c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\src\string_util">
+      <UniqueIdentifier>{265f37e8-b872-4860-a0ac-4ac9ca4c2560}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\src\renderer">
+      <UniqueIdentifier>{72199aa6-e699-42f5-bceb-0576c776889d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\src\file_io">
+      <UniqueIdentifier>{e44d26a4-c20e-4944-8050-b1492b7a4b02}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main\main.cpp">
+      <Filter>Source Files\src\main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\hand_model\hand_model.cpp">
+      <Filter>Source Files\src\hand_model</Filter>
+    </ClCompile>
+    <ClCompile Include="src\threading\thread.cpp">
+      <Filter>Source Files\src\threading</Filter>
+    </ClCompile>
+    <ClCompile Include="src\threading\thread_pool.cpp">
+      <Filter>Source Files\src\threading</Filter>
+    </ClCompile>
+    <ClCompile Include="src\camera\camera.cpp">
+      <Filter>Source Files\src\camera</Filter>
+    </ClCompile>
+    <ClCompile Include="src\data_str\hash_funcs.cpp">
+      <Filter>Source Files\src\data_str</Filter>
+    </ClCompile>
+    <ClCompile Include="src\exceptions\wruntime_error.cpp">
+      <Filter>Source Files\src\exceptions</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\math_base.cpp">
+      <Filter>Source Files\src\math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\string_util\string_util.cpp">
+      <Filter>Source Files\src\string_util</Filter>
+    </ClCompile>
+    <ClCompile Include="src\renderer\open_gl.cpp">
+      <Filter>Source Files\src\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\renderer\draw_primatives.cpp">
+      <Filter>Source Files\src\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\file_io\file_io.cpp">
+      <Filter>Source Files\src\file_io</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\optimization.cpp">
+      <Filter>Source Files\src\math</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\hand_model\hand_model.h">
+      <Filter>Source Files\src\hand_model</Filter>
+    </ClInclude>
+    <ClInclude Include="src\threading\callback_queue.h">
+      <Filter>Source Files\src\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="src\threading\callback_queue_item.h">
+      <Filter>Source Files\src\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="src\threading\thread.h">
+      <Filter>Source Files\src\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="src\threading\thread_pool.h">
+      <Filter>Source Files\src\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="src\threading\callback.h">
+      <Filter>Source Files\src\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="src\threading\callback_instances.h">
+      <Filter>Source Files\src\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="src\alignment\data_align.h">
+      <Filter>Source Files\src\alignment</Filter>
+    </ClInclude>
+    <ClInclude Include="src\camera\camera.h">
+      <Filter>Source Files\src\camera</Filter>
+    </ClInclude>
+    <ClInclude Include="src\clock\clock.h">
+      <Filter>Source Files\src\clock</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\hash_map.h">
+      <Filter>Source Files\src\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\hash_map_managed.h">
+      <Filter>Source Files\src\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\hash_set.h">
+      <Filter>Source Files\src\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\min_heap.h">
+      <Filter>Source Files\src\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\pair.h">
+      <Filter>Source Files\src\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\vector.h">
+      <Filter>Source Files\src\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\vector_managed.h">
+      <Filter>Source Files\src\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\circular_buffer.h">
+      <Filter>Source Files\src\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\data_str\hash_funcs.h">
+      <Filter>Source Files\src\data_str</Filter>
+    </ClInclude>
+    <ClInclude Include="src\exceptions\wruntime_error.h">
+      <Filter>Source Files\src\exceptions</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\math_base.h">
+      <Filter>Source Files\src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\math_types.h">
+      <Filter>Source Files\src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\plane.h">
+      <Filter>Source Files\src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\quat.h">
+      <Filter>Source Files\src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\vec2.h">
+      <Filter>Source Files\src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\vec3.h">
+      <Filter>Source Files\src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\vec4.h">
+      <Filter>Source Files\src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\mat2x2.h">
+      <Filter>Source Files\src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\mat3x3.h">
+      <Filter>Source Files\src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\mat4x4.h">
+      <Filter>Source Files\src\math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\string_util\string_util.h">
+      <Filter>Source Files\src\string_util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\string_util\win32_debug_buffer.h">
+      <Filter>Source Files\src\string_util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\renderer\open_gl.h">
+      <Filter>Source Files\src\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\renderer\draw_primatives.h">
+      <Filter>Source Files\src\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\file_io\file_io.h">
+      <Filter>Source Files\src\file_io</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\optimization.h">
+      <Filter>Source Files\src\math</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
