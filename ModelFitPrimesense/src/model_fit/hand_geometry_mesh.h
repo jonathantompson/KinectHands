@@ -65,6 +65,12 @@ namespace model_fit {
       const jtil::math::Float3& uvd_com, const jtil::math::Float4x4& proj_mat, 
       const jtil::math::Float4x4& view_mat);
 
+    // This is in 640x480 space
+    void handCoeff2UVD(kinect_interface_primesense::hand_net::HandModelCoeff* hand, 
+      float* coeff_uvd, const jtil::math::Int4& hand_pos_wh, 
+      const jtil::math::Float3& uvd_com, const jtil::math::Float4x4& proj_mat, 
+      const jtil::math::Float4x4& view_mat);
+
     virtual void renderStackReset();
     virtual renderer::Geometry* renderStackPop();
     virtual bool renderStackEmpty();
@@ -131,6 +137,11 @@ namespace model_fit {
 
     void extractPositionForConvnet(kinect_interface_primesense::hand_net::HandModelCoeff* hand, 
       float* coeff_convnet, const jtil::math::Int4& hand_pos_wh, 
+      const jtil::math::Float3& uvd_com, const uint32_t b_sphere_index, 
+      const uint32_t convnet_U_index, const jtil::math::Float4x4& proj_mat, 
+      const jtil::math::Float4x4& view_mat);
+    void extractPositionForUVD(kinect_interface_primesense::hand_net::HandModelCoeff* hand, 
+      float* coeff_UVD, const jtil::math::Int4& hand_pos_wh, 
       const jtil::math::Float3& uvd_com, const uint32_t b_sphere_index, 
       const uint32_t convnet_U_index, const jtil::math::Float4x4& proj_mat, 
       const jtil::math::Float4x4& view_mat);

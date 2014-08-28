@@ -179,7 +179,7 @@ namespace kinect_interface_primesense {
   }
 
   // From OniStream.cpp (and edited)
-  //h ttps://github.com/OpenNI/OpenNI2/blob/master/Source/Core/OniStream.cpp
+  // https://github.com/OpenNI/OpenNI2/blob/master/Source/Core/OniStream.cpp
   void OpenNIFuncs::convertDepthToWorldCoordinates(const float* uvd, float* xyz, 
     const uint32_t nCount) {
 #ifdef OPEN_NI_FUNCS_USE_OMP

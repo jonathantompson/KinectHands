@@ -474,6 +474,27 @@ namespace model_fit {
     }
   }
 
+  void HandGeometryMesh::handCoeff2UVD(HandModelCoeff* hand,
+    float* coeff_convnet, const Int4& hand_pos_wh, const Float3& uvd_com,
+    const Float4x4& proj_mat, const Float4x4& view_mat) {
+    // Thumb and fingers are actually learned as salient points -->
+    // Luckily we have a good way to get these.  Use the positions of some of
+    // the key bounding sphere positions --> Then project these into UV.
+    root = NULL;
+    setRendererAttachement(false);
+    setCurrentStaticHandProperties(hand->coeff());
+    updateMatrices(hand->coeff());
+    updateHeirachyMatrices();
+    fixBoundingSphereMatrices();
+ 
+    // Project the XYZ position into UV space
+    // Use the bounding sphere centers since they are already in good positions
+    for (uint32_t i = 0; i < num_convnet_feats; i++) {
+      extractPositionForUVD(hand, coeff_convnet, hand_pos_wh, uvd_com,
+        convnet_sphere_indices[i], i * FEATURE_SIZE, proj_mat, view_mat);
+    }
+  }
+
   Float4x4 root_inverse, tmp;
   void HandGeometryMesh::extractPositionForConvnet(HandModelCoeff* hand, 
     float* coeff_convnet, const Int4& hand_pos_wh, const Float3& uvd_com,
@@ -511,6 +532,46 @@ namespace model_fit {
     if (FEATURE_SIZE >= 3) {
       coeff_convnet[convnet_U_index+2] = ((*sphere->transformed_center())[2] - 
         dmin) / HN_HAND_SIZE;
+    }
+  }
+
+  void HandGeometryMesh::extractPositionForUVD(HandModelCoeff* hand, 
+    float* coeff_convnet, const Int4& hand_pos_wh, const Float3& uvd_com,
+    const uint32_t b_sphere_index, const uint32_t convnet_U_index,
+    const Float4x4& proj_mat, const Float4x4& view_mat) {
+    const float* coeff = hand->coeff();
+    float dmin = uvd_com[2] - (HN_HAND_SIZE * 0.5f);
+    BoundingSphere* sphere = PoseModel::g_b_spheres[b_sphere_index];
+    //BoundingSphere* sphere = bspheres_[b_sphere_index];
+
+    // This is a bit of a hack, but we have to undo the parent's root
+    // transform (by left multiplying by its inverse).
+    // Then we have to left multiply by the mesh node's transform
+    Geometry* cur_root = sphere->hand_root();
+    if (cur_root != root) {
+      Float4x4::inverse(root_inverse, *sphere->hand_root()->mat());
+      root = cur_root;
+    }
+    Float4x4::mult(tmp, root_inverse, *sphere->mat_hierarchy());
+    Float4x4::mult(*sphere->mat_hierarchy(), *sphere->mesh_node()->mat_hierarchy(), tmp);
+
+    // NOTE, WE COULD PROBABLY JUST MULTIPLY THE ALREADY CALCULATED BONE 
+    // TRANSFORM WITH THE MESH_NODE'S TRANSFORM TO AVOID THE INVERSE TWICE (AND
+    // SAVE ON A FEW CALCULATIONS):
+    // sphere->mat_hierarchy() = sphere->mesh_node()->mat_hierarchy() * BONE_TRANSFORM
+    // But I don't want to touch it in case I break it.
+    
+    sphere->transform();
+
+    Float2 pos_uv;
+    calcHandImageUVFromXYZ(*sphere->transformed_center(), pos_uv, hand_pos_wh,
+      proj_mat, view_mat);
+    coeff_convnet[convnet_U_index] = pos_uv[0]  * 
+      (float)hand_pos_wh[2] + (float)hand_pos_wh[0];
+    coeff_convnet[convnet_U_index+1] = pos_uv[1]  * 
+      (float)hand_pos_wh[3] + (float)hand_pos_wh[1];
+    if (FEATURE_SIZE >= 3) {
+      coeff_convnet[convnet_U_index+2] = (*sphere->transformed_center())[2];
     }
   }
 

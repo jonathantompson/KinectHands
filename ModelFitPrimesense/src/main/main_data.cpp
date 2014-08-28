@@ -128,7 +128,7 @@ string im_dirs[num_im_dirs] = {
 //                              // takes effect when not loading processed images)
 // #define MEASURE_PERFORMANCE_ON_STARTUP  // Use RDF + Convnet to figure out UV   ******* FOR PAPER *******
                                            // positions and compares against truth
-#define VISUALIZE_HEAT_MAPS // Requires extra processing...
+//#define VISUALIZE_HEAT_MAPS // Requires extra processing...
 
 //#define SAVE_DEPTH_IMAGES  // Save the regular depth files --> Only when SAVE_FILES defined
 //#define SAVE_HPF_IMAGES  // Save the hpf files --> Only when SAVE_FILES defined
@@ -211,7 +211,7 @@ uint8_t cur_label_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
 uint8_t cur_depth_rgb[src_dim*3];  // Used when exporting to PNG
 int32_t cur_image = 0;
-int32_t cur_kinect = 0;
+int32_t cur_kinect = 1;
 GeometryColoredPoints* geometry_points= NULL;
 bool render_depth = true;
 int playback_step = 1;
@@ -316,7 +316,7 @@ void loadCurrentImage(bool calc_hand_image = true) {
   }
 
   Float4x4 camera_view_inv, cur_view;
-  Float4x4::inverse(camera_view_inv, camera_view[0]);
+  Float4x4::inverse(camera_view_inv, camera_view[cur_kinect]);
   Float4x4::mult(cur_view, old_camera_view, camera_view_inv);
   hand_renderer->camera(0)->view()->set(cur_view);
   hand_renderer->camera(0)->set_view_mat_directly = true;
@@ -372,6 +372,9 @@ void loadCurrentImage(bool calc_hand_image = true) {
     model[0]->handCoeff2CoeffConvnet(r_hand, coeff_convnet,
       hand_image_generator_->hand_pos_wh(), hand_image_generator_->uvd_com(),
       *hand_renderer->camera(0)->proj(), *hand_renderer->camera(0)->view());
+    model[0]->handCoeff2UVD(r_hand, uvd_gt,
+      hand_image_generator_->hand_pos_wh(), hand_image_generator_->uvd_com(),
+      *hand_renderer->camera(0)->proj(), *hand_renderer->camera(0)->view());
   }
 }
 
@@ -380,6 +383,7 @@ void saveFrame() {
   string DIR = DATA_ROOT + im_dirs[file_dir_indices[cur_image]];
   uint32_t IM_DIR_hash = HashString(MAX_UINT32, DIR);
 
+#if !defined(SAVE_DATABASE_FILES)
   // Check that the current coeff doesn't have features points that are off 
   // screen --> Usually an indicator that the HandDetector messed up
   for (uint32_t i = 0; i < HandCoeffConvnet::HAND_NUM_COEFF_CONVNET && 
@@ -393,6 +397,9 @@ void saveFrame() {
       found_hand = false;
     }
   }
+#else
+  found_hand = true;
+#endif
 
   if (found_hand) {
     std::stringstream ss;
@@ -428,8 +435,7 @@ void saveFrame() {
 #if defined(SAVE_DATABASE_FILES)
     // Save the RGB out to a PNG
     char filename[256];
-    snprintf(filename, 255, "kinect%d_image%07d_rgb.png", cur_image,
-      cur_kinect);
+    snprintf(filename, 255, "kinect%d_image%07d_rgb.png", cur_kinect, cur_image);
     Texture::saveRGBToFile(DST_IM_DIR + filename, cur_image_rgb, src_width, src_height, 
       true);
     // Save the depth out to a PNG by packing the 16 bits into the G and B
@@ -439,24 +445,11 @@ void saveFrame() {
       cur_depth_rgb[i*3+1] = (uint8_t)((cur_depth_data[i] & (int16_t)0x7F00) >> 8);
       cur_depth_rgb[i*3+2] = (uint8_t)(cur_depth_data[i] & (int16_t)0xFF);
     }
-    snprintf(filename, 255, "kinect%d_image%07d_depth.png", cur_image,
-      cur_kinect);
+    snprintf(filename, 255, "kinect%d_image%07d_depth.png", cur_kinect, cur_image);
     Texture::saveRGBToFile(DST_IM_DIR + filename, cur_depth_rgb, src_width, src_height, 
       true);
     // Save out the ground truth locations
-    snprintf(filename, 255, "kinect%d_image%07d_uvd.bin", cur_image,
-      cur_kinect);
-    const Int4* pos_wh = &hand_image_generator_->hand_pos_wh();
-    for (uint32_t i = 0; i < num_convnet_feats; i++) {
-      float u_target = coeff_convnet[i * FEATURE_SIZE] * 
-        (float)(*pos_wh)[2] + (float)(*pos_wh)[0];
-      float v_target = coeff_convnet[i * FEATURE_SIZE + 1]  * 
-        (float)(*pos_wh)[3] + (float)(*pos_wh)[1];
-      float d_target = 0;
-      uvd_gt[i * FEATURE_SIZE + 0] = u_target;
-      uvd_gt[i * FEATURE_SIZE + 1] = v_target;
-      uvd_gt[i * FEATURE_SIZE + 2] = d_target;
-    }
+    snprintf(filename, 255, "kinect%d_image%07d_uvd.bin", cur_kinect, cur_image);
     SaveArrayToFile<float>(uvd_gt,
       HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, DST_IM_DIR + filename);
 #endif
@@ -835,7 +828,7 @@ int main(int argc, char *argv[]) {
     image_io = new DepthImagesIO();
     for (uint32_t i = 0; i < NUM_KINECTS; i++) {
       image_io->GetFilesInDirectories(im_files[i], file_dir_indices, im_dirs, 
-        DATA_ROOT, num_im_dirs, 0, NULL);
+        DATA_ROOT, num_im_dirs, i, NULL);
       if (im_files[i].size() == 0) {
         std::cout << "No Files found!" << std::endl;
   #if defined(WIN32) || defined(_WIN32)
