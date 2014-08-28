@@ -37,11 +37,11 @@
 #include "model_fit/hand_geometry_mesh.h"
 #include "model_fit/model_renderer.h"
 #include "model_fit/model_fit.h"
-#include "kinect_interface/hand_net/hand_model_coeff.h"
-#include "kinect_interface/depth_images_io.h"
-#include "kinect_interface/open_ni_funcs.h"
-#include "kinect_interface/hand_detector/decision_tree_structs.h"
-#include "kinect_interface/hand_detector/hand_detector.h"
+#include "kinect_interface_primesense/hand_net/hand_model_coeff.h"
+#include "kinect_interface_primesense/depth_images_io.h"
+#include "kinect_interface_primesense/open_ni_funcs.h"
+#include "kinect_interface_primesense/hand_detector/decision_tree_structs.h"
+#include "kinect_interface_primesense/hand_detector/hand_detector.h"
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector.h"
 #include "jtil/clk/clk.h"
@@ -88,12 +88,12 @@
 // PRIMESENSE DATA
 #define BACKUP_HDD
 //#define IM_DIR_BASE string("hand_depth_data/")
-#define IM_DIR_BASE string("hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405)
+//#define IM_DIR_BASE string("hand_depth_data_2013_05_01_1/")  // Cal + Fit (5405)
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_03_1/")  // Cal + Fit (6533)
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_06_1/")  // Cal + Fit (8709)
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_06_2/")  // Cal + Fit (8469)
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_06_3/")  // Cal + Fit (5815) MURPHY
-//#define IM_DIR_BASE string("hand_depth_data_2013_05_08_1/")  // Cal + Fit (2440) (Tr-data)
+#define IM_DIR_BASE string("hand_depth_data_2013_05_08_1/")  // Cal + Fit (2440) (Tr-data)
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_19_1/")  // Cal + Fit (5969)
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_19_2/")  // Cal + Fit (6781)
 //#define IM_DIR_BASE string("hand_depth_data_2013_06_15_1/")  // Cal + Fit (3049)
@@ -110,7 +110,7 @@
   #error "Apple is not yet supported!"
 #else
 #ifdef BACKUP_HDD
-    #define KINECT_HANDS_ROOT string("D:/hand_data/")
+    #define KINECT_HANDS_ROOT string("F:/hand_data/")
   #else
     #define KINECT_HANDS_ROOT string("./../data/")
   #endif
@@ -137,9 +137,9 @@ using namespace jtil::threading;
 using namespace model_fit;
 using namespace renderer;
 using namespace jtil::windowing;
-using namespace kinect_interface;
-using namespace kinect_interface::hand_net;
-using namespace kinect_interface::hand_detector;
+using namespace kinect_interface_primesense;
+using namespace kinect_interface_primesense::hand_net;
+using namespace kinect_interface_primesense::hand_detector;
 
 jtil::clk::Clk* clk = NULL;
 double t1, t0;
@@ -625,7 +625,7 @@ void MousePosCB(double x, double y) {
       coeff_val = r_hand_coeffs[cur_image]->getCoeff(cur_coeff);
       r_hand_coeffs[cur_image]->setCoeff(cur_coeff, coeff_val - theta_y);
     }
-    cout << "cur_coeff " << kinect_interface::hand_net::HandCoeffToString(cur_coeff);
+    cout << "cur_coeff " << kinect_interface_primesense::hand_net::HandCoeffToString(cur_coeff);
     cout << " --> " << coeff_val - theta_y << endl;
 #endif
   }
@@ -856,7 +856,7 @@ void KeyboardCB(int key, int scancode, int action, int mods) {
 #ifdef CALIBRATION_RUN
         cout << "cur_coeff = " << cur_coeff << std::endl;
 #else
-        cout << "cur_coeff = " << kinect_interface::hand_net::HandCoeffToString(cur_coeff); 
+        cout << "cur_coeff = " << kinect_interface_primesense::hand_net::HandCoeffToString(cur_coeff); 
         if (hand_to_modify == 0) {
           cout << " = " << l_hand_coeffs[cur_image]->getCoeff(cur_coeff);
         } else {
@@ -873,7 +873,7 @@ void KeyboardCB(int key, int scancode, int action, int mods) {
 #ifdef CALIBRATION_RUN
         cout << "cur_coeff = " << cur_coeff << std::endl;
 #else
-        cout << "cur_coeff = " << kinect_interface::hand_net::HandCoeffToString(cur_coeff); 
+        cout << "cur_coeff = " << kinect_interface_primesense::hand_net::HandCoeffToString(cur_coeff); 
         if (hand_to_modify == 0) {
           cout << " = " << l_hand_coeffs[cur_image]->getCoeff(cur_coeff);
         } else {
@@ -1719,9 +1719,9 @@ int main(int argc, char *argv[]) {
     l_hand_coeffs = new HandModelCoeff*[im_files[0].size()];
 #ifdef LOAD_AND_SAVE_OLD_FORMAT_COEFFS
     for (uint32_t i = 0; i < im_files.size(); i++) {
-      r_hand_coeffs[i] = new HandModelCoeff(kinect_interface::hand_net::HandType::RIGHT);
+      r_hand_coeffs[i] = new HandModelCoeff(kinect_interface_primesense::hand_net::HandType::RIGHT);
       r_hand_coeffs[i]->loadOldFormatFromFile(IM_DIR, string("coeffr_") + im_files[i].first);
-      l_hand_coeffs[i] = new HandModelCoeff(kinect_interface::hand_net::HandType::LEFT);
+      l_hand_coeffs[i] = new HandModelCoeff(kinect_interface_primesense::hand_net::HandType::LEFT);
       l_hand_coeffs[i]->loadOldFormatFromFile(IM_DIR, string("coeffl_") + im_files[i].first);
     }
     for (uint32_t i = 0; i < im_files.size(); i++) {
@@ -1740,9 +1740,9 @@ int main(int argc, char *argv[]) {
     }
 #else
     for (uint32_t i = 0; i < im_files[0].size(); i++) {
-      r_hand_coeffs[i] = new HandModelCoeff(kinect_interface::hand_net::HandType::RIGHT);
+      r_hand_coeffs[i] = new HandModelCoeff(kinect_interface_primesense::hand_net::HandType::RIGHT);
       r_hand_coeffs[i]->loadFromFile(IM_DIR, string("coeffr_") + im_files[0][i].first);
-      l_hand_coeffs[i] = new HandModelCoeff(kinect_interface::hand_net::HandType::LEFT);
+      l_hand_coeffs[i] = new HandModelCoeff(kinect_interface_primesense::hand_net::HandType::LEFT);
       l_hand_coeffs[i]->loadFromFile(IM_DIR, string("coeffl_") + im_files[0][i].first);
     }
 #endif
