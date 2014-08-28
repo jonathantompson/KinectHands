@@ -13,7 +13,7 @@
 #include "jtil/data_str/vector.h"
 #include "jtil/threading/callback.h"
 
-#define FOREST_DATA_FILENAME std::string("./forest_data.bin")
+#define FOREST_DATA_FILENAME std::string("./data/forest_data.bin")
 #define HD_MIN_PTS_PER_HAND_BLOB 25  // EDIT: 2/13 (prev 100)
 #define HD_STARTING_NUM_TREES_TO_EVALUATE 4
 #define HD_STARTING_MAX_TREE_HEIGHT_TO_EVALUATE 25

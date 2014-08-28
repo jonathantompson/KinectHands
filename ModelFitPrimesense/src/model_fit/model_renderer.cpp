@@ -31,7 +31,6 @@
 #include "jtil/data_str/vector.h"
 #include "renderer/gl_state.h"
 
-
 #define SAFE_DELETE(x) if (x != NULL) { delete x; x = NULL; }
 #define SAFE_DELETE_ARR(x) if (x != NULL) { delete[] x; x = NULL; }
 

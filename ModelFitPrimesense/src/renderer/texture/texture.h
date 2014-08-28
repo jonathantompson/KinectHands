@@ -44,6 +44,15 @@ namespace renderer {
 
     void reloadData(const unsigned char *bits);
 
+    // Some wrappers to FreeImage
+    static bool saveRGBToFile(const std::string& filename, const uint8_t* rgb,
+      const uint32_t width, const uint32_t height, const bool save_flipped);
+    static bool saveGreyscaleToFile(const std::string& filename, 
+      const uint8_t* grey, const uint32_t width, const uint32_t height, 
+      const bool save_flipped);
+    static void loadImFromFile(const std::string& filename, uint8_t*& im, 
+      uint32_t& width, uint32_t& height, uint32_t& num_channels);
+
     void bind(GLenum target_id,  // ie target_id = GL_TEXTURE0
       GLint texture_sampler_id);  // id in the in the shader program
 
@@ -71,6 +80,10 @@ namespace renderer {
     void generateTextureID();
     void loadTextureIntoOpenGL();
     void setTextureProperties();
+
+    static bool saveImToFile(const std::string& filename, 
+      const uint8_t* im, const uint32_t width, const uint32_t height, 
+      const bool save_flipped, const uint32_t num_channels);
 
     // Non-copyable, non-assignable.
     Texture(Texture& other);

@@ -42,6 +42,7 @@
 #include "renderer/geometry/geometry_manager.h"
 #include "renderer/geometry/geometry_colored_points.h"
 #include "jtil/windowing/window.h"
+#include "jtil/renderer/texture/texture.h"
 #include "jtil/windowing/window_settings.h"
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector.h"
@@ -121,8 +122,7 @@ string im_dirs[num_im_dirs] = {
 #define DST_IM_DIR_BASE string("hand_depth_data_processed_for_CN/") 
 //#define DST_IM_DIR_BASE string("hand_depth_data_processed_for_CN_testset/") 
 
-//#define LOAD_PROCESSED_IMAGES  // Load the images from the dst image directory
-//#define SAVE_FILES  // Only enabled when we're not loading processed images
+#define SAVE_FILES  // Only enabled when we're not loading processed images
 //#define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
 //                              // HandForests, but save synthetic data (only 
 //                              // takes effect when not loading processed images)
@@ -131,19 +131,23 @@ string im_dirs[num_im_dirs] = {
 #define VISUALIZE_HEAT_MAPS // Requires extra processing...
 
 //#define SAVE_DEPTH_IMAGES  // Save the regular depth files --> Only when SAVE_FILES defined
-#define SAVE_HPF_IMAGES  // Save the hpf files --> Only when SAVE_FILES defined
+//#define SAVE_HPF_IMAGES  // Save the hpf files --> Only when SAVE_FILES defined
+#define SAVE_DATABASE_FILES  // Save to the public database
 
-#if !defined(LOAD_PROCESSED_IMAGES) && defined(SAVE_FILES)
+#if defined(SAVE_FILES)
   #define DESIRED_PLAYBACK_FPS 100000.0f
 #else
   #define DESIRED_PLAYBACK_FPS 30.0f  // fps
 #endif
 #define NUM_WORKER_THREADS 6 
 
+#define NUM_KINECTS 3
+
 #define HM_SIZE 18*2  // Width and height of each heat map
 #define HMW 4  // Number of heat maps horizontally
 #define HMH 1  // Number of heat maps vertically
-#define HMSTD 1.0f 
+#define HMSTD 1.0f
+
 // *************************************************************
 // *************** END OF CHANGEABLE PARAMETERS ****************
 // *************************************************************
@@ -156,7 +160,7 @@ string im_dirs[num_im_dirs] = {
   #error "Apple is not yet supported!"
 #else
   #ifdef BACKUP_HDD
-    #define DATA_ROOT string("D:/hand_data/")  // Work computer
+    #define DATA_ROOT string("F:/hand_data/")  // Work computer
     //#define DATA_ROOT string("E:/hand_data/")  // Home computer
   #else
     #define DATA_ROOT string("./../data/")
@@ -193,9 +197,11 @@ HandModelCoeff* r_hand = NULL;
 ModelRenderer* hand_renderer = NULL;
 uint8_t label[src_dim];
 
+HandNet* hn = NULL;
+
 // Kinect Image data
 DepthImagesIO* image_io = NULL;
-Vector<Triple<char*, int64_t, int64_t>> im_files;  // filename, kinect time, global time
+Vector<Triple<char*, int64_t, int64_t>> im_files[NUM_KINECTS];  // filename, kinect time, global time
 Vector<uint32_t> file_dir_indices;  // directory each file came from
 float cur_xyz_data[src_dim*3];
 float cur_uvd_data[src_dim*3];
@@ -203,7 +209,9 @@ int16_t cur_depth_data[src_dim*3];
 float cur_synthetic_depth_data[src_dim*4];
 uint8_t cur_label_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
+uint8_t cur_depth_rgb[src_dim*3];  // Used when exporting to PNG
 int32_t cur_image = 0;
+int32_t cur_kinect = 0;
 GeometryColoredPoints* geometry_points= NULL;
 bool render_depth = true;
 int playback_step = 1;
@@ -215,7 +223,7 @@ uint8_t tex_data[HN_IM_SIZE * HN_IM_SIZE * 3 * 2];
 uint8_t hm_tex_data[HM_TEX_WIDTH * HM_TEX_HEIGHT * 4];  // RGBA (allows odd widths)
 float hm_data[HM_SIZE * HM_SIZE];
 OpenNIFuncs openni_funcs;
-Float4x4 camera_view;
+Float4x4 camera_view[NUM_KINECTS];
 const uint32_t num_coeff_fit = HAND_NUM_COEFF;
 Float4x4 old_camera_view;
 
@@ -225,7 +233,8 @@ HandDetector* hand_detect = NULL;
 // Hand Image Generator for the convnet
 HandImageGenerator* hand_image_generator_ = NULL;
 float blank_coeff[HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
-float coeff_convnet[HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];
+float coeff_convnet[HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];  // UVD positions in hand image space
+float uvd_gt[HandCoeffConvnet::HAND_NUM_COEFF_CONVNET];  // UVD positions in 640x480 space
 
 // Multithreading
 ThreadPool* tp;
@@ -238,8 +247,10 @@ uint8_t* screendat = NULL;
 void quit() {
   tp->stop();
   delete tp;
-  for (uint32_t i = 0; i < im_files.size(); i++) {
-    SAFE_DELETE_ARR(im_files[i].first);
+  for (uint32_t j = 0; j < NUM_KINECTS; j++) {
+    for (uint32_t i = 0; i < im_files[j].size(); i++) {
+      SAFE_DELETE_ARR(im_files[j][i].first);
+    }
   }
   delete image_io;
   delete clk;
@@ -258,6 +269,7 @@ void quit() {
   delete geometry_points;
   delete hand_detect;
   delete hand_image_generator_;
+  delete hn;
   SAFE_DELETE(video_stream);
   SAFE_DELETE_ARR(screendat);
   Texture::shutdownTextureSystem();
@@ -285,54 +297,30 @@ void saveFrameToVideoStream(uint32_t num_frames) {
 }
 
 void loadCurrentImage(bool calc_hand_image = true) {
-  char* file = im_files[cur_image].first;
-#ifdef LOAD_PROCESSED_IMAGES
-  string DIR = DST_IM_DIR;
-#else
+  char* file = im_files[cur_kinect][cur_image].first;
+  
   string DIR = DATA_ROOT + im_dirs[file_dir_indices[cur_image]];
-#endif
   string full_filename = DIR + string(file);
   //std::cout << "loading image: " << full_filename << std::endl;
 
-  try {
-    LoadArrayFromFile<float>(camera_view.m, 16, DIR + 
-      "calibration_data0.bin");
-  } catch (std::wruntime_error e) {
-    camera_view.identity();
-    std::cout << "WARNING: calibration_data0.bin doesn't exist.  ";
-    std::cout << "Using Identity camera matrix." << std::endl;
+  for (uint32_t i = 0; i < NUM_KINECTS; i++) {
+    try {
+      std::stringstream ss;
+      ss << DIR << "calibration_data" << i << ".bin";
+      LoadArrayFromFile<float>(camera_view[i].m, 16, ss.str());
+    } catch (std::wruntime_error e) {
+      camera_view[i].identity();
+      std::cout << "WARNING: calibration_data0.bin doesn't exist.  ";
+      std::cout << "Using Identity camera matrix." << std::endl;
+    }
   }
+
   Float4x4 camera_view_inv, cur_view;
-  
-  Float4x4::inverse(camera_view_inv, camera_view);
+  Float4x4::inverse(camera_view_inv, camera_view[0]);
   Float4x4::mult(cur_view, old_camera_view, camera_view_inv);
   hand_renderer->camera(0)->view()->set(cur_view);
   hand_renderer->camera(0)->set_view_mat_directly = true;
 
-#ifdef LOAD_PROCESSED_IMAGES
-  string full_hpf_im_filename = DIR + std::string("hpf_") + im_files[cur_image].first;
-
-  // Just load the processed image directly
-  const float* im = hand_image_generator_->hand_image_cpu();
-  LoadArrayFromFile<float>(const_cast<float*>(im), HN_IM_SIZE * HN_IM_SIZE, 
-    full_filename);
-  im = hand_image_generator_->hpf_hand_image_cpu();
-  LoadArrayFromFile<float>(const_cast<float*>(im), HN_IM_SIZE * HN_IM_SIZE, 
-    full_hpf_im_filename);
-  memset(cur_depth_data, 0, src_dim * sizeof(cur_depth_data[0]));
-  memset(cur_label_data, 0, src_dim * sizeof(cur_label_data[0]));
-  memset(cur_image_rgb, 0, 3 * src_dim * sizeof(cur_image_rgb[0]));
-  memset(cur_xyz_data, 0, 3 * src_dim * sizeof(cur_xyz_data[0]));
-
-  string src_file = im_files[cur_image].first;
-  src_file = src_file.substr(10, src_file.length());
-  string r_coeff_file = DST_IM_DIR + string("coeffr_") + src_file;
-  LoadArrayFromFile<float>(coeff_convnet, 
-    HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, r_coeff_file);
-  if (cur_image % 100 == 0) {
-    cout << "loaded image " << cur_image+1 << " of " << im_files.size() << endl;
-  }
-#else
   // Load in the image
   image_io->LoadCompressedImage(full_filename, 
     cur_depth_data, cur_label_data, cur_image_rgb);
@@ -344,19 +332,16 @@ void loadCurrentImage(bool calc_hand_image = true) {
     cur_xyz_data, HDLabelMethod::HDFloodfill, label);
 
   // Load in the coeffs
-  string src_file = im_files[cur_image].first;
-#ifdef LOAD_PROCESSED_IMAGES
-  src_file = src_file.substr(10, src_file.length());
-#endif
+  string src_file = im_files[cur_kinect][cur_image].first;
   r_hand->loadFromFile(DIR, string("coeffr_") + src_file);
   if (cur_image % 100 == 0) {
-    cout << "loaded image " << cur_image+1 << " of " << im_files.size() <<
+    cout << "loaded image " << cur_image+1 << " of " << im_files[cur_kinect].size() <<
       " from directory " << file_dir_indices[cur_image] << endl;
   }
 
   if (!found_hand) {
     // skip this data point
-    std::cout << "Warning couldn't find hand in " << im_files[cur_image].first;
+    std::cout << "Warning couldn't find hand in " << im_files[cur_kinect][cur_image].first;
     std::cout << std::endl;
   }
 
@@ -381,21 +366,6 @@ void loadCurrentImage(bool calc_hand_image = true) {
     hand_image_generator_->calcHandImage(cur_depth_data, label);
 #endif
 
-    //// TEMP CODE:
-    //printf("TEMP CODE FOR KEN\n");
-    //jtil::file_io::SaveArrayToFile<int16_t>(cur_depth_data, src_dim,
-    //  full_filename + ".ken");  
-    //printf("saved %s.ken\n", full_filename.c_str());
-    //const float* hand_im = hand_image_generator_->hpf_hand_image_cpu();
-    //jtil::file_io::SaveArrayToFile<float>(hand_im, HN_IM_SIZE * HN_IM_SIZE,
-    //  full_filename + ".hpf_hand.ken");  
-    //printf("saved %s.hpf_hand.ken\n", full_filename.c_str());
-    //hand_im = hand_image_generator_->hand_image_cpu();
-    //jtil::file_io::SaveArrayToFile<float>(hand_im, HN_IM_SIZE * HN_IM_SIZE,
-    //  full_filename + ".hand.ken");  
-    //printf("saved %s.hand.ken\n", full_filename.c_str());
-    //// END TEMP CODE
-
     hand_renderer->camera(0)->updateProjection();
     // Correctly modify the coeff values to those that are learnable by the
     // convnet (for instance angles are bad --> store cos(x), sin(x) instead)
@@ -403,11 +373,10 @@ void loadCurrentImage(bool calc_hand_image = true) {
       hand_image_generator_->hand_pos_wh(), hand_image_generator_->uvd_com(),
       *hand_renderer->camera(0)->proj(), *hand_renderer->camera(0)->view());
   }
-#endif
 }
 
 void saveFrame() {
-#if defined(SAVE_FILES) && !defined(LOAD_PROCESSED_IMAGES)
+#if defined(SAVE_FILES)
   string DIR = DATA_ROOT + im_dirs[file_dir_indices[cur_image]];
   uint32_t IM_DIR_hash = HashString(MAX_UINT32, DIR);
 
@@ -430,7 +399,7 @@ void saveFrame() {
     
     // Save the cropped image to file:
 #if defined(SAVE_DEPTH_IMAGES)
-    ss << DST_IM_DIR << "processed_" << IM_DIR_hash << "_" << im_files[cur_image].first;
+    ss << DST_IM_DIR << "processed_" << IM_DIR_hash << "_" << im_files[cur_kinect][cur_image].first;
     SaveArrayToFile<float>(hand_image_generator_->hand_image_cpu(),
       hand_image_generator_->size_images(), ss.str());
 #endif
@@ -438,22 +407,59 @@ void saveFrame() {
     // Save the HPF images to file:
 #if defined(SAVE_HPF_IMAGES)
     ss.str(string(""));
-    ss << DST_IM_DIR << "hpf_processed_" << IM_DIR_hash << "_" << im_files[cur_image].first;
+    ss << DST_IM_DIR << "hpf_processed_" << IM_DIR_hash << "_" << im_files[cur_kinect][cur_image].first;
     SaveArrayToFile<float>(hand_image_generator_->hpf_hand_image_cpu(),
       hand_image_generator_->size_images(), ss.str());
 #endif
 
+#if defined(SAVE_DEPTH_IMAGES) || defined(SAVE_HPF_IMAGES)
     ss.str(string(""));
-    ss << DST_IM_DIR << "coeffr_" << IM_DIR_hash << "_" << im_files[cur_image].first;
+    ss << DST_IM_DIR << "coeffr_" << IM_DIR_hash << "_" << im_files[cur_kinect][cur_image].first;
     SaveArrayToFile<float>(coeff_convnet,
       HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, ss.str());
-
     // Don't save LHand data...  It's just blank anyway and will eat into our 
     // disk IO
     //ss.str(string(""));
     //ss << DST_IM_DIR << "coeffl_" << IM_DIR_hash << "_" << im_files[cur_image].first;
     //SaveArrayToFile<float>(blank_coeff,
     //  HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, ss.str());
+#endif
+
+#if defined(SAVE_DATABASE_FILES)
+    // Save the RGB out to a PNG
+    char filename[256];
+    snprintf(filename, 255, "kinect%d_image%07d_rgb.png", cur_image,
+      cur_kinect);
+    Texture::saveRGBToFile(DST_IM_DIR + filename, cur_image_rgb, src_width, src_height, 
+      true);
+    // Save the depth out to a PNG by packing the 16 bits into the G and B
+    // channels
+    for (uint32_t i = 0; i < src_dim; i++) {
+      cur_depth_rgb[i*3] = 0;
+      cur_depth_rgb[i*3+1] = (uint8_t)((cur_depth_data[i] & (int16_t)0x7F00) >> 8);
+      cur_depth_rgb[i*3+2] = (uint8_t)(cur_depth_data[i] & (int16_t)0xFF);
+    }
+    snprintf(filename, 255, "kinect%d_image%07d_depth.png", cur_image,
+      cur_kinect);
+    Texture::saveRGBToFile(DST_IM_DIR + filename, cur_depth_rgb, src_width, src_height, 
+      true);
+    // Save out the ground truth locations
+    snprintf(filename, 255, "kinect%d_image%07d_uvd.bin", cur_image,
+      cur_kinect);
+    const Int4* pos_wh = &hand_image_generator_->hand_pos_wh();
+    for (uint32_t i = 0; i < num_convnet_feats; i++) {
+      float u_target = coeff_convnet[i * FEATURE_SIZE] * 
+        (float)(*pos_wh)[2] + (float)(*pos_wh)[0];
+      float v_target = coeff_convnet[i * FEATURE_SIZE + 1]  * 
+        (float)(*pos_wh)[3] + (float)(*pos_wh)[1];
+      float d_target = 0;
+      uvd_gt[i * FEATURE_SIZE + 0] = u_target;
+      uvd_gt[i * FEATURE_SIZE + 1] = v_target;
+      uvd_gt[i * FEATURE_SIZE + 2] = d_target;
+    }
+    SaveArrayToFile<float>(uvd_gt,
+      HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, DST_IM_DIR + filename);
+#endif
   }
 #endif
 }
@@ -472,7 +478,7 @@ void keyboardCB(int key, int scancode, int action, int mods) {
       continuous_playback = !continuous_playback;
       break;
     case KEY_KP_ADD:
-      if (cur_image < (int32_t)im_files.size() - 1) {
+      if (cur_image < (int32_t)im_files[cur_kinect].size() - 1) {
         cur_image++;
       }
       break;
@@ -482,10 +488,10 @@ void keyboardCB(int key, int scancode, int action, int mods) {
       }
       break;
     case '0':
-      if (cur_image < (int32_t)im_files.size() - 100) {
+      if (cur_image < (int32_t)im_files[cur_kinect].size() - 100) {
         cur_image += 100;
       } else {
-        cur_image = (int32_t)im_files.size() - 1;
+        cur_image = (int32_t)im_files[cur_kinect].size() - 1;
       }
 
       break;
@@ -501,43 +507,6 @@ void keyboardCB(int key, int scancode, int action, int mods) {
     case KEY_ESC:
       is_running = false;
       break;
-#ifdef LOAD_PROCESSED_IMAGES
-  case 'D':
-  case 'd':
-#if defined(WIN32) || defined(_WIN32)
-    full_im_filename = DST_IM_DIR + string(im_files[cur_image].first);
-    full_hpf_im_filename = DST_IM_DIR + std::string("hpf_") + 
-      im_files[cur_image].first;
-    src_file = im_files[cur_image].first;
-    src_file = src_file.substr(10, src_file.length());
-    r_coeff_file = DST_IM_DIR + string("coeffr_") + src_file;
-    //l_coeff_file = DST_IM_DIR + string("coeffl_") + src_file;
-
-    if(!DeleteFile(full_im_filename.c_str()) ||
-      !DeleteFile(r_coeff_file.c_str()) /*||
-      !DeleteFile(l_coeff_file.c_str())*/ ||
-      !DeleteFile(full_hpf_im_filename.c_str())) {
-      cout << "Error deleting files: " << endl;
-      cout << "    - " << full_im_filename.c_str() << endl;
-      cout << "    - " << r_coeff_file.c_str() << endl;
-      //cout << "    - " << l_coeff_file.c_str() << endl;
-      cout << "    - " << full_hpf_im_filename.c_str() << endl;
-      cout << endl;
-    } else {
-      cout << "Files deleted sucessfully: " << endl;
-      cout << "    - " << full_im_filename.c_str() << endl;
-      cout << "    - " << r_coeff_file.c_str() << endl;
-      //cout << "    - " << l_coeff_file.c_str() << endl;
-      cout << "    - " << full_hpf_im_filename.c_str() << endl;
-      cout << endl;
-      im_files.deleteAtAndShift((uint32_t)cur_image);
-      loadCurrentImage();
-    }
-#else
-    cout << "Delete function not implemented for Mac OS X" << endl;
-#endif
-    break;
-#endif
   case 'z':
   case 'Z':
     if (action == RELEASED) {
@@ -864,19 +833,16 @@ int main(int argc, char *argv[]) {
     
     // Load the Kinect data for fitting from file and process it
     image_io = new DepthImagesIO();
-#ifdef LOAD_PROCESSED_IMAGES
-#error "GetProcessedFilesInDirectory needs updating!"
-    GetProcessedFilesInDirectory(im_files, DST_IM_DIR, 0);
-#else
-    image_io->GetFilesInDirectories(im_files, file_dir_indices, im_dirs, 
-      DATA_ROOT, num_im_dirs, 0, NULL);
-#endif
-    if (im_files.size() == 0) {
-      std::cout << "No Files found!" << std::endl;
-#if defined(WIN32) || defined(_WIN32)
-      system("pause");
-#endif
-      quit();
+    for (uint32_t i = 0; i < NUM_KINECTS; i++) {
+      image_io->GetFilesInDirectories(im_files[i], file_dir_indices, im_dirs, 
+        DATA_ROOT, num_im_dirs, 0, NULL);
+      if (im_files[i].size() == 0) {
+        std::cout << "No Files found!" << std::endl;
+  #if defined(WIN32) || defined(_WIN32)
+        system("pause");
+  #endif
+        quit();
+      }
     }
 
     // Attach callback functions for event handling
@@ -910,10 +876,9 @@ int main(int argc, char *argv[]) {
       blank_coeff[i] = 0.0f;
     }
 
-#ifdef MEASURE_PERFORMANCE_ON_STARTUP
     HandNet* hn = new HandNet();
     hn->loadFromFile("../data/handmodel.net.convnet"); 
-
+#ifdef MEASURE_PERFORMANCE_ON_STARTUP
     float ave_heatmap_uv_dist_error[num_convnet_feats];
     float ave_heatmap_uv_dist_sq_error[num_convnet_feats];
     float ave_heatmap_uv_dist_error_hm[num_convnet_feats];
@@ -986,7 +951,6 @@ int main(int argc, char *argv[]) {
       std::cout << "Ave UV error std for feature " << i << " is " << 
         std << std::endl;
     }
-    delete hn;
     cur_image = 0;
 #endif
 
@@ -1014,7 +978,7 @@ int main(int argc, char *argv[]) {
             std::chrono::microseconds((int)(1000000.0f * (FRAME_TIME - dt))));
         }
         t0 = t1;
-        if (cur_image < (int32_t)im_files.size() - 1) {
+        if (cur_image < (int32_t)im_files[cur_kinect].size() - 1) {
           cur_image++;
           saveFrameToVideoStream(1);
           loadCurrentImage();

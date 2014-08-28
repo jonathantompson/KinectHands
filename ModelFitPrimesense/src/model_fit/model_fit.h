@@ -24,6 +24,11 @@
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector.h"
 #include "jtil/math/common_optimization.h"  // For CoeffUpdateFuncPtr
+#include "jtil/math/pso_parallel.h"
+
+#define NTILES_DEFAULT NTILES
+#define NTILES_X NTILES_DIM
+#define NTILES_Y NTILES_DIM
 
 // Particle-Swarm optimizer settings
 #define PSO_MAX_ITERATIONS 300  // Default 501
