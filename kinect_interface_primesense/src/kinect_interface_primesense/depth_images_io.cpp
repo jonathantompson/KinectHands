@@ -549,6 +549,27 @@ namespace kinect_interface_primesense {
     return files_names.size();
   }
 
+  void DepthImagesIO::AlignKinects(Vector<Triple<char*, int64_t, int64_t>>* im_files,
+    const uint32_t num_kinects) {
+    // Now align the frame times and frame zero (so that frame zero is T=0)
+    for (uint32_t k = 0; k < num_kinects; k++) {
+      int64_t t0 = im_files[k][0].second;
+      for (uint32_t i = 0; i < im_files[k].size(); i++) {
+        im_files[k][i].second -= t0;
+      }
+    }
+    // Scale the frames so the time rate matches the global time rate (for drift)
+    for (uint32_t k = 0; k < num_kinects; k++) {
+      uint32_t len = im_files[k].size() - 1;
+      double local_time = (double)(im_files[k][0].second - im_files[k][len].second);
+      double global_time = (double)(im_files[k][0].third - im_files[k][len].third);
+      double time_scale = global_time / local_time;
+      for (uint32_t i = 0; i < im_files[k].size(); i++) {
+        im_files[k][i].second = (uint64_t)((double)im_files[k][i].second * time_scale);
+      }
+    }
+  }
+
   bool FileComparisonFunc(const Triple<char*, int64_t, int64_t>& a,
     const Triple<char*, int64_t, int64_t>& b) {
     return b.second > a.second;

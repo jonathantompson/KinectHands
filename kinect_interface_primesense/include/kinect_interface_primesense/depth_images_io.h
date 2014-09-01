@@ -64,6 +64,10 @@ namespace kinect_interface_primesense {
       const uint32_t num_dirs, const uint32_t kinect_num, 
       const char* prefix = NULL);
 
+    void AlignKinects(
+      jtil::data_str::Vector<jtil::data_str::Triple<char*, int64_t, int64_t>>* im_files,
+      const uint32_t num_kinects);
+
     static void releaseImages(DepthImageData*& data);
 
     // LoadRGBImage - Load only the RGB image

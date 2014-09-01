@@ -95,6 +95,9 @@ namespace hand_net {
     HAND_NUM_COEFF_CONVNET = 42, 
   } HandCoeffConvnet;
 
+  const uint32_t num_uvd_feats = NUM_BOUNDING_SPHERES;
+  const uint32_t HAND_NUM_COEFF_UVD = NUM_BOUNDING_SPHERES * 3;
+
   typedef enum { 
     BFGS_HAND_POS_X        = 0, 
     BFGS_HAND_POS_Y        = 1,

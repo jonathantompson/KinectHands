@@ -93,7 +93,7 @@
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_06_1/")  // Cal + Fit (8709)
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_06_2/")  // Cal + Fit (8469)
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_06_3/")  // Cal + Fit (5815) MURPHY
-#define IM_DIR_BASE string("hand_depth_data_2013_05_08_1/")  // Cal + Fit (2440) (Tr-data)
+#define IM_DIR_BASE string("hand_depth_data_2013_05_08_1/")  // Cal + Fit (2440) (Te-data)
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_19_1/")  // Cal + Fit (5969)
 //#define IM_DIR_BASE string("hand_depth_data_2013_05_19_2/")  // Cal + Fit (6781)
 //#define IM_DIR_BASE string("hand_depth_data_2013_06_15_1/")  // Cal + Fit (3049)
@@ -110,7 +110,8 @@
   #error "Apple is not yet supported!"
 #else
 #ifdef BACKUP_HDD
-    #define KINECT_HANDS_ROOT string("F:/hand_data/")
+    //#define KINECT_HANDS_ROOT string("F:/hand_data/")
+    #define KINECT_HANDS_ROOT string("G:/hand_data/")
   #else
     #define KINECT_HANDS_ROOT string("./../data/")
   #endif
@@ -1606,23 +1607,7 @@ int main(int argc, char *argv[]) {
         LoadArrayFromFile<float>(camera_view[k].m, 16, ss.str());
       }
     }
-    // Now align the frame times and frame zero (so that frame zero is T=0)
-    for (uint32_t k = 0; k < MAX_KINECTS; k++) {
-      int64_t t0 = im_files[k][0].second;
-      for (uint32_t i = 0; i < im_files[k].size(); i++) {
-        im_files[k][i].second -= t0;
-      }
-    }
-    // Scale the frames so the time rate matches the global time rate (for drift)
-    for (uint32_t k = 0; k < MAX_KINECTS; k++) {
-      uint32_t len = im_files[k].size() - 1;
-      double local_time = (double)(im_files[k][0].second - im_files[k][len].second);
-      double global_time = (double)(im_files[k][0].third - im_files[k][len].third);
-      double time_scale = global_time / local_time;
-      for (uint32_t i = 0; i < im_files[k].size(); i++) {
-        im_files[k][i].second = (uint64_t)((double)im_files[k][i].second * time_scale);
-      }
-    }
+    image_io->AlignKinects(im_files, MAX_KINECTS);
 
     cur_depth_data = new int16_t*[MAX_KINECTS];
     cur_label_data = new uint8_t*[MAX_KINECTS];

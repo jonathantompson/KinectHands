@@ -475,7 +475,7 @@ namespace model_fit {
   }
 
   void HandGeometryMesh::handCoeff2UVD(HandModelCoeff* hand,
-    float* coeff_convnet, const Int4& hand_pos_wh, const Float3& uvd_com,
+    float* coeff_uvd, const Int4& hand_pos_wh, const Float3& uvd_com,
     const Float4x4& proj_mat, const Float4x4& view_mat) {
     // Thumb and fingers are actually learned as salient points -->
     // Luckily we have a good way to get these.  Use the positions of some of
@@ -489,9 +489,9 @@ namespace model_fit {
  
     // Project the XYZ position into UV space
     // Use the bounding sphere centers since they are already in good positions
-    for (uint32_t i = 0; i < num_convnet_feats; i++) {
-      extractPositionForUVD(hand, coeff_convnet, hand_pos_wh, uvd_com,
-        convnet_sphere_indices[i], i * FEATURE_SIZE, proj_mat, view_mat);
+    for (uint32_t i = 0; i < num_uvd_feats; i++) {
+      extractPositionForUVD(hand, coeff_uvd, hand_pos_wh, uvd_com,
+        i, i * FEATURE_SIZE, proj_mat, view_mat);
     }
   }
 
