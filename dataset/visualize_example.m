@@ -2,9 +2,9 @@
 % This is a simple example script to visualize an example
 clearvars; close all; clc; rng(0);
 
-dataset_dir = '../data/hand_depth_data_processed_for_CN';
-image_index = 0;
-kinect_index = 0;
+dataset_dir = '../data/dataset/';
+image_index = 10;
+kinect_index = 1;
 filename_prefix = sprintf('%s/kinect%d_image%07d', dataset_dir, ...
   kinect_index, image_index);
 
@@ -21,30 +21,43 @@ figure;
 imshow(depth, [0, max(depth(:))]);
 
 %% Load the UVD Coefficients and display them on the depth image
-joints = {'PALM_3','PALM_1','PALM_2','TH_KNU3_A','TH_KNU3_B','TH_KNU2_B',...
-  'F1_KNU3_A','F1_KNU2_B','F2_KNU3_A','F2_KNU2_B','F3_KNU3_A','F3_KNU2_B',...
-  'F4_KNU3_A','F4_KNU2_B'};
-fid = fopen([filename_prefix, '_uvd.bin'], 'r'); 
-[jnt_data, count] = fread(fid, 'float');
-fclose(fid);
-assert(count == length(joints) * 3);  % Just in case
-jnt_data = reshape(jnt_data, 3, length(joints))';
-jnt_colors = rand(length(joints), 3);
+load([dataset_dir, 'joint_data.mat']);
+jnt_uvd = squeeze(joint_uvd(kinect_index, image_index, :, :));
+jnt_colors = rand(size(jnt_uvd,1), 3);
 hold on;
-scatter(jnt_data(:,1), jnt_data(:,2), 50, jnt_colors, 'filled');
+scatter(jnt_uvd(:,1), jnt_uvd(:,2), 50, jnt_colors, 'filled');
 
 %% Visualize the depth in 3D
 uvd = convert_depth_to_uvd(depth);
 xyz = convert_uvd_to_xyz(uvd);
 % Decimate the image (otherwise rendering will be too slow)
-decimation = 20;
-xyz = xyz(1:decimation:end, 1:decimation:end, :);  
-colors = double(rgb(1:decimation:end, 1:decimation:end, :)) / 255;
-points = reshape(xyz, size(xyz,1)*size(xyz,2), 3);
-colors = reshape(colors, size(colors,1)*size(colors,2), 3);
+decimation = 5;
+xyz_decimated = xyz(1:decimation:end, 1:decimation:end, :);
+points = reshape(xyz_decimated, size(xyz_decimated,1)*size(xyz_decimated,2), 3);
+% Visualize the entire point cloud
 figure;
-scatter3(points(:,1), points(:,3), points(:,2), 10, colors, 'Fill','LineWidth', 0.5);
+set(gcf, 'Position', [200 200 800 600]);
+plot3(points(:,1), points(:,3), points(:,2), '.');
 set(gcf,'renderer','opengl'); axis vis3d; axis equal; hold on;
-% Visualize the joints
-xyz = squeeze(convert_uvd_to_xyz(reshape(jnt_data, 1, length(joints), 3)));
-scatter3(xyz(:,1), xyz(:,3), xyz(:,2), 10, jnt_colors, 'Fill','LineWidth', 0.5);
+
+%% Visualize the hand and the joints in 3D
+points = reshape(xyz, size(xyz,1)*size(xyz,2), 3);
+colors = reshape(rgb, size(rgb,1)*size(rgb,2), 3);
+hand_points = squeeze(convert_uvd_to_xyz(reshape(jnt_uvd, 1, size(jnt_uvd,1), 3)));
+% Collect the points within the AABBOX of the hand
+axis_bounds = [min(hand_points(:,1)) max(hand_points(:,1)) ...
+  min(hand_points(:,3)) max(hand_points(:,3)) ...
+  min(hand_points(:,2)) max(hand_points(:,2))];
+axis_bounds([1 3 5]) = axis_bounds([1 3 5]) - 20;
+axis_bounds([2 4 6]) = axis_bounds([2 4 6]) + 20;
+ipnts = find(points(:,1) >= axis_bounds(1) & points(:,1) <= axis_bounds(2) & ...
+  points(:,2) >= axis_bounds(5) & points(:,2) <= axis_bounds(6) & ...
+  points(:,3) >= axis_bounds(3) & points(:,3) <= axis_bounds(4));
+points = points(ipnts, :);
+colors = double(colors(ipnts, :))/255;
+figure;
+set(gcf, 'Position', [200 200 800 600]);
+plot3(points(:,1), points(:,3), points(:,2), '.', 'LineWidth', 0.5); 
+set(gcf,'renderer','opengl'); axis vis3d; axis equal; hold on; grid on;
+scatter3(hand_points(:,1), hand_points(:,3), hand_points(:,2), 50, jnt_colors, 'Fill','LineWidth', 0.5);
+axis(axis_bounds);

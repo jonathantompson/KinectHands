@@ -210,7 +210,7 @@ uint8_t cur_label_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
 uint8_t cur_depth_rgb[src_dim*3];  // Used when exporting to PNG
 int32_t cur_image = 0;
-int32_t cur_kinect = 1;
+int32_t cur_kinect = 2;
 GeometryColoredPoints* geometry_points= NULL;
 bool render_depth = true;
 int playback_step = 1;
@@ -332,13 +332,13 @@ void loadCurrentImage(bool calc_hand_image = true) {
   //std::cout << "loading image: " << full_filename << std::endl;
 
   for (uint32_t i = 0; i < NUM_KINECTS; i++) {
+    std::stringstream ss;
     try {
-      std::stringstream ss;
       ss << DIR << "calibration_data" << i << ".bin";
       LoadArrayFromFile<float>(camera_view[i].m, 16, ss.str());
     } catch (std::wruntime_error e) {
       camera_view[i].identity();
-      std::cout << "WARNING: calibration_data0.bin doesn't exist.  ";
+      std::cout << "WARNING: " << ss.str() << " doesn't exist.  ";
       std::cout << "Using Identity camera matrix." << std::endl;
     }
   }
@@ -356,6 +356,8 @@ void loadCurrentImage(bool calc_hand_image = true) {
     cur_uvd_data);
   openni_funcs.convertDepthToWorldCoordinates(cur_uvd_data, cur_xyz_data, 
     src_dim);
+  openni_funcs.convertWorldToDepthCoordinates(cur_xyz_data, cur_uvd_data,
+    src_dim);  // For testing... 
   found_hand = hand_detect->findHandLabels(cur_depth_data, 
     cur_xyz_data, HDLabelMethod::HDFloodfill, label);
 
@@ -464,7 +466,7 @@ void saveFrame() {
 #if defined(SAVE_DATABASE_FILES)
     // Save the RGB out to a PNG
     char filename[256];
-    snprintf(filename, 255, "kinect%d_image%07d_rgb.png", cur_kinect, cur_image);
+    snprintf(filename, 255, "kinect%d_image%07d_rgb.png", cur_kinect+1, cur_image+1);
     Texture::saveRGBToFile(DST_IM_DIR + filename, cur_image_rgb, src_width, src_height, 
       true);
     // Save the depth out to a PNG by packing the 16 bits into the G and B
@@ -474,12 +476,12 @@ void saveFrame() {
       cur_depth_rgb[i*3+1] = (uint8_t)((cur_depth_data[i] & (int16_t)0x7F00) >> 8);
       cur_depth_rgb[i*3+2] = (uint8_t)(cur_depth_data[i] & (int16_t)0xFF);
     }
-    snprintf(filename, 255, "kinect%d_image%07d_depth.png", cur_kinect, cur_image);
+    snprintf(filename, 255, "kinect%d_image%07d_depth.png", cur_kinect+1, cur_image+1);
     Texture::saveRGBToFile(DST_IM_DIR + filename, cur_depth_rgb, src_width, src_height, 
       true);
     if (cur_kinect == 0) {
       // Save out the ground truth locations
-      snprintf(filename, 255, "kinect%d_image%07d_uvd.bin", cur_kinect, cur_image);
+      snprintf(filename, 255, "kinect%d_image%07d_uvd.bin", cur_kinect+1, cur_image+1);
       SaveArrayToFile<float>(uvd_gt,
         HAND_NUM_COEFF_UVD, DST_IM_DIR + filename);
     } else {
@@ -489,11 +491,8 @@ void saveFrame() {
       float mats[16*2];
       memcpy(mats, camera_view[0].m, 16*sizeof(mats[0]));
       memcpy(&mats[16], camera_view[cur_kinect].m, 16*sizeof(mats[0]));
-      snprintf(filename, 255, "kinect%d_image%07d_mat0mati.bin", cur_kinect, cur_image);
+      snprintf(filename, 255, "kinect%d_image%07d_mat1matk.bin", cur_kinect+1, cur_image+1);
       SaveArrayToFile<float>(mats, 16*2, DST_IM_DIR + filename);
-      snprintf(filename, 255, "kinect%d_image%07d_uvd.bin", cur_kinect, cur_image);
-      SaveArrayToFile<float>(uvd_gt, 
-        HAND_NUM_COEFF_UVD, DST_IM_DIR + filename);
     }
 #endif
   }
