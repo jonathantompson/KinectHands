@@ -210,7 +210,7 @@ uint8_t cur_label_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
 uint8_t cur_depth_rgb[src_dim*3];  // Used when exporting to PNG
 int32_t cur_image = 0;
-int32_t cur_kinect = 2;
+int32_t cur_kinect = 0;
 GeometryColoredPoints* geometry_points= NULL;
 bool render_depth = true;
 int playback_step = 1;
@@ -317,11 +317,6 @@ uint32_t findClosestFrame(const uint32_t i_kinect) {
 }
 
 void loadCurrentImage(bool calc_hand_image = true) {
-  for (uint32_t k = 0; k < NUM_KINECTS; k++) {
-    uint32_t i_match = findClosestFrame(k);
-    char* file = im_files[k][i_match].first;
-    std::cout << "k = " << k << ", file = " << file << std::endl;
-  }
   uint32_t i_match = findClosestFrame(cur_kinect);
   //uint32_t i_match = cur_image;
 
@@ -365,7 +360,7 @@ void loadCurrentImage(bool calc_hand_image = true) {
   string src_file = im_files[cur_kinect][i_match].first;
   r_hand->loadFromFile(DIR, string("coeffr_") + src_file);
   cout << "loaded image " << cur_image+1 << " of " << im_files[0].size() <<
-    ": " << file << endl;
+    ", kinect " << cur_kinect << " of " << NUM_KINECTS << ": " << file << endl;
 
   if (!found_hand) {
     // skip this data point
