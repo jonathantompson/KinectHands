@@ -4,7 +4,7 @@ clearvars; close all; clc; rng(0);
 
 dataset_dir = '../data/hand_depth_data_processed_for_CN';
 image_index = 0;
-kinect_index = 1;
+kinect_index = 0;
 filename_prefix = sprintf('%s/kinect%d_image%07d', dataset_dir, ...
   kinect_index, image_index);
 

@@ -448,10 +448,21 @@ void saveFrame() {
     snprintf(filename, 255, "kinect%d_image%07d_depth.png", cur_kinect, cur_image);
     Texture::saveRGBToFile(DST_IM_DIR + filename, cur_depth_rgb, src_width, src_height, 
       true);
-    // Save out the ground truth locations
-    snprintf(filename, 255, "kinect%d_image%07d_uvd.bin", cur_kinect, cur_image);
-    SaveArrayToFile<float>(uvd_gt,
-      HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, DST_IM_DIR + filename);
+    if (cur_kinect == 0) {
+      // Save out the ground truth locations
+      snprintf(filename, 255, "kinect%d_image%07d_uvd.bin", cur_kinect, cur_image);
+      SaveArrayToFile<float>(uvd_gt,
+        HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, DST_IM_DIR + filename);
+    } else {
+      // Otherwise, the easiest way to do this is to save out the 2 camera
+      // matrices in Matlab (for camera 1 and camera 2) and then do the
+      // transformation there.
+      float mats[16*2];
+      memcpy(mats, camera_view[0].m, 16*sizeof(mats[0]));
+      memcpy(&mats[16], camera_view[cur_kinect].m, 16*sizeof(mats[0]));
+      snprintf(filename, 255, "kinect%d_image%07d_mat0mati.bin", cur_kinect, cur_image);
+      SaveArrayToFile<float>(mats, 16*2, DST_IM_DIR + filename);
+    }
 #endif
   }
 #endif
@@ -835,6 +846,9 @@ int main(int argc, char *argv[]) {
         system("pause");
   #endif
         quit();
+      } else {
+        std::cout << "Loaded " << im_files[i].size() << " frames for kinect ";
+        std::cout << i << std::endl;
       }
     }
 
@@ -973,11 +987,18 @@ int main(int argc, char *argv[]) {
         t0 = t1;
         if (cur_image < (int32_t)im_files[cur_kinect].size() - 1) {
           cur_image++;
-          saveFrameToVideoStream(1);
-          loadCurrentImage();
         } else {
-          continuous_playback = false;
+          if (cur_kinect == NUM_KINECTS-1) {
+            // Otherwise we're all done!
+            continuous_playback = false;
+          } else {
+            // Advance to the next kinect
+            cur_kinect = cur_kinect + 1;
+            cur_image = 0;
+          }
         }
+        saveFrameToVideoStream(1);
+        loadCurrentImage();
       }
     }
 
