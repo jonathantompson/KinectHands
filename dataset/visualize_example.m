@@ -3,7 +3,7 @@
 clearvars; close all; clc; rng(0);
 
 dataset_dir = '../data/dataset/';
-image_index = 1;
+image_index = 1000;
 kinect_index = 3;
 filename_prefix = sprintf('%d_%07d', kinect_index, image_index);
 
@@ -47,8 +47,8 @@ points = reshape(xyz_decimated, size(xyz_decimated,1)*size(xyz_decimated,2), 3);
 % Visualize the entire point cloud
 figure;
 set(gcf, 'Position', [200 200 800 600]);
-plot3(points(:,1), points(:,3), points(:,2), '.');
-set(gcf,'renderer','opengl'); axis vis3d; axis equal; hold on;
+plot3(points(:,1), points(:,3), points(:,2), '.', 'MarkerSize', 0.75);
+set(gcf,'renderer','opengl'); axis vis3d; axis equal; hold on; grid on;
 title('Kinect point cloud');
 
 %% Visualize the hand and the joints in 3D
@@ -68,7 +68,7 @@ points = points(ipnts, :);
 colors = double(colors(ipnts, :))/255;
 figure;
 set(gcf, 'Position', [200 200 800 600]);
-plot3(points(:,1), points(:,3), points(:,2), '.', 'LineWidth', 0.5); 
+plot3(points(:,1), points(:,3), points(:,2), '.'); 
 set(gcf,'renderer','opengl'); axis vis3d; axis equal; hold on; grid on;
 scatter3(hand_points(:,1), hand_points(:,3), hand_points(:,2), 50, jnt_colors, 'Fill','LineWidth', 0.5);
 axis(axis_bounds);

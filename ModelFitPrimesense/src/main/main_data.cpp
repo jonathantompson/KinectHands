@@ -95,29 +95,29 @@ using hand_net::HandCoeffConvnet;
 // *************************************************************
 #define BACKUP_HDD
 // Training Set
-/*
 const uint32_t num_im_dirs = 12;
 string im_dirs[num_im_dirs] = {
-  string("hand_depth_data_2013_05_01_1/"),
-  string("hand_depth_data_2013_05_03_1/"),
-  string("hand_depth_data_2013_05_06_1/"),
-  string("hand_depth_data_2013_05_06_2/"),
-  string("hand_depth_data_2013_05_06_3/"),  // MURPHY
-  string("hand_depth_data_2013_05_19_1/"),
-  string("hand_depth_data_2013_05_19_2/"),
-  string("hand_depth_data_2013_06_15_1/"),
-  string("hand_depth_data_2013_06_15_2/"),
-  string("hand_depth_data_2013_06_15_3/"),
-  string("hand_depth_data_2013_06_15_4/"),
-  string("hand_depth_data_2013_06_15_5/")
+  string("hand_depth_data_2013_05_01_1/"),  // JONATHAN
+  string("hand_depth_data_2013_05_03_1/"),  // JONATHAN
+  string("hand_depth_data_2013_05_06_1/"),  // JONATHAN
+  string("hand_depth_data_2013_05_06_2/"),  // JONATHAN
+  string("hand_depth_data_2013_05_19_1/"),  // JONATHAN
+  string("hand_depth_data_2013_05_19_2/"),  // JONATHAN
+  string("hand_depth_data_2013_06_15_1/"),  // JONATHAN
+  string("hand_depth_data_2013_06_15_2/"),  // JONATHAN
+  string("hand_depth_data_2013_06_15_3/"),  // JONATHAN
+  string("hand_depth_data_2013_06_15_4/"),  // JONATHAN
+  string("hand_depth_data_2013_06_15_5/")   // JONATHAN
 };
-*/
 
 // Test Set
-const uint32_t num_im_dirs = 1;
+/*
+const uint32_t num_im_dirs = 2;
 string im_dirs[num_im_dirs] = {
-  string("hand_depth_data_2013_05_08_1/")
+  string("hand_depth_data_2013_05_08_1/"),  // JONATHAN
+  string("hand_depth_data_2013_05_06_3/"),  // MURPHY
 };
+*/
 
 #define DST_IM_DIR_BASE string("dataset/") 
 
@@ -149,8 +149,8 @@ string im_dirs[num_im_dirs] = {
   #error "Apple is not yet supported!"
 #else
   #ifdef BACKUP_HDD
-    //#define DATA_ROOT string("F:/hand_data/")  // Work computer
-    #define DATA_ROOT string("G:/hand_data/")  // Home computer
+    #define DATA_ROOT string("F:/hand_data/")  // Work computer
+    //#define DATA_ROOT string("G:/hand_data/")  // Home computer
   #else
     #define DATA_ROOT string("./../data/")
   #endif
@@ -425,10 +425,22 @@ void saveFrame() {
   snprintf(filename, 255, "synthdepth_%d_%07d.png", cur_kinect+1, cur_image+1);
   Texture::saveRGBToFile(DST_IM_DIR + filename, cur_depth_rgb, src_width, src_height, 
     true);
-  // Save out the ground truth locations
-  snprintf(filename, 255, "uvd_%d_%07d.bin", cur_kinect+1, cur_image+1);
-  SaveArrayToFile<float>(uvd_gt,
-    HAND_NUM_COEFF_UVD, DST_IM_DIR + filename);
+
+  if (cur_kinect == 0) {
+    // Save out the ground truth locations
+    snprintf(filename, 255, "uvd_%d_%07d.bin", cur_kinect+1, cur_image+1);
+    SaveArrayToFile<float>(uvd_gt,
+      HAND_NUM_COEFF_UVD, DST_IM_DIR + filename);
+  } else {
+    // Otherwise, the easiest way to do this is to save out the 2 camera
+    // matrices in Matlab (for camera 1 and camera 2) and then do the
+    // transformation there.
+    float mats[16*2];
+    memcpy(mats, camera_view[0].m, 16*sizeof(mats[0]));
+    memcpy(&mats[16], camera_view[cur_kinect].m, 16*sizeof(mats[0]));
+    snprintf(filename, 255, "mat1matk_%d_%07d.bin", cur_kinect+1, cur_image+1);
+    SaveArrayToFile<float>(mats, 16*2, DST_IM_DIR + filename);
+  }
 #endif
 }
 
