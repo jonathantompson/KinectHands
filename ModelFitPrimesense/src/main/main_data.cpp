@@ -266,6 +266,7 @@ void quit() {
   Texture::shutdownTextureSystem();
   GLState::shutdownGLState();
   Window::killWindowSystem();
+  jtorch::ShutdownJTorch();
   exit(0);
 }
 
@@ -563,7 +564,7 @@ int main(int argc, char *argv[]) {
 #if defined(_DEBUG) && defined(_WIN32)
   jtil::debug::EnableMemoryLeakChecks();
   // jtil::debug::EnableAggressiveMemoryLeakChecks();
-  // jtil::debug::SetBreakPointOnAlocation(3734);
+  jtil::debug::SetBreakPointOnAlocation(159153);
 #endif
 
   cout << "Usage:" << endl;

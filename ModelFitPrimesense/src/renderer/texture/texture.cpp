@@ -361,6 +361,9 @@ bool Texture::saveRGBToFile(const std::string& filename, const uint8_t* rgb,
       delete[] im_rev;
       im_rev = NULL;
     }
+    if (fi_bit_map) {
+      FreeImage_Unload(fi_bit_map);
+    }
     return ret;
   }
 
