@@ -119,7 +119,7 @@ string im_dirs[num_im_dirs] = {
 };
 */
 
-#define DST_IM_DIR_BASE string("dataset/") 
+#define DST_IM_DIR_BASE string("") 
 
 #define SAVE_FILES  // Save the database files
 
@@ -154,7 +154,8 @@ string im_dirs[num_im_dirs] = {
   #else
     #define DATA_ROOT string("./../data/")
   #endif
-  #define DST_DATA_ROOT string("./../data/")
+  //#define DST_DATA_ROOT string("./../data/")  // Save locally
+  #define DST_DATA_ROOT string("F:/hand_data/dataset/train/")  // Save directly to portable hdd
 #endif
 #define DST_IM_DIR (DST_DATA_ROOT + DST_IM_DIR_BASE)
 
