@@ -602,8 +602,12 @@ namespace kinect_interface_primesense {
     WIN32_FIND_DATA ffd;
     HANDLE hFind = FindFirstFile(szDir, &ffd);
     if (hFind == INVALID_HANDLE_VALUE) {
-      cout << "GetFilesInDirectory error getting dir info. Check that ";
-      cout << "directory is not empty!" << endl;
+      std::stringstream ss;
+      ss << "GetFilesInDirectory error getting dir info: '";
+      ss << jtil::string_util::ToNarrowString(std::wstring(szDir));
+      ss << "'. Check that directory is not empty!";
+      cout << ss.str();
+      throw std::wruntime_error(ss.str());
       return 0;
     }
 

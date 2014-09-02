@@ -95,7 +95,7 @@ using hand_net::HandCoeffConvnet;
 // *************************************************************
 #define BACKUP_HDD
 // Training Set
-const uint32_t num_im_dirs = 12;
+const uint32_t num_im_dirs = 11;
 string im_dirs[num_im_dirs] = {
   string("hand_depth_data_2013_05_01_1/"),  // JONATHAN
   string("hand_depth_data_2013_05_03_1/"),  // JONATHAN
@@ -576,7 +576,7 @@ int main(int argc, char *argv[]) {
 #if defined(_DEBUG) && defined(_WIN32)
   jtil::debug::EnableMemoryLeakChecks();
   // jtil::debug::EnableAggressiveMemoryLeakChecks();
-  jtil::debug::SetBreakPointOnAlocation(159153);
+  // jtil::debug::SetBreakPointOnAlocation(159153);
 #endif
 
   cout << "Usage:" << endl;
