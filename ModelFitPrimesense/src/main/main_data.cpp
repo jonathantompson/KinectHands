@@ -306,8 +306,9 @@ uint32_t findClosestFrame(const uint32_t i_kinect) {
   return (uint32_t)frame;
 }
 
-void loadCurrentImage(bool calc_hand_image = true) {
+void loadCurrentImage() {
   uint32_t i_match = findClosestFrame(cur_kinect);
+  uint32_t i_match_k0 = findClosestFrame(0);
   //uint32_t i_match = cur_image;
 
   char* file = im_files[cur_kinect][i_match].first;
@@ -325,14 +326,16 @@ void loadCurrentImage(bool calc_hand_image = true) {
       camera_view[i].identity();
       std::cout << "WARNING: " << ss.str() << " doesn't exist.  ";
       std::cout << "Using Identity camera matrix." << std::endl;
+      system("PAUSE");
     }
   }
 
   Float4x4 camera_view_inv, cur_view;
   Float4x4::inverse(camera_view_inv, camera_view[cur_kinect]);
   Float4x4::mult(cur_view, old_camera_view, camera_view_inv);
-  hand_renderer->camera(0)->view()->set(cur_view);
-  hand_renderer->camera(0)->set_view_mat_directly = true;
+  hand_renderer->camera(cur_kinect)->set_view_mat_directly = true;
+  hand_renderer->camera(cur_kinect)->view()->set(cur_view);
+  hand_renderer->camera(cur_kinect)->updateProjection();
 
   // Load in the image
   image_io->LoadCompressedImage(full_filename, 
@@ -347,10 +350,10 @@ void loadCurrentImage(bool calc_hand_image = true) {
     cur_xyz_data, HDLabelMethod::HDFloodfill, label);
 
   // Load in the coeffs
-  string src_file = im_files[cur_kinect][i_match].first;
+  string src_file = im_files[0][i_match_k0].first;  // Load the coeffs for the 0th kinect only
   r_hand->loadFromFile(DIR, string("coeffr_") + src_file);
   cout << "loaded image " << cur_image+1 << " of " << im_files[0].size() <<
-    ", kinect " << cur_kinect << " of " << NUM_KINECTS << ": " << file << endl;
+    ", kinect " << (cur_kinect+1) << " of " << NUM_KINECTS << ": " << file << endl;
 
   if (!found_hand) {
     // skip this data point
@@ -358,35 +361,32 @@ void loadCurrentImage(bool calc_hand_image = true) {
     std::cout << std::endl;
   }
 
-  if (calc_hand_image) {
-    // Create the downsampled hand image, background is at 1 and hand is
-    // from 0 --> 1.  Also calculates the convnet input.
+  // Create the downsampled hand image, background is at 1 and hand is
+  // from 0 --> 1.  Also calculates the convnet input.
 
-    model[0]->setRendererAttachement(false);
-    HandGeometryMesh::setCurrentStaticHandProperties(r_hand->coeff());
+  model[0]->setRendererAttachement(false);
+  HandGeometryMesh::setCurrentStaticHandProperties(r_hand->coeff());
+  model[0]->updateMatrices(r_hand->coeff());
 
-    // Render and get the synthetic depth image
-    GLState::glsViewport(0, 0, 640, 480);
-    float coeff[num_hands * num_coeff_fit];
-    memcpy(coeff, r_hand->coeff(), sizeof(coeff[0])*num_coeff_fit);
-    hand_renderer->drawDepthMap(coeff, num_coeff_fit, (PoseModel**)model, 
-      num_hands, 0, false);
-    hand_renderer->extractDepthMap(cur_synthetic_depth_data);
-    GLState::glsViewport(0, 0, wnd->width(), wnd->height());
+  // Render and get the synthetic depth image
+  GLState::glsViewport(0, 0, 640, 480);
+  float coeff[num_hands * num_coeff_fit];
+  memcpy(coeff, r_hand->coeff(), sizeof(coeff[0])*num_coeff_fit);
+  hand_renderer->drawDepthMap(coeff, num_coeff_fit, (PoseModel**)model, 
+    num_hands, cur_kinect, false);
+  hand_renderer->extractDepthMap(cur_synthetic_depth_data);
+  GLState::glsViewport(0, 0, wnd->width(), wnd->height());
 
-    hand_image_generator_->calcHandImage(cur_depth_data, label);
+  hand_image_generator_->calcHandImage(cur_depth_data, label);
 
-
-    hand_renderer->camera(0)->updateProjection();
-    // Correctly modify the coeff values to those that are learnable by the
-    // convnet (for instance angles are bad --> store cos(x), sin(x) instead)
-    model[0]->handCoeff2CoeffConvnet(r_hand, coeff_convnet,
-      hand_image_generator_->hand_pos_wh(), hand_image_generator_->uvd_com(),
-      *hand_renderer->camera(0)->proj(), *hand_renderer->camera(0)->view());
-    model[0]->handCoeff2UVD(r_hand, uvd_gt,
-      hand_image_generator_->hand_pos_wh(), hand_image_generator_->uvd_com(),
-      *hand_renderer->camera(0)->proj(), *hand_renderer->camera(0)->view());
-  }
+  // Correctly modify the coeff values to those that are learnable by the
+  // convnet (for instance angles are bad --> store cos(x), sin(x) instead)
+  model[0]->handCoeff2CoeffConvnet(r_hand, coeff_convnet,
+    hand_image_generator_->hand_pos_wh(), hand_image_generator_->uvd_com(),
+    *hand_renderer->camera(cur_kinect)->proj(), *hand_renderer->camera(cur_kinect)->view());
+  model[0]->handCoeff2UVD(r_hand, uvd_gt,
+    hand_image_generator_->hand_pos_wh(), hand_image_generator_->uvd_com(),
+    *hand_renderer->camera(cur_kinect)->proj(), *hand_renderer->camera(cur_kinect)->view());
 }
 
 void saveFrame() {
@@ -424,21 +424,10 @@ void saveFrame() {
   snprintf(filename, 255, "synthdepth_%d_%07d.png", cur_kinect+1, cur_image+1);
   Texture::saveRGBToFile(DST_IM_DIR + filename, cur_depth_rgb, src_width, src_height, 
     true);
-  if (cur_kinect == 0) {
-    // Save out the ground truth locations
-    snprintf(filename, 255, "uvd_%d_%07d.bin", cur_kinect+1, cur_image+1);
-    SaveArrayToFile<float>(uvd_gt,
-      HAND_NUM_COEFF_UVD, DST_IM_DIR + filename);
-  } else {
-    // Otherwise, the easiest way to do this is to save out the 2 camera
-    // matrices in Matlab (for camera 1 and camera 2) and then do the
-    // transformation there.
-    float mats[16*2];
-    memcpy(mats, camera_view[0].m, 16*sizeof(mats[0]));
-    memcpy(&mats[16], camera_view[cur_kinect].m, 16*sizeof(mats[0]));
-    snprintf(filename, 255, "mat1matk_%d_%07d.bin", cur_kinect+1, cur_image+1);
-    SaveArrayToFile<float>(mats, 16*2, DST_IM_DIR + filename);
-  }
+  // Save out the ground truth locations
+  snprintf(filename, 255, "uvd_%d_%07d.bin", cur_kinect+1, cur_image+1);
+  SaveArrayToFile<float>(uvd_gt,
+    HAND_NUM_COEFF_UVD, DST_IM_DIR + filename);
 #endif
 }
 
@@ -662,7 +651,7 @@ int main(int argc, char *argv[]) {
       throw std::runtime_error("ERROR: This main routine only works with one "
         "hand (left or right)!");
     }
-    hand_renderer = new ModelRenderer(1);
+    hand_renderer = new ModelRenderer(NUM_KINECTS);
     r_hand = new HandModelCoeff(HandType::RIGHT);
     l_hand = new HandModelCoeff(HandType::LEFT);
 

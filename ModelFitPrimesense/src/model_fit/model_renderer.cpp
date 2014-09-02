@@ -58,7 +58,7 @@ namespace model_fit {
     cameras_ = new Camera*[num_cameras_];
     for (uint32_t i = 0; i < num_cameras_; i++) {
       cameras_[i] = new Camera(&eye_rot, &eye_pos, src_width, src_height, 
-        fov_vert_deg, -10.0f, -3000.0f);
+        fov_vert_deg, -10.0f, -10000.0f);
       cameras_[i]->updateView();
       cameras_[i]->updateProjection();
     }

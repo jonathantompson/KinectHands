@@ -1642,7 +1642,7 @@ int main(int argc, char *argv[]) {
     wnd->registerMouseButCB(&MouseButtonCB);
     wnd->registerMouseWheelCB(NULL);
 
-    // Create instances of the models to fit
+    // Creathand_renderere instances of the models to fit
     coeff = new float*[num_models];
     prev_coeff = new float*[num_models];
     models = new PoseModel*[num_models];

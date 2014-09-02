@@ -4,7 +4,7 @@ clearvars; close all; clc; rng(0);
 
 dataset_dir = '../data/dataset/';
 image_index = 1;
-kinect_index = 2;
+kinect_index = 3;
 filename_prefix = sprintf('%d_%07d', kinect_index, image_index);
 
 %% Load and display an RGB example
