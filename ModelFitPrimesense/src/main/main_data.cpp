@@ -121,17 +121,7 @@ string im_dirs[num_im_dirs] = {
 
 #define DST_IM_DIR_BASE string("dataset/") 
 
-#define SAVE_FILES  // Only enabled when we're not loading processed images
-//#define SAVE_SYNTHETIC_IMAGE  // Use portion of the screen governed by 
-//                              // HandForests, but save synthetic data (only 
-//                              // takes effect when not loading processed images)
-// #define MEASURE_PERFORMANCE_ON_STARTUP  // Use RDF + Convnet to figure out UV   ******* FOR PAPER *******
-                                           // positions and compares against truth
-//#define VISUALIZE_HEAT_MAPS // Requires extra processing...
-
-//#define SAVE_DEPTH_IMAGES  // Save the regular depth files --> Only when SAVE_FILES defined
-//#define SAVE_HPF_IMAGES  // Save the hpf files --> Only when SAVE_FILES defined
-#define SAVE_DATABASE_FILES  // Save to the public database
+#define SAVE_FILES  // Save the database files
 
 #if defined(SAVE_FILES)
   #define DESIRED_PLAYBACK_FPS 100000.0f
@@ -339,7 +329,7 @@ void loadCurrentImage(bool calc_hand_image = true) {
   }
 
   Float4x4 camera_view_inv, cur_view;
-  Float4x4::inverse(camera_view_inv, camera_view[0]);
+  Float4x4::inverse(camera_view_inv, camera_view[cur_kinect]);
   Float4x4::mult(cur_view, old_camera_view, camera_view_inv);
   hand_renderer->camera(0)->view()->set(cur_view);
   hand_renderer->camera(0)->set_view_mat_directly = true;
@@ -375,19 +365,17 @@ void loadCurrentImage(bool calc_hand_image = true) {
     model[0]->setRendererAttachement(false);
     HandGeometryMesh::setCurrentStaticHandProperties(r_hand->coeff());
 
-#ifdef SAVE_SYNTHETIC_IMAGE
+    // Render and get the synthetic depth image
     GLState::glsViewport(0, 0, 640, 480);
     float coeff[num_hands * num_coeff_fit];
     memcpy(coeff, r_hand->coeff(), sizeof(coeff[0])*num_coeff_fit);
     hand_renderer->drawDepthMap(coeff, num_coeff_fit, (PoseModel**)model, 
       num_hands, 0, false);
     hand_renderer->extractDepthMap(cur_synthetic_depth_data);
-    hand_image_generator_->calcHandImage(cur_depth_data, label,
-      create_hpf_images, cur_synthetic_depth_data);
     GLState::glsViewport(0, 0, wnd->width(), wnd->height());
-#else
+
     hand_image_generator_->calcHandImage(cur_depth_data, label);
-#endif
+
 
     hand_renderer->camera(0)->updateProjection();
     // Correctly modify the coeff values to those that are learnable by the
@@ -409,87 +397,47 @@ void saveFrame() {
   string DIR = DATA_ROOT + im_dirs[file_dir_indices[cur_kinect][i_match]];
   uint32_t IM_DIR_hash = HashString(MAX_UINT32, DIR);
 
-#if !defined(SAVE_DATABASE_FILES)
-  // Check that the current coeff doesn't have features points that are off 
-  // screen --> Usually an indicator that the HandDetector messed up
-  for (uint32_t i = 0; i < HandCoeffConvnet::HAND_NUM_COEFF_CONVNET && 
-    found_hand; i+= FEATURE_SIZE) {
-    if (coeff_convnet[i] < 0 || coeff_convnet[i] > 1) {
-      std::cout << " Coeff is off screen.  Not saving files." << std::endl;
-      found_hand = false;
-    }
-    if (coeff_convnet[i+1] < 0 || coeff_convnet[i+1] > 1) {
-      std::cout << " Coeff is off screen.  Not saving files." << std::endl;
-      found_hand = false;
-    }
+  std::stringstream ss;
+
+  // Save the RGB out to a PNG
+  char filename[256];
+  snprintf(filename, 255, "rgb_%d_%07d.png", cur_kinect+1, cur_image+1);
+  Texture::saveRGBToFile(DST_IM_DIR + filename, cur_image_rgb, src_width, src_height, 
+    true);
+  // Save the depth out to a PNG by packing the 16 bits into the G and B
+  // channels
+  for (uint32_t i = 0; i < src_dim; i++) {
+    cur_depth_rgb[i*3] = 0;
+    cur_depth_rgb[i*3+1] = (uint8_t)((cur_depth_data[i] & (int16_t)0x7F00) >> 8);
+    cur_depth_rgb[i*3+2] = (uint8_t)(cur_depth_data[i] & (int16_t)0xFF);
   }
-#else
-  found_hand = true;
-#endif
-
-  if (found_hand) {
-    std::stringstream ss;
-    
-    // Save the cropped image to file:
-#if defined(SAVE_DEPTH_IMAGES)
-    ss << DST_IM_DIR << "processed_" << IM_DIR_hash << "_" << im_files[cur_kinect][i_match].first;
-    SaveArrayToFile<float>(hand_image_generator_->hand_image_cpu(),
-      hand_image_generator_->size_images(), ss.str());
-#endif
-
-    // Save the HPF images to file:
-#if defined(SAVE_HPF_IMAGES)
-    ss.str(string(""));
-    ss << DST_IM_DIR << "hpf_processed_" << IM_DIR_hash << "_" << im_files[cur_kinect][i_match].first;
-    SaveArrayToFile<float>(hand_image_generator_->hpf_hand_image_cpu(),
-      hand_image_generator_->size_images(), ss.str());
-#endif
-
-#if defined(SAVE_DEPTH_IMAGES) || defined(SAVE_HPF_IMAGES)
-    ss.str(string(""));
-    ss << DST_IM_DIR << "coeffr_" << IM_DIR_hash << "_" << im_files[cur_kinect][i_match].first;
-    SaveArrayToFile<float>(coeff_convnet,
-      HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, ss.str());
-    // Don't save LHand data...  It's just blank anyway and will eat into our 
-    // disk IO
-    //ss.str(string(""));
-    //ss << DST_IM_DIR << "coeffl_" << IM_DIR_hash << "_" << im_files[i_match].first;
-    //SaveArrayToFile<float>(blank_coeff,
-    //  HandCoeffConvnet::HAND_NUM_COEFF_CONVNET, ss.str());
-#endif
-
-#if defined(SAVE_DATABASE_FILES)
-    // Save the RGB out to a PNG
-    char filename[256];
-    snprintf(filename, 255, "kinect%d_image%07d_rgb.png", cur_kinect+1, cur_image+1);
-    Texture::saveRGBToFile(DST_IM_DIR + filename, cur_image_rgb, src_width, src_height, 
-      true);
-    // Save the depth out to a PNG by packing the 16 bits into the G and B
-    // channels
-    for (uint32_t i = 0; i < src_dim; i++) {
-      cur_depth_rgb[i*3] = 0;
-      cur_depth_rgb[i*3+1] = (uint8_t)((cur_depth_data[i] & (int16_t)0x7F00) >> 8);
-      cur_depth_rgb[i*3+2] = (uint8_t)(cur_depth_data[i] & (int16_t)0xFF);
-    }
-    snprintf(filename, 255, "kinect%d_image%07d_depth.png", cur_kinect+1, cur_image+1);
-    Texture::saveRGBToFile(DST_IM_DIR + filename, cur_depth_rgb, src_width, src_height, 
-      true);
-    if (cur_kinect == 0) {
-      // Save out the ground truth locations
-      snprintf(filename, 255, "kinect%d_image%07d_uvd.bin", cur_kinect+1, cur_image+1);
-      SaveArrayToFile<float>(uvd_gt,
-        HAND_NUM_COEFF_UVD, DST_IM_DIR + filename);
-    } else {
-      // Otherwise, the easiest way to do this is to save out the 2 camera
-      // matrices in Matlab (for camera 1 and camera 2) and then do the
-      // transformation there.
-      float mats[16*2];
-      memcpy(mats, camera_view[0].m, 16*sizeof(mats[0]));
-      memcpy(&mats[16], camera_view[cur_kinect].m, 16*sizeof(mats[0]));
-      snprintf(filename, 255, "kinect%d_image%07d_mat1matk.bin", cur_kinect+1, cur_image+1);
-      SaveArrayToFile<float>(mats, 16*2, DST_IM_DIR + filename);
-    }
-#endif
+  snprintf(filename, 255, "depth_%d_%07d.png", cur_kinect+1, cur_image+1);
+  Texture::saveRGBToFile(DST_IM_DIR + filename, cur_depth_rgb, src_width, src_height, 
+    true);
+  // Save out the synthetic depth
+  for (uint32_t i = 0; i < src_dim; i++) {
+    int16_t val = static_cast<int16_t>(cur_synthetic_depth_data[i]);
+    cur_depth_rgb[i*3] = 0;
+    cur_depth_rgb[i*3+1] = (uint8_t)((val & (int16_t)0x7F00) >> 8);
+    cur_depth_rgb[i*3+2] = (uint8_t)(val & (int16_t)0xFF);
+  }
+  snprintf(filename, 255, "synthdepth_%d_%07d.png", cur_kinect+1, cur_image+1);
+  Texture::saveRGBToFile(DST_IM_DIR + filename, cur_depth_rgb, src_width, src_height, 
+    true);
+  if (cur_kinect == 0) {
+    // Save out the ground truth locations
+    snprintf(filename, 255, "uvd_%d_%07d.bin", cur_kinect+1, cur_image+1);
+    SaveArrayToFile<float>(uvd_gt,
+      HAND_NUM_COEFF_UVD, DST_IM_DIR + filename);
+  } else {
+    // Otherwise, the easiest way to do this is to save out the 2 camera
+    // matrices in Matlab (for camera 1 and camera 2) and then do the
+    // transformation there.
+    float mats[16*2];
+    memcpy(mats, camera_view[0].m, 16*sizeof(mats[0]));
+    memcpy(&mats[16], camera_view[cur_kinect].m, 16*sizeof(mats[0]));
+    snprintf(filename, 255, "mat1matk_%d_%07d.bin", cur_kinect+1, cur_image+1);
+    SaveArrayToFile<float>(mats, 16*2, DST_IM_DIR + filename);
   }
 #endif
 }
@@ -565,26 +513,6 @@ void renderFrame() {
 
   // Render the images for debugging
   const float* im = hand_image_generator_->hpf_hand_image_cpu();
-  // This version flashes too much
-  //float min = im[0];
-  //float max = im[0];
-  //for (uint32_t i = 1; i < HN_IM_SIZE * HN_IM_SIZE; i++) {
-  //  min = std::min<float>(min, im[i]);
-  //  max = std::max<float>(max, im[i]); 
-  //}
-  //float range = max - min;
-  //for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
-  //  for (uint32_t u = 0; u < HN_IM_SIZE; u++) {
-  //    uint32_t val = (uint32_t)((im[v * HN_IM_SIZE + u] - min)/range * 255.0f);
-  //    // Clamp the value from 0 to 255 (otherwise we'll get wrap around)
-  //    uint8_t val8 = (uint8_t)std::min<uint32_t>(std::max<uint32_t>(val,0),255);
-  //    uint32_t idst = (HN_IM_SIZE-v-1) * HN_IM_SIZE + u;
-  //    // Texture needs to be flipped vertically and 0 --> 255
-  //    tex_data_hpf[idst * 3] = val8;
-  //    tex_data_hpf[idst * 3 + 1] = val8;
-  //    tex_data_hpf[idst * 3 + 2] = val8;
-  //  }
-  //}
   const float scale = 4.0f;
   for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
     for (uint32_t u = 0; u < HN_IM_SIZE; u++) {
@@ -616,8 +544,6 @@ void renderFrame() {
     }
   }
 
-  // hand_image_generator_->annotateFeatsToHandImage(tex_data_depth, coeff_convnet);
-
   for (uint32_t v = 0; v < HN_IM_SIZE; v++) {
     for (uint32_t u = 0; u < HN_IM_SIZE; u++) {
       uint32_t src_index = v * HN_IM_SIZE + u;
@@ -632,170 +558,12 @@ void renderFrame() {
     }
   }
 
-#ifdef VISUALIZE_HEAT_MAPS
-  for (uint32_t cur_hm = F0_TIP_U/FEATURE_SIZE, v = 0; v < HMH; v++) {
-    for (uint32_t u = 0; u < HMW; u++, cur_hm+=NUM_FEATS_PER_FINGER) {
-      if (cur_hm < num_convnet_feats) {
-        // TODO: Calculate the heat map
-        hand_image_generator_->createHeatMap(hm_data, HM_SIZE, 
-          &coeff_convnet[cur_hm * FEATURE_SIZE], HMSTD);
-      } else {
-        for (uint32_t i = 0; i < HM_SIZE * HM_SIZE; i++) {
-          hm_data[i] = 0;
-        }
-      }
-      // Now copy the heatmap into the correct position
-      uint32_t vstart =  v * (HM_SIZE + 1) + 1;
-      uint32_t vend = vstart + HM_SIZE - 1;  // inclusive
-      uint32_t ustart =  u * (HM_SIZE + 1) + 1;
-      uint32_t uend = ustart + HM_SIZE - 1;  // inclusive
-
-    const Float3* color = 
-      &jtil::renderer::colors[cur_hm % jtil::renderer::n_colors];
-    const uint8_t r = (uint8_t)(color->m[0] * 255.0f);
-    const uint8_t g = (uint8_t)(color->m[1] * 255.0f);
-    const uint8_t b = (uint8_t)(color->m[2] * 255.0f);
-
-      for (uint32_t vdst = vstart, vsrc = 0; vdst <= vend; vdst++, vsrc++) {
-        for (uint32_t udst = ustart, usrc = 0; udst <= uend; udst++, usrc++) {
-          uint32_t idst = vdst * HM_TEX_WIDTH + udst;
-          uint32_t isrc = vsrc * HM_SIZE + usrc;
-          hm_tex_data[idst * 4] = (uint8_t)(hm_data[isrc] * r);
-          hm_tex_data[idst * 4 + 1] = (uint8_t)(hm_data[isrc] * g);
-          hm_tex_data[idst * 4 + 2] = (uint8_t)(hm_data[isrc] * b);
-          hm_tex_data[idst * 4 + 3] = 255;
-        }
-      }
-    }
-  }
-
-  //const uint8_t border_red = 25;
-  //const uint8_t border_green = 25;
-  //const uint8_t border_blue = 100;
-
-  const uint8_t border_red = 255;
-  const uint8_t border_green = 255;
-  const uint8_t border_blue = 255;
-
-  // Now add in the borders:
-  for (uint32_t v = 0; v < HMH + 1; v++) {
-    uint32_t vdst = v * (HM_SIZE + 1);
-    for (uint32_t udst = 0; udst < HM_TEX_WIDTH; udst++) {
-      uint32_t idst = vdst * HM_TEX_WIDTH + udst;
-      hm_tex_data[idst * 4] = border_red;
-      hm_tex_data[idst * 4 + 1] = border_green;
-      hm_tex_data[idst * 4 + 2] = border_blue;
-      hm_tex_data[idst * 4 + 3] = 255;
-    }
-  }
-  for (uint32_t u = 0; u < HMW + 1; u++) {
-    uint32_t udst = u * (HM_SIZE + 1);
-    for (uint32_t vdst = 0; vdst < HM_TEX_HEIGHT; vdst++) {
-      uint32_t idst = vdst * HM_TEX_WIDTH + udst;
-      hm_tex_data[idst * 4] = border_red;
-      hm_tex_data[idst * 4 + 1] = border_green; 
-      hm_tex_data[idst * 4 + 2] = border_blue;
-      hm_tex_data[idst * 4 + 3] = 255;
-    }
-  }
-  tex_hm->reloadData((unsigned char*)hm_tex_data);
-#endif
-
   tex->reloadData((unsigned char*)tex_data);
-
-#ifdef VISUALIZE_HEAT_MAPS
-  // Draw to one half of the screen
-  glViewport(0, 0, settings.width, settings.width / 2);
-#endif
 
   render->renderFullscreenQuad(tex);
 
-#ifdef VISUALIZE_HEAT_MAPS
-  //Draw to the other half of the screen
-  glViewport(0, settings.width / 2, settings.width, settings.height - settings.width / 2);
-  render->renderFullscreenQuad(tex_hm, false);
-#endif
-
   wnd->swapBackBuffer();
 }
-
-/*
-uint32_t GetProcessedFilesInDirectory(
-    jtil::data_str::Vector<Triple<char*, int64_t, int64_t>>& files_in_directory, 
-    const string& directory, const uint32_t kinect_num) {
-    std::vector<Triple<char*, int64_t, int64_t>> files;
-#if defined(WIN32) || defined(_WIN32)
-    // Prepare string for use with FindFile functions.  First, copy the
-    // string to a buffer, then append '\*' to the directory name.
-    TCHAR szDir[MAX_PATH];
-    StringCchCopyW(szDir, MAX_PATH, jtil::string_util::ToWideString(directory).c_str());
-    std::wstringstream ss;
-    ss << L"\\processed_*_hands" << kinect_num << L"_*.bin";
-    StringCchCatW(szDir, MAX_PATH, ss.str().c_str());
-
-    // Find the first file in the directory.
-    WIN32_FIND_DATAW ffd;
-    HANDLE hFind = FindFirstFileW(szDir, &ffd);
-    if (hFind == INVALID_HANDLE_VALUE) {
-      cout << "GetFilesInDirectory error getting dir info. Check that ";
-      cout << "directory is not empty!" << endl;
-      return 0;
-    }
-
-    do {
-      if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-      } else {
-        std::string cur_filename = jtil::string_util::ToNarrowString(ffd.cFileName);
-        char* name = new char[cur_filename.length() + 1];
-        strcpy(name, cur_filename.c_str());
-        files.push_back(Triple<char*, int64_t, int64_t>(name, -1, -1));
-      }
-    } while (FindNextFileW(hFind, &ffd) != 0);
-    FindClose(hFind);
-
-#else
-    throw std::wruntime_error("Apple version needs updating!");
-#endif
-    // Now Parse the filenames and get their unique ID number
-    for (uint32_t i = 0; i < files.size(); i++) {
-      std::string str = files.at(i).first;
-      size_t i0 = str.find_first_of("0123456789");  // Database hash start
-      size_t i1 = (uint32_t)str.find_first_not_of("0123456789", i0);  // Database hash end
-      size_t i2 = str.find_first_of("0123456789", i1+1);  // Kinect Number
-      size_t i3 = str.find_first_of("0123456789", i2+1);  // Frame time start
-      size_t i4 = (uint32_t)str.find_first_not_of("0123456789", i3);  // Frame time end
-
-      if (i0 == string::npos || i1 == string::npos || i2 == string::npos || 
-        i3 == string::npos || i4 == string::npos) {
-        throw std::wruntime_error("DepthImagesIO::GetFilesInDirectory() - "
-          "ERROR: Couldn't parse filename!");
-      }
-      std::string database_str = str.substr(i0, i1-i0);
-      std::string frametime_str = str.substr(i3, i4-i3);
-
-      int64_t database_num = jtil::string_util::Str2Num<int64_t>(database_str);
-      int64_t frametime_num = jtil::string_util::Str2Num<int64_t>(frametime_str);
-      files.at(i).second = database_num;
-      files.at(i).third = frametime_num;
-    }
-
-    // Now sort the files by their unique id
-    // Third argument is an inline lambda expression (comparison function)
-    std::cout << "sorting image filenames by timestamp..." << std::endl;
-
-    // Now sort by both dataset and frame number
-    std::sort(files.begin(), files.end(), [](Triple<char*, int64_t, int64_t>& a,
-      Triple<char*, int64_t, int64_t>& b) { return b.second > a.second ? true : b.third > a.third; });
-
-    // Now copy them into the output array
-    files_in_directory.capacity((uint32_t)files.size());
-    for (uint32_t i = 0; i < files.size(); i++) {
-      files_in_directory.pushBack(files.at(i));
-    }
-
-    return files_in_directory.size();
-  };
-*/
 
 using std::cout;
 using std::endl;
@@ -913,83 +681,6 @@ int main(int argc, char *argv[]) {
     for (uint32_t i = 0; i < HandCoeffConvnet::HAND_NUM_COEFF_CONVNET; i++) {
       blank_coeff[i] = 0.0f;
     }
-
-#ifdef MEASURE_PERFORMANCE_ON_STARTUP
-    hn->loadFromFile("../data/handmodel.net.convnet"); 
-    float ave_heatmap_uv_dist_error[num_convnet_feats];
-    float ave_heatmap_uv_dist_sq_error[num_convnet_feats];
-    float ave_heatmap_uv_dist_error_hm[num_convnet_feats];
-    float ave_heatmap_uv_dist_sq_error_hm[num_convnet_feats];
-    for (uint32_t i = 0; i < num_convnet_feats; i++) {
-      ave_heatmap_uv_dist_error[i] = 0;
-      ave_heatmap_uv_dist_sq_error[i] = 0;
-      ave_heatmap_uv_dist_error_hm[i] = 0;
-      ave_heatmap_uv_dist_sq_error_hm[i] = 0;
-    }
-
-    int32_t num_samples = std::min<int32_t>((int32_t)im_files.size(), 10000);
-    for (int32_t i = 0; i < num_samples; i++) {
-      if (i % 100 == 0 || i == num_samples - 1) {
-        std::cout << "measuring error on image " << i + 1 << " of " <<
-          num_samples << std::endl;
-      }
-      cur_image = i;
-      // Note loadCurrentImage will calculate the hand image AND 
-      // calcConvnetHeatMap will also calculate the coeff, so there is some 
-      // redundancy here.
-      loadCurrentImage();
-      hn->calcConvnetHeatMap(cur_depth_data, label);
-      // gauss_coeff - (mean_u, mean_v, std_u, std_v), 640x480
-      const float* gauss_coeff = hn->gauss_coeff();  
-      // gauss_coeff - (mean_u, mean_v, std_u, std_v), 0to1x0to1 (in hm space
-      const float* gauss_coeff_hm = hn->gauss_coeff_hm();
-      const Int4* pos_wh = &hn->image_generator()->hand_pos_wh();
-      for (uint32_t i = 0; i < num_convnet_feats; i++) {
-        // Calculate error in HM space 0 to 1
-        float u_hm = gauss_coeff_hm[i * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU];
-        float v_hm = gauss_coeff_hm[i * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV];
-        float u_hm_target = coeff_convnet[i * FEATURE_SIZE];
-        float v_hm_target = coeff_convnet[i * FEATURE_SIZE + 1];
-        float dist_hm = sqrtf(powf(u_hm-u_hm_target, 2) + powf(v_hm-v_hm_target,2));
-        ave_heatmap_uv_dist_error_hm[i] += dist_hm;
-        ave_heatmap_uv_dist_sq_error_hm[i] += dist_hm * dist_hm;
-
-        // Calculate error in 640x480 space
-        float u = gauss_coeff[i * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU];
-        float v = gauss_coeff[i * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV];
-        float u_target = coeff_convnet[i * FEATURE_SIZE] * 
-          (float)(*pos_wh)[2] + (float)(*pos_wh)[0];
-        float v_target = coeff_convnet[i * FEATURE_SIZE + 1]  * 
-          (float)(*pos_wh)[3] + (float)(*pos_wh)[1];
-        float dist = sqrtf(powf(u-u_target, 2) + powf(v-v_target,2));
-        ave_heatmap_uv_dist_error[i] += dist;
-        ave_heatmap_uv_dist_sq_error[i] += dist * dist;
-      }
-    }
-
-    for (uint32_t i = 0; i < num_convnet_feats; i++) {
-      // Calculate error in hm space
-      ave_heatmap_uv_dist_error_hm[i] /= (float)num_samples;
-      std::cout << "Ave heatmap UV error for feature " << i << " is " << 
-        ave_heatmap_uv_dist_error_hm[i] << std::endl;
-      float std = sqrtf((ave_heatmap_uv_dist_sq_error_hm[i] / (float)num_samples) - 
-        ave_heatmap_uv_dist_error_hm[i]*ave_heatmap_uv_dist_error_hm[i]);
-      std::cout << "Ave heatmap UV error std for feature " << i << " is " << 
-        std << std::endl;
-    }
-
-    for (uint32_t i = 0; i < num_convnet_feats; i++) {
-      // Calculate error in 640x480 space
-      ave_heatmap_uv_dist_error[i] /= (float)num_samples;
-      std::cout << "Ave UV error for feature " << i << " is " << 
-        ave_heatmap_uv_dist_error[i] << std::endl;
-      float std = sqrtf((ave_heatmap_uv_dist_sq_error[i] / (float)num_samples) - 
-        ave_heatmap_uv_dist_error[i]*ave_heatmap_uv_dist_error[i]);
-      std::cout << "Ave UV error std for feature " << i << " is " << 
-        std << std::endl;
-    }
-    cur_image = 0;
-#endif
 
     loadCurrentImage();
     tex = new Texture(GL_RGB8, HN_IM_SIZE * 2, HN_IM_SIZE, GL_RGB, 

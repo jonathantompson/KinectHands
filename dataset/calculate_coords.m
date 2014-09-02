@@ -3,14 +3,14 @@
 clearvars; close all; clc; rng(0);
 
 dataset_dir = '../data/dataset/';
-num_kinects = length(cellstr(ls([dataset_dir 'kinect*_image0000001_depth.png'])));
+num_kinects = length(cellstr(ls([dataset_dir 'depth_*_0000001_.png'])));
 
 % Get the image names
 for k = 1:num_kinects
   if k == 1
-    uvd_fn{k} = cellstr(ls([dataset_dir 'kinect',num2str(k),'_image*_uvd.bin']));
+    uvd_fn{k} = cellstr(ls([dataset_dir 'uvd_',num2str(k),'_*_.bin']));
   else
-    uvd_fn{k} = cellstr(ls([dataset_dir 'kinect',num2str(k),'_image*_mat1matk.bin']));
+    uvd_fn{k} = cellstr(ls([dataset_dir 'mat1matk_',num2str(k),'_*_.bin']));
     assert(length(uvd_fn{k}) == length(uvd_fn{1}));
   end
 end
