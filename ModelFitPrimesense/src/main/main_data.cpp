@@ -110,8 +110,8 @@ string im_dirs[num_im_dirs] = {
   string("hand_depth_data_2013_06_15_5/")   // JONATHAN
 };
 
-// Test Set
 /*
+// Test Set
 const uint32_t num_im_dirs = 2;
 string im_dirs[num_im_dirs] = {
   string("hand_depth_data_2013_05_08_1/"),  // JONATHAN
@@ -294,15 +294,19 @@ uint32_t findClosestFrame(const uint32_t i_kinect) {
     return cur_image;
   }
   int64_t src_timestamp = im_files[0][cur_image].second;
+  uint32_t src_file_index =  file_dir_indices[0][cur_image];
   int32_t i_start = 0;
   int32_t i_end = (int32_t)im_files[i_kinect].size();
-  int32_t frame = i_start;
-  int64_t min_delta_t = std::abs(src_timestamp - im_files[i_kinect][frame].second);
-  for (int32_t i = i_start + 1; i < i_end; i++) {
-    int64_t delta_t = std::abs(src_timestamp - im_files[i_kinect][i].second);
-    if (delta_t < min_delta_t) {
-      min_delta_t = delta_t;
-      frame = i;
+  int32_t frame = -1;
+  int64_t min_delta_t = MAX_INT64;
+  for (int32_t i = i_start; i < i_end; i++) {
+    uint32_t file_index =  file_dir_indices[i_kinect][i];
+    if (file_index == src_file_index) {
+      int64_t delta_t = std::abs(src_timestamp - im_files[i_kinect][i].second);
+      if (delta_t < min_delta_t) {
+        min_delta_t = delta_t;
+        frame = i;
+      }
     }
   }
   return (uint32_t)frame;
@@ -636,23 +640,35 @@ int main(int argc, char *argv[]) {
     
     // Load the Kinect data for fitting from file and process it
     image_io = new DepthImagesIO();
-    for (uint32_t i = 0; i < NUM_KINECTS; i++) {
-      //image_io->GetFilesInDirectory(im_files[i], DATA_ROOT + im_dirs[0], i);
-      image_io->GetFilesInDirectories(im_files[i], file_dir_indices[i], im_dirs, 
-        DATA_ROOT, num_im_dirs, i, NULL);
-      if (im_files[i].size() == 0) {
-        std::cout << "No Files found!" << std::endl;
-  #if defined(WIN32) || defined(_WIN32)
-        system("pause");
-  #endif
-        quit();
-      } else {
-        std::cout << "Loaded " << im_files[i].size() << " frames for kinect ";
-        std::cout << i << std::endl;
+    for (uint32_t i = 0; i < num_im_dirs; i++) {
+      // For the current directory, get all the files from each Kinect
+      Vector<Triple<char*, int64_t, int64_t>> cur_files[NUM_KINECTS];
+      for (uint32_t k = 0; k < NUM_KINECTS; k++) {
+        image_io->GetFilesInDirectory(cur_files[k], DATA_ROOT + im_dirs[i], k,
+          NULL);
+        if (cur_files[k].size() == 0) {
+          std::cout << "No Files found for directory: " << im_dirs[i] << 
+            " kinect " << k << "!" << std::endl;
+#if defined(WIN32) || defined(_WIN32)
+          system("pause");
+#endif
+          quit();
+        } else {
+          std::cout << "Loaded " << cur_files[k].size() << " frames for kinect ";
+          std::cout << k << " directory " << i << std::endl;
+        }
+      }
+      // Now align the kinect images (within the current directory)
+      image_io->AlignKinects(cur_files, NUM_KINECTS);
+
+      // Now add the images to our running total
+      for (uint32_t k = 0; k < NUM_KINECTS; k++) {
+        for (uint32_t j = 0; j < cur_files[k].size(); j++) {
+          im_files[k].pushBack(cur_files[k][j]);  // Transfer ownership of char*
+          file_dir_indices[k].pushBack(i);
+        }
       }
     }
-
-    image_io->AlignKinects(im_files, NUM_KINECTS);
 
     // Attach callback functions for event handling
     wnd->registerKeyboardCB(keyboardCB);

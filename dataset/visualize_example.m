@@ -2,8 +2,8 @@
 % This is a simple script to visualize a training example
 clearvars; close all; clc; rng(0);
 
-dataset_dir = '../data/dataset/';
-image_index = 1000;
+dataset_dir = 'F:\hand_data\dataset\test\';
+image_index = 5000;
 kinect_index = 3;
 filename_prefix = sprintf('%d_%07d', kinect_index, image_index);
 
@@ -52,24 +52,37 @@ set(gcf,'renderer','opengl'); axis vis3d; axis equal; hold on; grid on;
 title('Kinect point cloud');
 
 %% Visualize the hand and the joints in 3D
-points = reshape(xyz, size(xyz,1)*size(xyz,2), 3);
-colors = reshape(rgb, size(rgb,1)*size(rgb,2), 3);
-hand_points = squeeze(convert_uvd_to_xyz(reshape(jnt_uvd, 1, size(jnt_uvd,1), 3)));
-% Collect the points within the AABBOX of the hand
-axis_bounds = [min(hand_points(:,1)) max(hand_points(:,1)) ...
-  min(hand_points(:,3)) max(hand_points(:,3)) ...
-  min(hand_points(:,2)) max(hand_points(:,2))];
-axis_bounds([1 3 5]) = axis_bounds([1 3 5]) - 20;
-axis_bounds([2 4 6]) = axis_bounds([2 4 6]) + 20;
-ipnts = find(points(:,1) >= axis_bounds(1) & points(:,1) <= axis_bounds(2) & ...
-  points(:,2) >= axis_bounds(5) & points(:,2) <= axis_bounds(6) & ...
-  points(:,3) >= axis_bounds(3) & points(:,3) <= axis_bounds(4));
-points = points(ipnts, :);
-colors = double(colors(ipnts, :))/255;
 figure;
-set(gcf, 'Position', [200 200 800 600]);
-plot3(points(:,1), points(:,3), points(:,2), '.'); 
-set(gcf,'renderer','opengl'); axis vis3d; axis equal; hold on; grid on;
-scatter3(hand_points(:,1), hand_points(:,3), hand_points(:,2), 50, jnt_colors, 'Fill','LineWidth', 0.5);
-axis(axis_bounds);
-title('Kinect point cloud (just hand)');
+for i = 1:2
+  subplot(1,2,i);
+  if i == 1
+    uvd = convert_depth_to_uvd(depth);
+  else
+    uvd = convert_depth_to_uvd(synthdepth);
+  end
+  xyz = convert_uvd_to_xyz(uvd);
+  points = reshape(xyz, size(xyz,1)*size(xyz,2), 3);
+  colors = reshape(rgb, size(rgb,1)*size(rgb,2), 3);
+  hand_points = squeeze(convert_uvd_to_xyz(reshape(jnt_uvd, 1, size(jnt_uvd,1), 3)));
+  % Collect the points within the AABBOX of the hand
+  axis_bounds = [min(hand_points(:,1)) max(hand_points(:,1)) ...
+    min(hand_points(:,3)) max(hand_points(:,3)) ...
+    min(hand_points(:,2)) max(hand_points(:,2))];
+  axis_bounds([1 3 5]) = axis_bounds([1 3 5]) - 20;
+  axis_bounds([2 4 6]) = axis_bounds([2 4 6]) + 20;
+  ipnts = find(points(:,1) >= axis_bounds(1) & points(:,1) <= axis_bounds(2) & ...
+    points(:,2) >= axis_bounds(5) & points(:,2) <= axis_bounds(6) & ...
+    points(:,3) >= axis_bounds(3) & points(:,3) <= axis_bounds(4));
+  points = points(ipnts, :);
+  colors = double(colors(ipnts, :))/255;
+  set(gcf, 'Position', [200 200 1200 600]);
+  plot3(points(:,1), points(:,3), points(:,2), '.'); 
+  set(gcf,'renderer','opengl'); axis vis3d; axis equal; hold on; grid on;
+  scatter3(hand_points(:,1), hand_points(:,3), hand_points(:,2), 50, jnt_colors, 'Fill','LineWidth', 0.5);
+  axis(axis_bounds);
+  if i == 1
+    title('Kinect point cloud (just hand)');
+  else
+    title('Synthetic point cloud (just hand)');
+  end
+end

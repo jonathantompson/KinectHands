@@ -2,7 +2,7 @@
 % This is a simple example script to visualize an example
 clearvars; close all; clc; rng(0);
 
-dataset_dir = '../data/dataset/';
+dataset_dir = 'F:\hand_data\dataset\test\';
 num_kinects = length(cellstr(ls([dataset_dir 'depth_*_0000001.png'])));
 
 % Get the image names
