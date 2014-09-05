@@ -2,8 +2,8 @@
 % This is a simple script to visualize a training example
 clearvars; close all; clc; rng(0);
 
-dataset_dir = 'F:\hand_data\dataset\test\';
-image_index = 5000;
+dataset_dir = 'F:\hand_data\dataset\train\';
+image_index = 70000;
 kinect_index = 3;
 filename_prefix = sprintf('%d_%07d', kinect_index, image_index);
 
