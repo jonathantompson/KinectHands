@@ -193,14 +193,12 @@ namespace hand_net {
   }
 
   void HandNet::calcConvnetHeatMap(const int16_t* depth, 
-    const uint8_t* label) {
+    const uint8_t* label, bool flip_convnet_input) {
     if (conv_network_ == NULL || image_generator_ == NULL) {
       std::cout << "HandNet::calcHandCoeff() - ERROR: Convnet not loaded";
       std::cout << " from file!" << std::endl;
     }
 
-    bool flip_convnet_input;
-    GET_SETTING("flip_convnet_input", bool, flip_convnet_input);
     calcHandImage(depth, label, flip_convnet_input);  // Creates HPF hand image
 
     // Copy over the hand images in the input data structures

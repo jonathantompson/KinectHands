@@ -149,7 +149,8 @@ namespace hand_net {
     // calcConvnetHeatMap - Calculates the convnet coeffs (not necessary
     // the same as the coeffs the renderer uses - see above)
     // Result is placed in coeff_convnet
-    void calcConvnetHeatMap(const int16_t* depth, const uint8_t* label);
+    void calcConvnetHeatMap(const int16_t* depth, const uint8_t* label, 
+      bool flip_convnet_input);
     void calcConvnetPose(const int16_t* depth, const uint8_t* label,
       const float smoothing_factor, const uint64_t max_pso_iterations);
     void resetTracking();

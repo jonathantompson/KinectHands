@@ -132,6 +132,8 @@ string im_dirs[num_im_dirs] = {
 
 #define NUM_KINECTS 3
 
+// #define MEASURE_PERFORMANCE_ON_STARTUP
+
 #define HM_SIZE 18*2  // Width and height of each heat map
 #define HMW 4  // Number of heat maps horizontally
 #define HMH 1  // Number of heat maps vertically
@@ -700,6 +702,61 @@ int main(int argc, char *argv[]) {
     for (uint32_t i = 0; i < HandCoeffConvnet::HAND_NUM_COEFF_CONVNET; i++) {
       blank_coeff[i] = 0.0f;
     }
+
+#ifdef MEASURE_PERFORMANCE_ON_STARTUP
+    HandNet* hn = new HandNet();
+    hn->loadFromFile("../data/handmodel.net.convnet"); 
+    int32_t old_cur_image = cur_image;
+    int32_t old_cur_kinect = cur_kinect;
+    int32_t num_samples = (int32_t)im_files[0].size();
+
+    float* puv_hm_space = new float[num_samples * num_convnet_feats * 3];
+    float* puv_im_space = new float[num_samples * num_convnet_feats * 3];
+
+    for (int32_t i = 0; i < num_samples; i++) {
+      cur_image = i;
+      cur_kinect = 0;
+      // Note loadCurrentImage will calculate the hand image AND 
+      // calcConvnetHeatMap will also calculate the coeff, so there is some 
+      // redundancy here.
+      loadCurrentImage();
+      bool flip_covnet_input = false;  // TODO: Should this be true?
+      hn->calcConvnetHeatMap(cur_depth_data, label, flip_covnet_input);
+      // gauss_coeff - (mean_u, mean_v, std_u, std_v), 640x480
+      const float* gauss_coeff = hn->gauss_coeff();  
+      // gauss_coeff - (mean_u, mean_v, std_u, std_v), 0to1x0to1 (in hm space
+      const float* gauss_coeff_hm = hn->gauss_coeff_hm();
+      const Int4* pos_wh = &hn->image_generator()->hand_pos_wh();
+      for (uint32_t j = 0; j < num_convnet_feats; j++) {
+        // Calculate pos in HM space 0 to 1
+        float p_hm = gauss_coeff_hm[j * NUM_COEFFS_PER_GAUSSIAN + GaussAmp];
+        float u_hm = gauss_coeff_hm[j * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU];
+        float v_hm = gauss_coeff_hm[j * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV];
+        puv_hm_space[(i * num_convnet_feats * 3) + j * 3 + 0] = p_hm;
+        puv_hm_space[(i * num_convnet_feats * 3) + j * 3 + 1] = u_hm;
+        puv_hm_space[(i * num_convnet_feats * 3) + j * 3 + 2] = v_hm;
+
+        // Calculate pos in 640x480 space
+        float u = gauss_coeff[j * NUM_COEFFS_PER_GAUSSIAN + GaussMeanU];
+        float v = gauss_coeff[j * NUM_COEFFS_PER_GAUSSIAN + GaussMeanV];
+        puv_im_space[(i * num_convnet_feats * 3) + j * 3 + 0] = p_hm;
+        puv_im_space[(i * num_convnet_feats * 3) + j * 3 + 1] = u;
+        puv_im_space[(i * num_convnet_feats * 3) + j * 3 + 2] = v;
+      }
+    }
+
+    // Dump the results to a binary file
+    SaveArrayToFile<float>(puv_hm_space, num_samples * num_convnet_feats * 3, 
+      DST_IM_DIR + "puv_hm_space.bin");
+    SaveArrayToFile<float>(puv_im_space, num_samples * num_convnet_feats * 3, 
+      DST_IM_DIR + "puv_im_space.bin");
+
+    delete hn;
+    delete[] puv_hm_space;
+    delete[] puv_im_space;
+    cur_image = old_cur_image;
+    cur_kinect = old_cur_kinect;
+#endif
 
     loadCurrentImage();
     tex = new Texture(GL_RGB8, HN_IM_SIZE * 2, HN_IM_SIZE, GL_RGB, 
