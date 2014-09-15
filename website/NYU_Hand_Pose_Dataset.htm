@@ -78,6 +78,7 @@
 
           <h3>Overview</h3>
           <p>The NYU Hand pose dataset contains 8252 test-set and 72757 training-set frames of captured RGBD data with ground-truth hand-pose information.  For each frame, the RGBD data from 3 Kinects is provided: a frontal view and 2 side views. The training set contains samples from a single user only (Jonathan Tompson), while the test set contains samples from two users (Murphy Stein and Jonathan Tompson).  A synthetic re-creation (rendering) of the hand pose is also provided for each view.</p>
+          <p>We also provide the predicted joint locations from our ConvNet (for the test-set) so you can compare performance.  Note: for real-time prediction we used only the depth image from Kinect 1.</p>
           <h3>Citing the dataset</h3>
           <pre><code>@article{tompson14tog,
   author = {Jonathan Tompson and Murphy Stein and Yann Lecun and Ken Perlin}
@@ -97,7 +98,7 @@
             <tr>
               <td align="center" style="font-size:16px"><a href="http://cims.nyu.edu/~tompson/others/TOG_2014_paper_PREPRINT.pdf">TOG'14 paper</a></td>
               <td>&nbsp;</rd>
-              <td align="center" style="font-size:16px"><a href="http://cims.nyu.edu/~tompson/others/paper_presentation_no_videos.pptx">TOG'14 ppt</a></td>
+              <td align="center" style="font-size:16px"><a href="http://cims.nyu.edu/~tompson/others/paper_presentation_no_videos.pptx">SIGGRAPH'14 ppt</a></td>
             </tr>
           </table>
         </div>
@@ -106,12 +107,13 @@
           <h3>Download</h3>
           <p>You can download the dataset here:</p>
 
-          <p><a href="http://blackbox.cs.nyu.edu/nyu_hand_dataset_v1.zip"><i class="icon-download icon-black"></i>nyu_hand_dataset_v1.zip (92 GB)</a></p>
+          <p><a href="http://blackbox.cs.nyu.edu/nyu_hand_dataset_v2.zip"><i class="icon-download icon-black"></i>nyu_hand_dataset_v2.zip (92 GB)</a></p>
       
           <h3>Dataset format</h3>
           <p>The top level directory is structured as follows:</p>
           <ul>
             <li><p><code>visualize_example.m</code> - Example script: loading and displaying one data sample</p></li>
+            <li><p><code>evaluate_predictions.m</code> - Example script: displaying our detector's predicted coordinates and performance</p></li>
             <li>
               <p><code>test</code></p>
               <ul>
@@ -123,6 +125,12 @@
                     <li><code>joint_names</code> - Cell of strings containing the names of the 36 key hand locations</li>
                     <li><code>joint_uvd</code> - 4D Tensor containing the UVD location of each joint in the test-set frames</li>
                     <li><code>joint_xyz</code> - 4D Tensor containing the XYZ location of each joint in the test-set frames</li>
+                  </ul>
+                </li>
+                <li><code>test_predictions.mat</code> - Matlab data containing:
+                  <ul>
+                    <li><code>conv_joint_names</code> - Cell of string containing the names of locations tracked by the ConvNet</li>
+                    <li><code>pred_joint_uvconf</code> - UV and confidence (likelihood) for each tracked joint</li>
                   </ul>
                 </li>
               </ul>

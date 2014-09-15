@@ -112,11 +112,27 @@ string im_dirs[num_im_dirs] = {
 };
 */
 
+/*
 // Test Set
 const uint32_t num_im_dirs = 2;
 string im_dirs[num_im_dirs] = {
   string("hand_depth_data_2013_05_08_1/"),  // JONATHAN
   string("hand_depth_data_2013_05_06_3/"),  // MURPHY
+};
+*/
+
+/*
+// ModelFit Calibration
+const uint32_t num_im_dirs = 1;
+string im_dirs[num_im_dirs] = {
+  string("hand_depth_data_2013_05_08_1_calib/"),  // JONATHAN
+};
+*/
+
+// ModelFit Hand Data
+const uint32_t num_im_dirs = 1;
+string im_dirs[num_im_dirs] = {
+  string("hand_depth_data_2013_05_08_1/"),  // JONATHAN
 };
 
 #define DST_IM_DIR_BASE string("") 
@@ -157,7 +173,8 @@ string im_dirs[num_im_dirs] = {
     #define DATA_ROOT string("./../data/")
   #endif
   //#define DST_DATA_ROOT string("./../data/")  // Save locally
-  #define DST_DATA_ROOT string("F:/hand_data/dataset/test/")  // Save directly to portable hdd
+  //#define DST_DATA_ROOT string("F:/hand_data/dataset/test/")  // Save directly to portable hdd
+  #define DST_DATA_ROOT string("C:/Users/tompson/Documents/GitRepos/ModelFit/data/hand_data/")
 #endif
 #define DST_IM_DIR (DST_DATA_ROOT + DST_IM_DIR_BASE)
 
