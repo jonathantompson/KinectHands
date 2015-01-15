@@ -13,12 +13,12 @@
 #include <iostream>
 #include <thread>
 #include "jtil/math/math_types.h"
-#include "kinect_interface/depth_images_io.h"
-#include "kinect_interface/hand_detector/evaluate_decision_forest.h"
-#include "kinect_interface/hand_detector/generate_decision_tree.h"
-#include "kinect_interface/hand_detector/decision_tree_structs.h"
-#include "kinect_interface/hand_detector/common_tree_funcs.h"
-#include "kinect_interface/hand_detector/forest_io.h"
+#include "kinect_interface_primesense/depth_images_io.h"
+#include "kinect_interface_primesense/hand_detector/evaluate_decision_forest.h"
+#include "kinect_interface_primesense/hand_detector/generate_decision_tree.h"
+#include "kinect_interface_primesense/hand_detector/decision_tree_structs.h"
+#include "kinect_interface_primesense/hand_detector/common_tree_funcs.h"
+#include "kinect_interface_primesense/hand_detector/forest_io.h"
 #include "jtil/string_util/string_util.h"
 #include "jtil/image_util/image_util.h"
 #include "jtil/clk/clk.h"
@@ -33,8 +33,8 @@ using std::runtime_error;
 using std::cout;
 using std::endl;
 using namespace jtil::threading;
-using namespace kinect_interface;
-using namespace kinect_interface::hand_detector;
+using namespace kinect_interface_primesense;
+using namespace kinect_interface_primesense::hand_detector;
 
 typedef enum {
   CorrectLabeling = 0,
@@ -251,7 +251,7 @@ int main(int argc, char *argv[]) {
      
       std::thread* threads = new std::thread[prog_settings.num_workers];
       
-      kinect_interface::hand_detector::GenerateDecisionTree genTree;
+      kinect_interface_primesense::hand_detector::GenerateDecisionTree genTree;
       for (uint32_t i = 0; i < prog_settings.num_trees; i += prog_settings.num_workers) {
         for (uint32_t j = 0; j < prog_settings.num_workers && (i + j) < prog_settings.num_trees; j++) {
           uint32_t cur_tree_index = i + j;
