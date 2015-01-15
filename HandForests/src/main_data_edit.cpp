@@ -20,10 +20,10 @@
 #include <algorithm>
 #include "jtil/math/math_types.h"
 #include "jtil/data_str/vector_managed.h"
-#include "kinect_interface/depth_images_io.h"
-#include "kinect_interface/hand_detector/forest_io.h"
-#include "kinect_interface/hand_detector/hand_detector.h"
-#include "kinect_interface/hand_detector/decision_tree_structs.h"  // MAX_DIST
+#include "kinect_interface_primesense/depth_images_io.h"
+#include "kinect_interface_primesense/hand_detector/forest_io.h"
+#include "kinect_interface_primesense/hand_detector/hand_detector.h"
+#include "kinect_interface_primesense/hand_detector/decision_tree_structs.h"  // MAX_DIST
 #include "jtil/string_util/string_util.h"
 #include "jtil/image_util/image_util.h"
 #include "jtil/clk/clk.h"
@@ -41,8 +41,8 @@ using std::endl;
 using namespace jtil;
 using namespace jtil::data_str;
 using namespace jtil::image_util;
-using namespace kinect_interface;
-using namespace kinect_interface::hand_detector;
+using namespace kinect_interface_primesense;
+using namespace kinect_interface_primesense::hand_detector;
 using namespace jtil::threading;
 
 #define LOAD_PROCESSED_IMAGES
