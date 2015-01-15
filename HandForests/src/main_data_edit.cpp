@@ -33,6 +33,11 @@
 #include "jtil/video/video_stream.h"
 #include "jtorch/jtorch.h"
 #include "jtil/debug_util/debug_util.h"  // Must come last in main.cpp
+#include "jtil/renderer/texture/texture.h"
+
+#if defined(WIN32) || defined(_WIN32)
+  #define snprintf _snprintf_s
+#endif
 
 using std::string;
 using std::runtime_error;
@@ -44,6 +49,7 @@ using namespace jtil::image_util;
 using namespace kinect_interface_primesense;
 using namespace kinect_interface_primesense::hand_detector;
 using namespace jtil::threading;
+using renderer::Texture;
 
 #define LOAD_PROCESSED_IMAGES
 //#define SAFE_FLIPPED
@@ -93,6 +99,7 @@ uint8_t cur_label_data_flipped[src_dim];
 uint8_t cur_redlabel_data[src_dim];
 uint8_t cur_image_rgb[src_dim*3];
 uint8_t cur_image_hsv[src_dim*3];
+uint8_t cur_depth_rgb[src_dim*3];  // Used when exporting to PNG
 
 HandDetector* hd = NULL;
 
@@ -208,6 +215,20 @@ void saveData() {
   }
 #endif
 #endif
+
+   {
+     char filename[256];
+     // Save the depth out to a PNG by packing the 16 bits into the G and B
+     // channels and the labels into the top channel
+     for (uint32_t i = 0; i < src_dim; i++) {
+       cur_depth_rgb[i*3] = cur_label_data[i] == 0 ? 0 : 255;
+       cur_depth_rgb[i*3+1] = (uint8_t)((cur_depth_data[i] & (int16_t)0x7F00) >> 8);
+       cur_depth_rgb[i*3+2] = (uint8_t)(cur_depth_data[i] & (int16_t)0xFF);
+     }
+     snprintf(filename, 255, "/depth_%07d.png", cur_image+1);
+     Texture::saveRGBToFile(IMAGE_DIRECTORY + filename, cur_depth_rgb, 
+       src_width, src_height, true);
+   }
 }
 
 uint8_t screendat[window_width * window_height * 3];
@@ -717,6 +738,7 @@ void shutdown() {
   SAFE_DELETE(image_io);
   SAFE_DELETE_ARR(texture_data);
   SAFE_DELETE(video_stream);
+  Texture::shutdownTextureSystem();
   exit(0);
 }
 
@@ -808,6 +830,8 @@ int main(int argc, char *argv[]) {
       cout << "ERROR: DT_DOWNSAMPLE < 1!" << endl;
       return -1;
     }
+
+    Texture::initTextureSystem();
 
     // Initialize jtorch and use it's OpenCL context:
     const bool use_cpu = false;
